@@ -45,22 +45,26 @@ export default function MonthlyToDateReport() {
     // Mock transactions with correct dates
     const mockTransactions: Transaction[] = [];
 
-    // Add Majdi's salary if it's already paid this month (1st of the month)
-    if (today.date() >= 1) {
-      mockTransactions.push({
-        date: today.startOf('month').format('YYYY-MM-DD'),
-        description: "Majdi's Salary",
-        amount: 3500,
-        type: 'income'
-      });
-    }
+    // Add Majdi's salary (1st and 15th of the month)
+    const majdiPayDates = ['01', '15'];
+    majdiPayDates.forEach(day => {
+      const payDate = today.format(`YYYY-MM-${day}`);
+      if (today.isAfter(dayjs(payDate)) || today.isSame(dayjs(payDate), 'day')) {
+        mockTransactions.push({
+          date: payDate,
+          description: "Majdi's Salary",
+          amount: 4739,
+          type: 'income'
+        });
+      }
+    });
 
     // Add Ruba's bi-weekly salary occurrences
     rubaSalaryDates.forEach(date => {
       mockTransactions.push({
         date,
         description: "Ruba's Salary",
-        amount: 4739,
+        amount: 2168,
         type: 'income'
       });
     });
