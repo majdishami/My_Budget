@@ -88,13 +88,13 @@ export default function DailySummaryDialog({
             <div className="pt-4 border-t">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-sm">
-                  <p className="text-muted-foreground">Total Income</p>
+                  <p className="text-muted-foreground">Total Day's Income</p>
                   <p className="text-lg font-semibold text-green-600 dark:text-green-400">
                     {formatCurrency(dailyIncome)}
                   </p>
                 </div>
                 <div className="text-sm">
-                  <p className="text-muted-foreground">Total Expenses</p>
+                  <p className="text-muted-foreground">Total Day's Expenses</p>
                   <p className="text-lg font-semibold text-red-600 dark:text-red-400">
                     {formatCurrency(dailyBills)}
                   </p>
