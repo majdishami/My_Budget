@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { Income, Bill } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -218,7 +218,6 @@ const Budget = () => {
           </div>
         </div>
       </div>
-      {/* Rest of the component remains unchanged */}
       <div className="container flex-1 py-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="flex flex-col p-4">
@@ -251,7 +250,6 @@ const Budget = () => {
             />
           </Card>
 
-          {/* Add Income Card */}
           <Card className="flex flex-col p-4">
             <div className="text-lg font-semibold mb-2">Add Income</div>
             <Button onClick={() => setIncomeDialogOpen(true)}>Add Income</Button>
@@ -332,7 +330,6 @@ const Budget = () => {
             </Dialog>
           </Card>
 
-          {/* Add Bill Card */}
           <Card className="flex flex-col p-4">
             <div className="text-lg font-semibold mb-2">Add Bill</div>
             <Button onClick={() => setBillDialogOpen(true)}>Add Bill</Button>
