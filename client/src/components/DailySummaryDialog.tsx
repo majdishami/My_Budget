@@ -30,7 +30,6 @@ export default function DailySummaryDialog({
 }: DailySummaryDialogProps) {
   const dailyIncome = dayIncomes.reduce((sum, income) => sum + income.amount, 0);
   const dailyBills = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
-  const dailyNet = dailyIncome - dailyBills;
   const totalNet = totalIncomeUpToToday - totalBillsUpToToday;
 
   const currentDate = dayjs().date(selectedDay).format('MMMM D, YYYY');
@@ -100,14 +99,6 @@ export default function DailySummaryDialog({
                     {formatCurrency(dailyBills)}
                   </p>
                 </div>
-              </div>
-              <div className="mt-4 pt-4 border-t">
-                <p className="text-sm text-muted-foreground">Net Balance for Today</p>
-                <p className={`text-xl font-bold ${
-                  dailyNet >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                }`}>
-                  {formatCurrency(dailyNet)}
-                </p>
               </div>
             </div>
           </Card>
