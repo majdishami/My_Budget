@@ -691,8 +691,20 @@ const Budget = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Expense</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{deletingBill?.name}"? This action cannot be undone.
+            <AlertDialogDescription className="space-y-4">
+              <p>Are you sure you want to delete this expense? This action cannot be undone.</p>
+              {deletingBill && (
+                <div className="mt-4 space-y-2 border rounded-lg p-4 bg-muted/30">
+                  <div className="grid grid-cols-2 gap-2">
+                    <span className="font-medium">Name:</span>
+                    <span>{deletingBill.name}</span>
+                    <span className="font-medium">Amount:</span>
+                    <span>{formatCurrency(deletingBill.amount)}</span>
+                    <span className="font-medium">Day of Month:</span>
+                    <span>{deletingBill.day}</span>
+                  </div>
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -713,9 +725,26 @@ const Budget = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Income</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{deletingIncome?.source}"? This will remove all occurrences of this income.
-              This action cannot be undone.
+            <AlertDialogDescription className="space-y-4">
+              <p>Are you sure you want to delete this income? This will remove all occurrences of this income. This action cannot be undone.</p>
+              {deletingIncome && (
+                <div className="mt-4 space-y-2 border rounded-lg p-4 bg-muted/30">
+                  <div className="grid grid-cols-2 gap-2">
+                    <span className="font-medium">Source:</span>
+                    <span>{deletingIncome.source}</span>
+                    <span className="font-medium">Amount:</span>
+                    <span>{formatCurrency(deletingIncome.amount)}</span>
+                    <span className="font-medium">Date:</span>
+                    <span>{dayjs(deletingIncome.date).format('MMMM D, YYYY')}</span>
+                    {deletingIncome.source === "Ruba's Salary" && (
+                      <>
+                        <span className="font-medium">Type:</span>
+                        <span>Bi-weekly (Every other Friday)</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
