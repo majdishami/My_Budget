@@ -410,7 +410,7 @@ const Budget = () => {
   const handleAddBill = () => {
         setShowAddExpenseDialog(true);
   };
-  
+
   const handleConfirmAddBill = (newBill: Omit<Bill, 'id'>) => {
     const bill: Bill = {
       ...newBill,
@@ -476,10 +476,10 @@ const Budget = () => {
       </aside>
 
       {/* Main content area */}
-      <main className="flex-1 flex flex-col h-screen pl-56">
+      <main className="w-full pl-56 flex flex-col min-h-screen">
         {/* Sticky header */}
         <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div className="space-y-2">
               <h1 className="text-2xl font-bold">
                 My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
@@ -509,7 +509,7 @@ const Budget = () => {
                   ))}
                 </select>
 
-                                <select
+                <select
                   value={selectedDay}
                   onChange={(e) => setSelectedDay(parseInt(e.target.value))}
                   className="p-2 border rounded bg-background min-w-[80px]"
@@ -524,7 +524,7 @@ const Budget = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-4 lg:gap-6">
               <ThemeToggle />
               <div>
                 <p className="text-sm text-muted-foreground">Total Income</p>
@@ -551,10 +551,10 @@ const Budget = () => {
         </Card>
 
         {/* Scrollable calendar content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 p-4 overflow-y-auto">
           <Card className="w-full">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+            <div className="w-full overflow-hidden">
+              <table className="w-full table-fixed border-collapse">
                 <thead className="sticky top-0 bg-background z-10">
                   <tr>
                     {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
@@ -570,7 +570,7 @@ const Budget = () => {
                       {Array.from({ length: 7 }, (_, dayIndex) => {
                         const dayNumber = calendarDays[weekIndex * 7 + dayIndex];
                         if (dayNumber === null) {
-                          return <td key={dayIndex} className="border p-2 bg-muted/10 h-48 w-[14.28%]" />;
+                          return <td key={dayIndex} className="border p-2 bg-muted/10 h-36 lg:h-48" />;
                         }
 
                         const dayIncomes = getIncomeForDay(dayNumber);
@@ -582,7 +582,7 @@ const Budget = () => {
                             key={dayIndex}
                             onClick={() => handleDayClick(dayNumber)}
                             className={cn(
-                              "border p-2 align-top cursor-pointer transition-colors h-48 w-[14.28%]",
+                              "border p-2 align-top cursor-pointer transition-colors h-36 lg:h-48 relative",
                               "hover:bg-accent",
                               isCurrentDay(dayNumber) && "ring-2 ring-primary ring-offset-2 border-primary",
                               selectedDay === dayNumber && "bg-accent/50 font-semibold",
@@ -607,7 +607,7 @@ const Budget = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="space-y-0.5 text-xs">
+                            <div className="space-y-0.5 text-xs overflow-y-auto max-h-[calc(100%-2rem)]">
                               {dayIncomes.length > 0 && (
                                 <div className="space-y-0.5">
                                   <p className="font-medium text-green-600 dark:text-green-400">Income</p>
@@ -657,6 +657,7 @@ const Budget = () => {
         </div>
       </main>
 
+      {/* Rest of the dialogs remain unchanged */}
       <DailySummaryDialog
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
@@ -680,19 +681,20 @@ const Budget = () => {
         onOpenChange={setShowEditDialog}
         onConfirm={handleConfirmBillEdit}
       />
-      
+
       <AddExpenseDialog
         isOpen={showAddExpenseDialog}
         onOpenChange={setShowAddExpenseDialog}
         onConfirm={handleConfirmAddBill}
       />
-        <AddIncomeDialog
+
+      <AddIncomeDialog
         isOpen={showAddIncomeDialog}
         onOpenChange={setShowAddIncomeDialog}
         onConfirm={handleConfirmAddIncome}
       />
-      
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Expense</AlertDialogTitle>
