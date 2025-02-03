@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Income, Bill } from "../types";
+import { Income, Bill } from "@/types";
 import { Pencil, Trash2, Plus, RefreshCw, FileText } from "lucide-react";
 
 interface LeftSidebarProps {
@@ -52,7 +52,6 @@ export function LeftSidebar({
       <div className="space-y-2">
         <h2 className="text-lg font-semibold tracking-tight">Default Income/Bills</h2>
         <div className="grid gap-1">
-          {/* Load Default button will be implemented later */}
           <Button
             variant="outline"
             size="sm"
@@ -71,7 +70,7 @@ export function LeftSidebar({
           {incomes.map((income) => (
             <Card key={income.id} className="p-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{income.source}</span>
+                <span className="text-sm font-medium truncate">{income.name}</span>
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"
@@ -109,7 +108,7 @@ export function LeftSidebar({
           {bills.map((bill) => (
             <Card key={bill.id} className="p-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{bill.name}</span>
+                <span className="text-sm font-medium truncate">{bill.name}</span>
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"
