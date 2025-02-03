@@ -40,6 +40,7 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { EditIncomeDialog } from "@/components/EditIncomeDialog";
 import { EditExpenseDialog } from "@/components/EditExpenseDialog";
+import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 
 dayjs.extend(isBetween);
 
@@ -75,6 +76,7 @@ const Budget = () => {
   const [showDeleteIncomeDialog, setShowDeleteIncomeDialog] = useState(false);
   const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
   const [showDailySummary, setShowDailySummary] = useState(false);
+  const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
 
   const closeSummary = () => {
     setShowDayDialog(false);
@@ -339,7 +341,18 @@ const Budget = () => {
   };
 
   const handleAddBill = () => {
-    setShowAddBillDialog(true);
+    setShowAddExpenseDialog(true);
+  };
+  
+  const handleConfirmAddBill = (newBill: Omit<Bill, 'id'>) => {
+    const bill: Bill = {
+      ...newBill,
+      id: (bills.length + 1).toString()
+    };
+    const newBills = [...bills, bill];
+    setBills(newBills);
+    localStorage.setItem("bills", JSON.stringify(newBills));
+    setShowAddExpenseDialog(false);
   };
 
   const handleReset = () => {
@@ -595,6 +608,12 @@ const Budget = () => {
         isOpen={showEditDialog}
         onOpenChange={setShowEditDialog}
         onConfirm={handleConfirmBillEdit}
+      />
+      
+      <AddExpenseDialog
+        isOpen={showAddExpenseDialog}
+        onOpenChange={setShowAddExpenseDialog}
+        onConfirm={handleConfirmAddBill}
       />
     </div>
   );
