@@ -1,14 +1,13 @@
 export interface Income {
   id: string;
-  name: string;
+  source: string;
   amount: number;
-  occurrence: 'once' | 'monthly' | 'biweekly' | 'weekly';
-  startDate: Date;
+  date: string;
 }
 
 export interface Bill {
   id: string;
   name: string;
   amount: number;
-  dueDate: Date;
+  day: number;
 }

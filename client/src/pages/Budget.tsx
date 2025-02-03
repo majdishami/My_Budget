@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
-import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { Income, Bill } from "@/types";
 import { cn } from "@/lib/utils";
 import { LeftSidebar } from "@/components/LeftSidebar";
@@ -41,507 +40,514 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 
 dayjs.extend(isBetween);
-dayjs.extend(isSameOrAfter);
 
 type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'weekly';
 
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+};
+
 const Budget = () => {
-  // Initialize with a valid date string
-  const today = dayjs('2025-02-03');
+  // Set today to February 2nd, 2025
+  const today = dayjs('2025-02-02');
+  const [selectedYear, setSelectedYear] = useState(today.year());
+  const [selectedMonth, setSelectedMonth] = useState(today.month());
+  const [selectedDay, setSelectedDay] = useState<number>(today.date());
+  const [showDayDialog, setShowDayDialog] = useState(false);
+  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [editingBill, setEditingBill] = useState<Bill | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAddBillDialog, setShowAddBillDialog] = useState(false);
+  const [deletingBill, setDeletingBill] = useState<Bill | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
+  const [showEditIncomeDialog, setShowEditIncomeDialog] = useState(false);
+  const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
+  const [deletingIncome, setDeletingIncome] = useState<Income | null>(null);
+  const [showDeleteIncomeDialog, setShowDeleteIncomeDialog] = useState(false);
+  const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
+  const [showDailySummary, setShowDailySummary] = useState(false);
 
-  const [isDailySummaryOpen, setDailySummaryOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(today.toDate());
-  const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
-  const [billDialogOpen, setBillDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
-
-  const [incomeName, setIncomeName] = useState('');
-  const [incomeAmount, setIncomeAmount] = useState('');
-  const [incomeOccurrence, setIncomeOccurrence] = useState<OccurrenceType>('once');
-  const [incomeStartDate, setIncomeStartDate] = useState<Date>(today.toDate());
-
-  const [billName, setBillName] = useState('');
-  const [billAmount, setBillAmount] = useState('');
-  const [billDueDate, setBillDueDate] = useState<Date>(today.toDate());
-
-  const [incomes, setIncomes] = useState<Income[]>(() => {
-    const storedIncomes = localStorage.getItem('incomes');
-    if (!storedIncomes) return [];
-    try {
-      const parsedIncomes = JSON.parse(storedIncomes);
-      return parsedIncomes.map((income: any) => ({
-        ...income,
-        startDate: dayjs(income.startDate).toDate()
-      }));
-    } catch (e) {
-      console.error('Error parsing incomes:', e);
-      return [];
-    }
-  });
-
-  const [bills, setBills] = useState<Bill[]>(() => {
-    const storedBills = localStorage.getItem('bills');
-    if (!storedBills) return [];
-    try {
-      const parsedBills = JSON.parse(storedBills);
-      return parsedBills.map((bill: any) => ({
-        ...bill,
-        dueDate: dayjs(bill.dueDate).toDate()
-      }));
-    } catch (e) {
-      console.error('Error parsing bills:', e);
-      return [];
-    }
-  });
+  const closeSummary = () => {
+    setShowDayDialog(false);
+  };
 
   useEffect(() => {
-    try {
-      localStorage.setItem('incomes', JSON.stringify(incomes));
-    } catch (e) {
-      console.error('Error saving incomes:', e);
+    // Clear existing data first
+    localStorage.removeItem("incomes");
+    localStorage.removeItem("bills");
+
+    const storedIncomes = localStorage.getItem("incomes");
+    const storedBills = localStorage.getItem("bills");
+
+    if (!storedIncomes) {
+      const today = dayjs();
+      const sampleIncomes: Income[] = [
+        { id: "1", source: "Majdi's Salary", amount: 4739.00, date: today.date(1).toISOString() },
+        { id: "2", source: "Majdi's Salary", amount: 4739.00, date: today.date(15).toISOString() },
+        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" } // Only need one entry for Ruba's salary
+      ];
+      setIncomes(sampleIncomes);
+      localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
+    } else {
+      setIncomes(JSON.parse(storedIncomes));
     }
-  }, [incomes]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('bills', JSON.stringify(bills));
-    } catch (e) {
-      console.error('Error saving bills:', e);
+    if (!storedBills) {
+      const sampleBills: Bill[] = [
+        { id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429.00, day: 1 },
+        { id: "2", name: "Maid's 1st payment", amount: 120.00, day: 1 },
+        { id: "3", name: "Monthly Rent", amount: 3750.00, day: 1 },
+        { id: "4", name: "Sling TV (CC 9550)", amount: 75.00, day: 3 },
+        { id: "5", name: "Cox Internet", amount: 81.00, day: 6 },
+        { id: "6", name: "Water Bill", amount: 80.00, day: 7 },
+        { id: "7", name: "NV Energy Electrical ($100 winter months)", amount: 250.00, day: 7 },
+        { id: "8", name: "TransAmerica Life Insurance", amount: 77.00, day: 9 },
+        { id: "9", name: "Credit Card minimum payments", amount: 225.00, day: 14 },
+        { id: "10", name: "Apple/Google/YouTube (CC 9550)", amount: 130.00, day: 14 },
+        { id: "11", name: "Expenses & Groceries charged on (CC 2647)", amount: 3000.00, day: 16 },
+        { id: "12", name: "Maid's 2nd Payment of the month", amount: 120.00, day: 17 },
+        { id: "13", name: "SoFi Personal Loan", amount: 1915.00, day: 17 },
+        { id: "14", name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75.00, day: 17 },
+        { id: "15", name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704.00, day: 28 }
+      ];
+      setBills(sampleBills);
+      localStorage.setItem("bills", JSON.stringify(sampleBills));
+    } else {
+      setBills(JSON.parse(storedBills));
     }
-  }, [bills]);
+  }, []);
 
-  const handleAddIncome = () => {
-    if (!incomeName || !incomeAmount || !incomeOccurrence || !incomeStartDate) {
-      alert("Please fill all income fields");
-      return;
-    }
-    const newIncome: Income = {
-      id: crypto.randomUUID(),
-      name: incomeName,
-      amount: parseFloat(incomeAmount),
-      occurrence: incomeOccurrence,
-      startDate: incomeStartDate,
-    };
-    setIncomes([...incomes, newIncome]);
-    setIncomeName('');
-    setIncomeAmount('');
-    setIncomeOccurrence('once');
-    setIncomeStartDate(today.toDate());
-    setIncomeDialogOpen(false);
-  };
+  const getIncomeForDay = (day: number) => {
+    if (day <= 0 || day > daysInMonth) return [];
 
-  const handleAddBill = () => {
-    if (!billName || !billAmount || !billDueDate) {
-      alert("Please fill all bill fields");
-      return;
-    }
-    const newBill: Bill = {
-      id: crypto.randomUUID(),
-      name: billName,
-      amount: parseFloat(billAmount),
-      dueDate: billDueDate,
-    };
-    setBills([...bills, newBill]);
-    setBillName('');
-    setBillAmount('');
-    setBillDueDate(today.toDate());
-    setBillDialogOpen(false);
-  };
-
-  const handleDeleteItem = () => {
-    if (deleteItemId) {
-      setIncomes(incomes.filter(income => income.id !== deleteItemId));
-      setBills(bills.filter(bill => bill.id !== deleteItemId));
-      setDeleteItemId(null);
-      setDeleteDialogOpen(false);
-    }
-  };
-
-  const handleOpenDeleteDialog = (id: string) => {
-    setDeleteItemId(id);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleCloseDeleteDialog = () => {
-    setDeleteItemId(null);
-    setDeleteDialogOpen(false);
-  };
-
-  const calculateDailyIncome = (date: Date) => {
-    const currentDate = dayjs(date);
-    let dailyIncome = 0;
-
-    incomes.forEach(income => {
-      const startDate = dayjs(income.startDate);
-
-      if (income.occurrence === 'once' && startDate.isSame(currentDate, 'day')) {
-        dailyIncome += income.amount;
-      } else if (income.occurrence === 'monthly' && startDate.date() === currentDate.date()) {
-        dailyIncome += income.amount;
-      } else if (income.occurrence === 'biweekly' && 
-                currentDate.isSameOrAfter(startDate) && 
-                currentDate.diff(startDate, 'day') % 14 === 0) {
-        dailyIncome += income.amount;
-      } else if (income.occurrence === 'weekly' && 
-                currentDate.isSameOrAfter(startDate) && 
-                currentDate.diff(startDate, 'day') % 7 === 0) {
-        dailyIncome += income.amount;
-      }
-    });
-
-    return dailyIncome;
-  };
-
-  const calculateDailyBills = (date: Date) => {
-    const currentDate = dayjs(date);
-    let dailyBills = 0;
-
-    bills.forEach(bill => {
-      if (dayjs(bill.dueDate).isSame(currentDate, 'day')) {
-        dailyBills += bill.amount;
-      }
-    });
-
-    return dailyBills;
-  };
-
-  const getIncomeForDay = (date: Date) => {
-    const currentDate = dayjs(date);
+    const currentDate = dayjs()
+      .year(selectedYear)
+      .month(selectedMonth)
+      .date(day);
 
     return incomes.filter(income => {
-      const startDate = dayjs(income.startDate);
+      const incomeDate = dayjs(income.date);
 
-      if (income.occurrence === 'once' && startDate.isSame(currentDate, 'day')) {
-        return true;
-      } else if (income.occurrence === 'monthly' && startDate.date() === currentDate.date()) {
-        return true;
-      } else if (income.occurrence === 'biweekly' && 
-                currentDate.isSameOrAfter(startDate) && 
-                currentDate.diff(startDate, 'day') % 14 === 0) {
-        return true;
-      } else if (income.occurrence === 'weekly' && 
-                currentDate.isSameOrAfter(startDate) && 
-                currentDate.diff(startDate, 'day') % 7 === 0) {
-        return true;
+      if (income.source === "Ruba's Salary") {
+        // Check if it's a Friday (5 in dayjs)
+        if (currentDate.day() !== 5) return false;
+
+        // Start from January 10, 2025
+        const startDate = dayjs('2025-01-10');
+
+        // Calculate weeks difference
+        const weeksDiff = currentDate.diff(startDate, 'week');
+
+        // Return true if it's a bi-weekly Friday from the start date
+        return weeksDiff >= 0 && weeksDiff % 2 === 0;
       }
-      return false;
+
+      // For other incomes, check the day of month
+      return incomeDate.date() === day;
     });
   };
 
-  const getBillsForDay = (date: Date) => {
-    const currentDate = dayjs(date);
-    return bills.filter(bill => dayjs(bill.dueDate).isSame(currentDate, 'day'));
+  const getBillsForDay = (day: number) => {
+    if (day <= 0 || day > daysInMonth) return [];
+    return bills.filter(bill => bill.day === day);
   };
 
-  const calculateTotalsUpToDay = (date: Date) => {
-    const currentDate = dayjs(date);
+  const firstDayOfMonth = useMemo(() => {
+    return dayjs(`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`);
+  }, [selectedYear, selectedMonth]);
+
+  const daysInMonth = useMemo(() => {
+    return firstDayOfMonth.daysInMonth();
+  }, [firstDayOfMonth]);
+
+  const firstDayOfWeek = useMemo(() => {
+    // Convert Sunday=0 to Monday=0 by shifting the day number
+    const day = firstDayOfMonth.day();
+    return day === 0 ? 6 : day - 1; // Sunday becomes 6, other days shift down by 1
+  }, [firstDayOfMonth]);
+
+  const calculateTotalsUpToDay = (day: number) => {
     let totalIncome = 0;
     let totalBills = 0;
 
-    for (let i = 1; i <= currentDate.date(); i++) {
-      const dayDate = currentDate.startOf('month').add(i - 1, 'day').toDate();
-      totalIncome += calculateDailyIncome(dayDate);
-      totalBills += calculateDailyBills(dayDate);
+    // Calculate for each day up to the selected day
+    for (let currentDay = 1; currentDay <= day; currentDay++) {
+      // Add incomes for the day
+      const dayIncomes = getIncomeForDay(currentDay);
+      totalIncome += dayIncomes.reduce((sum, income) => sum + income.amount, 0);
+
+      // Add bills for the day
+      const dayBills = getBillsForDay(currentDay);
+      totalBills += dayBills.reduce((sum, bill) => sum + bill.amount, 0);
     }
 
     return { totalIncome, totalBills };
   };
 
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setSelectedDate(date);
-      setDailySummaryOpen(true);
+  const handleDayClick = (day: number) => {
+    if (day > 0 && day <= daysInMonth) {
+      setSelectedDay(day);
+      setShowDailySummary(true);
     }
   };
 
+  const isCurrentDay = (day: number) => {
+    const currentDate = dayjs();
+    return day === currentDate.date() &&
+           selectedMonth === currentDate.month() &&
+           selectedYear === currentDate.year();
+  };
+
+  const calendarDays = useMemo(() => {
+    const totalDays = 42; // 6 weeks × 7 days
+    return Array.from({ length: totalDays }, (_, index) => {
+      const adjustedIndex = index - firstDayOfWeek;
+      return adjustedIndex >= 0 && adjustedIndex < daysInMonth ? adjustedIndex + 1 : null;
+    });
+  }, [daysInMonth, firstDayOfWeek]);
+
+  const monthlyTotals = useMemo(() => {
+    let totalIncome = 0;
+    let totalBills = 0;
+
+    // Calculate total income for the selected month
+    incomes.forEach(income => {
+      const incomeDate = dayjs(income.date);
+
+      if (income.source === "Ruba's Salary") {
+        // For bi-weekly salary, check each Friday in the month
+        const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
+        const lastDayOfMonth = firstDayOfMonth.endOf('month');
+        const startDate = dayjs('2025-01-10');
+
+        // Iterate through each day in the month
+        let currentDate = firstDayOfMonth;
+        while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
+          // Check if it's a Friday and matches bi-weekly schedule
+          if (currentDate.day() === 5) { // Friday
+            const weeksDiff = currentDate.diff(startDate, 'week');
+            if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+              totalIncome += income.amount;
+            }
+          }
+          currentDate = currentDate.add(1, 'day');
+        }
+      } else {
+        // For regular monthly incomes
+        const incomeYear = incomeDate.year();
+        const incomeMonth = incomeDate.month();
+        const incomeDay = incomeDate.date();
+
+        // Create a new date with the selected year/month but same day
+        const adjustedDate = dayjs()
+          .year(selectedYear)
+          .month(selectedMonth)
+          .date(incomeDay);
+
+        // Only count if the day exists in the current month
+        if (adjustedDate.month() === selectedMonth) {
+          totalIncome += income.amount;
+        }
+      }
+    });
+
+    // Calculate total bills for the selected month
+    bills.forEach(bill => {
+      totalBills += bill.amount;
+    });
+
+    return {
+      totalIncome,
+      totalBills,
+      balance: totalIncome - totalBills
+    };
+  }, [incomes, bills, selectedMonth, selectedYear]);
+
+  const handleEditTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+    if (type === 'income') {
+      setEditingIncome(data as Income);
+      setShowEditIncomeDialog(true);
+    } else if (type === 'bill') {
+      setEditingBill(data as Bill);
+      setShowEditDialog(true);
+    }
+  };
+
+  const handleDeleteTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+    if (type === 'income') {
+      setDeletingIncome(data as Income);
+      setShowDeleteIncomeDialog(true);
+    } else {
+      setDeletingBill(data as Bill);
+      setShowDeleteDialog(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (deletingBill) {
+      const newBills = bills.filter(b => b.id !== deletingBill.id);
+      setBills(newBills);
+      localStorage.setItem("bills", JSON.stringify(newBills));
+      setShowDeleteDialog(false);
+      setDeletingBill(null);
+    }
+  };
+
+  const confirmIncomeDelete = () => {
+    if (deletingIncome) {
+      const newIncomes = incomes.filter(i => i.source !== deletingIncome.source);
+      setIncomes(newIncomes);
+      localStorage.setItem("incomes", JSON.stringify(newIncomes));
+      setShowDeleteIncomeDialog(false);
+      setDeletingIncome(null);
+    }
+  };
+
+  const handleAddIncome = () => {
+    setAddIncomeDate(new Date());
+    setShowAddIncomeDialog(true);
+  };
+
+  const handleAddBill = () => {
+    setShowAddBillDialog(true);
+  };
+
+  const handleReset = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
+
+  const years = useMemo(() => {
+    const currentYear = today.year();
+    return Array.from({ length: 21 }, (_, i) => currentYear - 10 + i);
+  }, [today]);
+
+  const months = useMemo(() => (
+    Array.from({ length: 12 }, (_, i) => ({
+      value: i,
+      label: dayjs().month(i).format("MMMM")
+    }))
+  ), []);
+
+  const handleMonthChange = (newMonth: number) => {
+    setSelectedMonth(newMonth);
+    setSelectedDay(1); // Reset to first day of new month
+  };
+
+  const handleYearChange = (newYear: number) => {
+    setSelectedYear(newYear);
+    setSelectedDay(1); // Reset to first day of new year
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <div className="border-b">
-        <div className="container flex items-center justify-between h-16">
-          <LeftSidebar
-            incomes={incomes}
-            bills={bills}
-            onEditTransaction={() => {}}
-            onDeleteTransaction={handleOpenDeleteDialog}
-            onAddIncome={() => setIncomeDialogOpen(true)}
-            onAddBill={() => setBillDialogOpen(true)}
-            onReset={() => {}}
-          />
-          <div className="flex items-center space-x-4">
-            <ThemeToggle />
-          </div>
-        </div>
-      </div>
-
-      <div className="container flex-1 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="flex flex-col p-4">
-            <div className="text-lg font-semibold mb-2">Daily Summary</div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[240px] justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
-                  )}
-                >
-                  {selectedDate ? format(selectedDate, "MMMM dd, yyyy") : <span>Pick a date</span>}
-                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateSelect}
-                />
-              </PopoverContent>
-            </Popover>
-          </Card>
-
-          {/* Add Income Card */}
-          <Card className="flex flex-col p-4">
-            <div className="text-lg font-semibold mb-2">Add Income</div>
-            <Button onClick={() => setIncomeDialogOpen(true)}>Add Income</Button>
-          </Card>
-
-          {/* Add Bill Card */}
-          <Card className="flex flex-col p-4">
-            <div className="text-lg font-semibold mb-2">Add Bill</div>
-            <Button onClick={() => setBillDialogOpen(true)}>Add Bill</Button>
-          </Card>
-        </div>
-
-        <DailySummaryDialog
-          isOpen={isDailySummaryOpen}
-          onOpenChange={setDailySummaryOpen}
-          selectedDay={dayjs(selectedDate).date()}
-          dayIncomes={getIncomeForDay(selectedDate)}
-          dayBills={getBillsForDay(selectedDate)}
-          totalIncomeUpToToday={calculateTotalsUpToDay(selectedDate).totalIncome}
-          totalBillsUpToToday={calculateTotalsUpToDay(selectedDate).totalBills}
+    <div className="min-h-screen flex bg-background">
+      <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
+        <LeftSidebar
+          incomes={incomes}
+          bills={bills}
+          onEditTransaction={handleEditTransaction}
+          onDeleteTransaction={handleDeleteTransaction}
+          onAddIncome={handleAddIncome}
+          onAddBill={handleAddBill}
+          onReset={handleReset}
         />
+      </aside>
 
-        {/* Dialog components for add/edit operations */}
-         <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Income</DialogTitle>
-                  <DialogClose><X className="h-4 w-4" /></DialogClose>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <label className="text-right text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Name
-                    </label>
-                    <input type="text"
-                      value={incomeName}
-                      onChange={(e) => setIncomeName(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <label className="text-right text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Amount
-                    </label>
-                    <input type="number"
-                      value={incomeAmount}
-                      onChange={(e) => setIncomeAmount(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <label className="text-right text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Occurrence
-                    </label>
-                    <Select onValueChange={(value) => setIncomeOccurrence(value as OccurrenceType)}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="once">Once</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="biweekly">Biweekly</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <label className="text-right text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Start Date
-                    </label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !incomeStartDate && "text-muted-foreground"
-                          )}
-                        >
-                          {incomeStartDate ? format(incomeStartDate, 'MMMM dd, yyyy') : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={incomeStartDate}
-                          onSelect={(date) => date && setIncomeStartDate(date)}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={handleAddIncome}>Add Income</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-             <Dialog open={billDialogOpen} onOpenChange={setBillDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Bill</DialogTitle>
-                  <DialogClose><X className="h-4 w-4" /></DialogClose>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <label className="text-right text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Name
-                    </label>
-                    <input type="text"
-                      value={billName}
-                      onChange={(e) => setBillName(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <label className="text-right text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Amount
-                    </label>
-                    <input type="number"
-                      value={billAmount}
-                      onChange={(e) => setBillAmount(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <label className="text-right text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Due Date
-                    </label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !billDueDate && "text-muted-foreground"
-                          )}
-                        >
-                          {billDueDate ? format(billDueDate, 'MMMM dd, yyyy') : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={billDueDate}
-                          onSelect={(date) => date && setBillDueDate(date)}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={handleAddBill}>Add Bill</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-        <Card className="mt-6 p-4">
-          <div className="text-lg font-semibold mb-4">Income</div>
-          {incomes.length === 0 ? (
-            <div className="text-center text-gray-500">No income added yet.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full table-auto">
-                <thead>
-                  <tr className="border-b">
-                    <th className="px-4 py-2 text-left">Name</th>
-                    <th className="px-4 py-2 text-left">Amount</th>
-                    <th className="px-4 py-2 text-left">Occurrence</th>
-                    <th className="px-4 py-2 text-left">Start Date</th>
-                    <th className="px-4 py-2 text-left">Actions</th>
+      <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
+        <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex justify-between items-center">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold">
+                My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+              </h1>
+              <div className="flex items-center gap-2">
+                <select 
+                  value={selectedMonth}
+                  onChange={(e) => handleMonthChange(parseInt(e.target.value))}
+                  className="p-2 border rounded bg-background min-w-[120px]"
+                  aria-label="Select month"
+                >
+                  {months.map(month => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedYear}
+                  onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                  className="p-2 border rounded bg-background min-w-[100px]"
+                  aria-label="Select year"
+                >
+                  {years.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedDay}
+                  onChange={(e) => setSelectedDay(parseInt(e.target.value))}
+                  className="p-2 border rounded bg-background min-w-[80px]"
+                  aria-label="Select day"
+                >
+                  {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
+                    <option key={day} value={day}>
+                      {day.toString().padStart(2, '0')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <ThemeToggle />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Income</p>
+                <p className="text-lg font-semibold text-green-600">
+                  {formatCurrency(monthlyTotals.totalIncome)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Bills</p>
+                <p className="text-lg font-semibold text-red-600">
+                  {formatCurrency(monthlyTotals.totalBills)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Net Balance</p>
+                <p className={`text-lg font-semibold ${
+                  monthlyTotals.balance >= 0 ? "text-green-600" : "text-red-600"
+                }`}>
+                  {formatCurrency(monthlyTotals.balance)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <div className="flex-1 overflow-y-auto">
+          <Card className="m-4">
+            <div className="overflow-hidden">
+              <table className="w-full border-collapse">
+                <thead className="sticky top-0 bg-background z-10">
+                  <tr>
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
+                      <th key={day} className="p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
+                        {day}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {incomes.map((income) => (
-                    <tr key={income.id} className="border-b">
-                      <td className="px-4 py-2">{income.name}</td>
-                      <td className="px-4 py-2">{income.amount}</td>
-                      <td className="px-4 py-2">{income.occurrence}</td>
-                      <td className="px-4 py-2">{format(income.startDate, 'MMMM dd, yyyy')}</td>
-                      <td className="px-4 py-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleOpenDeleteDialog(income.id)}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </td>
+                <tbody className="divide-y">
+                  {Array.from({ length: 6 }, (_, weekIndex) => (
+                    <tr key={weekIndex} className="divide-x">
+                      {Array.from({ length: 7 }, (_, dayIndex) => {
+                        const dayNumber = calendarDays[weekIndex * 7 + dayIndex];
+                        if (dayNumber === null) {
+                          return <td key={dayIndex} className="border p-2 bg-muted/10 h-48 w-[14.28%]" />;
+                        }
+
+                        const dayIncomes = getIncomeForDay(dayNumber);
+                        const dayBills = getBillsForDay(dayNumber);
+                        const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
+
+                        return (
+                          <td
+                            key={dayIndex}
+                            onClick={() => handleDayClick(dayNumber)}
+                            className={cn(
+                              "border p-2 align-top cursor-pointer transition-colors h-48 w-[14.28%]",
+                              "hover:bg-accent",
+                              isCurrentDay(dayNumber) && "ring-2 ring-primary ring-offset-2 border-primary",
+                              selectedDay === dayNumber && "bg-accent/50 font-semibold",
+                              hasTransactions && "shadow-sm"
+                            )}
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <span className={cn(
+                                "font-medium text-lg",
+                                isCurrentDay(dayNumber) && "text-primary font-bold"
+                              )}>
+                                {dayNumber}
+                              </span>
+                              {hasTransactions && (
+                                <div className="flex gap-1">
+                                  {dayIncomes.length > 0 && (
+                                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                                  )}
+                                  {dayBills.length > 0 && (
+                                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-0.5 text-xs">
+                              {dayIncomes.length > 0 && (
+                                <div className="space-y-0.5">
+                                  <p className="font-medium text-green-600 dark:text-green-400">Income</p>
+                                  {dayIncomes.map((income, index) => (
+                                    <div 
+                                      key={income.id} 
+                                      className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1"
+                                    >
+                                      <span className="truncate max-w-[60%]">
+                                        {index + 1}. {income.source}
+                                      </span>
+                                      <span className="font-medium shrink-0">
+                                        {formatCurrency(income.amount)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {dayBills.length > 0 && (
+                                <div className="space-y-0.5">
+                                  <p className="font-medium text-red-600 dark:text-red-400">Expenses</p>
+                                  {dayBills.map((bill, index) => (
+                                    <div 
+                                      key={bill.id} 
+                                      className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
+                                    >
+                                      <span className="truncate max-w-[60%]">
+                                        {index + 1}. {bill.name}
+                                      </span>
+                                      <span className="font-medium shrink-0">
+                                        {formatCurrency(bill.amount)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )}
-        </Card>
-        <Card className="mt-6 p-4">
-          <div className="text-lg font-semibold mb-4">Bills</div>
-          {bills.length === 0 ? (
-            <div className="text-center text-gray-500">No bills added yet.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full table-auto">
-                <thead>
-                  <tr className="border-b">
-                    <th className="px-4 py-2 text-left">Name</th>
-                    <th className="px-4 py-2 text-left">Amount</th>
-                    <th className="px-4 py-2 text-left">Due Date</th>
-                    <th className="px-4 py-2 text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bills.map((bill) => (
-                    <tr key={bill.id} className="border-b">
-                      <td className="px-4 py-2">{bill.name}</td>
-                      <td className="px-4 py-2">{bill.amount}</td>
-                      <td className="px-4 py-2">{format(bill.dueDate, 'MMMM dd, yyyy')}</td>
-                      <td className="px-4 py-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleOpenDeleteDialog(bill.id)}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleCloseDeleteDialog}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteItem}>Delete</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+          </Card>
+        </div>
+      </main>
+
+      <DailySummaryDialog
+        isOpen={showDailySummary}
+        onOpenChange={setShowDailySummary}
+        selectedDay={selectedDay}
+        dayIncomes={getIncomeForDay(selectedDay)}
+        dayBills={getBillsForDay(selectedDay)}
+        totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
+        totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
+      />
     </div>
   );
 };
