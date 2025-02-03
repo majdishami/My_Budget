@@ -2,7 +2,15 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Income, Bill } from "../types";
-import { Pencil, Trash2, Plus, RefreshCw, FileText } from "lucide-react";
+import { 
+  Pencil, 
+  Trash2, 
+  Plus, 
+  RefreshCw, 
+  FileText, 
+  Download,
+  Printer
+} from "lucide-react";
 
 interface LeftSidebarProps {
   incomes: Income[];
@@ -12,6 +20,9 @@ interface LeftSidebarProps {
   onAddIncome: () => void;
   onAddBill: () => void;
   onReset: () => void;
+  onGenerateReport?: () => void;
+  onExportPDF?: () => void;
+  onPrintReport?: () => void;
 }
 
 export function LeftSidebar({
@@ -22,6 +33,9 @@ export function LeftSidebar({
   onAddIncome,
   onAddBill,
   onReset,
+  onGenerateReport,
+  onExportPDF,
+  onPrintReport,
 }: LeftSidebarProps) {
   const [location] = useLocation();
 
@@ -47,6 +61,40 @@ export function LeftSidebar({
             </Button>
           </Link>
         </nav>
+      </div>
+
+      {/* Report Generation Section */}
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold tracking-tight">Reports</h2>
+        <div className="grid gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start"
+            onClick={onGenerateReport}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Generate Report
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start"
+            onClick={onExportPDF}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export PDF
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start"
+            onClick={onPrintReport}
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            Print Report
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2">
