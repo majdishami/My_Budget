@@ -45,7 +45,7 @@ export default function MonthlyToDateReport() {
       mockTransactions.push({
         date: today.startOf('month').format('YYYY-MM-DD'),
         description: "Majdi's Salary",
-        amount: 6000,
+        amount: 3500,  // Corrected Majdi's salary amount
         type: 'income'
       });
     }
