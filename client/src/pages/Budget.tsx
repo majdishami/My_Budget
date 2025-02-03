@@ -1,27 +1,83 @@
 import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
-import { Income, Bill } from "../types";
+import { Income, Bill } from "./types";
 import { cn } from "@/lib/utils";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { DailySummaryDialog } from "@/components/DailySummaryDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/reportUtils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 // Extend dayjs with the isBetween plugin
 dayjs.extend(isBetween);
 
+// Define the types of occurrences for income
+type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'weekly';
+
+// Function to format currency values
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+};
+
 // Main Budget component
 const Budget = () => {
+  // Set today to February 2nd, 2025 for testing purposes
+  const today = dayjs('2025-02-02');
+
   // State hooks for managing selection and data
-  const [selectedYear, setSelectedYear] = useState(dayjs().year());
-  const [selectedMonth, setSelectedMonth] = useState(dayjs().month());
-  const [selectedDay, setSelectedDay] = useState<number>(dayjs().date());
+  const [selectedYear, setSelectedYear] = useState(today.year());
+  const [selectedMonth, setSelectedMonth] = useState(today.month());
+  const [selectedDay, setSelectedDay] = useState<number>(today.date());
   const [showDayDialog, setShowDayDialog] = useState(false);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
+  const [editingBill, setEditingBill] = useState<Bill | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAddBillDialog, setShowAddBillDialog] = useState(false);
+  const [deletingBill, setDeletingBill] = useState<Bill | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
+  const [showEditIncomeDialog, setShowEditIncomeDialog] = useState(false);
+  const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
+  const [deletingIncome, setDeletingIncome] = useState<Income | null>(null);
+  const [showDeleteIncomeDialog, setShowDeleteIncomeDialog] = useState(false);
+  const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
   const [showDailySummary, setShowDailySummary] = useState(false);
 
   // Effect to load income and bill data from localStorage
@@ -220,21 +276,33 @@ const Budget = () => {
     setSelectedDay(1);
   };
 
-  const handleEditTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
-    // Implementation will be added later
+    const handleEditTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+      if (type === 'bill') {
+          setEditingBill(data as Bill);
+          setShowEditDialog(true);
+      } else if (type === 'income') {
+          setEditingIncome(data as Income);
+          setShowEditIncomeDialog(true);
+      }
   };
 
-  const handleDeleteTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
-    // Implementation will be added later
-  };
+    const handleDeleteTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+      if(type === 'bill') {
+        setDeletingBill(data as Bill)
+        setShowDeleteDialog(true)
+      } else if (type === 'income') {
+        setDeletingIncome(data as Income);
+        setShowDeleteIncomeDialog(true);
+      }
+    };
 
-  const handleAddIncome = () => {
-    // Implementation will be added later
-  };
+    const handleAddIncome = () => {
+        setShowAddIncomeDialog(true);
+      };
 
-  const handleAddBill = () => {
-    // Implementation will be added later
-  };
+    const handleAddBill = () => {
+        setShowAddBillDialog(true);
+      };
 
   const handleReset = () => {
     localStorage.clear();
@@ -447,6 +515,275 @@ const Budget = () => {
           totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
           totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
         />
+           <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Edit Bill</DialogTitle>
+                  </DialogHeader>
+                    {editingBill && (
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor="bill-name" className="text-right">Name</label>
+                                <input type="text" id="bill-name"
+                                       className="col-span-3 border rounded p-2"
+                                       value={editingBill.name}
+                                       onChange={(e) => setEditingBill({...editingBill, name: e.target.value})} />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor="bill-amount" className="text-right">Amount</label>
+                                <input type="number" id="bill-amount"
+                                       className="col-span-3 border rounded p-2"
+                                       value={editingBill.amount}
+                                       onChange={(e) => setEditingBill({...editingBill, amount: parseFloat(e.target.value)})}
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor="bill-day" className="text-right">Day</label>
+                                <input type="number" id="bill-day"
+                                       className="col-span-3 border rounded p-2"
+                                       value={editingBill.day}
+                                       onChange={(e) => setEditingBill({...editingBill, day: parseInt(e.target.value)})}
+                                />
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                    <Button type="submit" onClick={() => {
+                        const updatedBills = bills.map(bill => bill.id === editingBill?.id ? {...editingBill} : bill);
+                        setBills(updatedBills)
+                        localStorage.setItem('bills', JSON.stringify(updatedBills));
+                        setShowEditDialog(false)
+                        setEditingBill(null)
+                    }}>Save changes</Button>
+                    <DialogClose asChild>
+                      <Button type="button" variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Bill</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this bill? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => {
+                           const updatedBills = bills.filter(bill => bill.id !== deletingBill?.id);
+                            setBills(updatedBills);
+                            localStorage.setItem('bills', JSON.stringify(updatedBills));
+                            setShowDeleteDialog(false)
+                           setDeletingBill(null);
+                        }}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <Dialog open={showAddBillDialog} onOpenChange={setShowAddBillDialog}>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Bill</DialogTitle>
+                  </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="new-bill-name" className="text-right">Name</label>
+                            <input type="text" id="new-bill-name"
+                                   className="col-span-3 border rounded p-2"
+                                   placeholder="Bill Name"
+                                   />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="new-bill-amount" className="text-right">Amount</label>
+                            <input type="number" id="new-bill-amount"
+                                   className="col-span-3 border rounded p-2"
+                                   placeholder="Amount"
+                                    />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor="new-bill-day" className="text-right">Day</label>
+                                <input type="number" id="new-bill-day"
+                                       className="col-span-3 border rounded p-2"
+                                       placeholder="Day"
+                                />
+                            </div>
+                    </div>
+                    <DialogFooter>
+                    <Button type="submit" onClick={() => {
+                        const name = document.getElementById('new-bill-name') as HTMLInputElement;
+                        const amount = document.getElementById('new-bill-amount') as HTMLInputElement;
+                        const day = document.getElementById('new-bill-day') as HTMLInputElement;
+                        if(name && amount && day) {
+                          const newBill:Bill = {
+                            id: Math.random().toString(),
+                            name: name.value,
+                            amount: parseFloat(amount.value),
+                            day: parseInt(day.value)
+                          }
+                          const updatedBills = [...bills, newBill]
+                            setBills(updatedBills)
+                            localStorage.setItem('bills', JSON.stringify(updatedBills));
+                            setShowAddBillDialog(false)
+                        }
+                    }}>Add Bill</Button>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={showEditIncomeDialog} onOpenChange={setShowEditIncomeDialog}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Edit Income</DialogTitle>
+                    </DialogHeader>
+                    {editingIncome && (
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor="income-source" className="text-right">Source</label>
+                                <input type="text" id="income-source"
+                                       className="col-span-3 border rounded p-2"
+                                       value={editingIncome.source}
+                                       onChange={(e) => setEditingIncome({...editingIncome, source: e.target.value})} />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor="income-amount" className="text-right">Amount</label>
+                                <input type="number" id="income-amount"
+                                       className="col-span-3 border rounded p-2"
+                                       value={editingIncome.amount}
+                                       onChange={(e) => setEditingIncome({...editingIncome, amount: parseFloat(e.target.value)})}
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <label htmlFor="income-date" className="text-right">Date</label>
+                               <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-[240px] justify-start text-left font-normal",
+                                            !editingIncome.date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {editingIncome.date ? format(dayjs(editingIncome.date).toDate(), "PPP") : <span>Pick a date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        date={editingIncome.date ? dayjs(editingIncome.date).toDate() : undefined}
+                                        onSelect={(date) => setEditingIncome({...editingIncome, date: dayjs(date).toISOString()})}
+                                    />
+                                </PopoverContent>
+                               </Popover>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button type="submit" onClick={() => {
+                            const updatedIncomes = incomes.map(income => income.id === editingIncome?.id ? {...editingIncome} : income);
+                            setIncomes(updatedIncomes)
+                            localStorage.setItem('incomes', JSON.stringify(updatedIncomes));
+                            setShowEditIncomeDialog(false)
+                            setEditingIncome(null)
+                        }}>Save changes</Button>
+                        <DialogClose asChild>
+                            <Button type="button" variant="secondary">Cancel</Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <AlertDialog open={showDeleteIncomeDialog} onOpenChange={setShowDeleteIncomeDialog}>
+              <AlertDialogContent>
+                  <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Income</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this income? This action cannot be undone.
+                      </AlertDialogDescription>
+                  </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => {
+                    const updatedIncomes = incomes.filter(income => income.id !== deletingIncome?.id);
+                    setIncomes(updatedIncomes);
+                    localStorage.setItem('incomes', JSON.stringify(updatedIncomes));
+                    setShowDeleteIncomeDialog(false)
+                    setDeletingIncome(null);
+                  }}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+           <Dialog open={showAddIncomeDialog} onOpenChange={setShowAddIncomeDialog}>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Income</DialogTitle>
+                  </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="new-income-source" className="text-right">Source</label>
+                            <input type="text" id="new-income-source"
+                                   className="col-span-3 border rounded p-2"
+                                   placeholder="Income Source"
+                                   />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="new-income-amount" className="text-right">Amount</label>
+                            <input type="number" id="new-income-amount"
+                                   className="col-span-3 borderrounded p-2"
+                                   placeholder="Amount"
+                                    />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                              <label htmlFor="add-income-date" className="text-right">Date</label>
+                               <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-[240px] justify-start text-left font-normal",
+                                            !addIncomeDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {addIncomeDate ? format(addIncomeDate, "PPP") : <span>Pick a date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        date={addIncomeDate}
+                                        onSelect={(date) => setAddIncomeDate(date)}
+                                    />
+                                </PopoverContent>
+                               </Popover>
+                            </div>
+                    </div>
+                    <DialogFooter>
+                    <Button type="submit" onClick={() => {
+                        const source = document.getElementById('new-income-source') as HTMLInputElement;
+                        const amount = document.getElementById('new-income-amount') as HTMLInputElement;
+                        if(source && amount) {
+                          const newIncome:Income = {
+                            id: Math.random().toString(),
+                            source: source.value,
+                            amount: parseFloat(amount.value),
+                            date: dayjs(addIncomeDate).toISOString()
+                          }
+                          const updatedIncomes = [...incomes, newIncome]
+                            setIncomes(updatedIncomes)
+                            localStorage.setItem('incomes', JSON.stringify(updatedIncomes));
+                            setShowAddIncomeDialog(false)
+                            setAddIncomeDate(new Date())
+                        }
+                    }}>Add Income</Button>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
       </main>
     </div>
   );
