@@ -216,6 +216,38 @@ const Budget = () => {
     return dailyBills;
   };
 
+    const getIncomeForDay = (date: Date) => {
+      return incomes.filter(income => {
+        if (income.occurrence === 'once' && dayjs(income.startDate).isSame(date, 'day')) {
+          return true;
+        } else if (income.occurrence === 'monthly' && dayjs(income.startDate).date() === dayjs(date).date()) {
+          return true;
+        } else if (income.occurrence === 'biweekly' && dayjs(date).isSameOrAfter(income.startDate) && dayjs(date).diff(income.startDate, 'day') % 14 === 0) {
+         return true;
+        }
+         else if (income.occurrence === 'weekly' && dayjs(date).isSameOrAfter(income.startDate) && dayjs(date).diff(income.startDate, 'day') % 7 === 0) {
+          return true;
+        }
+        return false;
+      });
+    };
+
+    const getBillsForDay = (date: Date) => {
+      return bills.filter(bill => dayjs(bill.dueDate).isSame(date, 'day'));
+    };
+
+    const calculateTotalsUpToDay = (day: number) => {
+      let totalIncome = 0;
+      let totalBills = 0;
+
+      for (let i = 1; i <= day; i++) {
+        const currentDate = dayjs(selectedDate).set('date', i).toDate();
+        totalIncome += calculateDailyIncome(currentDate);
+        totalBills += calculateDailyBills(currentDate);
+      }
+      return { totalIncome, totalBills };
+    };
+
   const dailySummary = useMemo(() => {
     const formattedDate = format(selectedDate, 'MMMM dd, yyyy');
     const income = calculateDailyIncome(selectedDate);
@@ -282,8 +314,12 @@ const Budget = () => {
             </Popover>
             <DailySummaryDialog
               isOpen={isDailySummaryOpen}
-              onClose={() => setDailySummaryOpen(false)}
-              dailySummary={dailySummary}
+              onOpenChange={setDailySummaryOpen}
+              selectedDay={selectedDate.getDate()}
+              dayIncomes={getIncomeForDay(selectedDate)}
+              dayBills={getBillsForDay(selectedDate)}
+              totalIncomeUpToToday={calculateTotalsUpToDay(selectedDate.getDate()).totalIncome}
+              totalBillsUpToToday={calculateTotalsUpToDay(selectedDate.getDate()).totalBills}
             />
           </Card>
 
