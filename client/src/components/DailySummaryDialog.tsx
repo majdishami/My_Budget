@@ -17,7 +17,7 @@ interface DailySummaryDialogProps {
   };
 }
 
-export function DailySummaryDialog({
+export default function DailySummaryDialog({
   isOpen,
   onClose,
   dailySummary

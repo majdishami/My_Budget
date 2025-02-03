@@ -7,7 +7,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { DailySummaryDialog } from "@/components/DailySummaryDialog";
+import DailySummaryDialog from "@/components/DailySummaryDialog";
 import {
   Dialog,
   DialogContent,
