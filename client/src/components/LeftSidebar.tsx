@@ -7,7 +7,9 @@ import {
   FileText, 
   Calendar,
   ChartBar,
-  FileBarChart
+  FileBarChart,
+  Edit,
+  Trash
 } from "lucide-react";
 import {
   Select,
@@ -38,50 +40,49 @@ export function LeftSidebar({
 }: LeftSidebarProps) {
   return (
     <div className="space-y-6">
-      {/* Income Section */}
+      {/* Expenses Section */}
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold px-2">Income</h2>
+        <h2 className="text-lg font-semibold px-2">Expenses</h2>
         <div className="space-y-2">
-          {/* Edit Income Button with Dropdown */}
           <Select onValueChange={(value) => {
-            const income = incomes.find(i => i.id === value);
-            if (income) onEditTransaction('income', income);
+            const bill = bills.find(b => b.id === value);
+            if (bill) onEditTransaction('bill', bill);
           }}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Edit Income" />
-            </SelectTrigger>
+            <Button variant="ghost" size="sm" className="w-full justify-start">
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Expense
+            </Button>
             <SelectContent>
-              {incomes.map((income) => (
-                <SelectItem key={income.id} value={income.id}>
-                  {income.source}
+              {bills.map((bill) => (
+                <SelectItem key={bill.id} value={bill.id}>
+                  {bill.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          {/* Add Income Button */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="w-full"
-            onClick={onAddIncome}
+            className="w-full justify-start"
+            onClick={onAddBill}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Add Income
+            Add Expense
           </Button>
 
-          {/* Delete Income Button with Dropdown */}
           <Select onValueChange={(value) => {
-            const income = incomes.find(i => i.id === value);
-            if (income) onDeleteTransaction('income', income);
+            const bill = bills.find(b => b.id === value);
+            if (bill) onDeleteTransaction('bill', bill);
           }}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Delete Income" />
-            </SelectTrigger>
+            <Button variant="ghost" size="sm" className="w-full justify-start">
+              <Trash className="mr-2 h-4 w-4" />
+              Delete Expense
+            </Button>
             <SelectContent>
-              {incomes.map((income) => (
-                <SelectItem key={income.id} value={income.id}>
-                  {income.source}
+              {bills.map((bill) => (
+                <SelectItem key={bill.id} value={bill.id}>
+                  {bill.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -89,50 +90,49 @@ export function LeftSidebar({
         </div>
       </div>
 
-      {/* Expenses Section */}
+      {/* Income Section */}
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold px-2">Expenses</h2>
+        <h2 className="text-lg font-semibold px-2">Income</h2>
         <div className="space-y-2">
-          {/* Edit Expense Button with Dropdown */}
           <Select onValueChange={(value) => {
-            const bill = bills.find(b => b.id === value);
-            if (bill) onEditTransaction('bill', bill);
+            const income = incomes.find(i => i.id === value);
+            if (income) onEditTransaction('income', income);
           }}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Edit Expense" />
-            </SelectTrigger>
+            <Button variant="ghost" size="sm" className="w-full justify-start">
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Income
+            </Button>
             <SelectContent>
-              {bills.map((bill) => (
-                <SelectItem key={bill.id} value={bill.id}>
-                  {bill.name}
+              {incomes.map((income) => (
+                <SelectItem key={income.id} value={income.id}>
+                  {income.source}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          {/* Add Expense Button */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="w-full"
-            onClick={onAddBill}
+            className="w-full justify-start"
+            onClick={onAddIncome}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Add Expense
+            Add Income
           </Button>
 
-          {/* Delete Expense Button with Dropdown */}
           <Select onValueChange={(value) => {
-            const bill = bills.find(b => b.id === value);
-            if (bill) onDeleteTransaction('bill', bill);
+            const income = incomes.find(i => i.id === value);
+            if (income) onDeleteTransaction('income', income);
           }}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Delete Expense" />
-            </SelectTrigger>
+            <Button variant="ghost" size="sm" className="w-full justify-start">
+              <Trash className="mr-2 h-4 w-4" />
+              Delete Income
+            </Button>
             <SelectContent>
-              {bills.map((bill) => (
-                <SelectItem key={bill.id} value={bill.id}>
-                  {bill.name}
+              {incomes.map((income) => (
+                <SelectItem key={income.id} value={income.id}>
+                  {income.source}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -200,9 +200,9 @@ export function LeftSidebar({
       {/* Reset Section */}
       <div className="pt-4">
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className="w-full"
+          className="w-full justify-start"
           onClick={onReset}
         >
           <RefreshCw className="mr-2 h-4 w-4" />
