@@ -5,7 +5,6 @@ import dayjs from 'dayjs';
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -21,32 +20,47 @@ interface Transaction {
 
 export default function MonthlyToDateReport() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const today = dayjs();
+  const today = dayjs('2025-02-03'); // Current date from context
   const startOfMonth = today.startOf('month');
 
   useEffect(() => {
-    // Simulated data - replace with actual API call
+    // Calculate Ruba's bi-weekly salary dates
+    const rubaStartDate = dayjs('2025-01-12'); // Starting from a known pay date
+    const rubaSalaryDates: string[] = [];
+    let currentDate = rubaStartDate;
+
+    while (currentDate.isBefore(today) || currentDate.isSame(today, 'day')) {
+      if (currentDate.month() === today.month()) {
+        rubaSalaryDates.push(currentDate.format('YYYY-MM-DD'));
+      }
+      currentDate = currentDate.add(14, 'day');
+    }
+
+    // Mock transactions with correct dates
     const mockTransactions: Transaction[] = [
+      // Majdi's monthly salary (1st of each month)
       {
-        date: '2024-02-01',
+        date: '2025-02-01',
+        description: "Majdi's Salary",
+        amount: 6000,
+        type: 'income'
+      },
+      // Ruba's bi-weekly salary
+      ...rubaSalaryDates.map(date => ({
+        date,
         description: "Ruba's Salary",
         amount: 4739,
         type: 'income'
-      },
+      })),
+      // Regular expenses
       {
-        date: '2024-02-01',
+        date: '2025-02-01',
         description: 'Monthly Rent',
         amount: 3750,
         type: 'expense'
       },
       {
-        date: '2024-02-02',
-        description: 'Freelance Work',
-        amount: 1200,
-        type: 'income'
-      },
-      {
-        date: '2024-02-02',
+        date: '2025-02-01',
         description: 'Utilities',
         amount: 250,
         type: 'expense'
@@ -54,7 +68,7 @@ export default function MonthlyToDateReport() {
     ];
 
     setTransactions(mockTransactions);
-  }, []);
+  }, [today]);
 
   const totals = transactions.reduce(
     (acc, transaction) => {
@@ -127,6 +141,7 @@ export default function MonthlyToDateReport() {
             <TableBody>
               {transactions
                 .filter(t => t.type === 'income')
+                .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
                 .map((transaction, index) => (
                   <TableRow key={index}>
                     <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
@@ -157,6 +172,7 @@ export default function MonthlyToDateReport() {
             <TableBody>
               {transactions
                 .filter(t => t.type === 'expense')
+                .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
                 .map((transaction, index) => (
                   <TableRow key={index}>
                     <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
