@@ -77,7 +77,7 @@ const Budget = () => {
   const [showDeleteIncomeDialog, setShowDeleteIncomeDialog] = useState(false);
   const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
   const [showDailySummary, setShowDailySummary] = useState(false);
-    const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
+  const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
 
 
   const closeSummary = () => {
@@ -286,7 +286,7 @@ const Budget = () => {
     }
   };
 
-    const handleDeleteTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+  const handleDeleteTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
     if (type === 'income') {
       setDeletingIncome(data as Income);
       setShowDeleteIncomeDialog(true);
@@ -439,7 +439,7 @@ const Budget = () => {
     }))
   ), []);
 
-    const handleMonthChange = (newMonth: number) => {
+  const handleMonthChange = (newMonth: number) => {
     setSelectedMonth(newMonth);
     setSelectedDay(1); // Reset to first day of new month
   };
@@ -662,6 +662,8 @@ const Budget = () => {
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
         selectedDay={selectedDay}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
         dayIncomes={getIncomeForDay(selectedDay)}
         dayBills={getBillsForDay(selectedDay)}
         totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}

@@ -13,6 +13,8 @@ interface DailySummaryDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   selectedDay: number;
+  selectedMonth: number;
+  selectedYear: number;
   dayIncomes: Income[];
   dayBills: Bill[];
   totalIncomeUpToToday: number;
@@ -23,6 +25,8 @@ export default function DailySummaryDialog({
   isOpen,
   onOpenChange,
   selectedDay,
+  selectedMonth,
+  selectedYear,
   dayIncomes,
   dayBills,
   totalIncomeUpToToday,
@@ -32,7 +36,11 @@ export default function DailySummaryDialog({
   const dailyBills = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
   const totalNet = totalIncomeUpToToday - totalBillsUpToToday;
 
-  const currentDate = dayjs().date(selectedDay).format('MMMM D, YYYY');
+  const currentDate = dayjs()
+    .year(selectedYear)
+    .month(selectedMonth)
+    .date(selectedDay)
+    .format('MMMM D, YYYY');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
