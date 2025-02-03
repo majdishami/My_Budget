@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import dayjs from "dayjs";
 
 interface LeftSidebarProps {
   incomes: Income[];
@@ -38,6 +39,45 @@ export function LeftSidebar({
   onAddBill,
   onReset,
 }: LeftSidebarProps) {
+  // Calculate all income occurrences for the current month
+  const getMonthlyIncomeOccurrences = () => {
+    const currentDate = dayjs();
+    const startOfMonth = currentDate.startOf('month');
+    const endOfMonth = currentDate.endOf('month');
+    const startDate = dayjs('2025-01-10'); // Ruba's salary start date
+
+    const occurrences: Income[] = [];
+
+    incomes.forEach(income => {
+      if (income.source === "Ruba's Salary") {
+        // Calculate bi-weekly occurrences
+        let checkDate = startDate.clone();
+        while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
+          if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
+            if (checkDate.day() === 5) { // Friday
+              const weeksDiff = checkDate.diff(startDate, 'week');
+              if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+                occurrences.push({
+                  ...income,
+                  date: checkDate.toISOString(),
+                  id: `${income.id}-${checkDate.format('YYYY-MM-DD')}`
+                });
+              }
+            }
+          }
+          checkDate = checkDate.add(1, 'day');
+        }
+      } else {
+        // Regular monthly incomes
+        occurrences.push(income);
+      }
+    });
+
+    return occurrences;
+  };
+
+  const monthlyIncomes = getMonthlyIncomeOccurrences();
+
   return (
     <div className="space-y-6">
       {/* Expenses Section */}
@@ -99,7 +139,7 @@ export function LeftSidebar({
         <h2 className="text-lg font-semibold px-2">Income</h2>
         <div className="space-y-2">
           <Select onValueChange={(value) => {
-            const income = incomes.find(i => i.id === value);
+            const income = monthlyIncomes.find(i => i.id === value);
             if (income) onEditTransaction('income', income);
           }}>
             <SelectTrigger className="w-full justify-start">
@@ -109,9 +149,9 @@ export function LeftSidebar({
               </Button>
             </SelectTrigger>
             <SelectContent>
-              {incomes.map((income) => (
+              {monthlyIncomes.map((income) => (
                 <SelectItem key={income.id} value={income.id}>
-                  {income.source}
+                  {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -128,7 +168,7 @@ export function LeftSidebar({
           </Button>
 
           <Select onValueChange={(value) => {
-            const income = incomes.find(i => i.id === value);
+            const income = monthlyIncomes.find(i => i.id === value);
             if (income) onDeleteTransaction('income', income);
           }}>
             <SelectTrigger className="w-full justify-start">
@@ -138,9 +178,9 @@ export function LeftSidebar({
               </Button>
             </SelectTrigger>
             <SelectContent>
-              {incomes.map((income) => (
+              {monthlyIncomes.map((income) => (
                 <SelectItem key={income.id} value={income.id}>
-                  {income.source}
+                  {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
                 </SelectItem>
               ))}
             </SelectContent>
