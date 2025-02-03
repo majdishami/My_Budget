@@ -47,8 +47,17 @@ dayjs.extend(isSameOrAfter);
 type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'weekly';
 
 const Budget = () => {
+  // Parse the initial date using dayjs to ensure valid date handling
+  const initialDateStr = '2025-02-03';
+  const initialDate = dayjs(initialDateStr);
+
+  if (!initialDate.isValid()) {
+    console.error('Invalid initial date');
+    return <div>Error initializing application</div>;
+  }
+
   const [isDailySummaryOpen, setDailySummaryOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(initialDate.toDate());
   const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
   const [billDialogOpen, setBillDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -57,11 +66,11 @@ const Budget = () => {
   const [incomeName, setIncomeName] = useState('');
   const [incomeAmount, setIncomeAmount] = useState('');
   const [incomeOccurrence, setIncomeOccurrence] = useState<OccurrenceType>('once');
-  const [incomeStartDate, setIncomeStartDate] = useState<Date>(new Date());
+  const [incomeStartDate, setIncomeStartDate] = useState<Date>(initialDate.toDate());
 
   const [billName, setBillName] = useState('');
   const [billAmount, setBillAmount] = useState('');
-  const [billDueDate, setBillDueDate] = useState<Date>(new Date());
+  const [billDueDate, setBillDueDate] = useState<Date>(initialDate.toDate());
 
   const [incomes, setIncomes] = useState<Income[]>(() => {
     const storedIncomes = localStorage.getItem('incomes');
@@ -125,7 +134,7 @@ const Budget = () => {
     setIncomeName('');
     setIncomeAmount('');
     setIncomeOccurrence('once');
-    setIncomeStartDate(new Date());
+    setIncomeStartDate(initialDate.toDate());
     setIncomeDialogOpen(false);
   };
 
@@ -143,7 +152,7 @@ const Budget = () => {
     setBills([...bills, newBill]);
     setBillName('');
     setBillAmount('');
-    setBillDueDate(new Date());
+    setBillDueDate(initialDate.toDate());
     setBillDialogOpen(false);
   };
 
