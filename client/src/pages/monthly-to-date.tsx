@@ -25,23 +25,6 @@ export default function MonthlyToDateReport() {
   const endOfMonth = today.endOf('month');
 
   useEffect(() => {
-    // Calculate Ruba's bi-weekly salary dates based on the pay schedule
-    const rubaStartDate = dayjs('2025-01-10'); // First pay date
-    let checkDate = rubaStartDate.clone();
-    const rubaSalaryDates: string[] = [];
-
-    while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
-      if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
-        if (checkDate.day() === 5) { // Friday
-          const weeksDiff = checkDate.diff(rubaStartDate, 'week');
-          if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
-            rubaSalaryDates.push(checkDate.format('YYYY-MM-DD'));
-          }
-        }
-      }
-      checkDate = checkDate.add(1, 'day');
-    }
-
     // Mock transactions with correct dates
     const mockTransactions: Transaction[] = [];
 
@@ -49,7 +32,8 @@ export default function MonthlyToDateReport() {
     const majdiPayDates = ['01', '15'];
     majdiPayDates.forEach(day => {
       const payDate = today.format(`YYYY-MM-${day}`);
-      if (today.isAfter(dayjs(payDate)) || today.isSame(dayjs(payDate), 'day')) {
+      // Only include if the pay date is not after today
+      if (dayjs(payDate).isSame(today, 'day') || dayjs(payDate).isBefore(today)) {
         mockTransactions.push({
           date: payDate,
           description: "Majdi's Salary",
@@ -59,15 +43,22 @@ export default function MonthlyToDateReport() {
       }
     });
 
-    // Add Ruba's bi-weekly salary occurrences
-    rubaSalaryDates.forEach(date => {
-      mockTransactions.push({
-        date,
-        description: "Ruba's Salary",
-        amount: 2168,
-        type: 'income'
-      });
-    });
+    // Calculate Ruba's bi-weekly salary dates
+    const rubaStartDate = dayjs('2025-01-10'); // First pay date
+    let nextPayDate = rubaStartDate;
+
+    // Find the applicable pay dates for this month up to today
+    while (nextPayDate.isBefore(today) || nextPayDate.isSame(today, 'day')) {
+      if (nextPayDate.month() === today.month() && nextPayDate.date() <= today.date()) {
+        mockTransactions.push({
+          date: nextPayDate.format('YYYY-MM-DD'),
+          description: "Ruba's Salary",
+          amount: 2168,
+          type: 'income'
+        });
+      }
+      nextPayDate = nextPayDate.add(14, 'day');
+    }
 
     // Add regular monthly expenses
     mockTransactions.push({
