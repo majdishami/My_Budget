@@ -9,8 +9,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { DailySummaryDialog } from "@/components/DailySummaryDialog";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/reportUtils";
-import { jsPDF } from 'jspdf';
-import { useToast } from "@/hooks/use-toast";
 
 // Extend dayjs with the isBetween plugin
 dayjs.extend(isBetween);
@@ -242,56 +240,6 @@ const Budget = () => {
     localStorage.clear();
     window.location.reload();
   };
-  
-    const { toast } = useToast();
-
-  const handleGenerateReport = () => {
-    // Navigate to reports page
-    window.location.href = '/reports';
-  };
-
-  const handleExportPDF = async () => {
-    try {
-      const doc = new jsPDF();
-
-      // Add title
-      doc.setFontSize(20);
-      doc.text('Budget Report', 105, 15, { align: 'center' });
-
-      // Add date
-      doc.setFontSize(12);
-      doc.text(
-        `Generated on: ${dayjs().format('MMMM D, YYYY')}`,
-        105,
-        25,
-        { align: 'center' }
-      );
-
-      // Add summary
-      doc.text('Monthly Summary', 14, 40);
-      doc.text(`Total Income: ${formatCurrency(monthlyTotals.totalIncome)}`, 14, 50);
-      doc.text(`Total Bills: ${formatCurrency(monthlyTotals.totalBills)}`, 14, 60);
-      doc.text(`Net Balance: ${formatCurrency(monthlyTotals.balance)}`, 14, 70);
-
-      doc.save('budget-report.pdf');
-
-      toast({
-        title: "Success",
-        description: "PDF report has been generated and downloaded",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF report",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handlePrintReport = () => {
-    window.print();
-  };
-
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -305,9 +253,6 @@ const Budget = () => {
           onAddIncome={handleAddIncome}
           onAddBill={handleAddBill}
           onReset={handleReset}
-          onGenerateReport={handleGenerateReport}
-          onExportPDF={handleExportPDF}
-          onPrintReport={handlePrintReport}
         />
       </aside>
 
