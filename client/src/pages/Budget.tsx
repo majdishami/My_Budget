@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { Income, Bill } from "@/types";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -40,24 +40,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 
-// Extend dayjs with plugins
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrAfter);
 
 type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'weekly';
 
 const Budget = () => {
-  // Parse the initial date using dayjs to ensure valid date handling
-  const initialDateStr = '2025-02-03';
-  const initialDate = dayjs(initialDateStr);
-
-  if (!initialDate.isValid()) {
-    console.error('Invalid initial date');
-    return <div>Error initializing application</div>;
-  }
+  // Initialize with a valid date string
+  const today = dayjs('2025-02-03');
 
   const [isDailySummaryOpen, setDailySummaryOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(initialDate.toDate());
+  const [selectedDate, setSelectedDate] = useState<Date>(today.toDate());
   const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
   const [billDialogOpen, setBillDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -66,11 +59,11 @@ const Budget = () => {
   const [incomeName, setIncomeName] = useState('');
   const [incomeAmount, setIncomeAmount] = useState('');
   const [incomeOccurrence, setIncomeOccurrence] = useState<OccurrenceType>('once');
-  const [incomeStartDate, setIncomeStartDate] = useState<Date>(initialDate.toDate());
+  const [incomeStartDate, setIncomeStartDate] = useState<Date>(today.toDate());
 
   const [billName, setBillName] = useState('');
   const [billAmount, setBillAmount] = useState('');
-  const [billDueDate, setBillDueDate] = useState<Date>(initialDate.toDate());
+  const [billDueDate, setBillDueDate] = useState<Date>(today.toDate());
 
   const [incomes, setIncomes] = useState<Income[]>(() => {
     const storedIncomes = localStorage.getItem('incomes');
@@ -79,7 +72,7 @@ const Budget = () => {
       const parsedIncomes = JSON.parse(storedIncomes);
       return parsedIncomes.map((income: any) => ({
         ...income,
-        startDate: new Date(income.startDate)
+        startDate: dayjs(income.startDate).toDate()
       }));
     } catch (e) {
       console.error('Error parsing incomes:', e);
@@ -94,7 +87,7 @@ const Budget = () => {
       const parsedBills = JSON.parse(storedBills);
       return parsedBills.map((bill: any) => ({
         ...bill,
-        dueDate: new Date(bill.dueDate)
+        dueDate: dayjs(bill.dueDate).toDate()
       }));
     } catch (e) {
       console.error('Error parsing bills:', e);
@@ -134,7 +127,7 @@ const Budget = () => {
     setIncomeName('');
     setIncomeAmount('');
     setIncomeOccurrence('once');
-    setIncomeStartDate(initialDate.toDate());
+    setIncomeStartDate(today.toDate());
     setIncomeDialogOpen(false);
   };
 
@@ -152,7 +145,7 @@ const Budget = () => {
     setBills([...bills, newBill]);
     setBillName('');
     setBillAmount('');
-    setBillDueDate(initialDate.toDate());
+    setBillDueDate(today.toDate());
     setBillDialogOpen(false);
   };
 
@@ -175,92 +168,85 @@ const Budget = () => {
     setDeleteDialogOpen(false);
   };
 
-  const handleEditTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
-    // Implement edit functionality
-    console.log('Edit transaction:', type, data);
-  };
-
-  const handleDeleteTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
-    handleOpenDeleteDialog(data.id);
-  };
-
-  const handleReset = () => {
-    localStorage.clear();
-    window.location.reload();
-  };
-
   const calculateDailyIncome = (date: Date) => {
+    const currentDate = dayjs(date);
     let dailyIncome = 0;
+
     incomes.forEach(income => {
-      if (income.occurrence === 'once' && dayjs(income.startDate).isSame(date, 'day')) {
+      const startDate = dayjs(income.startDate);
+
+      if (income.occurrence === 'once' && startDate.isSame(currentDate, 'day')) {
         dailyIncome += income.amount;
-      } else if (income.occurrence === 'monthly' && dayjs(income.startDate).date() === dayjs(date).date()) {
+      } else if (income.occurrence === 'monthly' && startDate.date() === currentDate.date()) {
         dailyIncome += income.amount;
-      } else if (income.occurrence === 'biweekly' && dayjs(date).isSameOrAfter(income.startDate) && dayjs(date).diff(income.startDate, 'day') % 14 === 0) {
+      } else if (income.occurrence === 'biweekly' && 
+                currentDate.isSameOrAfter(startDate) && 
+                currentDate.diff(startDate, 'day') % 14 === 0) {
         dailyIncome += income.amount;
-      }
-      else if (income.occurrence === 'weekly' && dayjs(date).isSameOrAfter(income.startDate) && dayjs(date).diff(income.startDate, 'day') % 7 === 0) {
+      } else if (income.occurrence === 'weekly' && 
+                currentDate.isSameOrAfter(startDate) && 
+                currentDate.diff(startDate, 'day') % 7 === 0) {
         dailyIncome += income.amount;
       }
     });
+
     return dailyIncome;
   };
 
   const calculateDailyBills = (date: Date) => {
+    const currentDate = dayjs(date);
     let dailyBills = 0;
+
     bills.forEach(bill => {
-      if (dayjs(bill.dueDate).isSame(date, 'day')) {
+      if (dayjs(bill.dueDate).isSame(currentDate, 'day')) {
         dailyBills += bill.amount;
       }
     });
+
     return dailyBills;
   };
 
-    const getIncomeForDay = (date: Date) => {
-      return incomes.filter(income => {
-        if (income.occurrence === 'once' && dayjs(income.startDate).isSame(date, 'day')) {
-          return true;
-        } else if (income.occurrence === 'monthly' && dayjs(income.startDate).date() === dayjs(date).date()) {
-          return true;
-        } else if (income.occurrence === 'biweekly' && dayjs(date).isSameOrAfter(income.startDate) && dayjs(date).diff(income.startDate, 'day') % 14 === 0) {
-         return true;
-        }
-         else if (income.occurrence === 'weekly' && dayjs(date).isSameOrAfter(income.startDate) && dayjs(date).diff(income.startDate, 'day') % 7 === 0) {
-          return true;
-        }
-        return false;
-      });
-    };
+  const getIncomeForDay = (date: Date) => {
+    const currentDate = dayjs(date);
 
-    const getBillsForDay = (date: Date) => {
-      return bills.filter(bill => dayjs(bill.dueDate).isSame(date, 'day'));
-    };
+    return incomes.filter(income => {
+      const startDate = dayjs(income.startDate);
 
-    const calculateTotalsUpToDay = (day: number) => {
-      let totalIncome = 0;
-      let totalBills = 0;
-
-      for (let i = 1; i <= day; i++) {
-        const currentDate = dayjs(selectedDate).set('date', i).toDate();
-        totalIncome += calculateDailyIncome(currentDate);
-        totalBills += calculateDailyBills(currentDate);
+      if (income.occurrence === 'once' && startDate.isSame(currentDate, 'day')) {
+        return true;
+      } else if (income.occurrence === 'monthly' && startDate.date() === currentDate.date()) {
+        return true;
+      } else if (income.occurrence === 'biweekly' && 
+                currentDate.isSameOrAfter(startDate) && 
+                currentDate.diff(startDate, 'day') % 14 === 0) {
+        return true;
+      } else if (income.occurrence === 'weekly' && 
+                currentDate.isSameOrAfter(startDate) && 
+                currentDate.diff(startDate, 'day') % 7 === 0) {
+        return true;
       }
-      return { totalIncome, totalBills };
-    };
+      return false;
+    });
+  };
 
-  const dailySummary = useMemo(() => {
-    const formattedDate = format(selectedDate, 'MMMM dd, yyyy');
-    const income = calculateDailyIncome(selectedDate);
-    const bills = calculateDailyBills(selectedDate);
-    const net = income - bills;
+  const getBillsForDay = (date: Date) => {
+    const currentDate = dayjs(date);
+    return bills.filter(bill => dayjs(bill.dueDate).isSame(currentDate, 'day'));
+  };
 
-    return {
-      date: formattedDate,
-      income,
-      bills,
-      net,
-    };
-  }, [selectedDate, incomes, bills]);
+  const calculateTotalsUpToDay = (date: Date) => {
+    const currentDate = dayjs(date);
+    let totalIncome = 0;
+    let totalBills = 0;
+
+    for (let i = 1; i <= currentDate.date(); i++) {
+      const dayDate = currentDate.startOf('month').add(i - 1, 'day').toDate();
+      totalIncome += calculateDailyIncome(dayDate);
+      totalBills += calculateDailyBills(dayDate);
+    }
+
+    return { totalIncome, totalBills };
+  };
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
@@ -276,17 +262,18 @@ const Budget = () => {
           <LeftSidebar
             incomes={incomes}
             bills={bills}
-            onEditTransaction={handleEditTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
+            onEditTransaction={() => {}}
+            onDeleteTransaction={handleOpenDeleteDialog}
             onAddIncome={() => setIncomeDialogOpen(true)}
             onAddBill={() => setBillDialogOpen(true)}
-            onReset={handleReset}
+            onReset={() => {}}
           />
           <div className="flex items-center space-x-4">
             <ThemeToggle />
           </div>
         </div>
       </div>
+
       <div className="container flex-1 py-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="flex flex-col p-4">
@@ -312,21 +299,33 @@ const Budget = () => {
                 />
               </PopoverContent>
             </Popover>
-            <DailySummaryDialog
-              isOpen={isDailySummaryOpen}
-              onOpenChange={setDailySummaryOpen}
-              selectedDay={selectedDate.getDate()}
-              dayIncomes={getIncomeForDay(selectedDate)}
-              dayBills={getBillsForDay(selectedDate)}
-              totalIncomeUpToToday={calculateTotalsUpToDay(selectedDate.getDate()).totalIncome}
-              totalBillsUpToToday={calculateTotalsUpToDay(selectedDate.getDate()).totalBills}
-            />
           </Card>
 
+          {/* Add Income Card */}
           <Card className="flex flex-col p-4">
             <div className="text-lg font-semibold mb-2">Add Income</div>
             <Button onClick={() => setIncomeDialogOpen(true)}>Add Income</Button>
-            <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
+          </Card>
+
+          {/* Add Bill Card */}
+          <Card className="flex flex-col p-4">
+            <div className="text-lg font-semibold mb-2">Add Bill</div>
+            <Button onClick={() => setBillDialogOpen(true)}>Add Bill</Button>
+          </Card>
+        </div>
+
+        <DailySummaryDialog
+          isOpen={isDailySummaryOpen}
+          onOpenChange={setDailySummaryOpen}
+          selectedDay={dayjs(selectedDate).date()}
+          dayIncomes={getIncomeForDay(selectedDate)}
+          dayBills={getBillsForDay(selectedDate)}
+          totalIncomeUpToToday={calculateTotalsUpToDay(selectedDate).totalIncome}
+          totalBillsUpToToday={calculateTotalsUpToDay(selectedDate).totalBills}
+        />
+
+        {/* Dialog components for add/edit operations */}
+         <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add Income</DialogTitle>
@@ -401,12 +400,7 @@ const Budget = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </Card>
-
-          <Card className="flex flex-col p-4">
-            <div className="text-lg font-semibold mb-2">Add Bill</div>
-            <Button onClick={() => setBillDialogOpen(true)}>Add Bill</Button>
-            <Dialog open={billDialogOpen} onOpenChange={setBillDialogOpen}>
+             <Dialog open={billDialogOpen} onOpenChange={setBillDialogOpen}>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add Bill</DialogTitle>
@@ -465,9 +459,6 @@ const Budget = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </Card>
-        </div>
-
         <Card className="mt-6 p-4">
           <div className="text-lg font-semibold mb-4">Income</div>
           {incomes.length === 0 ? (
@@ -488,7 +479,7 @@ const Budget = () => {
                   {incomes.map((income) => (
                     <tr key={income.id} className="border-b">
                       <td className="px-4 py-2">{income.name}</td>
-                      <td className="px-4 py-2">{formatCurrency(income.amount)}</td>
+                      <td className="px-4 py-2">{income.amount}</td>
                       <td className="px-4 py-2">{income.occurrence}</td>
                       <td className="px-4 py-2">{format(income.startDate, 'MMMM dd, yyyy')}</td>
                       <td className="px-4 py-2">
@@ -522,7 +513,7 @@ const Budget = () => {
                   {bills.map((bill) => (
                     <tr key={bill.id} className="border-b">
                       <td className="px-4 py-2">{bill.name}</td>
-                      <td className="px-4 py-2">{formatCurrency(bill.amount)}</td>
+                      <td className="px-4 py-2">{bill.amount}</td>
                       <td className="px-4 py-2">{format(bill.dueDate, 'MMMM dd, yyyy')}</td>
                       <td className="px-4 py-2">
                         <Button variant="ghost" size="sm" onClick={() => handleOpenDeleteDialog(bill.id)}>
