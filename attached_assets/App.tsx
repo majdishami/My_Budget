@@ -53,8 +53,8 @@ const formatCurrency = (amount: number) => {
 };
 
 const App = () => {
+  // Set today to February 2nd, 2025
   const today = dayjs('2025-02-02');
-
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedDay, setSelectedDay] = useState<number>(today.date());
@@ -79,6 +79,7 @@ const App = () => {
   };
 
   useEffect(() => {
+    // Clear existing data first
     localStorage.removeItem("incomes");
     localStorage.removeItem("bills");
 
@@ -90,7 +91,7 @@ const App = () => {
       const sampleIncomes: Income[] = [
         { id: "1", source: "Majdi's Salary", amount: 4739.00, date: today.date(1).toISOString() },
         { id: "2", source: "Majdi's Salary", amount: 4739.00, date: today.date(15).toISOString() },
-        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" }
+        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" } // Only need one entry for Ruba's salary
       ];
       setIncomes(sampleIncomes);
       localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
@@ -135,14 +136,20 @@ const App = () => {
       const incomeDate = dayjs(income.date);
 
       if (income.source === "Ruba's Salary") {
+        // Check if it's a Friday (5 in dayjs)
         if (currentDate.day() !== 5) return false;
 
+        // Start from January 10, 2025
         const startDate = dayjs('2025-01-10');
+
+        // Calculate weeks difference
         const weeksDiff = currentDate.diff(startDate, 'week');
 
+        // Return true if it's a bi-weekly Friday from the start date
         return weeksDiff >= 0 && weeksDiff % 2 === 0;
       }
 
+      // For other incomes, check the day of month
       return incomeDate.date() === day;
     });
   };
@@ -161,18 +168,22 @@ const App = () => {
   }, [firstDayOfMonth]);
 
   const firstDayOfWeek = useMemo(() => {
+    // Convert Sunday=0 to Monday=0 by shifting the day number
     const day = firstDayOfMonth.day();
-    return day === 0 ? 6 : day - 1;
+    return day === 0 ? 6 : day - 1; // Sunday becomes 6, other days shift down by 1
   }, [firstDayOfMonth]);
 
   const calculateTotalsUpToDay = (day: number) => {
     let totalIncome = 0;
     let totalBills = 0;
 
+    // Calculate for each day up to the selected day
     for (let currentDay = 1; currentDay <= day; currentDay++) {
+      // Add incomes for the day
       const dayIncomes = getIncomeForDay(currentDay);
       totalIncome += dayIncomes.reduce((sum, income) => sum + income.amount, 0);
 
+      // Add bills for the day
       const dayBills = getBillsForDay(currentDay);
       totalBills += dayBills.reduce((sum, bill) => sum + bill.amount, 0);
     }
@@ -189,11 +200,13 @@ const App = () => {
 
   const isCurrentDay = (day: number) => {
     const currentDate = dayjs();
-    return day === currentDate.date() && selectedMonth === currentDate.month() && selectedYear === currentDate.year();
+    return day === currentDate.date() &&
+           selectedMonth === currentDate.month() &&
+           selectedYear === currentDate.year();
   };
 
   const calendarDays = useMemo(() => {
-    const totalDays = 42;
+    const totalDays = 42; // 6 weeks × 7 days
     return Array.from({ length: totalDays }, (_, index) => {
       const adjustedIndex = index - firstDayOfWeek;
       return adjustedIndex >= 0 && adjustedIndex < daysInMonth ? adjustedIndex + 1 : null;
@@ -204,17 +217,21 @@ const App = () => {
     let totalIncome = 0;
     let totalBills = 0;
 
+    // Calculate total income for the selected month
     incomes.forEach(income => {
       const incomeDate = dayjs(income.date);
 
       if (income.source === "Ruba's Salary") {
+        // For bi-weekly salary, check each Friday in the month
         const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
         const lastDayOfMonth = firstDayOfMonth.endOf('month');
         const startDate = dayjs('2025-01-10');
 
+        // Iterate through each day in the month
         let currentDate = firstDayOfMonth;
         while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
-          if (currentDate.day() === 5) {
+          // Check if it's a Friday and matches bi-weekly schedule
+          if (currentDate.day() === 5) { // Friday
             const weeksDiff = currentDate.diff(startDate, 'week');
             if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
               totalIncome += income.amount;
@@ -223,21 +240,25 @@ const App = () => {
           currentDate = currentDate.add(1, 'day');
         }
       } else {
+        // For regular monthly incomes
         const incomeYear = incomeDate.year();
         const incomeMonth = incomeDate.month();
         const incomeDay = incomeDate.date();
 
+        // Create a new date with the selected year/month but same day
         const adjustedDate = dayjs()
           .year(selectedYear)
           .month(selectedMonth)
           .date(incomeDay);
 
+        // Only count if the day exists in the current month
         if (adjustedDate.month() === selectedMonth) {
           totalIncome += income.amount;
         }
       }
     });
 
+    // Calculate total bills for the selected month
     bills.forEach(bill => {
       totalBills += bill.amount;
     });
@@ -317,12 +338,12 @@ const App = () => {
 
   const handleMonthChange = (newMonth: number) => {
     setSelectedMonth(newMonth);
-    setSelectedDay(1);
+    setSelectedDay(1); // Reset to first day of new month
   };
 
   const handleYearChange = (newYear: number) => {
     setSelectedYear(newYear);
-    setSelectedDay(1);
+    setSelectedDay(1); // Reset to first day of new year
   };
 
   return (
@@ -359,6 +380,7 @@ const App = () => {
                     </option>
                   ))}
                 </select>
+
                 <select
                   value={selectedYear}
                   onChange={(e) => handleYearChange(parseInt(e.target.value))}
@@ -369,6 +391,7 @@ const App = () => {
                     <option key={year} value={year}>{year}</option>
                   ))}
                 </select>
+
                 <select
                   value={selectedDay}
                   onChange={(e) => setSelectedDay(parseInt(e.target.value))}
@@ -428,7 +451,6 @@ const App = () => {
                     <tr key={weekIndex} className="divide-x">
                       {Array.from({ length: 7 }, (_, dayIndex) => {
                         const dayNumber = calendarDays[weekIndex * 7 + dayIndex];
-
                         if (dayNumber === null) {
                           return <td key={dayIndex} className="border p-2 bg-muted/10 h-48 w-[14.28%]" />;
                         }
@@ -515,18 +537,17 @@ const App = () => {
             </div>
           </Card>
         </div>
-
-        <DailySummaryDialog
-          isOpen={showDailySummary}
-          onOpenChange={setShowDailySummary}
-          selectedDay={selectedDay}
-          dayIncomes={getIncomeForDay(selectedDay)}
-          dayBills={getBillsForDay(selectedDay)}
-          totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
-          totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
-        />
-
       </main>
+
+      <DailySummaryDialog
+        isOpen={showDailySummary}
+        onOpenChange={setShowDailySummary}
+        selectedDay={selectedDay}
+        dayIncomes={getIncomeForDay(selectedDay)}
+        dayBills={getBillsForDay(selectedDay)}
+        totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
+        totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
+      />
     </div>
   );
 };
