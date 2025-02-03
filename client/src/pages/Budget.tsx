@@ -285,7 +285,7 @@ const Budget = () => {
     }
   };
 
-  const handleDeleteTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+    const handleDeleteTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
     if (type === 'income') {
       setDeletingIncome(data as Income);
       setShowDeleteIncomeDialog(true);
@@ -686,6 +686,51 @@ const Budget = () => {
         onOpenChange={setShowAddIncomeDialog}
         onConfirm={handleConfirmAddIncome}
       />
+      
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingBill?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowDeleteDialog(false);
+              setDeletingBill(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteIncomeDialog} onOpenChange={setShowDeleteIncomeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Income</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingIncome?.source}"? This will remove all occurrences of this income.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowDeleteIncomeDialog(false);
+              setDeletingIncome(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmIncomeDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
