@@ -64,21 +64,13 @@ export default function MonthlyToDateReport() {
       nextPayDate = nextPayDate.add(14, 'day');
     }
 
-    // Add monthly expenses for February 1st
-    const monthlyExpenses = [
-      { description: 'Monthly Rent', amount: 3750 },
-      { description: 'Utilities', amount: 250 }
-    ];
-
-    // Only add expenses if we're in February and after or on the 1st
+    // Add Monthly Rent expense for February 1st
     if (today.month() === 1 && today.date() >= 1) { // February is month 1 in zero-based months
-      monthlyExpenses.forEach(expense => {
-        mockTransactions.push({
-          date: startOfMonth.format('YYYY-MM-DD'), // Always February 1st
-          description: expense.description,
-          amount: expense.amount,
-          type: 'expense'
-        });
+      mockTransactions.push({
+        date: startOfMonth.format('YYYY-MM-DD'),
+        description: 'Monthly Rent',
+        amount: 3750,
+        type: 'expense'
       });
     }
 
