@@ -302,8 +302,28 @@ const Budget = () => {
     }
   };
 
+  const handleConfirmIncomeEdit = (updatedIncome: Income) => {
+    const newIncomes = incomes.map(income => {
+      // If it's the same income source, update all occurrences
+      if (income.source === editingIncome?.source) {
+        return {
+          ...income,
+          source: updatedIncome.source,
+          amount: updatedIncome.amount,
+        };
+      }
+      return income;
+    });
+
+    setIncomes(newIncomes);
+    localStorage.setItem("incomes", JSON.stringify(newIncomes));
+    setShowEditIncomeDialog(false);
+    setEditingIncome(null);
+  };
+
   const confirmIncomeDelete = () => {
     if (deletingIncome) {
+      // Remove all occurrences of the income source
       const newIncomes = incomes.filter(i => i.source !== deletingIncome.source);
       setIncomes(newIncomes);
       localStorage.setItem("incomes", JSON.stringify(newIncomes));
@@ -311,6 +331,7 @@ const Budget = () => {
       setDeletingIncome(null);
     }
   };
+
 
   const handleAddIncome = () => {
     setAddIncomeDate(new Date());
@@ -348,26 +369,6 @@ const Budget = () => {
     setSelectedDay(1); // Reset to first day of new year
   };
 
-  const handleConfirmIncomeEdit = (updatedIncome: Income) => {
-    const newIncomes = incomes.map(income => {
-      if (income.id === updatedIncome.id) {
-        // Only apply changes to future occurrences
-        const editDate = dayjs(updatedIncome.date);
-        const currentDate = dayjs(income.date);
-
-        // If the current date is after or equal to the edit date, apply the changes
-        if (currentDate.isSame(editDate) || currentDate.isAfter(editDate)) {
-          return updatedIncome;
-        }
-      }
-      return income;
-    });
-
-    setIncomes(newIncomes);
-    localStorage.setItem("incomes", JSON.stringify(newIncomes));
-    setShowEditIncomeDialog(false);
-    setEditingIncome(null);
-  };
 
   const handleConfirmBillEdit = (updatedBill: Bill) => {
     const newBills = bills.map(bill => 
