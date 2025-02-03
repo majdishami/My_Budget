@@ -65,20 +65,48 @@ const Budget = () => {
 
   const [incomes, setIncomes] = useState<Income[]>(() => {
     const storedIncomes = localStorage.getItem('incomes');
-    return storedIncomes ? JSON.parse(storedIncomes) : [];
+    if (!storedIncomes) return [];
+    try {
+      const parsedIncomes = JSON.parse(storedIncomes);
+      return parsedIncomes.map((income: any) => ({
+        ...income,
+        startDate: new Date(income.startDate)
+      }));
+    } catch (e) {
+      console.error('Error parsing incomes:', e);
+      return [];
+    }
   });
 
   const [bills, setBills] = useState<Bill[]>(() => {
     const storedBills = localStorage.getItem('bills');
-    return storedBills ? JSON.parse(storedBills) : [];
+    if (!storedBills) return [];
+    try {
+      const parsedBills = JSON.parse(storedBills);
+      return parsedBills.map((bill: any) => ({
+        ...bill,
+        dueDate: new Date(bill.dueDate)
+      }));
+    } catch (e) {
+      console.error('Error parsing bills:', e);
+      return [];
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem('incomes', JSON.stringify(incomes));
+    try {
+      localStorage.setItem('incomes', JSON.stringify(incomes));
+    } catch (e) {
+      console.error('Error saving incomes:', e);
+    }
   }, [incomes]);
 
   useEffect(() => {
-    localStorage.setItem('bills', JSON.stringify(bills));
+    try {
+      localStorage.setItem('bills', JSON.stringify(bills));
+    } catch (e) {
+      console.error('Error saving bills:', e);
+    }
   }, [bills]);
 
   const handleAddIncome = () => {
