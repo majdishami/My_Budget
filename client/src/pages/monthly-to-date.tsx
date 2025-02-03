@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import dayjs from 'dayjs';
@@ -22,50 +22,58 @@ export default function MonthlyToDateReport() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const today = dayjs('2025-02-03'); // Current date from context
   const startOfMonth = today.startOf('month');
+  const endOfMonth = today.endOf('month');
 
   useEffect(() => {
-    // Calculate Ruba's bi-weekly salary dates
-    const rubaStartDate = dayjs('2025-01-12'); // Starting from a known pay date
-    const rubaSalaryDates: string[] = [];
+    // Calculate Ruba's bi-weekly salary dates based on the pay schedule
+    const rubaStartDate = dayjs('2025-01-10'); // First pay date
     let currentDate = rubaStartDate;
+    const rubaSalaryDates: string[] = [];
 
     while (currentDate.isBefore(today) || currentDate.isSame(today, 'day')) {
-      if (currentDate.month() === today.month()) {
+      if (currentDate.month() === today.month() && currentDate.year() === today.year()) {
         rubaSalaryDates.push(currentDate.format('YYYY-MM-DD'));
       }
-      currentDate = currentDate.add(14, 'day');
+      currentDate = currentDate.add(14, 'days'); // Move to next pay date
     }
 
     // Mock transactions with correct dates
-    const mockTransactions: Transaction[] = [
-      // Majdi's monthly salary (1st of each month)
-      {
-        date: '2025-02-01',
+    const mockTransactions: Transaction[] = [];
+
+    // Add Majdi's salary if it's already paid this month (1st of the month)
+    if (today.date() >= 1) {
+      mockTransactions.push({
+        date: today.startOf('month').format('YYYY-MM-DD'),
         description: "Majdi's Salary",
         amount: 6000,
         type: 'income'
-      },
-      // Ruba's bi-weekly salary
-      ...rubaSalaryDates.map(date => ({
+      });
+    }
+
+    // Add Ruba's bi-weekly salary occurrences
+    rubaSalaryDates.forEach(date => {
+      mockTransactions.push({
         date,
         description: "Ruba's Salary",
         amount: 4739,
         type: 'income'
-      })),
-      // Regular expenses
-      {
-        date: '2025-02-01',
-        description: 'Monthly Rent',
-        amount: 3750,
-        type: 'expense'
-      },
-      {
-        date: '2025-02-01',
-        description: 'Utilities',
-        amount: 250,
-        type: 'expense'
-      }
-    ];
+      });
+    });
+
+    // Add regular monthly expenses
+    mockTransactions.push({
+      date: today.startOf('month').format('YYYY-MM-DD'),
+      description: 'Monthly Rent',
+      amount: 3750,
+      type: 'expense'
+    });
+
+    mockTransactions.push({
+      date: today.startOf('month').format('YYYY-MM-DD'),
+      description: 'Utilities',
+      amount: 250,
+      type: 'expense'
+    });
 
     setTransactions(mockTransactions);
   }, [today]);
