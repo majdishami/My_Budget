@@ -38,6 +38,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { EditIncomeDialog } from "@/components/EditIncomeDialog";
+import { EditExpenseDialog } from "@/components/EditExpenseDialog";
 
 dayjs.extend(isBetween);
 
@@ -336,7 +338,7 @@ const Budget = () => {
     }))
   ), []);
 
-  const handleMonthChange = (newMonth: number) => {
+    const handleMonthChange = (newMonth: number) => {
     setSelectedMonth(newMonth);
     setSelectedDay(1); // Reset to first day of new month
   };
@@ -344,6 +346,37 @@ const Budget = () => {
   const handleYearChange = (newYear: number) => {
     setSelectedYear(newYear);
     setSelectedDay(1); // Reset to first day of new year
+  };
+
+  const handleConfirmIncomeEdit = (updatedIncome: Income) => {
+    const newIncomes = incomes.map(income => {
+      if (income.id === updatedIncome.id) {
+        // Only apply changes to future occurrences
+        const editDate = dayjs(updatedIncome.date);
+        const currentDate = dayjs(income.date);
+
+        // If the current date is after or equal to the edit date, apply the changes
+        if (currentDate.isSame(editDate) || currentDate.isAfter(editDate)) {
+          return updatedIncome;
+        }
+      }
+      return income;
+    });
+
+    setIncomes(newIncomes);
+    localStorage.setItem("incomes", JSON.stringify(newIncomes));
+    setShowEditIncomeDialog(false);
+    setEditingIncome(null);
+  };
+
+  const handleConfirmBillEdit = (updatedBill: Bill) => {
+    const newBills = bills.map(bill => 
+      bill.id === updatedBill.id ? updatedBill : bill
+    );
+    setBills(newBills);
+    localStorage.setItem("bills", JSON.stringify(newBills));
+    setShowEditDialog(false);
+    setEditingBill(null);
   };
 
   return (
@@ -547,6 +580,20 @@ const Budget = () => {
         dayBills={getBillsForDay(selectedDay)}
         totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
         totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
+      />
+
+      <EditIncomeDialog
+        income={editingIncome}
+        isOpen={showEditIncomeDialog}
+        onOpenChange={setShowEditIncomeDialog}
+        onConfirm={handleConfirmIncomeEdit}
+      />
+
+      <EditExpenseDialog
+        bill={editingBill}
+        isOpen={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onConfirm={handleConfirmBillEdit}
       />
     </div>
   );
