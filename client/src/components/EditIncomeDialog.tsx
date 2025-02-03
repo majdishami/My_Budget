@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Income } from "@/types";
 import dayjs from "dayjs";
 
@@ -24,20 +24,28 @@ export function EditIncomeDialog({
   onOpenChange,
   onConfirm,
 }: EditIncomeDialogProps) {
-  const [source, setSource] = useState(income?.source ?? '');
-  const [amount, setAmount] = useState(income?.amount.toString() ?? '');
-  const [date, setDate] = useState(income?.date ? dayjs(income.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'));
+  const [source, setSource] = useState('');
+  const [amount, setAmount] = useState('');
+  const [date, setDate] = useState('');
+
+  // Update form values when income changes
+  useEffect(() => {
+    if (income) {
+      setSource(income.source);
+      setAmount(income.amount.toString());
+      setDate(dayjs(income.date).format('YYYY-MM-DD'));
+    }
+  }, [income]);
 
   const handleConfirm = () => {
     if (!income) return;
-    
+
     onConfirm({
       id: income.id,
       source,
       amount: parseFloat(amount),
       date: dayjs(date).toISOString()
     });
-    onOpenChange(false);
   };
 
   return (

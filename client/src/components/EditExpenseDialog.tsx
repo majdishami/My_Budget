@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bill } from "@/types";
 
 interface EditExpenseDialogProps {
@@ -23,20 +23,28 @@ export function EditExpenseDialog({
   onOpenChange,
   onConfirm,
 }: EditExpenseDialogProps) {
-  const [name, setName] = useState(bill?.name ?? '');
-  const [amount, setAmount] = useState(bill?.amount.toString() ?? '');
-  const [day, setDay] = useState(bill?.day.toString() ?? '1');
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
+  const [day, setDay] = useState('1');
+
+  // Update form values when bill changes
+  useEffect(() => {
+    if (bill) {
+      setName(bill.name);
+      setAmount(bill.amount.toString());
+      setDay(bill.day.toString());
+    }
+  }, [bill]);
 
   const handleConfirm = () => {
     if (!bill) return;
-    
+
     onConfirm({
       id: bill.id,
       name,
       amount: parseFloat(amount),
       day: parseInt(day)
     });
-    onOpenChange(false);
   };
 
   return (
