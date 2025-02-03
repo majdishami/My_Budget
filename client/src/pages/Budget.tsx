@@ -41,10 +41,11 @@ import { format } from "date-fns";
 import { EditIncomeDialog } from "@/components/EditIncomeDialog";
 import { EditExpenseDialog } from "@/components/EditExpenseDialog";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
+import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 
 dayjs.extend(isBetween);
 
-type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'weekly';
+type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'twice-monthly';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -336,9 +337,74 @@ const Budget = () => {
 
 
   const handleAddIncome = () => {
-    setAddIncomeDate(new Date());
     setShowAddIncomeDialog(true);
   };
+
+  const handleConfirmAddIncome = (newIncome: Omit<Income, 'id'> & { occurrenceType: OccurrenceType }) => {
+    const { occurrenceType, ...incomeData } = newIncome;
+    const baseId = (incomes.length + 1).toString();
+    const newIncomes: Income[] = [];
+    const startDate = dayjs(newIncome.date);
+
+    switch (occurrenceType) {
+      case 'once':
+        newIncomes.push({
+          ...incomeData,
+          id: baseId
+        });
+        break;
+
+      case 'monthly':
+        // Add income for the next 12 months
+        for (let i = 0; i < 12; i++) {
+          const date = startDate.add(i, 'month');
+          newIncomes.push({
+            ...incomeData,
+            id: `${baseId}-${i}`,
+            date: date.toISOString()
+          });
+        }
+        break;
+
+      case 'biweekly':
+        // Add bi-weekly income for the next 6 months
+        let biweeklyDate = startDate;
+        for (let i = 0; biweeklyDate.diff(startDate, 'month') < 6; i++) {
+          newIncomes.push({
+            ...incomeData,
+            id: `${baseId}-${i}`,
+            date: biweeklyDate.toISOString()
+          });
+          biweeklyDate = biweeklyDate.add(2, 'week');
+        }
+        break;
+
+      case 'twice-monthly':
+        // Add income for the 1st and 15th of each month for the next 6 months
+        for (let i = 0; i < 6; i++) {
+          const month = startDate.add(i, 'month');
+          // First of the month
+          newIncomes.push({
+            ...incomeData,
+            id: `${baseId}-${i}-1`,
+            date: month.date(1).toISOString()
+          });
+          // 15th of the month
+          newIncomes.push({
+            ...incomeData,
+            id: `${baseId}-${i}-2`,
+            date: month.date(15).toISOString()
+          });
+        }
+        break;
+    }
+
+    const updatedIncomes = [...incomes, ...newIncomes];
+    setIncomes(updatedIncomes);
+    localStorage.setItem("incomes", JSON.stringify(updatedIncomes));
+    setShowAddIncomeDialog(false);
+  };
+
 
   const handleAddBill = () => {
     setShowAddExpenseDialog(true);
@@ -614,6 +680,11 @@ const Budget = () => {
         isOpen={showAddExpenseDialog}
         onOpenChange={setShowAddExpenseDialog}
         onConfirm={handleConfirmAddBill}
+      />
+        <AddIncomeDialog
+        isOpen={showAddIncomeDialog}
+        onOpenChange={setShowAddIncomeDialog}
+        onConfirm={handleConfirmAddIncome}
       />
     </div>
   );
