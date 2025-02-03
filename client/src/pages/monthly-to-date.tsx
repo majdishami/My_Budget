@@ -27,14 +27,19 @@ export default function MonthlyToDateReport() {
   useEffect(() => {
     // Calculate Ruba's bi-weekly salary dates based on the pay schedule
     const rubaStartDate = dayjs('2025-01-10'); // First pay date
-    let currentDate = rubaStartDate;
+    let checkDate = rubaStartDate.clone();
     const rubaSalaryDates: string[] = [];
 
-    while (currentDate.isBefore(today) || currentDate.isSame(today, 'day')) {
-      if (currentDate.month() === today.month() && currentDate.year() === today.year()) {
-        rubaSalaryDates.push(currentDate.format('YYYY-MM-DD'));
+    while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
+      if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
+        if (checkDate.day() === 5) { // Friday
+          const weeksDiff = checkDate.diff(rubaStartDate, 'week');
+          if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+            rubaSalaryDates.push(checkDate.format('YYYY-MM-DD'));
+          }
+        }
       }
-      currentDate = currentDate.add(14, 'days'); // Move to next pay date
+      checkDate = checkDate.add(1, 'day');
     }
 
     // Mock transactions with correct dates
@@ -45,7 +50,7 @@ export default function MonthlyToDateReport() {
       mockTransactions.push({
         date: today.startOf('month').format('YYYY-MM-DD'),
         description: "Majdi's Salary",
-        amount: 3500,  // Corrected Majdi's salary amount
+        amount: 3500,
         type: 'income'
       });
     }
