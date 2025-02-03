@@ -70,7 +70,7 @@ export function LeftSidebar({
           {incomes.map((income) => (
             <Card key={income.id} className="p-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium truncate">{income.name}</span>
+                <span className="text-sm font-medium truncate">{income.source}</span>
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"

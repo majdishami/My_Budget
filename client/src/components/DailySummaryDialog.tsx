@@ -6,7 +6,6 @@ import {
 } from "@/components/ui/dialog";
 import { Income, Bill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
-import { format } from "date-fns";
 
 interface DailySummaryDialogProps {
   isOpen: boolean;
