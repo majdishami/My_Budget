@@ -43,17 +43,33 @@ export function LeftSidebar({
               className="w-full justify-start"
             >
               <FileText className="mr-2 h-4 w-4" />
-              Reports
+              Report Generation
             </Button>
           </Link>
         </nav>
       </div>
 
       <div className="space-y-2">
+        <h2 className="text-lg font-semibold tracking-tight">Default Income/Bills</h2>
+        <div className="grid gap-1">
+          {/* Load Default button will be implemented later */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={onReset}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Load Default
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
         <h2 className="text-lg font-semibold tracking-tight">Income Sources</h2>
         <div className="grid gap-1">
           {incomes.map((income) => (
-            <Card key={income.source} className="p-2">
+            <Card key={income.id} className="p-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{income.source}</span>
                 <div className="flex gap-1">
@@ -124,16 +140,6 @@ export function LeftSidebar({
           </Button>
         </div>
       </div>
-
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full"
-        onClick={onReset}
-      >
-        <RefreshCw className="mr-2 h-4 w-4" />
-        Reset Data
-      </Button>
     </div>
   );
 }
