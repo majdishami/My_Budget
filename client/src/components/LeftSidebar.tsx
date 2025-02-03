@@ -48,10 +48,12 @@ export function LeftSidebar({
             const bill = bills.find(b => b.id === value);
             if (bill) onEditTransaction('bill', bill);
           }}>
-            <Button variant="ghost" size="sm" className="w-full justify-start">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Expense
-            </Button>
+            <SelectTrigger className="w-full justify-start">
+              <Button variant="ghost" size="sm" className="w-full justify-start">
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Expense
+              </Button>
+            </SelectTrigger>
             <SelectContent>
               {bills.map((bill) => (
                 <SelectItem key={bill.id} value={bill.id}>
@@ -75,10 +77,12 @@ export function LeftSidebar({
             const bill = bills.find(b => b.id === value);
             if (bill) onDeleteTransaction('bill', bill);
           }}>
-            <Button variant="ghost" size="sm" className="w-full justify-start">
-              <Trash className="mr-2 h-4 w-4" />
-              Delete Expense
-            </Button>
+            <SelectTrigger className="w-full justify-start">
+              <Button variant="ghost" size="sm" className="w-full justify-start">
+                <Trash className="mr-2 h-4 w-4" />
+                Delete Expense
+              </Button>
+            </SelectTrigger>
             <SelectContent>
               {bills.map((bill) => (
                 <SelectItem key={bill.id} value={bill.id}>
@@ -98,10 +102,12 @@ export function LeftSidebar({
             const income = incomes.find(i => i.id === value);
             if (income) onEditTransaction('income', income);
           }}>
-            <Button variant="ghost" size="sm" className="w-full justify-start">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Income
-            </Button>
+            <SelectTrigger className="w-full justify-start">
+              <Button variant="ghost" size="sm" className="w-full justify-start">
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Income
+              </Button>
+            </SelectTrigger>
             <SelectContent>
               {incomes.map((income) => (
                 <SelectItem key={income.id} value={income.id}>
@@ -125,10 +131,12 @@ export function LeftSidebar({
             const income = incomes.find(i => i.id === value);
             if (income) onDeleteTransaction('income', income);
           }}>
-            <Button variant="ghost" size="sm" className="w-full justify-start">
-              <Trash className="mr-2 h-4 w-4" />
-              Delete Income
-            </Button>
+            <SelectTrigger className="w-full justify-start">
+              <Button variant="ghost" size="sm" className="w-full justify-start">
+                <Trash className="mr-2 h-4 w-4" />
+                Delete Income
+              </Button>
+            </SelectTrigger>
             <SelectContent>
               {incomes.map((income) => (
                 <SelectItem key={income.id} value={income.id}>
