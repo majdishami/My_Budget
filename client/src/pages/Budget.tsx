@@ -77,7 +77,8 @@ const Budget = () => {
   const [showDeleteIncomeDialog, setShowDeleteIncomeDialog] = useState(false);
   const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
   const [showDailySummary, setShowDailySummary] = useState(false);
-  const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
+    const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
+
 
   const closeSummary = () => {
     setShowDayDialog(false);
@@ -407,7 +408,7 @@ const Budget = () => {
 
 
   const handleAddBill = () => {
-    setShowAddExpenseDialog(true);
+        setShowAddExpenseDialog(true);
   };
   
   const handleConfirmAddBill = (newBill: Omit<Bill, 'id'>) => {
@@ -461,6 +462,7 @@ const Budget = () => {
 
   return (
     <div className="min-h-screen flex bg-background">
+      {/* Fixed width sidebar */}
       <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
         <LeftSidebar
           incomes={incomes}
@@ -473,7 +475,9 @@ const Budget = () => {
         />
       </aside>
 
-      <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
+      {/* Main content area */}
+      <main className="flex-1 flex flex-col h-screen pl-56">
+        {/* Sticky header */}
         <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex justify-between items-center">
             <div className="space-y-2">
@@ -505,7 +509,7 @@ const Budget = () => {
                   ))}
                 </select>
 
-                <select
+                                <select
                   value={selectedDay}
                   onChange={(e) => setSelectedDay(parseInt(e.target.value))}
                   className="p-2 border rounded bg-background min-w-[80px]"
@@ -546,9 +550,10 @@ const Budget = () => {
           </div>
         </Card>
 
-        <div className="flex-1 overflow-y-auto">
-          <Card className="m-4">
-            <div className="overflow-hidden">
+        {/* Scrollable calendar content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <Card className="w-full">
+            <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead className="sticky top-0 bg-background z-10">
                   <tr>
