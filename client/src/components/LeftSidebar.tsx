@@ -1,15 +1,16 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Income, Bill } from "@/types";
-import { 
-  Plus, 
-  RefreshCw, 
-  FileText, 
+import {
+  Plus,
+  RefreshCw,
+  FileText,
   Calendar,
   ChartBar,
   FileBarChart,
   Edit,
-  Trash
+  Trash,
+  CalendarRange
 } from "lucide-react";
 import {
   Select,
@@ -212,6 +213,16 @@ export function LeftSidebar({
             >
               <ChartBar className="mr-2 h-4 w-4" />
               Monthly Report
+            </Button>
+          </Link>
+          <Link href="/reports/annual">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start"
+            >
+              <CalendarRange className="mr-2 h-4 w-4" />
+              Annual Report
             </Button>
           </Link>
           <Link href="/reports/date-range">

@@ -10,6 +10,7 @@ import MonthlyReportDialog from "@/components/MonthlyReportDialog";
 import DateRangeReportDialog from "@/components/DateRangeReportDialog";
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import IncomeReportDialog from "@/components/IncomeReportDialog";
+import AnnualReportDialog from "@/components/AnnualReportDialog";
 import { useLocation } from "wouter";
 
 interface Income {
@@ -32,6 +33,7 @@ function Router() {
   const [showDateRangeReport, setShowDateRangeReport] = useState(false);
   const [showExpenseReport, setShowExpenseReport] = useState(false);
   const [showIncomeReport, setShowIncomeReport] = useState(false);
+  const [showAnnualReport, setShowAnnualReport] = useState(false);
   const [, setLocation] = useLocation();
   const [bills, setBills] = useState<Bill[]>([]);
 
@@ -77,6 +79,13 @@ function Router() {
     }
   };
 
+  const handleAnnualReportOpenChange = (open: boolean) => {
+    setShowAnnualReport(open);
+    if (!open) {
+      setLocation('/');
+    }
+  };
+
   return (
     <>
       <Switch>
@@ -111,6 +120,12 @@ function Router() {
             return null;
           }}
         </Route>
+        <Route path="/reports/annual">
+          {() => {
+            setShowAnnualReport(true);
+            return null;
+          }}
+        </Route>
       </Switch>
       <MonthlyToDateDialog
         isOpen={showMonthlyToDate}
@@ -132,6 +147,11 @@ function Router() {
       <IncomeReportDialog
         isOpen={showIncomeReport}
         onOpenChange={handleIncomeReportOpenChange}
+      />
+      <AnnualReportDialog
+        isOpen={showAnnualReport}
+        onOpenChange={handleAnnualReportOpenChange}
+        selectedYear={dayjs().year()}
       />
     </>
   );
