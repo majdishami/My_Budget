@@ -73,12 +73,14 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  const PORT = 5000; // Use port 5000 to match workflow configuration
+  // Use the port provided by Replit's environment, or fall back to 5000
+  const PORT = process.env.PORT || 5000;
 
   server.listen(PORT, "0.0.0.0", () => {
     log(`Server is running at http://0.0.0.0:${PORT}`);
     if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-      log(`Application URL: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+      const replitUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+      log(`Application URL: ${replitUrl}`);
     }
     log(`Server environment: ${app.get("env")}`);
     log(`Trust proxy enabled: ${app.get('trust proxy')}`);
