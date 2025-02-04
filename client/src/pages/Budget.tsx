@@ -276,34 +276,21 @@ const Budget = () => {
         // For bi-weekly salary, check each Friday in the month
         const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
         const lastDayOfMonth = firstDayOfMonth.endOf('month');
-        const startDate = dayjs().day(5);
+        const currentDate = firstDayOfMonth.clone();
 
-        // Iterate through each day in the month
-        let currentDate = firstDayOfMonth;
+        // Count only the Fridays in this month
         while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
-          // Check if it's a Friday and matches bi-weekly schedule
           if (currentDate.day() === 5) { // Friday
-            const weeksDiff = currentDate.diff(startDate, 'week');
+            const weeksDiff = currentDate.diff(dayjs(income.date), 'week');
             if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
               totalIncome += income.amount;
             }
           }
-          currentDate = currentDate.add(1, 'day');
+          currentDate.add(1, 'day');
         }
       } else {
         // For regular monthly incomes
-        const incomeYear = incomeDate.year();
-        const incomeMonth = incomeDate.month();
-        const incomeDay = incomeDate.date();
-
-        // Create a new date with the selected year/month but same day
-        const adjustedDate = dayjs()
-          .year(selectedYear)
-          .month(selectedMonth)
-          .date(incomeDay);
-
-        // Only count if the day exists in the current month
-        if (adjustedDate.month() === selectedMonth) {
+        if (incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear) {
           totalIncome += income.amount;
         }
       }
@@ -608,7 +595,7 @@ const Budget = () => {
             <div className="flex flex-wrap items-center gap-3 lg:gap-6">
               <ThemeToggle />
               <div>
-                <p className="text-xs lg:text-sm text-muted-foreground">Total Income</p>
+                <p className="text-xs lg:text-sm text-muted-foreground">Total Net Income</p>
                 <p className="text-base lg:text-lg font-semibold text-green-600">
                   {formatCurrency(monthlyTotals.totalIncome)}
                 </p>
@@ -807,6 +794,7 @@ const Budget = () => {
             </AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete}>
               Delete
+            </AlertDialogAction>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
