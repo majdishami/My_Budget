@@ -269,40 +269,80 @@ export default function IncomeReportDialog({ isOpen, onOpenChange }: IncomeRepor
           </Card>
         </div>
 
-        {/* Transactions Table */}
-        <Card>
-          <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">All Income</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions
-                  .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                  .map((transaction, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                      <TableCell>{transaction.description}</TableCell>
-                      <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-300'}`}>
-                        {formatCurrency(transaction.amount)}
-                      </TableCell>
-                      <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-300'}>
-                        {transaction.occurred ? 'Received' : 'Pending'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        {/* Transactions Tables */}
+        <div className="space-y-4">
+          {/* Majdi's Income Transactions */}
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Majdi's Income Transactions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions
+                    .filter(t => t.description === "Majdi's Salary")
+                    .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                    .map((transaction, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                        <TableCell>{transaction.description}</TableCell>
+                        <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-300'}`}>
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-300'}>
+                          {transaction.occurred ? 'Received' : 'Pending'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Ruba's Income Transactions */}
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Ruba's Income Transactions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions
+                    .filter(t => t.description === "Ruba's Salary")
+                    .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                    .map((transaction, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                        <TableCell>{transaction.description}</TableCell>
+                        <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-300'}`}>
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-300'}>
+                          {transaction.occurred ? 'Received' : 'Pending'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
       </DialogContent>
     </Dialog>
   );
