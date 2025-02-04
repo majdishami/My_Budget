@@ -9,11 +9,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Enable trust proxy for secure cookies when behind Replit's proxy
-app.set('trust proxy', true);
+app.enable('trust proxy');
 
-// Configure CORS for Replit's environment
+// Configure CORS for development - allow all origins temporarily
 app.use((req, res, next) => {
-  // Allow all origins in development
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -73,8 +72,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use the port provided by Replit's environment, or fall back to 5000
-  const PORT = process.env.PORT || 5000;
+  // Use port 3000 and bind to all interfaces
+  const PORT = 3000;
 
   server.listen(PORT, "0.0.0.0", () => {
     log(`Server is running at http://0.0.0.0:${PORT}`);
