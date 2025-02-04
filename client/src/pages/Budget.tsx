@@ -785,8 +785,7 @@ const Budget = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <span className="font-medium">Name:</span>
                     <span>{deletingBill.name}</span>
-                    <span className="font-medium">Amount</span>
-                    <span<span>{formatCurrency(deletingBill.amount)}</span>
+                    <span className="font-medium">Amount:</                    <span>{formatCurrency(deletingBill.amount)}</span>
                     <span className="font-medium">Day of Month:</span>
                     <span>{deletingBill.day}</span>
                   </div>
