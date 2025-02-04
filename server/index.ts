@@ -6,6 +6,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Enable trust proxy for secure cookies when behind a reverse proxy
+app.set('trust proxy', 1);
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -42,9 +45,8 @@ app.use((req, res, next) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
+    log(`Error: ${message}`);
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after
@@ -56,9 +58,9 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use Replit's PORT environment variable if available, otherwise use 5000
   const PORT = process.env.PORT || 5000;
-  server.listen(PORT, "0.0.0.0", () => {
+  server.listen(PORT, () => {
     log(`Server is running at http://0.0.0.0:${PORT}`);
+    log(`Application URL: https://codecrafthub.majdi01.repl.co`);
   });
 })();
