@@ -81,8 +81,7 @@ const formatCurrency = (amount: number) => {
 
 const Budget = () => {
   // 🕒 Time Management
-  // Set initial date to February 3rd, 2025
-  const today = dayjs('2025-02-03');
+  const today = dayjs('2025-02-04'); // Set to February 4th, 2025
 
   // 📊 State Management
   const [selectedYear, setSelectedYear] = useState(today.year());
@@ -244,11 +243,13 @@ const Budget = () => {
     }
   };
 
+  /**
+   * Check if a given day is the current day
+   */
   const isCurrentDay = (day: number) => {
-    const currentDate = dayjs();
-    return day === currentDate.date() &&
-           selectedMonth === currentDate.month() &&
-           selectedYear === currentDate.year();
+    return day === today.date() &&
+           selectedMonth === today.month() &&
+           selectedYear === today.year();
   };
 
   const calendarDays = useMemo(() => {
