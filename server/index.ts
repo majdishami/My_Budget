@@ -16,7 +16,7 @@ app.use((req, res, next) => {
   const allowedOrigins = [
     'https://codecrafthub.majdi01.repl.co',
     process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : undefined,
-    'http://localhost:3000', // Allow local development
+    'http://localhost:5000', // Updated port for local development
   ].filter(Boolean);
 
   const origin = req.headers.origin;
@@ -82,8 +82,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Parse PORT as a number and use a default of 3000
-  const PORT = parseInt(process.env.PORT || '3000', 10);
+  // Use port 5000 explicitly
+  const PORT = 5000;
 
   // Close any existing connections before starting
   server.close(() => {
