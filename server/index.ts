@@ -11,9 +11,23 @@ app.use(express.urlencoded({ extended: false }));
 // Enable trust proxy for secure cookies when behind Replit's proxy
 app.enable('trust proxy');
 
-// Configure CORS for development - allow all origins temporarily
+// Configure CORS for Replit's environment
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const replitUrl = process.env.REPL_SLUG && process.env.REPL_OWNER
+    ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+    : null;
+
+  const allowedOrigins = [
+    replitUrl,
+    'https://workspace.majdi01.repl.co',
+    'http://localhost:5000'
+  ].filter(Boolean);
+
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -24,7 +38,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Request logging middleware
+// Request logging middleware with detailed information
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -36,6 +50,12 @@ app.use((req, res, next) => {
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
+  // Log request details
+  log(`Incoming ${req.method} ${path} from ${req.ip}`);
+  if (Object.keys(req.headers).length > 0) {
+    log(`Headers: ${JSON.stringify(req.headers)}`);
+  }
+
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
@@ -43,11 +63,6 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
       log(logLine);
     }
   });
@@ -58,11 +73,14 @@ app.use((req, res, next) => {
 (async () => {
   const server = registerRoutes(app);
 
-  // Global error handler
+  // Global error handler with detailed logging
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
     log(`Error: ${message}`);
+    if (err.stack) {
+      log(`Stack: ${err.stack}`);
+    }
     res.status(status).json({ message });
   });
 
