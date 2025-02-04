@@ -16,11 +16,12 @@ app.use((req, res, next) => {
   const allowedOrigins = [
     'https://codecrafthub.majdi01.repl.co',
     process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : undefined,
-    'http://localhost:5000', // Updated port for local development
+    'http://localhost:5000',
+    '*' // Allow all origins temporarily for testing
   ].filter(Boolean);
 
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
+  if (origin) {
     res.header('Access-Control-Allow-Origin', origin);
   }
 
@@ -89,7 +90,7 @@ app.use((req, res, next) => {
   server.close(() => {
     server.listen(PORT, '0.0.0.0', () => {
       log(`Server is running at http://0.0.0.0:${PORT}`);
-      log(`Application URL: https://codecrafthub.majdi01.repl.co`);
+      log(`Application URL: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
       log(`Server environment: ${app.get("env")}`);
       log(`Trust proxy enabled: ${app.get('trust proxy')}`);
     });
