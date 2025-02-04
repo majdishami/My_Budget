@@ -29,6 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isBetween);
@@ -58,7 +60,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
-  const today = dayjs('2025-02-04'); // Current date
+  const today = dayjs(); // Use current date instead of hardcoded value
 
   useEffect(() => {
     if (!isOpen) {
@@ -71,6 +73,15 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
   useEffect(() => {
     if (!showReport || !selectedBillId || !date?.from || !date?.to) return;
+
+    // Validate date range
+    if (dayjs(date.to).isBefore(date.from)) {
+      setDate({
+        from: date.from,
+        to: date.from
+      });
+      return;
+    }
 
     const selectedBill = bills.find(bill => bill.id === selectedBillId);
     if (!selectedBill) return;
@@ -187,76 +198,87 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           </DialogTitle>
         </DialogHeader>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {formatCurrency(totalAmount)}
-              </div>
-            </CardContent>
-          </Card>
+        {transactions.length === 0 ? (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No transactions found for the selected date range.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <Card>
+                <CardHeader className="py-4">
+                  <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {formatCurrency(totalAmount)}
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Paid to Date</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {formatCurrency(occurredAmount)}
-              </div>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader className="py-4">
+                  <CardTitle className="text-sm font-medium">Paid to Date</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {formatCurrency(occurredAmount)}
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Remaining</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-300">
-                {formatCurrency(pendingAmount)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Card>
+                <CardHeader className="py-4">
+                  <CardTitle className="text-sm font-medium">Remaining</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-300">
+                    {formatCurrency(pendingAmount)}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-        {/* Transactions Table */}
-        <Card>
-          <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">All Occurrences</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions
-                  .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                  .map((transaction, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                      <TableCell>{transaction.description}</TableCell>
-                      <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
-                        {formatCurrency(transaction.amount)}
-                      </TableCell>
-                      <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
-                        {transaction.occurred ? 'Paid' : 'Pending'}
-                      </TableCell>
+            {/* Transactions Table */}
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">All Occurrences</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions
+                      .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                      .map((transaction, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                            {formatCurrency(transaction.amount)}
+                          </TableCell>
+                          <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                            {transaction.occurred ? 'Paid' : 'Pending'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
