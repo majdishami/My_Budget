@@ -659,11 +659,22 @@ const Budget = () => {
                           <td
                             key={dayIndex}
                             onClick={() => handleDayClick(dayNumber)}
+                            aria-label={`${dayNumber} ${dayjs().month(selectedMonth).format("MMMM")} ${selectedYear}${isCurrentDay(dayNumber) ? ' (Today)' : ''}`}
                             className={cn(
                               "border p-1 lg:p-2 align-top cursor-pointer transition-colors h-24 lg:h-48 relative touch-manipulation",
-                              "active:bg-accent/70", // Better touch feedback
+                              "active:bg-accent/70",
                               "hover:bg-accent",
-                              isCurrentDay(dayNumber) && "ring-2 ring-primary ring-offset-2 border-primary",
+                              isCurrentDay(dayNumber) && [
+                                "ring-2 ring-primary ring-offset-2",
+                                "border-primary",
+                                "bg-primary/10",
+                                "relative",
+                                "after:content-['Today'] after:absolute after:top-1 after:right-1",
+                                "after:text-[10px] after:font-medium after:text-primary",
+                                "after:px-1 after:py-0.5 after:rounded after:bg-primary/10",
+                                "before:content-[''] before:absolute before:-inset-[2px]",
+                                "before:border-2 before:border-primary before:rounded-sm"
+                              ],
                               selectedDay === dayNumber && "bg-accent/50 font-semibold",
                               hasTransactions && "shadow-sm"
                             )}
@@ -787,7 +798,8 @@ const Budget = () => {
                     <span className="font-medium">Name:</span>
                     <span>{deletingBill.name}</span>
                     <span className="font-medium">Amount:</span>
-                    <span>{formatCurrency(deletingBill.amount)}</span>                    <span className="font-medium">Day of Month:</span>
+                    <span>{formatCurrency(deletingBill.amount)}</span>
+                    <span className="font-medium">Day of Month:</span>
                     <span>{deletingBill.day}</span>
                   </div>
                 </div>
