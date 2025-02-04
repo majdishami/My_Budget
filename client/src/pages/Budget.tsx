@@ -517,7 +517,7 @@ const Budget = () => {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-4 left-4 z-40 lg:hidden"
+        className="fixed top-2 left-2 z-40 lg:hidden"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         {sidebarOpen ? (
@@ -534,7 +534,7 @@ const Budget = () => {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="pt-14 lg:pt-0"> {/* Add padding for mobile menu button */}
+        <div className="pt-12 lg:pt-0"> {/* Reduced padding for mobile */}
           <LeftSidebar
             incomes={incomes}
             bills={bills}
@@ -559,16 +559,16 @@ const Budget = () => {
       <main className="w-full lg:pl-64 flex flex-col min-h-screen">
         {/* 🗓️ Calendar Header */}
         <Card className="p-2 lg:p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-2 lg:gap-4">
-            <div className="space-y-2">
-              <h1 className="text-xl lg:text-2xl font-bold">
-                My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-1 lg:gap-4">
+            <div className="space-y-1 lg:space-y-2 pl-8 lg:pl-0"> {/* Added left padding for menu button */}
+              <h1 className="text-sm lg:text-2xl font-bold truncate">
+                Budget - {dayjs().month(selectedMonth).format("MMM")} {selectedYear}
               </h1>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1 lg:gap-2">
                 <select 
                   value={selectedMonth}
                   onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-                  className="p-2 border rounded bg-background min-w-[120px] text-base touch-manipulation"
+                  className="p-1 lg:p-2 border rounded bg-background min-w-[100px] lg:min-w-[120px] text-xs lg:text-base touch-manipulation"
                   aria-label="Select month"
                 >
                   {months.map(month => (
@@ -581,7 +581,7 @@ const Budget = () => {
                 <select
                   value={selectedYear}
                   onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                  className="p-2 border rounded bg-background min-w-[100px] text-base touch-manipulation"
+                  className="p-1 lg:p-2 border rounded bg-background min-w-[80px] lg:min-w-[100px] text-xs lg:text-base touch-manipulation"
                   aria-label="Select year"
                 >
                   {years.map(year => (
@@ -592,7 +592,7 @@ const Budget = () => {
                 <select
                   value={selectedDay}
                   onChange={(e) => setSelectedDay(parseInt(e.target.value))}
-                  className="p-2 border rounded bg-background min-w-[80px] text-base touch-manipulation"
+                  className="p-1 lg:p-2 border rounded bg-background min-w-[60px] lg:min-w-[80px] text-xs lg:text-base touch-manipulation"
                   aria-label="Select day"
                 >
                   {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
@@ -789,7 +789,7 @@ const Budget = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <span className="font-medium">Name:</span>
                     <span>{deletingBill.name}</span>
-                    <span className="font-medium">Amount:</span>
+                    <span className="font-medium">Amount</span>
                     <span>{formatCurrency(deletingBill.amount)}</span>
                     <span className="font-medium">Day of Month:</span>
                     <span>{deletingBill.day}</span>
@@ -797,7 +797,7 @@ const Budget = () => {
                 </div>
               )}
             </AlertDialogDescription>
-                    </AlertDialogHeader>
+          </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               setShowDeleteDialog(false);
