@@ -84,8 +84,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use port 3000 for Replit deployment
-  const PORT = 3000;
+  // Use port 3000 for Replit deployment, 5001 for local development
+  const PORT = process.env.REPL_SLUG ? 3000 : 5001;
 
   server.listen(PORT, "0.0.0.0", () => {
     log(`Server is running at http://0.0.0.0:${PORT}`);
