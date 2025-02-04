@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import MonthlyToDateDialog from "@/components/MonthlyToDateDialog";
 import MonthlyReportDialog from "@/components/MonthlyReportDialog";
+import DateRangeReportDialog from "@/components/DateRangeReportDialog";
 import { useLocation } from "wouter";
 
 interface Income {
@@ -26,6 +27,7 @@ interface Bill {
 function Router() {
   const [showMonthlyToDate, setShowMonthlyToDate] = useState(false);
   const [showMonthlyReport, setShowMonthlyReport] = useState(false);
+  const [showDateRangeReport, setShowDateRangeReport] = useState(false);
   const [, setLocation] = useLocation();
 
   const handleMonthlyToDateOpenChange = (open: boolean) => {
@@ -37,6 +39,13 @@ function Router() {
 
   const handleMonthlyReportOpenChange = (open: boolean) => {
     setShowMonthlyReport(open);
+    if (!open) {
+      setLocation('/');
+    }
+  };
+
+  const handleDateRangeReportOpenChange = (open: boolean) => {
+    setShowDateRangeReport(open);
     if (!open) {
       setLocation('/');
     }
@@ -58,6 +67,12 @@ function Router() {
             return null;
           }}
         </Route>
+        <Route path="/reports/date-range">
+          {() => {
+            setShowDateRangeReport(true);
+            return null;
+          }}
+        </Route>
       </Switch>
       <MonthlyToDateDialog
         isOpen={showMonthlyToDate}
@@ -66,6 +81,10 @@ function Router() {
       <MonthlyReportDialog
         isOpen={showMonthlyReport}
         onOpenChange={handleMonthlyReportOpenChange}
+      />
+      <DateRangeReportDialog
+        isOpen={showDateRangeReport}
+        onOpenChange={handleDateRangeReportOpenChange}
       />
     </>
   );
