@@ -182,7 +182,8 @@ const Budget = () => {
 
       // Special handling for Ruba's bi-weekly salary
       if (income.source === "Ruba's Salary") {
-        if (currentDate.day() !== 5) return false; // Check if it's Friday (5)
+        // Check if it's Friday (5)
+        if (currentDate.format('d') !== '5') return false;
 
         // Calculate from January 10, 2025 start date
         const startDate = dayjs('2025-01-10');
@@ -211,8 +212,9 @@ const Budget = () => {
   }, [firstDayOfMonth]);
 
   const firstDayOfWeek = useMemo(() => {
-    const day = firstDayOfMonth.day();
-    return day === 0 ? 6 : day - 1; // Convert Sunday (0) to 6, other days shift by 1
+    // Get day of week (0-6), convert Sunday (0) to 6 for Monday-based week
+    const dayNum = parseInt(firstDayOfMonth.format('d'));
+    return dayNum === 0 ? 6 : dayNum - 1;
   }, [firstDayOfMonth]);
 
   const calendarDays = useMemo(() => {
@@ -811,7 +813,7 @@ const Budget = () => {
                 </div>
               )}
             </AlertDialogDescription>
-          </AlertDialogHeader>
+          </</AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               setShowDeleteIncomeDialog(false);
