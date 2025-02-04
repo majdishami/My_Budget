@@ -33,7 +33,8 @@ const calculateBiweeklyOccurrences = (income: any, startDate: Date, endDate: Dat
       const weeksDiff = currentDate.diff(rubaStart, 'week');
       if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
         // Only include if it's within the selected date range
-        if (currentDate.isAfter(dayjs(startDate)) || currentDate.isSame(dayjs(startDate), 'day')) {
+        if ((currentDate.isAfter(dayjs(startDate)) || currentDate.isSame(dayjs(startDate), 'day')) && 
+            (currentDate.isBefore(rangeEnd) || currentDate.isSame(rangeEnd, 'day'))) {
           occurrences.push({
             id: `${income.id}-${currentDate.format('YYYY-MM-DD')}`,
             amount: income.amount,
@@ -53,16 +54,16 @@ const calculateBiweeklyOccurrences = (income: any, startDate: Date, endDate: Dat
 
 const generateBillOccurrences = (bill: any, startDate: Date, endDate: Date) => {
   const occurrences = [];
-  let currentDate = dayjs(startDate).startOf('month');
-  const rangeEnd = dayjs(endDate).endOf('month');
+  const start = dayjs(startDate);
+  const end = dayjs(endDate);
+  let currentMonth = start.startOf('month');
 
-  while (currentDate.isBefore(rangeEnd) || currentDate.isSame(rangeEnd, 'month')) {
-    // Create bill occurrence for this month
-    const billDate = currentDate.date(bill.day);
+  while (currentMonth.isBefore(end) || currentMonth.isSame(end, 'month')) {
+    const billDate = currentMonth.date(bill.day);
 
     // Only include if the bill date falls within our range
-    if ((billDate.isAfter(dayjs(startDate)) || billDate.isSame(dayjs(startDate), 'day')) &&
-        (billDate.isBefore(dayjs(endDate)) || billDate.isSame(dayjs(endDate), 'day'))) {
+    if ((billDate.isAfter(start) || billDate.isSame(start, 'day')) && 
+        (billDate.isBefore(end) || billDate.isSame(end, 'day'))) {
       occurrences.push({
         id: `${bill.id}-${billDate.format('YYYY-MM')}`,
         amount: bill.amount,
@@ -72,8 +73,7 @@ const generateBillOccurrences = (bill: any, startDate: Date, endDate: Date) => {
         type: 'expense' as const
       });
     }
-
-    currentDate = currentDate.add(1, 'month');
+    currentMonth = currentMonth.add(1, 'month');
   }
 
   return occurrences;
@@ -146,7 +146,13 @@ export const exportToPDF = async (data: Transaction[], filename = 'budget-export
   doc.save(`${filename}.pdf`);
 };
 
-export const exportData = (data: Transaction[], format: 'excel' | 'csv' | 'pdf', filename?: string) => {
+export const exportData = (
+  data: Transaction[], 
+  format: 'excel' | 'csv' | 'pdf', 
+  filename?: string,
+  startDate?: Date,
+  endDate?: Date
+) => {
   const exportFunctions = {
     excel: exportToExcel,
     csv: exportToCSV,
@@ -155,6 +161,11 @@ export const exportData = (data: Transaction[], format: 'excel' | 'csv' | 'pdf',
 
   if (!filename) {
     filename = `budget-export-${dayjs().format('YYYY-MM-DD')}`;
+  }
+
+  if (!startDate || !endDate) {
+    startDate = dayjs().startOf('month').toDate();
+    endDate = dayjs().endOf('month').toDate();
   }
 
   const processedData = data
@@ -167,13 +178,27 @@ export const exportData = (data: Transaction[], format: 'excel' | 'csv' | 'pdf',
             amount: transaction.amount,
             date: transaction.date
           },
-          dayjs(transaction.date).toDate(),
-          dayjs(transaction.date).add(6, 'month').toDate()
+          startDate!,
+          endDate!
         );
       } else if (transaction.type === 'expense') {
-        return generateBillOccurrences(transaction, dayjs(transaction.date).toDate(), dayjs(transaction.date).add(6, 'month').toDate())
+        return generateBillOccurrences(
+          {
+            id: transaction.id,
+            name: transaction.description,
+            amount: transaction.amount,
+            day: dayjs(transaction.date).date()
+          }, 
+          startDate!, 
+          endDate!
+        );
       }
       return transaction;
+    })
+    .filter(transaction => {
+      const transactionDate = dayjs(transaction.date);
+      return (transactionDate.isAfter(dayjs(startDate)) || transactionDate.isSame(dayjs(startDate), 'day')) &&
+             (transactionDate.isBefore(dayjs(endDate)) || transactionDate.isSame(dayjs(endDate), 'day'));
     })
     .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
 
