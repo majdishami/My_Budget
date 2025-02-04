@@ -13,18 +13,12 @@ app.enable('trust proxy');
 
 // Configure CORS for Replit's environment
 app.use((req, res, next) => {
-  const replitUrl = process.env.REPL_SLUG && process.env.REPL_OWNER
-    ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-    : null;
-
-  const allowedOrigins = [
-    replitUrl,
-    'https://workspace.majdi01.repl.co',
-    'http://localhost:5000'
-  ].filter(Boolean);
-
+  // Allow the current Replit domain and localhost for development
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
+  if (origin && (
+    origin.endsWith('.replit.dev') || 
+    origin === 'http://localhost:5000'
+  )) {
     res.header('Access-Control-Allow-Origin', origin);
   }
 
@@ -95,10 +89,6 @@ app.use((req, res, next) => {
 
   server.listen(PORT, "0.0.0.0", () => {
     log(`Server is running at http://0.0.0.0:${PORT}`);
-    if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-      const replitUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-      log(`Application URL: ${replitUrl}`);
-    }
     log(`Server environment: ${app.get("env")}`);
     log(`Trust proxy enabled: ${app.get('trust proxy')}`);
   });
