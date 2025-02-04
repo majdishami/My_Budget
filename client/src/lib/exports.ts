@@ -11,6 +11,41 @@ interface Transaction {
   type: 'income' | 'expense';
 }
 
+const calculateBiweeklyOccurrences = (income: any) => {
+  // Only process Ruba's salary
+  if (income.source !== "Ruba's Salary") {
+    return [{
+      ...income,
+      date: income.date
+    }];
+  }
+
+  // Calculate bi-weekly occurrences for 6 months from the start date
+  const occurrences = [];
+  const startDate = dayjs('2025-01-10'); // Ruba's salary start date
+  let currentDate = startDate.clone();
+  const endDate = startDate.add(6, 'month');
+
+  while (currentDate.isBefore(endDate)) {
+    if (currentDate.day() === 5) { // Friday
+      const weeksDiff = currentDate.diff(startDate, 'week');
+      if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+        occurrences.push({
+          id: `${income.id}-${currentDate.format('YYYY-MM-DD')}`,
+          amount: income.amount,
+          description: income.source,
+          category: 'Income',
+          date: currentDate.toISOString(),
+          type: 'income' as const
+        });
+      }
+    }
+    currentDate = currentDate.add(1, 'day');
+  }
+
+  return occurrences;
+};
+
 export const exportToExcel = (data: Transaction[], filename = 'budget-export') => {
   const worksheet = utils.json_to_sheet(data.map(item => ({
     Date: dayjs(item.date).format('YYYY-MM-DD'),
@@ -99,5 +134,18 @@ export const exportData = (data: Transaction[], format: 'excel' | 'csv' | 'pdf',
     filename = `budget-export-${dayjs().format('YYYY-MM-DD')}`;
   }
 
-  exportFunctions[format](data, filename);
+  // Process bi-weekly occurrences before exporting
+  const processedData = data.flatMap(transaction => {
+    if (transaction.type === 'income' && transaction.description === "Ruba's Salary") {
+      return calculateBiweeklyOccurrences({
+        id: transaction.id,
+        source: transaction.description,
+        amount: transaction.amount,
+        date: transaction.date
+      });
+    }
+    return transaction;
+  });
+
+  exportFunctions[format](processedData, filename);
 };
