@@ -172,6 +172,7 @@ const Budget = () => {
   const getIncomeForDay = (day: number) => {
     if (day <= 0 || day > daysInMonth) return [];
 
+    // Create a proper dayjs date for the current day
     const currentDate = dayjs()
       .year(selectedYear)
       .month(selectedMonth)
@@ -182,7 +183,8 @@ const Budget = () => {
 
       // Special handling for Ruba's bi-weekly salary
       if (income.source === "Ruba's Salary") {
-        if (currentDate.day() !== 5) return false; // Check if it's Friday (5)
+        // Check if it's Friday (5) using the proper dayjs method
+        if (currentDate.get('day') !== 5) return false;
 
         // Calculate from January 10, 2025 start date
         const startDate = dayjs('2025-01-10');
@@ -210,22 +212,26 @@ const Budget = () => {
     return firstDayOfMonth.daysInMonth();
   }, [firstDayOfMonth]);
 
-  const firstDayOfWeek = useMemo(() => {
-    const day = firstDayOfMonth.day();
-    return day === 0 ? 6 : day - 1; // Convert Sunday (0) to 6, other days shift by 1
-  }, [firstDayOfMonth]);
-
   const calendarDays = useMemo(() => {
-    const daysBeforeMonth = firstDayOfWeek;
-    const totalDaysNeeded = daysBeforeMonth + daysInMonth;
-    const weeksNeeded = Math.ceil(totalDaysNeeded / 7);
-    const totalCells = weeksNeeded * 7;
+    // Get the first day of the month (0-6, 0 is Sunday)
+    const startDay = firstDayOfMonth.get('day');
 
-    return Array.from({ length: totalCells }, (_, index) => {
-      const adjustedDay = index - daysBeforeMonth + 1;
-      return adjustedDay > 0 && adjustedDay <= daysInMonth ? adjustedDay : null;
-    });
-  }, [daysInMonth, firstDayOfWeek]);
+    // Convert to Monday-based week (0-6, 0 is Monday)
+    const mondayBasedStartDay = startDay === 0 ? 6 : startDay - 1;
+
+    // Calculate the number of weeks needed
+    const totalDays = mondayBasedStartDay + daysInMonth;
+    const numWeeks = Math.ceil(totalDays / 7);
+    const totalCells = numWeeks * 7;
+
+    // Create the calendar grid
+    const days = [];
+    for (let i = 0; i < totalCells; i++) {
+      const dayNumber = i - mondayBasedStartDay + 1;
+      days.push(dayNumber > 0 && dayNumber <= daysInMonth ? dayNumber : null);
+    }
+    return days;
+  }, [firstDayOfMonth, daysInMonth]);
 
   /**
    * 🧮 Calculate Running Totals
@@ -287,7 +293,7 @@ const Budget = () => {
         let currentDate = firstDayOfMonth;
         while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
           // Check if it's a Friday and matches bi-weekly schedule
-          if (currentDate.day() === 5) { // Friday
+          if (currentDate.get('day') === 5) { // Friday
             const weeksDiff = currentDate.diff(startDate, 'week');
             if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
               totalIncome += income.amount;
@@ -803,7 +809,7 @@ const Budget = () => {
                     <span className="font-medium">Date:</span>
                     <span>{dayjs(deletingIncome.date).format('MMMM D, YYYY')}</span>
                     {deletingIncome.source === "Ruba's Salary" && (
-                      <>
+                                            <>
                         <span className="font-medium">Type:</span>
                         <span>Bi-weekly (Every other Friday)</span>
                       </>)}
