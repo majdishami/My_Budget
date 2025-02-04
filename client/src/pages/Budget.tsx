@@ -180,10 +180,10 @@ const Budget = () => {
     return incomes.filter(income => {
       const incomeDate = dayjs(income.date);
 
-      // Special handling for Ruba's bi-weekly salary
+      // 🔄 Special handling for Ruba's bi-weekly salary
       if (income.source === "Ruba's Salary") {
-        // Check if it's Friday (5)
-        if (currentDate.format('d') !== '5') return false;
+        // Must be a Friday
+        if (currentDate.day() !== 5) return false;
 
         // Calculate from January 10, 2025 start date
         const startDate = dayjs('2025-01-10');
@@ -204,7 +204,7 @@ const Budget = () => {
   };
 
   const firstDayOfMonth = useMemo(() => {
-    return dayjs().year(selectedYear).month(selectedMonth).startOf('month');
+    return dayjs(`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`);
   }, [selectedYear, selectedMonth]);
 
   const daysInMonth = useMemo(() => {
@@ -212,22 +212,10 @@ const Budget = () => {
   }, [firstDayOfMonth]);
 
   const firstDayOfWeek = useMemo(() => {
-    // Get day of week (0-6), convert Sunday (0) to 6 for Monday-based week
-    const dayNum = parseInt(firstDayOfMonth.format('d'));
-    return dayNum === 0 ? 6 : dayNum - 1;
+    // Convert Sunday=0 to Monday=0 by shifting the day number
+    const day = firstDayOfMonth.day();
+    return day === 0 ? 6 : day - 1; // Sunday becomes 6, other days shift down by 1
   }, [firstDayOfMonth]);
-
-  const calendarDays = useMemo(() => {
-    const daysBeforeMonth = firstDayOfWeek;
-    const totalDaysNeeded = daysBeforeMonth + daysInMonth;
-    const weeksNeeded = Math.ceil(totalDaysNeeded / 7);
-    const totalCells = weeksNeeded * 7;
-
-    return Array.from({ length: totalCells }, (_, index) => {
-      const adjustedDay = index - daysBeforeMonth + 1;
-      return adjustedDay > 0 && adjustedDay <= daysInMonth ? adjustedDay : null;
-    });
-  }, [daysInMonth, firstDayOfWeek]);
 
   /**
    * 🧮 Calculate Running Totals
@@ -265,6 +253,13 @@ const Budget = () => {
            selectedYear === currentDate.year();
   };
 
+  const calendarDays = useMemo(() => {
+    const totalDays = 42; // 6 weeks × 7 days
+    return Array.from({ length: totalDays }, (_, index) => {
+      const adjustedIndex = index - firstDayOfWeek;
+      return adjustedIndex >= 0 && adjustedIndex < daysInMonth ? adjustedIndex + 1 : null;
+    });
+  }, [daysInMonth, firstDayOfWeek]);
 
   /**
    * 🧮 Monthly Totals Calculation
@@ -808,12 +803,13 @@ const Budget = () => {
                       <>
                         <span className="font-medium">Type:</span>
                         <span>Bi-weekly (Every other Friday)</span>
-                      </>)}
+                      </>
+                    )}
                   </div>
                 </div>
               )}
             </AlertDialogDescription>
-          </</AlertDialogHeader>
+          </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               setShowDeleteIncomeDialog(false);
