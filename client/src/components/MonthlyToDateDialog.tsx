@@ -129,14 +129,6 @@ export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToD
           <DialogTitle className="text-xl">
             Monthly Report - {today.format('MMMM YYYY')} (Up to {today.format('MMMM D')})
           </DialogTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onOpenChange(false)}
-            className="hover:bg-accent"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
