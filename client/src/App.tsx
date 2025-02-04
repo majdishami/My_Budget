@@ -6,6 +6,7 @@ import Budget from "@/pages/Budget";
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import MonthlyToDateDialog from "@/components/MonthlyToDateDialog";
+import { useLocation } from "wouter";
 
 interface Income {
   id: string;
@@ -23,6 +24,14 @@ interface Bill {
 
 function Router() {
   const [showMonthlyToDate, setShowMonthlyToDate] = useState(false);
+  const [, setLocation] = useLocation();
+
+  const handleOpenChange = (open: boolean) => {
+    setShowMonthlyToDate(open);
+    if (!open) {
+      setLocation('/');
+    }
+  };
 
   return (
     <>
@@ -37,7 +46,7 @@ function Router() {
       </Switch>
       <MonthlyToDateDialog
         isOpen={showMonthlyToDate}
-        onOpenChange={setShowMonthlyToDate}
+        onOpenChange={handleOpenChange}
       />
     </>
   );

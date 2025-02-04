@@ -38,6 +38,8 @@ export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToD
   const endOfMonth = today.endOf('month');
 
   useEffect(() => {
+    if (!isOpen) return;
+
     const mockTransactions: Transaction[] = [];
 
     // Add Majdi's salary occurrences
@@ -106,7 +108,7 @@ export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToD
     }
 
     setTransactions(mockTransactions);
-  }, [today]);
+  }, [isOpen, today]);
 
   const totals = transactions.reduce(
     (acc, transaction) => {
@@ -125,7 +127,7 @@ export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToD
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex flex-row justify-between items-center">
+        <DialogHeader>
           <DialogTitle className="text-xl">
             Monthly Report - {today.format('MMMM YYYY')} (Up to {today.format('MMMM D')})
           </DialogTitle>
