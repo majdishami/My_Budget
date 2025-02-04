@@ -69,55 +69,31 @@ export default function MonthlyToDateReport() {
       // February 1st expenses
       mockTransactions.push({
         date: startOfMonth.format('YYYY-MM-DD'),
+        description: 'ATT Phone Bill',
+        amount: 429.00,
+        type: 'expense'
+      });
+
+      mockTransactions.push({
+        date: startOfMonth.format('YYYY-MM-DD'),
+        description: "Maid's 1st payment",
+        amount: 120.00,
+        type: 'expense'
+      });
+
+      mockTransactions.push({
+        date: startOfMonth.format('YYYY-MM-DD'),
         description: 'Monthly Rent',
-        amount: 3750,
+        amount: 3750.00,
         type: 'expense'
       });
-
-      mockTransactions.push({
-        date: startOfMonth.format('YYYY-MM-DD'),
-        description: 'Car Payment',
-        amount: 550,
-        type: 'expense'
-      });
-
-      mockTransactions.push({
-        date: startOfMonth.format('YYYY-MM-DD'),
-        description: 'Car Gas',
-        amount: 60,
-        type: 'expense'
-      });
-
-      // February 2nd expenses
-      if (today.date() >= 2) {
-        mockTransactions.push({
-          date: today.format('2025-02-02'),
-          description: 'Internet Bill',
-          amount: 89,
-          type: 'expense'
-        });
-
-        mockTransactions.push({
-          date: today.format('2025-02-02'),
-          description: 'Electricity Bill',
-          amount: 150,
-          type: 'expense'
-        });
-      }
 
       // February 3rd expenses
       if (today.date() >= 3) {
         mockTransactions.push({
           date: today.format('2025-02-03'),
-          description: 'Car Insurance',
-          amount: 175,
-          type: 'expense'
-        });
-
-        mockTransactions.push({
-          date: today.format('2025-02-03'),
-          description: 'Phone Bill',
-          amount: 85,
+          description: 'Sling TV',
+          amount: 75.00,
           type: 'expense'
         });
       }
