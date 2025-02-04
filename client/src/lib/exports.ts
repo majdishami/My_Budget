@@ -29,11 +29,12 @@ const calculateBiweeklyOccurrences = (income: any, startDate: Date, endDate: Dat
   const rangeEnd = dayjs(endDate);
 
   while (currentDate.isBefore(rangeEnd) || currentDate.isSame(rangeEnd, 'day')) {
-    if (currentDate.get('day') === 5) { // Friday
+    if (currentDate.day() === 5) { // Friday
       const weeksDiff = currentDate.diff(rubaStart, 'week');
       if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
         // Only include if it's within the selected date range
-        if (currentDate.isAfter(dayjs(startDate)) || currentDate.isSame(dayjs(startDate), 'day')) {
+        if ((currentDate.isAfter(dayjs(startDate)) || currentDate.isSame(dayjs(startDate), 'day')) && 
+            (currentDate.isBefore(rangeEnd) || currentDate.isSame(rangeEnd, 'day'))) {
           occurrences.push({
             id: `${income.id}-${currentDate.format('YYYY-MM-DD')}`,
             amount: income.amount,
@@ -192,13 +193,12 @@ export const exportData = (
           endDate!
         );
       }
-      // For regular monthly income, check if it falls within the date range
+      return transaction;
+    })
+    .filter(transaction => {
       const transactionDate = dayjs(transaction.date);
-      if ((transactionDate.isAfter(dayjs(startDate)) || transactionDate.isSame(dayjs(startDate), 'day')) &&
-          (transactionDate.isBefore(dayjs(endDate)) || transactionDate.isSame(dayjs(endDate), 'day'))) {
-        return [transaction];
-      }
-      return [];
+      return (transactionDate.isAfter(dayjs(startDate)) || transactionDate.isSame(dayjs(startDate), 'day')) &&
+             (transactionDate.isBefore(dayjs(endDate)) || transactionDate.isSame(dayjs(endDate), 'day'));
     })
     .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
 
