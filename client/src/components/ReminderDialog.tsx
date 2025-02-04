@@ -1,3 +1,12 @@
+/**
+ * ================================================
+ * 🔔 ReminderDialog Component
+ * ================================================
+ * A reusable dialog component for configuring bill payment reminders.
+ * Allows users to enable/disable reminders and set the number of
+ * days before the due date when they want to be reminded.
+ */
+
 import {
   Dialog,
   DialogContent,
@@ -12,6 +21,13 @@ import { useState, useEffect } from "react";
 import { Bill } from "@/types";
 import { Label } from "@/components/ui/label";
 
+/**
+ * Props for the ReminderDialog component
+ * @property bill - The bill to configure reminders for
+ * @property isOpen - Controls dialog visibility
+ * @property onOpenChange - Callback when dialog open state changes
+ * @property onSave - Callback when reminder settings are saved
+ */
 interface ReminderDialogProps {
   bill: Bill | null;
   isOpen: boolean;
@@ -25,9 +41,11 @@ export function ReminderDialog({
   onOpenChange,
   onSave,
 }: ReminderDialogProps) {
+  // 🔄 Local state for reminder settings
   const [enabled, setEnabled] = useState(false);
   const [days, setDays] = useState("7");
 
+  // 📥 Load existing reminder settings when bill changes
   useEffect(() => {
     if (bill) {
       setEnabled(bill.reminderEnabled || false);
@@ -35,6 +53,7 @@ export function ReminderDialog({
     }
   }, [bill]);
 
+  // 💾 Handle saving reminder settings
   const handleSave = () => {
     onSave(enabled, parseInt(days));
     onOpenChange(false);
@@ -47,6 +66,7 @@ export function ReminderDialog({
           <DialogTitle>Reminder Settings</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          {/* 🔔 Reminder Toggle Switch */}
           <div className="flex items-center space-x-2">
             <Switch
               id="reminder-enabled"
@@ -55,6 +75,7 @@ export function ReminderDialog({
             />
             <Label htmlFor="reminder-enabled">Enable Reminders</Label>
           </div>
+          {/* 📅 Days Selection (only shown when enabled) */}
           {enabled && (
             <div className="grid gap-2">
               <Label htmlFor="reminder-days">Days before due date</Label>

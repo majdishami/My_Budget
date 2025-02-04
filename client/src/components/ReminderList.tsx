@@ -1,3 +1,11 @@
+/**
+ * ================================================
+ * 📋 ReminderList Component
+ * ================================================
+ * Displays a list of upcoming bill reminders for the next 30 days.
+ * Shows reminder dates, due dates, and amounts in a card-based layout.
+ */
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bill, BillReminder } from "@/types";
 import { formatCurrency } from "@/lib/utils";
@@ -9,27 +17,34 @@ interface ReminderListProps {
 }
 
 export function ReminderList({ bills }: ReminderListProps) {
+  // 📅 State for storing calculated reminders
   const [reminders, setReminders] = useState<BillReminder[]>([]);
 
+  /**
+   * 🔄 Calculate Upcoming Reminders
+   * Processes all bills with enabled reminders and creates
+   * reminder entries for the next 30 days
+   */
   useEffect(() => {
-    // Calculate reminders for the next 30 days
+    // 📊 Set the date range for reminders
     const today = dayjs();
     const thirtyDaysFromNow = today.add(30, 'day');
     const upcomingReminders: BillReminder[] = [];
 
+    // 🔍 Process each bill
     bills.forEach(bill => {
       if (!bill.reminderEnabled) return;
 
-      // Find the next occurrence of this bill
+      // 📅 Calculate next occurrence
       let nextDueDate = today.date(bill.day);
       if (nextDueDate.isBefore(today)) {
         nextDueDate = nextDueDate.add(1, 'month');
       }
 
-      // Calculate reminder date based on user preferences
+      // ⏰ Calculate reminder date based on preferences
       const reminderDate = nextDueDate.subtract(bill.reminderDays || 7, 'day');
 
-      // Only include reminders within the next 30 days
+      // 📥 Add to list if within 30 days
       if (reminderDate.isBefore(thirtyDaysFromNow)) {
         upcomingReminders.push({
           billId: bill.id,
@@ -41,7 +56,7 @@ export function ReminderList({ bills }: ReminderListProps) {
       }
     });
 
-    // Sort reminders by reminder date
+    // 📊 Sort reminders by date
     upcomingReminders.sort((a, b) => 
       dayjs(a.reminderDate).diff(dayjs(b.reminderDate))
     );
@@ -49,6 +64,7 @@ export function ReminderList({ bills }: ReminderListProps) {
     setReminders(upcomingReminders);
   }, [bills]);
 
+  // 🈚 Show empty state if no reminders
   if (reminders.length === 0) {
     return (
       <Card>
@@ -64,6 +80,7 @@ export function ReminderList({ bills }: ReminderListProps) {
     );
   }
 
+  // 📋 Render reminder cards
   return (
     <div className="space-y-4">
       {reminders.map((reminder) => (
