@@ -134,7 +134,6 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
     setTransactions(mockTransactions);
   }, [showReport, date]);
 
-  // Calculate summary totals
   const summary = transactions.reduce(
     (acc, transaction) => {
       const amount = Math.round(transaction.amount);
@@ -162,21 +161,40 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Select Date Range</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Select Date Range</DialogTitle>
           </DialogHeader>
-          <div className="p-4">
-            <Calendar
-              mode="range"
-              selected={date}
-              onSelect={setDate}
-              numberOfMonths={2}
-              className="rounded-md border"
-            />
+          <div className="flex flex-col items-center space-y-4 py-4">
+            <div className="border rounded-lg p-4 bg-background">
+              <Calendar
+                mode="range"
+                selected={date}
+                onSelect={setDate}
+                numberOfMonths={1}
+                defaultMonth={today.toDate()}
+                className="rounded-md"
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {date?.from ? (
+                <>
+                  {dayjs(date.from).format('MMM D, YYYY')}
+                  {date.to ? ` - ${dayjs(date.to).format('MMM D, YYYY')}` : ''}
+                </>
+              ) : (
+                'Select start and end dates'
+              )}
+            </div>
           </div>
-          <DialogFooter className="sm:justify-end">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="sm:justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDate(undefined);
+                onOpenChange(false);
+              }}
+            >
               Cancel
             </Button>
             <Button
