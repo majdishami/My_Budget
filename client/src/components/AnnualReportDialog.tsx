@@ -50,27 +50,20 @@ import {
 interface AnnualReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedYear?: number; // Optional year selection
+  selectedYear?: number;
 }
 
 export default function AnnualReportDialog({
   isOpen,
   onOpenChange,
-  selectedYear = dayjs().year(), // Default to current year
+  selectedYear = dayjs().year(),
 }: AnnualReportDialogProps) {
-  // 📊 Financial Data State
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
-
-  // 📅 Year Selection State
   const [year, setSelectedYear] = useState(selectedYear);
   const currentYear = dayjs().year();
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
-  /**
-   * 🔄 Load Financial Data
-   * Fetches stored income and bill data when dialog opens
-   */
   useEffect(() => {
     if (isOpen) {
       const storedIncomes = localStorage.getItem("incomes");
@@ -85,23 +78,12 @@ export default function AnnualReportDialog({
     }
   }, [isOpen]);
 
-  /**
-   * 💰 Calculate Annual Income Summary
-   * Computes total annual income with special handling for:
-   * - Majdi's twice-monthly salary
-   * - Ruba's bi-weekly salary
-   */
   const annualIncomeSummary = (() => {
     const summary = { majdiTotal: 0, rubaTotal: 0, totalIncome: 0 };
-
-    // 💵 Calculate Majdi's income (twice monthly)
     const majdiMonthlyAmount = incomes.find(income => income.source === "Majdi's Salary")?.amount || 0;
-    summary.majdiTotal = majdiMonthlyAmount * 24; // 12 months × 2 payments per month
+    summary.majdiTotal = majdiMonthlyAmount * 24;
 
-    // 💵 Calculate Ruba's income (bi-weekly)
     const rubaSalaryAmount = incomes.find(income => income.source === "Ruba's Salary")?.amount || 0;
-
-    // Handle bi-weekly payments starting from January 10, 2025
     const startDate = dayjs('2025-01-10');
     const yearStart = dayjs(year.toString()).startOf('year');
     const yearEnd = dayjs(year.toString()).endOf('year');
@@ -109,9 +91,8 @@ export default function AnnualReportDialog({
     let currentDate = startDate.clone();
     let biweeklyPayments = 0;
 
-    // Count bi-weekly Fridays in the selected year
     while (currentDate.isBefore(yearEnd) || currentDate.isSame(yearEnd, 'day')) {
-      if (currentDate.year() === year && currentDate.day() === 5) { // Friday
+      if (currentDate.year() === year && currentDate.day() === 5) {
         const weeksDiff = currentDate.diff(startDate, 'week');
         if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
           biweeklyPayments++;
@@ -126,17 +107,12 @@ export default function AnnualReportDialog({
     return summary;
   })();
 
-  /**
-   * 💳 Calculate Annual Bills Summary
-   * Computes total annual expenses by category
-   */
   const annualBillsSummary = bills.reduce((acc: { [key: string]: number }, bill) => {
     const annualAmount = Math.round(bill.amount * 12);
     acc[bill.name] = annualAmount;
     return acc;
   }, {});
 
-  // 💰 Calculate total annual expenses
   const totalAnnualExpenses = Object.values(annualBillsSummary)
     .reduce((sum, amount) => sum + amount, 0);
 
@@ -148,31 +124,33 @@ export default function AnnualReportDialog({
           <DialogTitle className="text-xl font-bold flex items-center justify-between">
             Annual Report
             <div className="flex items-center gap-4">
-              <Select
-                value={year.toString()}
-                onValueChange={(value) => setSelectedYear(parseInt(value))}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue>{year}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {yearOptions.map((yearOption) => (
-                    <SelectItem key={yearOption} value={yearOption.toString()}>
-                      {yearOption}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <DialogClose asChild>
-                <Button variant="ghost" size="sm">Close</Button>
-              </DialogClose>
+              <div>
+                <Select
+                  value={year.toString()}
+                  onValueChange={(value) => setSelectedYear(parseInt(value))}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue>{year}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((yearOption) => (
+                      <SelectItem key={yearOption} value={yearOption.toString()}>
+                        {yearOption}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <DialogClose asChild>
+                  <Button variant="ghost" size="sm">Close</Button>
+                </DialogClose>
+              </div>
             </div>
           </DialogTitle>
         </DialogHeader>
 
-        {/* 📈 Annual Financial Summary */}
         <div className="space-y-6">
-          {/* 💰 Income Summary Section */}
           <h2 className="text-lg font-semibold">Annual NET Income Summary</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
@@ -213,7 +191,6 @@ export default function AnnualReportDialog({
             </Card>
           </div>
 
-          {/* 💳 Expenses Summary Section */}
           <div className="mt-8">
             <h2 className="text-lg font-semibold mb-4">Annual Expenses Summary</h2>
             <Card>
@@ -228,7 +205,7 @@ export default function AnnualReportDialog({
                   </TableHeader>
                   <TableBody>
                     {Object.entries(annualBillsSummary)
-                      .sort(([, a], [, b]) => b - a) // Sort by amount descending
+                      .sort(([, a], [, b]) => b - a)
                       .map(([category, amount]) => (
                         <TableRow key={category}>
                           <TableCell>{category}</TableCell>
@@ -255,7 +232,6 @@ export default function AnnualReportDialog({
             </Card>
           </div>
 
-          {/* 📊 Net Annual Summary */}
           <Card className="mt-6">
             <CardHeader className="py-4">
               <CardTitle className="text-sm font-medium">Net Annual Summary</CardTitle>

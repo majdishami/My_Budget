@@ -23,7 +23,7 @@ interface Transaction {
 
 export default function MonthlyToDateReport() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const today = dayjs('2025-02-03'); // Current date from context
+  const today = dayjs('2024-05-01'); // Current date from context
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');
   const [, setLocation] = useLocation();
@@ -88,7 +88,7 @@ export default function MonthlyToDateReport() {
       // February 3rd expenses
       if (today.date() >= 3) {
         mockTransactions.push({
-          date: today.format('2025-02-03'),
+          date: today.format('YYYY-MM-DD'), //Corrected date format here
           description: 'Sling TV',
           amount: 75,
           type: 'expense'

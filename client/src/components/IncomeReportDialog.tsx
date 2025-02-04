@@ -42,7 +42,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange }: IncomeRepor
   const [date, setDate] = useState<DateRange | undefined>();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showReport, setShowReport] = useState(false);
-  const today = dayjs('2025-02-04'); // Current date
+  const today = dayjs('2024-05-01'); // Current date
 
   useEffect(() => {
     if (!isOpen) {
@@ -160,22 +160,26 @@ export default function IncomeReportDialog({ isOpen, onOpenChange }: IncomeRepor
               )}
             </div>
           </div>
-          <DialogFooter className="sm:justify-end space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDate(undefined);
-                onOpenChange(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => setShowReport(true)}
-              disabled={!date?.from || !date?.to}
-            >
-              Generate Report
-            </Button>
+          <DialogFooter className="flex justify-end gap-2">
+            <div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDate(undefined);
+                  onOpenChange(false);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+            <div>
+              <Button
+                onClick={() => setShowReport(true)}
+                disabled={!date?.from || !date?.to}
+              >
+                Generate Report
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
