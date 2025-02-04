@@ -7,7 +7,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -20,30 +19,47 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { exportData } from "@/lib/exports";
 import { Download } from "lucide-react";
+import { Income, Bill } from "@/types";
+import dayjs from "dayjs";
 
 interface ExportDialogProps {
-  data: any[];
-  defaultFilename?: string;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  incomes: Income[];
+  bills: Bill[];
 }
 
-export function ExportDialog({ data, defaultFilename = "budget-export" }: ExportDialogProps) {
-  const [open, setOpen] = React.useState(false);
+export function ExportDialog({ isOpen, onOpenChange, incomes, bills }: ExportDialogProps) {
   const [format, setFormat] = React.useState<"excel" | "csv" | "pdf">("excel");
-  const [filename, setFilename] = React.useState(defaultFilename);
+  const [filename, setFilename] = React.useState("budget-export");
 
   const handleExport = () => {
-    exportData(data, format, filename);
-    setOpen(false);
+    // Transform incomes and bills into a unified transaction format
+    const transactions = [
+      ...incomes.map(income => ({
+        id: income.id,
+        amount: income.amount,
+        description: income.source,
+        category: 'Income',
+        date: income.date,
+        type: 'income' as const
+      })),
+      ...bills.map(bill => ({
+        id: bill.id,
+        amount: bill.amount,
+        description: bill.name,
+        category: 'Expense',
+        date: dayjs().date(bill.day).toISOString(),
+        type: 'expense' as const
+      }))
+    ];
+
+    exportData(transactions, format, filename);
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Download className="mr-2 h-4 w-4" />
-          Export
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Export Data</DialogTitle>

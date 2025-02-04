@@ -10,7 +10,8 @@ import {
   FileBarChart,
   Edit,
   Trash,
-  CalendarRange
+  CalendarRange,
+  Download
 } from "lucide-react";
 import {
   Select,
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import dayjs from "dayjs";
 import { useState } from "react";
+import { ExportDialog } from "@/components/ExportDialog";
 
 interface LeftSidebarProps {
   incomes: Income[];
@@ -53,6 +55,7 @@ export function LeftSidebar({
 }: LeftSidebarProps) {
   const [, setLocation] = useLocation();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   // Calculate all income occurrences for the current month
   const getMonthlyIncomeOccurrences = () => {
@@ -216,6 +219,15 @@ export function LeftSidebar({
       <div className="space-y-2">
         <h2 className="text-lg font-semibold px-2">Reports</h2>
         <div className="space-y-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start"
+            onClick={() => setShowExportDialog(true)}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Data
+          </Button>
           <Link href="/reports/monthly-to-date">
             <Button
               variant="ghost"
@@ -311,6 +323,14 @@ export function LeftSidebar({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        isOpen={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        incomes={incomes}
+        bills={bills}
+      />
     </div>
   );
 }
