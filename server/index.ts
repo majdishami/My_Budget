@@ -8,14 +8,25 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Enable trust proxy for secure cookies when behind a reverse proxy
-app.set('trust proxy', 1);
+// Enable trust proxy for secure cookies when behind Replit's proxy
+app.set('trust proxy', true);
 
-// Add CORS headers for development
+// Configure CORS for Replit's environment
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const allowedOrigins = [
+    'https://codecrafthub.majdi01.repl.co',
+    process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : undefined,
+    'http://localhost:3000', // Allow local development
+  ].filter(Boolean);
+
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
@@ -57,6 +68,7 @@ app.use((req, res, next) => {
 (async () => {
   const server = registerRoutes(app);
 
+  // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -70,10 +82,16 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  const PORT = process.env.PORT || 5000;
-  server.listen(PORT, '0.0.0.0', () => {
-    log(`Server is running at http://0.0.0.0:${PORT}`);
-    log(`Application URL: https://codecrafthub.majdi01.repl.co`);
-    log(`Server environment: ${app.get("env")}`);
+  // Parse PORT as a number and use a default of 3000
+  const PORT = parseInt(process.env.PORT || '3000', 10);
+
+  // Close any existing connections before starting
+  server.close(() => {
+    server.listen(PORT, '0.0.0.0', () => {
+      log(`Server is running at http://0.0.0.0:${PORT}`);
+      log(`Application URL: https://codecrafthub.majdi01.repl.co`);
+      log(`Server environment: ${app.get("env")}`);
+      log(`Trust proxy enabled: ${app.get('trust proxy')}`);
+    });
   });
 })();
