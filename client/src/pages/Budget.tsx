@@ -80,8 +80,8 @@ const formatCurrency = (amount: number) => {
 
 const Budget = () => {
   // 🕒 Time Management
-  // Set initial date to February 2nd, 2025
-  const today = dayjs('2025-02-02');
+  // Set initial date to current date
+  const today = dayjs();
 
   // 📊 State Management
   const [selectedYear, setSelectedYear] = useState(today.year());
@@ -110,10 +110,6 @@ const Budget = () => {
    * Sets up initial income and bill data if none exists
    */
   useEffect(() => {
-    // Clear existing data first
-    localStorage.removeItem("incomes");
-    localStorage.removeItem("bills");
-
     const storedIncomes = localStorage.getItem("incomes");
     const storedBills = localStorage.getItem("bills");
 
@@ -124,8 +120,8 @@ const Budget = () => {
         // Majdi's bi-monthly salary
         { id: "1", source: "Majdi's Salary", amount: Math.round(4739), date: today.date(1).toISOString() },
         { id: "2", source: "Majdi's Salary", amount: Math.round(4739), date: today.date(15).toISOString() },
-        // Ruba's bi-weekly salary
-        { id: "3", source: "Ruba's Salary", amount: Math.round(2168), date: "2025-01-10" }
+        // Ruba's bi-weekly salary - starting from the next Friday
+        { id: "3", source: "Ruba's Salary", amount: Math.round(2168), date: today.day(5).toISOString() }
       ];
       setIncomes(sampleIncomes);
       localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
@@ -185,8 +181,8 @@ const Budget = () => {
         // Must be a Friday
         if (currentDate.day() !== 5) return false;
 
-        // Calculate from January 10, 2025 start date
-        const startDate = dayjs('2025-01-10');
+        // Calculate from the next Friday
+        const startDate = dayjs().day(5);
         const weeksDiff = currentDate.diff(startDate, 'week');
 
         // Only include if it's an even number of weeks from start
@@ -278,7 +274,7 @@ const Budget = () => {
         // For bi-weekly salary, check each Friday in the month
         const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
         const lastDayOfMonth = firstDayOfMonth.endOf('month');
-        const startDate = dayjs('2025-01-10');
+        const startDate = dayjs().day(5);
 
         // Iterate through each day in the month
         let currentDate = firstDayOfMonth;
