@@ -6,11 +6,19 @@
  * for the budget tracking application.
  * 
  * Core Responsibilities:
- * 🛣️ Route configuration
- * 🌍 Global state management
- * 💬 Dialog coordination
- * 📊 Initial data setup
- * 🐛 Error handling and logging
+ * 🛣️ Route configuration and management
+ * 🌍 Global state management for financial data
+ * 💬 Dialog coordination for user interactions
+ * 📊 Initial data setup and persistence
+ * 🐛 Error boundary and logging implementation
+ * 🎨 Theme management and styling
+ * 
+ * Key Features:
+ * 💰 Income tracking with bi-weekly/monthly options
+ * 💳 Bill management with reminder system
+ * 📅 Calendar integration for due dates
+ * 📈 Comprehensive financial reporting
+ * 🔔 Smart notification system
  */
 
 import { Switch, Route } from "wouter";
@@ -32,8 +40,8 @@ import { logger } from "@/lib/logger";
 import { ThemeToggle } from "@/components/ThemeToggle"; 
 
 /**
- * 📊 Data Interfaces
- * Define core data structures for the application
+ * 📊 Core Data Interfaces
+ * Define essential data structures for financial tracking
  */
 interface Income {
   id: string;
@@ -51,7 +59,8 @@ interface Bill {
 
 /**
  * 🛣️ Router Component
- * Handles route management and dialog state
+ * Manages application routing and dialog states
+ * Handles navigation and user interaction flows
  */
 function Router() {
   // 📊 Report Dialog States
@@ -62,13 +71,14 @@ function Router() {
   const [showIncomeReport, setShowIncomeReport] = useState(false);
   const [showAnnualReport, setShowAnnualReport] = useState(false);
 
-  // 🧭 Navigation Control
+  // 🧭 Navigation and Data Management
   const [, setLocation] = useLocation();
   const [bills, setBills] = useState<Bill[]>([]);
 
   /**
    * 📋 Load Initial Bill Data
-   * Retrieves stored bills on component mount
+   * Retrieves and sets up stored bills on component mount
+   * Includes error handling and logging
    */
   useEffect(() => {
     try {
@@ -86,6 +96,7 @@ function Router() {
   /**
    * 🔄 Dialog Management Functions
    * Handle opening/closing of report dialogs and navigation
+   * Includes error handling and logging for each action
    */
   const handleMonthlyToDateOpenChange = (open: boolean) => {
     try {
@@ -236,6 +247,7 @@ function Router() {
 /**
  * 🎯 Main App Component
  * Provides global configuration and initial data setup
+ * Manages theme, financial data, and application state
  */
 function App() {
   // 💰 Global Financial Data State
@@ -243,14 +255,15 @@ function App() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [summary, setSummary] = useState({ totalOccurred: 0, totalFuture: 0 }); 
 
+  // 💲 Currency Formatting Helper
   const formatCurrency = (amount: number): string => { 
     return `$${amount.toFixed(2)}`;
   };
 
   /**
    * 🔄 Initialize Default Data
-   * Sets up initial income and expense data with default values
-   * starting from January 1st, 2025
+   * Sets up initial income and expense data
+   * Handles data persistence and error logging
    */
   useEffect(() => {
     try {
@@ -265,10 +278,10 @@ function App() {
       if (!storedIncomes) {
         const baseDate = dayjs('2025-01-01');
         const sampleIncomes: Income[] = [
-          // Majdi's bi-monthly salary
+          // Bi-monthly salary entries
           { id: "1", source: "Majdi's Salary", amount: Math.round(4739), date: baseDate.date(1).toISOString() },
           { id: "2", source: "Majdi's Salary", amount: Math.round(4739), date: baseDate.date(15).toISOString() },
-          // Ruba's bi-weekly salary
+          // Bi-weekly salary entry
           { id: "3", source: "Ruba's Salary", amount: Math.round(2168), date: baseDate.date(10).toISOString() }
         ];
         setIncomes(sampleIncomes);
@@ -286,6 +299,7 @@ function App() {
       // 🧾 Setup Default Bills
       if (!storedBills) {
         const sampleBills: Bill[] = [
+          // Monthly recurring bills
           { id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: Math.round(429), day: 1 },
           { id: "2", name: "Maid's 1st payment", amount: Math.round(120), day: 1 },
           { id: "3", name: "Monthly Rent", amount: Math.round(3750), day: 1 },
@@ -313,7 +327,8 @@ function App() {
         setBills(parsedBills);
         logger.info('Bills loaded from storage', { count: parsedBills.length });
       }
-      // Calculate summary data (replace with actual calculation)
+
+      // 📊 Calculate summary totals
       const totalOccurred = incomes.reduce((sum, income) => sum + income.amount, 0);
       const totalFuture = 0; 
       setSummary({ totalOccurred, totalFuture });
