@@ -134,7 +134,7 @@ export const exportData = (data: Transaction[], format: 'excel' | 'csv' | 'pdf',
     filename = `budget-export-${dayjs().format('YYYY-MM-DD')}`;
   }
 
-  // Process bi-weekly occurrences before exporting
+  // Process bi-weekly occurrences and sort all transactions by date
   const processedData = data.flatMap(transaction => {
     if (transaction.type === 'income' && transaction.description === "Ruba's Salary") {
       return calculateBiweeklyOccurrences({
@@ -145,6 +145,8 @@ export const exportData = (data: Transaction[], format: 'excel' | 'csv' | 'pdf',
       });
     }
     return transaction;
+  }).sort((a, b) => {
+    return dayjs(a.date).valueOf() - dayjs(b.date).valueOf();
   });
 
   exportFunctions[format](processedData, filename);
