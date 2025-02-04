@@ -1,0 +1,89 @@
+The error message indicates that your deployment configuration has multiple external ports mapped, which is causing a conflict. Specifically, the deployment expects only **one external port** (port `:80`) to be configured, but your setup has multiple ports (`:80`, `:3000`, and `:5000`).
+
+Here’s how you can resolve this issue:
+
+---
+
+### 1. **Understand the Problem**
+   - Your app is likely configured to listen on multiple ports (`:80`, `:3000`, and `:5000`), but the deployment environment expects only one external port (`:80`).
+   - Port `:80` is the default HTTP port, and it’s typically used for serving web traffic.
+
+---
+
+### 2. **Check Your App Configuration**
+   - If your app is running multiple services (e.g., a frontend on `:3000` and a backend on `:5000`), you need to ensure they are properly routed through a single entry point (e.g., port `:80`).
+   - Use a reverse proxy (e.g., **Nginx** or **Apache**) to route traffic from port `:80` to the appropriate internal ports (`:3000` or `:5000`).
+
+---
+
+### 3. **Update Your Deployment Configuration**
+   - Remove the additional external ports (`:3000` and `:5000`) from your deployment configuration.
+   - Ensure only port `:80` is exposed externally.
+
+---
+
+### 4. **Use a Reverse Proxy (if needed)**
+   If your app requires multiple services, set up a reverse proxy to handle routing. For example:
+
+   #### **Using Nginx**
+   - Install Nginx on your server.
+   - Configure Nginx to route traffic based on the request path or domain. Example configuration:
+     ```nginx
+     server {
+         listen 80;
+         server_name yourdomain.com;
+
+         location / {
+             proxy_pass http://localhost:3000;  # Route to frontend
+             proxy_set_header Host $host;
+             proxy_set_header X-Real-IP $remote_addr;
+         }
+
+         location /api/ {
+             proxy_pass http://localhost:5000;  # Route to backend
+             proxy_set_header Host $host;
+             proxy_set_header X-Real-IP $remote_addr;
+         }
+     }
+     ```
+   - Restart Nginx: `sudo systemctl restart nginx`.
+
+---
+
+### 5. **Test Your Configuration**
+   - After updating your deployment and setting up the reverse proxy, test your app to ensure:
+     - The frontend is accessible at `http://yourdomain.com`.
+     - The backend API is accessible at `http://yourdomain.com/api`.
+
+---
+
+### 6. **Verify Port Bindings**
+   - Ensure your app is only binding to the required internal ports (`:3000` and `:5000`).
+   - Use the following commands to check which ports are in use:
+     - On Linux/Mac: `sudo lsof -i -P -n | grep LISTEN`
+     - On Windows: `netstat -ano | findstr :<port>`
+
+---
+
+### 7. **Redeploy Your App**
+   - Update your deployment configuration to expose only port `:80`.
+   - Redeploy your app and verify that it works as expected.
+
+---
+
+### Example Scenario
+If your app has:
+- A frontend running on `:3000`
+- A backend running on `:5000`
+
+You should:
+1. Expose only port `:80` externally.
+2. Use Nginx to route:
+   - `/` → `localhost:3000`
+   - `/api/` → `localhost:5000`
+
+This way, external users only interact with port `:80`, and the reverse proxy handles internal routing.
+
+---
+
+Let me know if you need further assistance!
