@@ -41,7 +41,6 @@ export default function AnnualReportDialog({
 
   useEffect(() => {
     if (isOpen) {
-      // Load data from localStorage
       const storedIncomes = localStorage.getItem("incomes");
       const storedBills = localStorage.getItem("bills");
 
@@ -54,27 +53,44 @@ export default function AnnualReportDialog({
     }
   }, [isOpen]);
 
-  // Calculate annual summary for incomes
-  const annualIncomeSummary = incomes.reduce(
-    (acc, income) => {
-      const incomeDate = dayjs(income.date);
-      if (incomeDate.year() === selectedYear) {
-        const amount = Math.round(income.amount);
-        if (income.source === "Majdi's Salary") {
-          acc.majdiTotal += amount;
-        } else if (income.source === "Ruba's Salary") {
-          acc.rubaTotal += amount;
+  // Calculate annual income summary with correct frequency handling
+  const annualIncomeSummary = (() => {
+    const summary = { majdiTotal: 0, rubaTotal: 0, totalIncome: 0 };
+
+    // Calculate Majdi's income (twice monthly)
+    const majdiMonthlyAmount = incomes.find(income => income.source === "Majdi's Salary")?.amount || 0;
+    summary.majdiTotal = majdiMonthlyAmount * 24; // 12 months × 2 payments per month
+
+    // Calculate Ruba's income (bi-weekly)
+    const rubaSalaryAmount = incomes.find(income => income.source === "Ruba's Salary")?.amount || 0;
+
+    // For Ruba's bi-weekly salary
+    const startDate = dayjs('2025-01-10');
+    const yearStart = dayjs(selectedYear.toString()).startOf('year');
+    const yearEnd = dayjs(selectedYear.toString()).endOf('year');
+
+    let currentDate = startDate.clone();
+    let biweeklyPayments = 0;
+
+    // Count bi-weekly payments within the selected year
+    while (currentDate.isBefore(yearEnd) || currentDate.isSame(yearEnd, 'day')) {
+      if (currentDate.year() === selectedYear && currentDate.day() === 5) { // Friday
+        const weeksDiff = currentDate.diff(startDate, 'week');
+        if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+          biweeklyPayments++;
         }
-        acc.totalIncome += amount;
       }
-      return acc;
-    },
-    { majdiTotal: 0, rubaTotal: 0, totalIncome: 0 }
-  );
+      currentDate = currentDate.add(1, 'day');
+    }
+
+    summary.rubaTotal = rubaSalaryAmount * biweeklyPayments;
+    summary.totalIncome = summary.majdiTotal + summary.rubaTotal;
+
+    return summary;
+  })();
 
   // Calculate annual summary for bills by category
   const annualBillsSummary = bills.reduce((acc: { [key: string]: number }, bill) => {
-    // Multiply by 12 since bills are monthly
     const annualAmount = Math.round(bill.amount * 12);
     acc[bill.name] = annualAmount;
     return acc;
@@ -100,21 +116,27 @@ export default function AnnualReportDialog({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Majdi's Total Income</CardTitle>
+                <CardTitle className="text-sm font-medium">Majdi's Annual Income</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
                   {formatCurrency(annualIncomeSummary.majdiTotal)}
                 </div>
+                <div className="text-sm text-muted-foreground">
+                  24 payments of {formatCurrency(incomes.find(i => i.source === "Majdi's Salary")?.amount || 0)}
+                </div>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Ruba's Total Income</CardTitle>
+                <CardTitle className="text-sm font-medium">Ruba's Annual Income</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
                   {formatCurrency(annualIncomeSummary.rubaTotal)}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Bi-weekly payments of {formatCurrency(incomes.find(i => i.source === "Ruba's Salary")?.amount || 0)}
                 </div>
               </CardContent>
             </Card>
@@ -139,6 +161,7 @@ export default function AnnualReportDialog({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Expense Category</TableHead>
+                      <TableHead className="text-right">Monthly Amount</TableHead>
                       <TableHead className="text-right">Annual Amount</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -149,12 +172,18 @@ export default function AnnualReportDialog({
                         <TableRow key={category}>
                           <TableCell>{category}</TableCell>
                           <TableCell className="text-right text-red-600">
+                            {formatCurrency(amount / 12)}
+                          </TableCell>
+                          <TableCell className="text-right text-red-600">
                             {formatCurrency(amount)}
                           </TableCell>
                         </TableRow>
-                    ))}
+                      ))}
                     <TableRow className="font-bold">
                       <TableCell>Total Annual Expenses</TableCell>
+                      <TableCell className="text-right text-red-600">
+                        {formatCurrency(totalAnnualExpenses / 12)}
+                      </TableCell>
                       <TableCell className="text-right text-red-600">
                         {formatCurrency(totalAnnualExpenses)}
                       </TableCell>
@@ -173,11 +202,11 @@ export default function AnnualReportDialog({
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span>Total Income:</span>
+                  <span>Total Annual Income:</span>
                   <span className="text-green-600">{formatCurrency(annualIncomeSummary.totalIncome)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Total Expenses:</span>
+                  <span>Total Annual Expenses:</span>
                   <span className="text-red-600">{formatCurrency(totalAnnualExpenses)}</span>
                 </div>
                 <div className="flex justify-between font-bold pt-2 border-t">
