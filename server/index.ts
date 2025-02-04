@@ -17,7 +17,7 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin && (
     origin.endsWith('.replit.dev') || 
-    origin === 'http://localhost:80'
+    origin === 'http://localhost:5000'
   )) {
     res.header('Access-Control-Allow-Origin', origin);
   }
@@ -84,8 +84,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use port 80 for external access
-  const PORT = 80;
+  // Use port 5000 as specified in .replit port forwarding
+  const PORT = 5000;
 
   server.listen(PORT, "0.0.0.0", () => {
     log(`Server is running at http://0.0.0.0:${PORT}`);
