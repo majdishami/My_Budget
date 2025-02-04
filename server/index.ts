@@ -13,9 +13,12 @@ app.enable('trust proxy');
 
 // Configure CORS for Replit's environment
 app.use((req, res, next) => {
-  // Allow the current Replit domain and local development
+  // Allow the current Replit domain and localhost for development
   const origin = req.headers.origin;
-  if (origin && origin.endsWith('.replit.dev')) {
+  if (origin && (
+    origin.endsWith('.replit.dev') || 
+    origin === 'http://localhost:5000'
+  )) {
     res.header('Access-Control-Allow-Origin', origin);
   }
 
@@ -29,7 +32,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Request logging middleware
+// Request logging middleware with detailed information
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -41,6 +44,7 @@ app.use((req, res, next) => {
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
+  // Log request details
   log(`Incoming ${req.method} ${path} from ${req.ip}`);
   if (Object.keys(req.headers).length > 0) {
     log(`Headers: ${JSON.stringify(req.headers)}`);
@@ -63,7 +67,7 @@ app.use((req, res, next) => {
 (async () => {
   const server = registerRoutes(app);
 
-  // Global error handler
+  // Global error handler with detailed logging
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -80,7 +84,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  const PORT = 3000;
+  // Use port 5000 as specified in .replit port forwarding
+  const PORT = 5000;
 
   server.listen(PORT, "0.0.0.0", () => {
     log(`Server is running at http://0.0.0.0:${PORT}`);
