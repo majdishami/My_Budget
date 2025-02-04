@@ -795,7 +795,6 @@ const Budget = () => {
             <AlertDialogAction onClick={confirmDelete}>
               Delete
             </AlertDialogAction>
-            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
