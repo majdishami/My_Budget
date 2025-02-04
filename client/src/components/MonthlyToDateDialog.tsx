@@ -1,3 +1,18 @@
+/**
+ * ================================================
+ * 📊 Monthly To Date Dialog Component
+ * ================================================
+ * Displays a detailed breakdown of income and expenses
+ * for the current month up to the current date.
+ * 
+ * Features:
+ * 📈 Income tracking
+ * 📉 Expense monitoring
+ * 💰 Balance calculation
+ * 📅 Date-based filtering
+ * 📱 Responsive design
+ */
+
 import {
   Dialog,
   DialogContent,
@@ -19,6 +34,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+/**
+ * 💳 Transaction Interface
+ * Defines the structure for financial transactions
+ */
 interface Transaction {
   date: string;
   description: string;
@@ -26,11 +45,19 @@ interface Transaction {
   type: 'income' | 'expense';
 }
 
+/**
+ * 🎯 Component Props
+ * Configuration options for the dialog
+ */
 interface MonthlyToDateDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * 📊 Monthly To Date Dialog Component
+ * Renders a comprehensive view of monthly finances
+ */
 export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToDateDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const today = dayjs('2025-02-03'); // Current date from context

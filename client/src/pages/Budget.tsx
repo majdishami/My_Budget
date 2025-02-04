@@ -5,12 +5,18 @@
  * A comprehensive budget tracking interface that displays and manages
  * income and expenses in a calendar view.
  * 
- * Key Features:
- * - Monthly calendar view with daily transaction details
- * - Income and expense management
- * - Running balance calculations
- * - Interactive day selection
- * - Mobile menu for sidebar access
+ * Core Features:
+ * 🗓️ Monthly calendar view with daily transaction details
+ * 💰 Income and expense management
+ * 📊 Running balance calculations
+ * 🖱️ Interactive day selection
+ * 📱 Mobile-responsive sidebar access
+ * 
+ * Component Structure:
+ * - Main layout with sidebar and calendar grid
+ * - Monthly summary cards
+ * - Interactive transaction management
+ * - Responsive design optimizations
  */
 
 import { useState, useEffect, useMemo } from "react";
@@ -318,6 +324,14 @@ const Budget = () => {
     };
   }, [incomes, bills, selectedMonth, selectedYear]);
 
+  /**
+   * 📅 Transaction Management
+   * Handles all transaction-related operations including:
+   * - Adding new transactions
+   * - Editing existing entries
+   * - Deleting records
+   * - Calculating running totals
+   */
   const handleEditTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
     if (type === 'income') {
       setEditingIncome(data as Income);
@@ -348,6 +362,13 @@ const Budget = () => {
     }
   };
 
+  /**
+   * 💾 Data Persistence Layer
+   * Manages local storage operations for:
+   * - Saving transaction updates
+   * - Loading stored data
+   * - Maintaining data consistency
+   */
   const handleConfirmIncomeEdit = (updatedIncome: Income) => {
     const newIncomes = incomes.map(income => {
       // If it's the same income source, update all occurrences
@@ -508,6 +529,14 @@ const Budget = () => {
     setEditingBill(null);
   };
 
+  /**
+   * 🎨 UI Rendering Section
+   * Creates the visual structure of the budget interface:
+   * - Responsive grid layout
+   * - Transaction cards
+   * - Interactive elements
+   * - Mobile optimizations
+   */
   return (
     <div className="min-h-screen flex bg-background">
       {/* Mobile Menu Toggle Button */}

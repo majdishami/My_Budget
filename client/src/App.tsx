@@ -6,11 +6,11 @@
  * for the budget tracking application.
  * 
  * Core Responsibilities:
- * - Route configuration
- * - Global state management
- * - Dialog coordination
- * - Initial data setup
- * - Error handling and logging
+ * 🛣️ Route configuration
+ * 🌍 Global state management
+ * 💬 Dialog coordination
+ * 📊 Initial data setup
+ * 🐛 Error handling and logging
  */
 
 import { Switch, Route } from "wouter";
@@ -29,7 +29,7 @@ import AnnualReportDialog from "@/components/AnnualReportDialog";
 import { useLocation } from "wouter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { logger } from "@/lib/logger";
-import { ThemeToggle } from "@/components/ThemeToggle"; // Fixed import statement for ThemeToggle
+import { ThemeToggle } from "@/components/ThemeToggle"; 
 
 /**
  * 📊 Data Interfaces
@@ -241,9 +241,9 @@ function App() {
   // 💰 Global Financial Data State
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
-  const [summary, setSummary] = useState({ totalOccurred: 0, totalFuture: 0 }); // Added summary state
+  const [summary, setSummary] = useState({ totalOccurred: 0, totalFuture: 0 }); 
 
-  const formatCurrency = (amount: number): string => { //Added formatCurrency function
+  const formatCurrency = (amount: number): string => { 
     return `$${amount.toFixed(2)}`;
   };
 
@@ -315,7 +315,7 @@ function App() {
       }
       // Calculate summary data (replace with actual calculation)
       const totalOccurred = incomes.reduce((sum, income) => sum + income.amount, 0);
-      const totalFuture = 0; // Placeholder - replace with actual future income calculation
+      const totalFuture = 0; 
       setSummary({ totalOccurred, totalFuture });
     } catch (error) {
       logger.error('Error initializing application data', { error });
