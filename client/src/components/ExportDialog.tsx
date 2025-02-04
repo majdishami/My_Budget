@@ -18,9 +18,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { exportData } from "@/lib/exports";
-import { Download } from "lucide-react";
+import { Download, Calendar as CalendarIcon } from "lucide-react";
 import { Income, Bill } from "@/types";
 import dayjs from "dayjs";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -30,10 +34,14 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ isOpen, onOpenChange, incomes, bills }: ExportDialogProps) {
-  const [format, setFormat] = React.useState<"excel" | "csv" | "pdf">("excel");
+  const [exportFormat, setExportFormat] = React.useState<"excel" | "csv" | "pdf">("excel");
   const [filename, setFilename] = React.useState("budget-export");
+  const [startDate, setStartDate] = React.useState<Date | undefined>(dayjs().startOf('month').toDate());
+  const [endDate, setEndDate] = React.useState<Date | undefined>(dayjs().endOf('month').toDate());
 
   const handleExport = () => {
+    if (!startDate || !endDate) return;
+
     // Transform incomes and bills into a unified transaction format
     const transactions = [
       ...incomes.map(income => ({
@@ -54,7 +62,14 @@ export function ExportDialog({ isOpen, onOpenChange, incomes, bills }: ExportDia
       }))
     ];
 
-    exportData(transactions, format, filename);
+    // Filter transactions by date range
+    const filteredTransactions = transactions.filter(transaction => {
+      const transactionDate = dayjs(transaction.date);
+      return transactionDate.isAfter(dayjs(startDate).startOf('day')) && 
+             transactionDate.isBefore(dayjs(endDate).endOf('day'));
+    });
+
+    exportData(filteredTransactions, exportFormat, filename);
     onOpenChange(false);
   };
 
@@ -64,7 +79,7 @@ export function ExportDialog({ isOpen, onOpenChange, incomes, bills }: ExportDia
         <DialogHeader>
           <DialogTitle>Export Data</DialogTitle>
           <DialogDescription>
-            Choose your preferred format and filename for the export.
+            Choose your preferred format and date range for the export.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -73,8 +88,8 @@ export function ExportDialog({ isOpen, onOpenChange, incomes, bills }: ExportDia
               Format
             </Label>
             <Select
-              value={format}
-              onValueChange={(value: "excel" | "csv" | "pdf") => setFormat(value)}
+              value={exportFormat}
+              onValueChange={(value: "excel" | "csv" | "pdf") => setExportFormat(value)}
             >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select format" />
@@ -97,9 +112,81 @@ export function ExportDialog({ isOpen, onOpenChange, incomes, bills }: ExportDia
               className="col-span-3"
             />
           </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">
+              Start Date
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "col-span-3 justify-start text-left font-normal",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? (
+                    format(startDate, "PPP")
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => setStartDate(date || undefined)}
+                  disabled={(date) =>
+                    date > new Date() || (endDate ? date > endDate : false)
+                  }
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">
+              End Date
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "col-span-3 justify-start text-left font-normal",
+                    !endDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? (
+                    format(endDate, "PPP")
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={(date) => setEndDate(date || undefined)}
+                  disabled={(date) =>
+                    date > new Date() || (startDate ? date < startDate : false)
+                  }
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
         <DialogFooter>
-          <Button type="submit" onClick={handleExport}>
+          <Button 
+            type="submit" 
+            onClick={handleExport}
+            disabled={!startDate || !endDate}
+          >
             Export
           </Button>
         </DialogFooter>
