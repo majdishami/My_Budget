@@ -65,13 +65,34 @@ export default function MonthlyToDateReport() {
     }
 
     // Add Monthly Rent expense for February 1st
-    if (today.month() === 1 && today.date() >= 1) { // February is month 1 in zero-based months
+    if (today.month() === 1) { // February is month 1 in zero-based months
+      // Monthly Rent (due on the 1st)
       mockTransactions.push({
         date: startOfMonth.format('YYYY-MM-DD'),
         description: 'Monthly Rent',
         amount: 3750,
         type: 'expense'
       });
+
+      // Internet Bill (due on the 2nd)
+      if (today.date() >= 2) {
+        mockTransactions.push({
+          date: today.format('2025-02-02'),
+          description: 'Internet Bill',
+          amount: 89,
+          type: 'expense'
+        });
+      }
+
+      // Car Insurance (due on the 3rd)
+      if (today.date() >= 3) {
+        mockTransactions.push({
+          date: today.format('2025-02-03'),
+          description: 'Car Insurance',
+          amount: 175,
+          type: 'expense'
+        });
+      }
     }
 
     setTransactions(mockTransactions);
