@@ -13,10 +13,11 @@ app.enable('trust proxy');
 
 // Configure CORS for Replit's environment
 app.use((req, res, next) => {
-  // Allow the current Replit domain and localhost for development
+  // Allow the current Replit domain and local development ports
   const origin = req.headers.origin;
   if (origin && (
     origin.endsWith('.replit.dev') || 
+    origin === 'http://localhost:5001' ||
     origin === 'http://localhost:3000'
   )) {
     res.header('Access-Control-Allow-Origin', origin);
@@ -84,11 +85,11 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use port 3000 for Replit deployment
-  const PORT = process.env.PORT || 3000;
+  // Use port 3000 for Replit deployment, 5001 for local development
+  const PORT = process.env.REPL_SLUG ? 3000 : 5001;
 
-  server.listen(PORT, "0.0.0.0", () => {
-    log(`Server is running at http://0.0.0.0:${PORT}`);
+  server.listen(PORT, () => {
+    log(`Server is running at http://localhost:${PORT}`);
     log(`Server environment: ${app.get("env")}`);
     log(`Trust proxy enabled: ${app.get('trust proxy')}`);
   });
