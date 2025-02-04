@@ -13,18 +13,8 @@ app.set('trust proxy', true);
 
 // Configure CORS for Replit's environment
 app.use((req, res, next) => {
-  const allowedOrigins = [
-    'https://workspace.majdi01.repl.co',
-    process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : undefined,
-    'http://localhost:5000',
-    '*' // Allow all origins temporarily for testing
-  ].filter(Boolean);
-
-  const origin = req.headers.origin;
-  if (origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-
+  // Allow all origins in development
+  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -83,16 +73,14 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use port 5000 explicitly
-  const PORT = 5000;
+  const PORT = 5000; // Use port 5000 to match workflow configuration
 
-  // Close any existing connections before starting
-  server.close(() => {
-    server.listen(PORT, '0.0.0.0', () => {
-      log(`Server is running at http://0.0.0.0:${PORT}`);
+  server.listen(PORT, "0.0.0.0", () => {
+    log(`Server is running at http://0.0.0.0:${PORT}`);
+    if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
       log(`Application URL: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
-      log(`Server environment: ${app.get("env")}`);
-      log(`Trust proxy enabled: ${app.get('trust proxy')}`);
-    });
+    }
+    log(`Server environment: ${app.get("env")}`);
+    log(`Trust proxy enabled: ${app.get('trust proxy')}`);
   });
 })();
