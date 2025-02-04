@@ -42,8 +42,8 @@ export class PDFReport {
     doc.text('Transaction Details', 14, 100);
 
     const transactionData = [
-      ['2024-02-01', 'Monthly Rent', '-$3,750.00', 'Expense'],
-      ['2024-02-01', 'Salary', '$4,739.00', 'Income'],
+      ['2024-02-01', 'Monthly Rent', '$3,750', 'Expense'],
+      ['2024-02-01', 'Salary', '$4,739', 'Income'],
     ];
 
     (doc as any).autoTable({

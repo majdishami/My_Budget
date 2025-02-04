@@ -51,7 +51,6 @@ export default function MonthlyToDateReport() {
     const rubaStartDate = dayjs('2025-01-10'); // First pay date
     let nextPayDate = rubaStartDate;
 
-    // Find the applicable pay dates for this month up to today
     while (nextPayDate.isBefore(today) || nextPayDate.isSame(today, 'day')) {
       if (nextPayDate.month() === today.month() && nextPayDate.date() <= today.date()) {
         mockTransactions.push({
@@ -70,21 +69,21 @@ export default function MonthlyToDateReport() {
       mockTransactions.push({
         date: startOfMonth.format('YYYY-MM-DD'),
         description: 'ATT Phone Bill',
-        amount: 429.00,
+        amount: 429,
         type: 'expense'
       });
 
       mockTransactions.push({
         date: startOfMonth.format('YYYY-MM-DD'),
         description: "Maid's 1st payment",
-        amount: 120.00,
+        amount: 120,
         type: 'expense'
       });
 
       mockTransactions.push({
         date: startOfMonth.format('YYYY-MM-DD'),
         description: 'Monthly Rent',
-        amount: 3750.00,
+        amount: 3750,
         type: 'expense'
       });
 
@@ -93,7 +92,7 @@ export default function MonthlyToDateReport() {
         mockTransactions.push({
           date: today.format('2025-02-03'),
           description: 'Sling TV',
-          amount: 75.00,
+          amount: 75,
           type: 'expense'
         });
       }
