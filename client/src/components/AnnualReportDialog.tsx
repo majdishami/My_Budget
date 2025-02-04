@@ -1,3 +1,17 @@
+/**
+ * ================================================
+ * 📊 Annual Report Dialog Component
+ * ================================================
+ * Generates comprehensive yearly financial reports with
+ * detailed breakdowns of income and expenses.
+ * 
+ * Key Features:
+ * - Year selection
+ * - Income categorization
+ * - Expense categorization
+ * - NET balance calculation
+ */
+
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { Income, Bill } from "@/types";
@@ -36,7 +50,7 @@ import {
 interface AnnualReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedYear?: number; // Added optional selectedYear
+  selectedYear?: number; // Optional year selection
 }
 
 export default function AnnualReportDialog({
@@ -44,12 +58,19 @@ export default function AnnualReportDialog({
   onOpenChange,
   selectedYear = dayjs().year(), // Default to current year
 }: AnnualReportDialogProps) {
+  // 📊 Financial Data State
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
-  const [year, setSelectedYear] = useState(selectedYear); // Use provided or default year
+
+  // 📅 Year Selection State
+  const [year, setSelectedYear] = useState(selectedYear);
   const currentYear = dayjs().year();
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
+  /**
+   * 🔄 Load Financial Data
+   * Fetches stored income and bill data when dialog opens
+   */
   useEffect(() => {
     if (isOpen) {
       const storedIncomes = localStorage.getItem("incomes");
@@ -64,18 +85,23 @@ export default function AnnualReportDialog({
     }
   }, [isOpen]);
 
-  // Calculate annual income summary with correct frequency handling
+  /**
+   * 💰 Calculate Annual Income Summary
+   * Computes total annual income with special handling for:
+   * - Majdi's twice-monthly salary
+   * - Ruba's bi-weekly salary
+   */
   const annualIncomeSummary = (() => {
     const summary = { majdiTotal: 0, rubaTotal: 0, totalIncome: 0 };
 
-    // Calculate Majdi's income (twice monthly)
+    // 💵 Calculate Majdi's income (twice monthly)
     const majdiMonthlyAmount = incomes.find(income => income.source === "Majdi's Salary")?.amount || 0;
     summary.majdiTotal = majdiMonthlyAmount * 24; // 12 months × 2 payments per month
 
-    // Calculate Ruba's income (bi-weekly)
+    // 💵 Calculate Ruba's income (bi-weekly)
     const rubaSalaryAmount = incomes.find(income => income.source === "Ruba's Salary")?.amount || 0;
 
-    // For Ruba's bi-weekly salary
+    // Handle bi-weekly payments starting from January 10, 2025
     const startDate = dayjs('2025-01-10');
     const yearStart = dayjs(year.toString()).startOf('year');
     const yearEnd = dayjs(year.toString()).endOf('year');
@@ -83,7 +109,7 @@ export default function AnnualReportDialog({
     let currentDate = startDate.clone();
     let biweeklyPayments = 0;
 
-    // Count bi-weekly payments within the selected year
+    // Count bi-weekly Fridays in the selected year
     while (currentDate.isBefore(yearEnd) || currentDate.isSame(yearEnd, 'day')) {
       if (currentDate.year() === year && currentDate.day() === 5) { // Friday
         const weeksDiff = currentDate.diff(startDate, 'week');
@@ -100,18 +126,24 @@ export default function AnnualReportDialog({
     return summary;
   })();
 
-  // Calculate annual summary for bills by category
+  /**
+   * 💳 Calculate Annual Bills Summary
+   * Computes total annual expenses by category
+   */
   const annualBillsSummary = bills.reduce((acc: { [key: string]: number }, bill) => {
     const annualAmount = Math.round(bill.amount * 12);
     acc[bill.name] = annualAmount;
     return acc;
   }, {});
 
-  const totalAnnualExpenses = Object.values(annualBillsSummary).reduce((sum, amount) => sum + amount, 0);
+  // 💰 Calculate total annual expenses
+  const totalAnnualExpenses = Object.values(annualBillsSummary)
+    .reduce((sum, amount) => sum + amount, 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        {/* 📊 Report Header with Year Selection */}
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center justify-between">
             Annual Report
@@ -138,8 +170,9 @@ export default function AnnualReportDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Annual Income Summary */}
+        {/* 📈 Annual Financial Summary */}
         <div className="space-y-6">
+          {/* 💰 Income Summary Section */}
           <h2 className="text-lg font-semibold">Annual NET Income Summary</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
@@ -180,7 +213,7 @@ export default function AnnualReportDialog({
             </Card>
           </div>
 
-          {/* Annual Expenses Summary */}
+          {/* 💳 Expenses Summary Section */}
           <div className="mt-8">
             <h2 className="text-lg font-semibold mb-4">Annual Expenses Summary</h2>
             <Card>
@@ -222,7 +255,7 @@ export default function AnnualReportDialog({
             </Card>
           </div>
 
-          {/* Net Annual Summary */}
+          {/* 📊 Net Annual Summary */}
           <Card className="mt-6">
             <CardHeader className="py-4">
               <CardTitle className="text-sm font-medium">Net Annual Summary</CardTitle>

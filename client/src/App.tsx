@@ -1,3 +1,17 @@
+/**
+ * ================================================
+ * 🚀 Main Application Component
+ * ================================================
+ * Manages routing, global state, and dialog components
+ * for the budget tracking application.
+ * 
+ * Core Responsibilities:
+ * - Route configuration
+ * - Global state management
+ * - Dialog coordination
+ * - Initial data setup
+ */
+
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -13,6 +27,10 @@ import IncomeReportDialog from "@/components/IncomeReportDialog";
 import AnnualReportDialog from "@/components/AnnualReportDialog";
 import { useLocation } from "wouter";
 
+/**
+ * 📊 Data Interfaces
+ * Define core data structures for the application
+ */
 interface Income {
   id: string;
   source: string;
@@ -27,16 +45,27 @@ interface Bill {
   day: number;
 }
 
+/**
+ * 🛣️ Router Component
+ * Handles route management and dialog state
+ */
 function Router() {
+  // 📊 Report Dialog States
   const [showMonthlyToDate, setShowMonthlyToDate] = useState(false);
   const [showMonthlyReport, setShowMonthlyReport] = useState(false);
   const [showDateRangeReport, setShowDateRangeReport] = useState(false);
   const [showExpenseReport, setShowExpenseReport] = useState(false);
   const [showIncomeReport, setShowIncomeReport] = useState(false);
   const [showAnnualReport, setShowAnnualReport] = useState(false);
+
+  // 🧭 Navigation Control
   const [, setLocation] = useLocation();
   const [bills, setBills] = useState<Bill[]>([]);
 
+  /**
+   * 📋 Load Initial Bill Data
+   * Retrieves stored bills on component mount
+   */
   useEffect(() => {
     const storedBills = localStorage.getItem("bills");
     if (storedBills) {
@@ -44,6 +73,10 @@ function Router() {
     }
   }, []);
 
+  /**
+   * 🔄 Dialog Management Functions
+   * Handle opening/closing of report dialogs and navigation
+   */
   const handleMonthlyToDateOpenChange = (open: boolean) => {
     setShowMonthlyToDate(open);
     if (!open) {
@@ -88,8 +121,10 @@ function Router() {
 
   return (
     <>
+      {/* 🛣️ Route Configuration */}
       <Switch>
         <Route path="/" component={Budget} />
+        {/* 📊 Report Routes */}
         <Route path="/reports/monthly-to-date">
           {() => {
             setShowMonthlyToDate(true);
@@ -127,6 +162,8 @@ function Router() {
           }}
         </Route>
       </Switch>
+
+      {/* 📈 Report Dialogs */}
       <MonthlyToDateDialog
         isOpen={showMonthlyToDate}
         onOpenChange={handleMonthlyToDateOpenChange}
@@ -156,10 +193,20 @@ function Router() {
   );
 }
 
+/**
+ * 🎯 Main App Component
+ * Provides global configuration and initial data setup
+ */
 function App() {
+  // 💰 Global Financial Data State
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
 
+  /**
+   * 🔄 Initialize Default Data
+   * Sets up initial income and expense data with default values
+   * starting from January 1st, 2025
+   */
   useEffect(() => {
     // Clear existing data first
     localStorage.removeItem("incomes");
@@ -168,11 +215,14 @@ function App() {
     const storedIncomes = localStorage.getItem("incomes");
     const storedBills = localStorage.getItem("bills");
 
+    // 💵 Setup Default Incomes
     if (!storedIncomes) {
       const baseDate = dayjs('2025-01-01');
       const sampleIncomes: Income[] = [
+        // Majdi's bi-monthly salary
         { id: "1", source: "Majdi's Salary", amount: Math.round(4739), date: baseDate.date(1).toISOString() },
         { id: "2", source: "Majdi's Salary", amount: Math.round(4739), date: baseDate.date(15).toISOString() },
+        // Ruba's bi-weekly salary
         { id: "3", source: "Ruba's Salary", amount: Math.round(2168), date: baseDate.date(10).toISOString() }
       ];
       setIncomes(sampleIncomes);
@@ -184,6 +234,7 @@ function App() {
       })));
     }
 
+    // 🧾 Setup Default Bills
     if (!storedBills) {
       const sampleBills: Bill[] = [
         { id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: Math.round(429), day: 1 },

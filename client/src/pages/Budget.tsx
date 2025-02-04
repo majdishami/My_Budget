@@ -1,3 +1,17 @@
+/**
+ * ================================================
+ * 🎯 Budget Component
+ * ================================================
+ * A comprehensive budget tracking interface that displays and manages
+ * income and expenses in a calendar view.
+ * 
+ * Key Features:
+ * - Monthly calendar view with daily transaction details
+ * - Income and expense management
+ * - Running balance calculations
+ * - Interactive day selection
+ */
+
 import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -45,8 +59,16 @@ import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 
 dayjs.extend(isBetween);
 
+/**
+ * 📅 Transaction Occurrence Types
+ * Defines how often a transaction repeats
+ */
 type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'twice-monthly';
 
+/**
+ * 💰 Currency Formatting Helper
+ * Formats numbers as USD currency without cents
+ */
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -57,8 +79,11 @@ const formatCurrency = (amount: number) => {
 };
 
 const Budget = () => {
-  // Set today to February 2nd, 2025
+  // 🕒 Time Management
+  // Set initial date to February 2nd, 2025
   const today = dayjs('2025-02-02');
+
+  // 📊 State Management
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedDay, setSelectedDay] = useState<number>(today.date());
@@ -80,10 +105,10 @@ const Budget = () => {
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
 
 
-  const closeSummary = () => {
-    setShowDayDialog(false);
-  };
-
+  /**
+   * 🔄 Initialize Default Data
+   * Sets up initial income and bill data if none exists
+   */
   useEffect(() => {
     // Clear existing data first
     localStorage.removeItem("incomes");
@@ -92,11 +117,14 @@ const Budget = () => {
     const storedIncomes = localStorage.getItem("incomes");
     const storedBills = localStorage.getItem("bills");
 
+    // 💵 Initialize Default Incomes
     if (!storedIncomes) {
       const today = dayjs();
       const sampleIncomes: Income[] = [
+        // Majdi's bi-monthly salary
         { id: "1", source: "Majdi's Salary", amount: Math.round(4739), date: today.date(1).toISOString() },
         { id: "2", source: "Majdi's Salary", amount: Math.round(4739), date: today.date(15).toISOString() },
+        // Ruba's bi-weekly salary
         { id: "3", source: "Ruba's Salary", amount: Math.round(2168), date: "2025-01-10" }
       ];
       setIncomes(sampleIncomes);
@@ -108,6 +136,7 @@ const Budget = () => {
       })));
     }
 
+    // 💸 Initialize Default Bills
     if (!storedBills) {
       const sampleBills: Bill[] = [
         { id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: Math.round(429), day: 1 },
@@ -136,6 +165,10 @@ const Budget = () => {
     }
   }, []);
 
+  /**
+   * 📅 Income Calculation for Specific Day
+   * Handles both regular and bi-weekly income patterns
+   */
   const getIncomeForDay = (day: number) => {
     if (day <= 0 || day > daysInMonth) return [];
 
@@ -147,21 +180,20 @@ const Budget = () => {
     return incomes.filter(income => {
       const incomeDate = dayjs(income.date);
 
+      // 🔄 Special handling for Ruba's bi-weekly salary
       if (income.source === "Ruba's Salary") {
-        // Check if it's a Friday (5 in dayjs)
+        // Must be a Friday
         if (currentDate.day() !== 5) return false;
 
-        // Start from January 10, 2025
+        // Calculate from January 10, 2025 start date
         const startDate = dayjs('2025-01-10');
-
-        // Calculate weeks difference
         const weeksDiff = currentDate.diff(startDate, 'week');
 
-        // Return true if it's a bi-weekly Friday from the start date
+        // Only include if it's an even number of weeks from start
         return weeksDiff >= 0 && weeksDiff % 2 === 0;
       }
 
-      // For other incomes, check the day of month
+      // Regular monthly income check
       return incomeDate.date() === day;
     });
   };
@@ -185,6 +217,10 @@ const Budget = () => {
     return day === 0 ? 6 : day - 1; // Sunday becomes 6, other days shift down by 1
   }, [firstDayOfMonth]);
 
+  /**
+   * 🧮 Calculate Running Totals
+   * Computes the cumulative income and expenses up to a given day.
+   */
   const calculateTotalsUpToDay = (day: number) => {
     let totalIncome = 0;
     let totalBills = 0;
@@ -225,6 +261,11 @@ const Budget = () => {
     });
   }, [daysInMonth, firstDayOfWeek]);
 
+  /**
+   * 🧮 Monthly Totals Calculation
+   * Calculates the total income and expenses for the selected month.
+   * Handles the complexities of bi-weekly income calculations.
+   */
   const monthlyTotals = useMemo(() => {
     let totalIncome = 0;
     let totalBills = 0;
@@ -347,6 +388,10 @@ const Budget = () => {
     setShowAddIncomeDialog(true);
   };
 
+  /**
+   * ➕ Add New Income
+   * Handles adding new income entries with different recurrence options.
+   */
   const handleConfirmAddIncome = (newIncome: Omit<Income, 'id'> & { occurrenceType: OccurrenceType }) => {
     const { occurrenceType, ...incomeData } = newIncome;
     const baseId = (incomes.length + 1).toString();
@@ -412,11 +457,14 @@ const Budget = () => {
     setShowAddIncomeDialog(false);
   };
 
-
   const handleAddBill = () => {
-        setShowAddExpenseDialog(true);
+    setShowAddExpenseDialog(true);
   };
 
+  /**
+   * ➕ Add New Bill
+   * Handles adding a new bill entry.
+   */
   const handleConfirmAddBill = (newBill: Omit<Bill, 'id'>) => {
     const bill: Bill = {
       ...newBill,
@@ -455,7 +503,6 @@ const Budget = () => {
     setSelectedDay(1); // Reset to first day of new year
   };
 
-
   const handleConfirmBillEdit = (updatedBill: Bill) => {
     const newBills = bills.map(bill => 
       bill.id === updatedBill.id ? updatedBill : bill
@@ -468,7 +515,7 @@ const Budget = () => {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Fixed width sidebar */}
+      {/* 📱 Sidebar Navigation */}
       <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
         <LeftSidebar
           incomes={incomes}
@@ -481,9 +528,9 @@ const Budget = () => {
         />
       </aside>
 
-      {/* Main content area */}
+      {/* 📊 Main Content Area */}
       <main className="w-full pl-56 flex flex-col min-h-screen">
-        {/* Sticky header */}
+        {/* 🗓️ Calendar Header */}
         <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div className="space-y-2">
@@ -530,6 +577,7 @@ const Budget = () => {
               </div>
             </div>
 
+            {/* 🧮 Monthly Totals Display */}
             <div className="flex flex-wrap items-center gap-4 lg:gap-6">
               <ThemeToggle />
               <div>
@@ -556,7 +604,7 @@ const Budget = () => {
           </div>
         </Card>
 
-        {/* Scrollable calendar content */}
+        {/* 🗓️ Calendar Grid */}
         <div className="flex-1 p-4 overflow-y-auto">
           <Card className="w-full">
             <div className="w-full overflow-hidden">
@@ -663,7 +711,7 @@ const Budget = () => {
         </div>
       </main>
 
-      {/* Rest of the dialogs remain unchanged */}
+      {/* 💬 Dialogs for Daily Summary, Income/Expense Editing, and Deletion */}
       <DailySummaryDialog
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
