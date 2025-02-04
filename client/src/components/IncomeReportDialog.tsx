@@ -96,9 +96,40 @@ export default function IncomeReportDialog({ isOpen, onOpenChange }: IncomeRepor
     setTransactions(mockTransactions);
   }, [showReport, date]);
 
-  const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
-  const occurredAmount = transactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0);
-  const pendingAmount = totalAmount - occurredAmount;
+  const summary = transactions.reduce(
+    (acc, transaction) => {
+      const amount = Math.round(transaction.amount);
+      // Track by source first
+      if (transaction.description === "Majdi's Salary") {
+        if (transaction.occurred) {
+          acc.majdiOccurred += amount;
+        } else {
+          acc.majdiFuture += amount;
+        }
+      } else if (transaction.description === "Ruba's Salary") {
+        if (transaction.occurred) {
+          acc.rubaOccurred += amount;
+        } else {
+          acc.rubaFuture += amount;
+        }
+      }
+      // Also track total occurred/future
+      if (transaction.occurred) {
+        acc.totalOccurred += amount;
+      } else {
+        acc.totalFuture += amount;
+      }
+      return acc;
+    },
+    { 
+      majdiOccurred: 0, 
+      majdiFuture: 0, 
+      rubaOccurred: 0, 
+      rubaFuture: 0,
+      totalOccurred: 0,
+      totalFuture: 0
+    }
+  );
 
   if (!showReport) {
     return (
@@ -163,7 +194,46 @@ export default function IncomeReportDialog({ isOpen, onOpenChange }: IncomeRepor
           </DialogTitle>
         </DialogHeader>
 
-        {/* Summary Cards */}
+        {/* Source-specific Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          {/* Majdi's Income */}
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Majdi's Income</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-green-600">
+                Received: {formatCurrency(summary.majdiOccurred)}
+              </div>
+              <div className="text-green-300">
+                Pending: {formatCurrency(summary.majdiFuture)}
+              </div>
+              <div className="font-bold text-green-600">
+                Total: {formatCurrency(summary.majdiOccurred + summary.majdiFuture)}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ruba's Income */}
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Ruba's Income</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-green-600">
+                Received: {formatCurrency(summary.rubaOccurred)}
+              </div>
+              <div className="text-green-300">
+                Pending: {formatCurrency(summary.rubaFuture)}
+              </div>
+              <div className="font-bold text-green-600">
+                Total: {formatCurrency(summary.rubaOccurred + summary.rubaFuture)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Overall Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <Card>
             <CardHeader className="py-4">
@@ -171,7 +241,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange }: IncomeRepor
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(totalAmount)}
+                {formatCurrency(summary.totalOccurred + summary.totalFuture)}
               </div>
             </CardContent>
           </Card>
@@ -182,7 +252,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange }: IncomeRepor
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(occurredAmount)}
+                {formatCurrency(summary.totalOccurred)}
               </div>
             </CardContent>
           </Card>
@@ -193,7 +263,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange }: IncomeRepor
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-300">
-                {formatCurrency(pendingAmount)}
+                {formatCurrency(summary.totalFuture)}
               </div>
             </CardContent>
           </Card>
