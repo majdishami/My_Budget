@@ -276,7 +276,8 @@ const Budget = () => {
         // For bi-weekly salary, check each Friday in the month
         const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
         const lastDayOfMonth = firstDayOfMonth.endOf('month');
-        const startDate = dayjs().day(5);
+        // Use January 10, 2025 as the fixed start date for bi-weekly calculations
+        const startDate = dayjs('2025-01-10');
 
         // Iterate through each day in the month
         let currentDate = firstDayOfMonth;
@@ -291,16 +292,11 @@ const Budget = () => {
           currentDate = currentDate.add(1, 'day');
         }
       } else {
-        // For regular monthly incomes
-        const incomeYear = incomeDate.year();
-        const incomeMonth = incomeDate.month();
-        const incomeDay = incomeDate.date();
-
-        // Create a new date with the selected year/month but same day
+        // For regular monthly incomes (Majdi's salary)
         const adjustedDate = dayjs()
           .year(selectedYear)
           .month(selectedMonth)
-          .date(incomeDay);
+          .date(incomeDate.date());
 
         // Only count if the day exists in the current month
         if (adjustedDate.month() === selectedMonth) {
@@ -790,7 +786,7 @@ const Budget = () => {
                     <span className="font-medium">Name:</span>
                     <span>{deletingBill.name}</span>
                     <span className="font-medium">Amount</span>
-                    <span>{formatCurrency(deletingBill.amount)}</span>
+                    <span<span>{formatCurrency(deletingBill.amount)}</span>
                     <span className="font-medium">Day of Month:</span>
                     <span>{deletingBill.day}</span>
                   </div>
