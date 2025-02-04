@@ -8,6 +8,7 @@ import dayjs from 'dayjs';
 import MonthlyToDateDialog from "@/components/MonthlyToDateDialog";
 import MonthlyReportDialog from "@/components/MonthlyReportDialog";
 import DateRangeReportDialog from "@/components/DateRangeReportDialog";
+import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useLocation } from "wouter";
 
 interface Income {
@@ -28,7 +29,16 @@ function Router() {
   const [showMonthlyToDate, setShowMonthlyToDate] = useState(false);
   const [showMonthlyReport, setShowMonthlyReport] = useState(false);
   const [showDateRangeReport, setShowDateRangeReport] = useState(false);
+  const [showExpenseReport, setShowExpenseReport] = useState(false);
   const [, setLocation] = useLocation();
+  const [bills, setBills] = useState<Bill[]>([]);
+
+  useEffect(() => {
+    const storedBills = localStorage.getItem("bills");
+    if (storedBills) {
+      setBills(JSON.parse(storedBills));
+    }
+  }, []);
 
   const handleMonthlyToDateOpenChange = (open: boolean) => {
     setShowMonthlyToDate(open);
@@ -46,6 +56,13 @@ function Router() {
 
   const handleDateRangeReportOpenChange = (open: boolean) => {
     setShowDateRangeReport(open);
+    if (!open) {
+      setLocation('/');
+    }
+  };
+
+  const handleExpenseReportOpenChange = (open: boolean) => {
+    setShowExpenseReport(open);
     if (!open) {
       setLocation('/');
     }
@@ -73,6 +90,12 @@ function Router() {
             return null;
           }}
         </Route>
+        <Route path="/reports/expenses">
+          {() => {
+            setShowExpenseReport(true);
+            return null;
+          }}
+        </Route>
       </Switch>
       <MonthlyToDateDialog
         isOpen={showMonthlyToDate}
@@ -85,6 +108,11 @@ function Router() {
       <DateRangeReportDialog
         isOpen={showDateRangeReport}
         onOpenChange={handleDateRangeReportOpenChange}
+      />
+      <ExpenseReportDialog
+        isOpen={showExpenseReport}
+        onOpenChange={handleExpenseReportOpenChange}
+        bills={bills}
       />
     </>
   );
