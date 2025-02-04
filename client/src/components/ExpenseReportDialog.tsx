@@ -88,19 +88,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     setTransactions(mockTransactions);
   }, [selectedBillId, bills, today]);
 
-  // Group transactions by month
-  const groupedTransactions = transactions.reduce((groups: Record<string, Transaction[]>, transaction) => {
-    const monthKey = dayjs(transaction.date).format('YYYY-MM');
-    if (!groups[monthKey]) {
-      groups[monthKey] = [];
-    }
-    groups[monthKey].push(transaction);
-    return groups;
-  }, {});
-
-  // Sort month keys
-  const sortedMonths = Object.keys(groupedTransactions).sort();
-
   const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
   const occurredAmount = transactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0);
   const pendingAmount = totalAmount - occurredAmount;
@@ -183,56 +170,40 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           </Card>
         </div>
 
-        {/* Monthly Grouped Transactions */}
-        <div className="space-y-4">
-          {sortedMonths.map(monthKey => {
-            const monthTransactions = groupedTransactions[monthKey];
-            const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
-
-            return (
-              <Card key={monthKey}>
-                <CardHeader className="py-4">
-                  <CardTitle className="text-lg font-medium">
-                    {dayjs(monthKey).format('MMMM YYYY')}
-                  </CardTitle>
-                  <div className="text-sm space-y-1">
-                    <div className="text-red-600">
-                      Monthly Cost: {formatCurrency(monthlyTotal)}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {monthTransactions
-                        .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                        .map((transaction, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                            <TableCell>{transaction.description}</TableCell>
-                            <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
-                              {formatCurrency(transaction.amount)}
-                            </TableCell>
-                            <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
-                              {transaction.occurred ? 'Paid' : 'Pending'}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        {/* Transactions Table */}
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium">All Occurrences</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions
+                  .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                  .map((transaction, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                        {formatCurrency(transaction.amount)}
+                      </TableCell>
+                      <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                        {transaction.occurred ? 'Paid' : 'Pending'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </DialogContent>
     </Dialog>
   );
