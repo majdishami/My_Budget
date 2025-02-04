@@ -111,8 +111,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           </DialogHeader>
           <div className="flex flex-col space-y-4 py-4">
             {!selectedBillId ? (
-              <Select onValueChange={setSelectedBillId}>
-                <SelectTrigger>
+              <Select onValueChange={(value) => setSelectedBillId(value)}>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Choose an expense" />
                 </SelectTrigger>
                 <SelectContent>
@@ -148,7 +148,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
               </>
             )}
           </div>
-          <DialogFooter className="sm:justify-end space-x-2">
+          <DialogFooter>
             <Button
               variant="outline"
               onClick={() => {
