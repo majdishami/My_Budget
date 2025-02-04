@@ -80,8 +80,8 @@ const formatCurrency = (amount: number) => {
 
 const Budget = () => {
   // 🕒 Time Management
-  // Set initial date to current date
-  const today = dayjs();
+  // Set initial date to February 3rd, 2025
+  const today = dayjs('2025-02-03');
 
   // 📊 State Management
   const [selectedYear, setSelectedYear] = useState(today.year());
@@ -817,8 +817,7 @@ const Budget = () => {
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        </AlertDialogContent>      </AlertDialog>
     </div>
   );
 };
