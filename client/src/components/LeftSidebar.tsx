@@ -19,7 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import dayjs from "dayjs";
+import { useState } from "react";
 
 interface LeftSidebarProps {
   incomes: Income[];
@@ -41,6 +52,7 @@ export function LeftSidebar({
   onReset,
 }: LeftSidebarProps) {
   const [, setLocation] = useLocation();
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Calculate all income occurrences for the current month
   const getMonthlyIncomeOccurrences = () => {
@@ -80,6 +92,15 @@ export function LeftSidebar({
   };
 
   const monthlyIncomes = getMonthlyIncomeOccurrences();
+
+  const handleResetClick = () => {
+    setShowResetConfirm(true);
+  };
+
+  const handleResetConfirm = () => {
+    onReset();
+    setShowResetConfirm(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -264,12 +285,32 @@ export function LeftSidebar({
           variant="ghost"
           size="sm"
           className="w-full justify-start"
-          onClick={onReset}
+          onClick={handleResetClick}
         >
           <RefreshCw className="mr-2 h-4 w-4" />
           Reset to Defaults
         </Button>
       </div>
+
+      {/* Reset Confirmation Dialog */}
+      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset to Default Values</AlertDialogTitle>
+            <AlertDialogDescription>
+              All Bills and Incomes will be reset to Feb.2025 numbers. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowResetConfirm(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetConfirm}>
+              Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
