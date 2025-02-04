@@ -44,32 +44,56 @@ export function ExportDialog({ isOpen, onOpenChange, incomes, bills }: ExportDia
 
     // Transform incomes and bills into a unified transaction format
     const transactions = [
-      ...incomes.map(income => ({
-        id: income.id,
-        amount: income.amount,
-        description: income.source,
-        category: 'Income',
-        date: income.date,
-        type: 'income' as const
-      })),
-      ...bills.map(bill => ({
-        id: bill.id,
-        amount: bill.amount,
-        description: bill.name,
-        category: 'Expense',
-        date: dayjs().date(bill.day).toISOString(),
-        type: 'expense' as const
-      }))
+      // Handle regular monthly incomes
+      ...incomes
+        .filter(income => income.source !== "Ruba's Salary")
+        .map(income => ({
+          id: income.id,
+          amount: income.amount,
+          description: income.source,
+          category: 'Income',
+          date: income.date,
+          type: 'income' as const
+        })),
+      // Handle Ruba's bi-weekly salary separately
+      ...incomes
+        .filter(income => income.source === "Ruba's Salary")
+        .map(income => ({
+          id: income.id,
+          amount: income.amount,
+          description: income.source,
+          category: 'Income',
+          date: income.date,
+          type: 'income' as const
+        })),
+      // Handle bills with monthly occurrences
+      ...bills.flatMap(bill => {
+        const startMonth = dayjs(startDate);
+        const endMonth = dayjs(endDate);
+        const occurrences = [];
+
+        let currentMonth = startMonth.startOf('month');
+        while (currentMonth.isBefore(endMonth) || currentMonth.isSame(endMonth, 'month')) {
+          const billDate = currentMonth.date(bill.day);
+
+          if ((billDate.isAfter(startMonth) || billDate.isSame(startMonth, 'day')) &&
+              (billDate.isBefore(endMonth) || billDate.isSame(endMonth, 'day'))) {
+            occurrences.push({
+              id: `${bill.id}-${billDate.format('YYYY-MM')}`,
+              amount: bill.amount,
+              description: bill.name,
+              category: 'Expense',
+              date: billDate.toISOString(),
+              type: 'expense' as const
+            });
+          }
+          currentMonth = currentMonth.add(1, 'month');
+        }
+        return occurrences;
+      })
     ];
 
-    // Filter transactions by date range
-    const filteredTransactions = transactions.filter(transaction => {
-      const transactionDate = dayjs(transaction.date);
-      return transactionDate.isAfter(dayjs(startDate).startOf('day')) && 
-             transactionDate.isBefore(dayjs(endDate).endOf('day'));
-    });
-
-    exportData(filteredTransactions, exportFormat, filename);
+    exportData(transactions, exportFormat, filename);
     onOpenChange(false);
   };
 
