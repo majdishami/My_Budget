@@ -32,32 +32,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Request logging middleware with detailed information
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  // Log request details
-  log(`Incoming ${req.method} ${path} from ${req.ip}`);
-  if (Object.keys(req.headers).length > 0) {
-    log(`Headers: ${JSON.stringify(req.headers)}`);
-  }
+  log(`Incoming ${req.method} ${req.path} from ${req.ip}`);
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-      log(logLine);
+    if (req.path.startsWith("/api")) {
+      log(`${req.method} ${req.path} ${res.statusCode} in ${duration}ms`);
     }
   });
 
@@ -67,7 +50,7 @@ app.use((req, res, next) => {
 (async () => {
   const server = registerRoutes(app);
 
-  // Global error handler with detailed logging
+  // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -84,12 +67,10 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use port 80 as required by deployment
+  // Use only port 80 as required by deployment
   const PORT = 80;
-
   server.listen(PORT, "0.0.0.0", () => {
     log(`Server is running at http://0.0.0.0:${PORT}`);
     log(`Server environment: ${app.get("env")}`);
-    log(`Trust proxy enabled: ${app.get('trust proxy')}`);
   });
 })();
