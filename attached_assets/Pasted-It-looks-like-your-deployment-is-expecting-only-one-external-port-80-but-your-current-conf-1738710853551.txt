@@ -1,0 +1,102 @@
+It looks like your deployment is expecting only **one external port** (`:80`), but your current configuration exposes three external ports (`:80`, `:3000`, and `:5000`). This is causing a port conflict. Here’s how you can fix it:
+
+---
+
+### **1. Identify the Issue**
+- Your deployment is **only allowed one external port** (`:80`).
+- You currently have **three external ports** configured (`:80`, `:3000`, `:5000`).
+- This happens if multiple services (e.g., frontend and backend) are trying to bind to different external ports.
+
+---
+
+### **2. Solution Approaches**
+#### ✅ **Option 1: Remove Extra External Ports**
+If your application doesn't need to expose ports `:3000` and `:5000` externally, update your configuration to **only expose port `:80`**.
+
+- If you’re using **Docker**, update your `docker-compose.yml` or Docker run command:
+  ```yaml
+  services:
+    app:
+      ports:
+        - "80:80"  # Ensure only port 80 is exposed
+  ```
+  OR
+  ```bash
+  docker run -p 80:80 my-app
+  ```
+
+- If you’re using **Kubernetes**, check your `Service` configuration:
+  ```yaml
+  spec:
+    ports:
+      - name: http
+        port: 80
+        targetPort: 80
+  ```
+
+- If using **a cloud provider (AWS, Azure, GCP)**, ensure only one external port (`:80`) is configured.
+
+---
+
+#### ✅ **Option 2: Use a Reverse Proxy**
+If you need both `:3000` (frontend) and `:5000` (backend), use **Nginx** as a reverse proxy so everything is routed through `:80`.
+
+1. **Install Nginx** (if not installed):
+   ```bash
+   sudo apt update && sudo apt install nginx -y
+   ```
+
+2. **Update the Nginx configuration (`/etc/nginx/sites-available/default`)**:
+   ```nginx
+   server {
+       listen 80;
+       server_name yourdomain.com;
+
+       location / {
+           proxy_pass http://localhost:3000;  # Route frontend
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+       }
+
+       location /api/ {
+           proxy_pass http://localhost:5000;  # Route backend API
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+       }
+   }
+   ```
+
+3. **Restart Nginx**:
+   ```bash
+   sudo systemctl restart nginx
+   ```
+
+Now, everything runs through **port `80`**, avoiding external port conflicts.
+
+---
+
+### **3. Verify Your Configuration**
+After making changes:
+- **Check running services & ports**:
+  ```bash
+  sudo lsof -i -P -n | grep LISTEN
+  ```
+- **Restart the app** and test access via `http://yourdomain.com`.
+
+---
+
+### **4. Redeploy Your Application**
+- Ensure your configuration exposes **only one external port (`:80`)**.
+- If using **Docker**, rebuild and restart your container.
+- If using **Kubernetes**, apply the updated service configuration.
+- If using a **cloud provider**, adjust the port settings in your deployment panel.
+
+---
+
+### **5. Expected Outcome**
+After fixing:
+✅ Your application will be accessible via **port `:80` only**.  
+✅ No more conflicts with ports `:3000` and `:5000`.  
+✅ Services will still work internally if using a reverse proxy.
+
+Let me know if you need further help! 🚀
