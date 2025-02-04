@@ -51,9 +51,9 @@ const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount);
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(Math.round(amount));
 };
 
 const Budget = () => {
@@ -95,38 +95,44 @@ const Budget = () => {
     if (!storedIncomes) {
       const today = dayjs();
       const sampleIncomes: Income[] = [
-        { id: "1", source: "Majdi's Salary", amount: 4739.00, date: today.date(1).toISOString() },
-        { id: "2", source: "Majdi's Salary", amount: 4739.00, date: today.date(15).toISOString() },
-        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" } // Only need one entry for Ruba's salary
+        { id: "1", source: "Majdi's Salary", amount: Math.round(4739), date: today.date(1).toISOString() },
+        { id: "2", source: "Majdi's Salary", amount: Math.round(4739), date: today.date(15).toISOString() },
+        { id: "3", source: "Ruba's Salary", amount: Math.round(2168), date: "2025-01-10" }
       ];
       setIncomes(sampleIncomes);
       localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
     } else {
-      setIncomes(JSON.parse(storedIncomes));
+      setIncomes(JSON.parse(storedIncomes).map((income: Income) => ({
+        ...income,
+        amount: Math.round(income.amount)
+      })));
     }
 
     if (!storedBills) {
       const sampleBills: Bill[] = [
-        { id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429.00, day: 1 },
-        { id: "2", name: "Maid's 1st payment", amount: 120.00, day: 1 },
-        { id: "3", name: "Monthly Rent", amount: 3750.00, day: 1 },
-        { id: "4", name: "Sling TV (CC 9550)", amount: 75.00, day: 3 },
-        { id: "5", name: "Cox Internet", amount: 81.00, day: 6 },
-        { id: "6", name: "Water Bill", amount: 80.00, day: 7 },
-        { id: "7", name: "NV Energy Electrical ($100 winter months)", amount: 250.00, day: 7 },
-        { id: "8", name: "TransAmerica Life Insurance", amount: 77.00, day: 9 },
-        { id: "9", name: "Credit Card minimum payments", amount: 225.00, day: 14 },
-        { id: "10", name: "Apple/Google/YouTube (CC 9550)", amount: 130.00, day: 14 },
-        { id: "11", name: "Expenses & Groceries charged on (CC 2647)", amount: 3000.00, day: 16 },
-        { id: "12", name: "Maid's 2nd Payment of the month", amount: 120.00, day: 17 },
-        { id: "13", name: "SoFi Personal Loan", amount: 1915.00, day: 17 },
-        { id: "14", name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75.00, day: 17 },
-        { id: "15", name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704.00, day: 28 }
+        { id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: Math.round(429), day: 1 },
+        { id: "2", name: "Maid's 1st payment", amount: Math.round(120), day: 1 },
+        { id: "3", name: "Monthly Rent", amount: Math.round(3750), day: 1 },
+        { id: "4", name: "Sling TV (CC 9550)", amount: Math.round(75), day: 3 },
+        { id: "5", name: "Cox Internet", amount: Math.round(81), day: 6 },
+        { id: "6", name: "Water Bill", amount: Math.round(80), day: 7 },
+        { id: "7", name: "NV Energy Electrical ($100 winter months)", amount: Math.round(250), day: 7 },
+        { id: "8", name: "TransAmerica Life Insurance", amount: Math.round(77), day: 9 },
+        { id: "9", name: "Credit Card minimum payments", amount: Math.round(225), day: 14 },
+        { id: "10", name: "Apple/Google/YouTube (CC 9550)", amount: Math.round(130), day: 14 },
+        { id: "11", name: "Expenses & Groceries charged on (CC 2647)", amount: Math.round(3000), day: 16 },
+        { id: "12", name: "Maid's 2nd Payment of the month", amount: Math.round(120), day: 17 },
+        { id: "13", name: "SoFi Personal Loan", amount: Math.round(1915), day: 17 },
+        { id: "14", name: "Southwest Gas ($200 in winter/$45 in summer)", amount: Math.round(75), day: 17 },
+        { id: "15", name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: Math.round(704), day: 28 }
       ];
       setBills(sampleBills);
       localStorage.setItem("bills", JSON.stringify(sampleBills));
     } else {
-      setBills(JSON.parse(storedBills));
+      setBills(JSON.parse(storedBills).map((bill: Bill) => ({
+        ...bill,
+        amount: Math.round(bill.amount)
+      })));
     }
   }, []);
 

@@ -11,5 +11,5 @@ export function formatCurrency(amount: number) {
     currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
-  }).format(amount);
+  }).format(Math.round(amount));
 }
