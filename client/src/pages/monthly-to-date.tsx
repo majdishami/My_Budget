@@ -32,7 +32,7 @@ export default function MonthlyToDateReport() {
     // Mock transactions with correct dates
     const mockTransactions: Transaction[] = [];
 
-    // Add Majdi's salary (1st and 15th of the month)
+    // Add Majdi's salary occurrences
     const majdiPayDates = ['01', '15'];
     majdiPayDates.forEach(day => {
       const payDate = today.format(`YYYY-MM-${day}`);
@@ -64,9 +64,9 @@ export default function MonthlyToDateReport() {
       nextPayDate = nextPayDate.add(14, 'day');
     }
 
-    // Add Monthly Rent expense for February 1st
+    // Add Monthly Expenses for February
     if (today.month() === 1) { // February is month 1 in zero-based months
-      // Monthly Rent (due on the 1st)
+      // February 1st expenses
       mockTransactions.push({
         date: startOfMonth.format('YYYY-MM-DD'),
         description: 'Monthly Rent',
@@ -74,7 +74,21 @@ export default function MonthlyToDateReport() {
         type: 'expense'
       });
 
-      // Internet Bill (due on the 2nd)
+      mockTransactions.push({
+        date: startOfMonth.format('YYYY-MM-DD'),
+        description: 'Car Payment',
+        amount: 550,
+        type: 'expense'
+      });
+
+      mockTransactions.push({
+        date: startOfMonth.format('YYYY-MM-DD'),
+        description: 'Car Gas',
+        amount: 60,
+        type: 'expense'
+      });
+
+      // February 2nd expenses
       if (today.date() >= 2) {
         mockTransactions.push({
           date: today.format('2025-02-02'),
@@ -82,14 +96,28 @@ export default function MonthlyToDateReport() {
           amount: 89,
           type: 'expense'
         });
+
+        mockTransactions.push({
+          date: today.format('2025-02-02'),
+          description: 'Electricity Bill',
+          amount: 150,
+          type: 'expense'
+        });
       }
 
-      // Car Insurance (due on the 3rd)
+      // February 3rd expenses
       if (today.date() >= 3) {
         mockTransactions.push({
           date: today.format('2025-02-03'),
           description: 'Car Insurance',
           amount: 175,
+          type: 'expense'
+        });
+
+        mockTransactions.push({
+          date: today.format('2025-02-03'),
+          description: 'Phone Bill',
+          amount: 85,
           type: 'expense'
         });
       }
