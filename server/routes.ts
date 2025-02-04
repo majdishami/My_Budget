@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { users, insertUserSchema } from "@db/schema";
+import { users, insertUserSchema, categories, insertCategorySchema } from "@db/schema";
 import { eq } from "drizzle-orm";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
@@ -123,6 +123,57 @@ export function registerRoutes(app: Express): Server {
   // Protected route example
   app.get('/api/auth/check', requireAuth, (req, res) => {
     res.json({ authenticated: true });
+  });
+
+  // Category Routes
+  app.post('/api/categories', requireAuth, async (req, res) => {
+    try {
+      const categoryData = await insertCategorySchema.parseAsync({
+        ...req.body,
+        user_id: req.user.id
+      });
+
+      const [newCategory] = await db.insert(categories)
+        .values(categoryData)
+        .returning();
+
+      res.status(201).json(newCategory);
+    } catch (error) {
+      res.status(400).json({ message: 'Invalid request' });
+    }
+  });
+
+  app.get('/api/categories', requireAuth, async (req, res) => {
+    try {
+      const userCategories = await db.query.categories.findMany({
+        where: eq(categories.user_id, req.user.id),
+      });
+      res.json(userCategories);
+    } catch (error) {
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  app.patch('/api/categories/:id', requireAuth, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      const category = await db.query.categories.findFirst({
+        where: eq(categories.id, categoryId),
+      });
+
+      if (!category || category.user_id !== req.user.id) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+
+      const [updatedCategory] = await db.update(categories)
+        .set(req.body)
+        .where(eq(categories.id, categoryId))
+        .returning();
+
+      res.json(updatedCategory);
+    } catch (error) {
+      res.status(400).json({ message: 'Invalid request' });
+    }
   });
 
   const httpServer = createServer(app);
