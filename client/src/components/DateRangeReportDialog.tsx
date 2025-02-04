@@ -134,6 +134,19 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
     setTransactions(mockTransactions);
   }, [showReport, date]);
 
+  // Group transactions by month
+  const groupedTransactions = transactions.reduce((groups: Record<string, Transaction[]>, transaction) => {
+    const monthKey = dayjs(transaction.date).format('YYYY-MM');
+    if (!groups[monthKey]) {
+      groups[monthKey] = [];
+    }
+    groups[monthKey].push(transaction);
+    return groups;
+  }, {});
+
+  // Sort month keys
+  const sortedMonths = Object.keys(groupedTransactions).sort();
+
   const summary = transactions.reduce(
     (acc, transaction) => {
       const amount = Math.round(transaction.amount);
@@ -257,46 +270,107 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
           </div>
         </div>
 
-        {/* Transactions Table */}
-        <Card>
-          <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions
-                  .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                  .map((transaction, index) => {
-                    const textColor = transaction.occurred
-                      ? transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      : transaction.type === 'income' ? 'text-green-300' : 'text-red-300';
+        {/* Monthly Grouped Transactions */}
+        <div className="space-y-4">
+          {sortedMonths.map(monthKey => {
+            const monthTransactions = groupedTransactions[monthKey];
+            const monthIncomes = monthTransactions.filter(t => t.type === 'income');
+            const monthExpenses = monthTransactions.filter(t => t.type === 'expense');
 
-                    return (
-                      <TableRow key={index}>
-                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell className={`text-right ${textColor}`}>
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                        <TableCell className={textColor}>
-                          {transaction.occurred ? 'Occurred' : 'Pending'}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            const monthlyTotal = {
+              income: monthIncomes.reduce((sum, t) => sum + t.amount, 0),
+              expenses: monthExpenses.reduce((sum, t) => sum + t.amount, 0)
+            };
+
+            return (
+              <Card key={monthKey}>
+                <CardHeader className="py-4">
+                  <CardTitle className="text-lg font-medium">
+                    {dayjs(monthKey).format('MMMM YYYY')}
+                  </CardTitle>
+                  <div className="text-sm space-y-1">
+                    <div className="text-green-600">
+                      Monthly Income: {formatCurrency(monthlyTotal.income)}
+                    </div>
+                    <div className="text-red-600">
+                      Monthly Expenses: {formatCurrency(monthlyTotal.expenses)}
+                    </div>
+                    <div className={`font-medium ${monthlyTotal.income - monthlyTotal.expenses >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      Monthly Net: {formatCurrency(monthlyTotal.income - monthlyTotal.expenses)}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {/* Income Section */}
+                  {monthIncomes.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium mb-2">Income</h4>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {monthIncomes
+                            .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                            .map((transaction, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                                <TableCell>{transaction.description}</TableCell>
+                                <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-300'}`}>
+                                  {formatCurrency(transaction.amount)}
+                                </TableCell>
+                                <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-300'}>
+                                  {transaction.occurred ? 'Occurred' : 'Pending'}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+
+                  {/* Expense Section */}
+                  {monthExpenses.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Expenses</h4>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {monthExpenses
+                            .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                            .map((transaction, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                                <TableCell>{transaction.description}</TableCell>
+                                <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                                  {formatCurrency(transaction.amount)}
+                                </TableCell>
+                                <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                                  {transaction.occurred ? 'Occurred' : 'Pending'}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </DialogContent>
     </Dialog>
   );
