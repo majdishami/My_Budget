@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
 import dayjs from 'dayjs';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import isBetween from 'dayjs/plugin/isBetween';
 import {
   Table,
   TableBody,
@@ -20,6 +22,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isBetween);
 
 interface Transaction {
   date: string;
@@ -170,7 +175,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
               className="rounded-md border"
             />
           </div>
-          <DialogFooter>
+          <DialogFooter className="sm:justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
