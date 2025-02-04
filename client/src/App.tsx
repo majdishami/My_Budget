@@ -29,6 +29,7 @@ import AnnualReportDialog from "@/components/AnnualReportDialog";
 import { useLocation } from "wouter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { logger } from "@/lib/logger";
+import { ThemeToggle } from "@/components/ThemeToggle"; // Fixed import statement for ThemeToggle
 
 /**
  * 📊 Data Interfaces
@@ -240,6 +241,11 @@ function App() {
   // 💰 Global Financial Data State
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
+  const [summary, setSummary] = useState({ totalOccurred: 0, totalFuture: 0 }); // Added summary state
+
+  const formatCurrency = (amount: number): string => { //Added formatCurrency function
+    return `$${amount.toFixed(2)}`;
+  };
 
   /**
    * 🔄 Initialize Default Data
@@ -307,6 +313,10 @@ function App() {
         setBills(parsedBills);
         logger.info('Bills loaded from storage', { count: parsedBills.length });
       }
+      // Calculate summary data (replace with actual calculation)
+      const totalOccurred = incomes.reduce((sum, income) => sum + income.amount, 0);
+      const totalFuture = 0; // Placeholder - replace with actual future income calculation
+      setSummary({ totalOccurred, totalFuture });
     } catch (error) {
       logger.error('Error initializing application data', { error });
     }
@@ -315,7 +325,17 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
+        {/* 🛣️ Route Configuration */}
         <Router />
+        <div className="flex items-center gap-6">
+          <ThemeToggle />
+          <div>
+            <p className="text-sm text-muted-foreground">Total Net Income</p>
+            <p className="text-2xl font-bold text-green-600">
+              {formatCurrency(summary.totalOccurred + summary.totalFuture)}
+            </p>
+          </div>
+        </div>
         <Toaster />
       </QueryClientProvider>
     </ErrorBoundary>
