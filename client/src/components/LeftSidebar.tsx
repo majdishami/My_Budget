@@ -11,7 +11,8 @@ import {
   Edit,
   Trash,
   CalendarRange,
-  Download
+  Download,
+  Bell
 } from "lucide-react";
 import {
   Select,
@@ -33,6 +34,8 @@ import {
 import dayjs from "dayjs";
 import { useState } from "react";
 import { ExportDialog } from "@/components/ExportDialog";
+import {ViewRemindersDialog} from "@/components/ViewRemindersDialog"; //Added import
+
 
 interface LeftSidebarProps {
   incomes: Income[];
@@ -56,6 +59,7 @@ export function LeftSidebar({
   const [, setLocation] = useLocation();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showRemindersDialog, setShowRemindersDialog] = useState(false);
 
   // Calculate all income occurrences for the current month
   const getMonthlyIncomeOccurrences = () => {
@@ -158,6 +162,15 @@ export function LeftSidebar({
               ))}
             </SelectContent>
           </Select>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start"
+            onClick={() => setShowRemindersDialog(true)}
+          >
+            <Bell className="mr-2 h-4 w-4" />
+            View Reminders
+          </Button>
         </div>
       </div>
 
@@ -329,6 +342,13 @@ export function LeftSidebar({
         isOpen={showExportDialog}
         onOpenChange={setShowExportDialog}
         incomes={incomes}
+        bills={bills}
+      />
+
+      {/* Add ViewRemindersDialog */}
+      <ViewRemindersDialog
+        isOpen={showRemindersDialog}
+        onOpenChange={setShowRemindersDialog}
         bills={bills}
       />
     </div>
