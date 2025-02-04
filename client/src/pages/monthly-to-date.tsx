@@ -29,19 +29,17 @@ export default function MonthlyToDateReport() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // Mock transactions with correct dates
     const mockTransactions: Transaction[] = [];
 
     // Add Majdi's salary occurrences
     const majdiPayDates = ['01', '15'];
     majdiPayDates.forEach(day => {
       const payDate = today.format(`YYYY-MM-${day}`);
-      // Only include if the pay date is not after today
       if (dayjs(payDate).isSame(today, 'day') || dayjs(payDate).isBefore(today)) {
         mockTransactions.push({
           date: payDate,
           description: "Majdi's Salary",
-          amount: 4739,
+          amount: Math.round(4739), // Round to remove decimals
           type: 'income'
         });
       }
@@ -56,7 +54,7 @@ export default function MonthlyToDateReport() {
         mockTransactions.push({
           date: nextPayDate.format('YYYY-MM-DD'),
           description: "Ruba's Salary",
-          amount: 2168,
+          amount: Math.round(2168), // Round to remove decimals
           type: 'income'
         });
       }
@@ -104,16 +102,16 @@ export default function MonthlyToDateReport() {
   const totals = transactions.reduce(
     (acc, transaction) => {
       if (transaction.type === 'income') {
-        acc.income += transaction.amount;
+        acc.income += Math.round(transaction.amount); // Round to remove decimals
       } else {
-        acc.expenses += transaction.amount;
+        acc.expenses += Math.round(transaction.amount); // Round to remove decimals
       }
       return acc;
     },
     { income: 0, expenses: 0 }
   );
 
-  const netBalance = totals.income - totals.expenses;
+  const netBalance = Math.round(totals.income - totals.expenses); // Round net balance
 
   return (
     <div className="container mx-auto p-4 max-w-5xl">
