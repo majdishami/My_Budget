@@ -10,6 +10,7 @@
  * - Income and expense management
  * - Running balance calculations
  * - Interactive day selection
+ * - Mobile menu for sidebar access
  */
 
 import { useState, useEffect, useMemo } from "react";
@@ -29,7 +30,7 @@ import {
   DialogClose,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -103,6 +104,7 @@ const Budget = () => {
   const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
   const [showDailySummary, setShowDailySummary] = useState(false);
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
 
   /**
@@ -511,21 +513,50 @@ const Budget = () => {
 
   return (
     <div className="min-h-screen flex bg-background">
+      {/* Mobile Menu Toggle Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="fixed top-4 left-4 z-40 lg:hidden"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+      >
+        {sidebarOpen ? (
+          <X className="h-5 w-5" />
+        ) : (
+          <Menu className="h-5 w-5" />
+        )}
+      </Button>
+
       {/* 📱 Sidebar Navigation - Now collapsible on mobile */}
-      <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto transition-transform duration-200 ease-in-out lg:translate-x-0 -translate-x-full lg:w-56 z-30">
-        <LeftSidebar
-          incomes={incomes}
-          bills={bills}
-          onEditTransaction={handleEditTransaction}
-          onDeleteTransaction={handleDeleteTransaction}
-          onAddIncome={handleAddIncome}
-          onAddBill={handleAddBill}
-          onReset={handleReset}
-        />
+      <aside
+        className={cn(
+          "w-64 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto transition-transform duration-200 ease-in-out lg:translate-x-0 z-30",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="pt-14 lg:pt-0"> {/* Add padding for mobile menu button */}
+          <LeftSidebar
+            incomes={incomes}
+            bills={bills}
+            onEditTransaction={handleEditTransaction}
+            onDeleteTransaction={handleDeleteTransaction}
+            onAddIncome={handleAddIncome}
+            onAddBill={handleAddBill}
+            onReset={handleReset}
+          />
+        </div>
       </aside>
 
+      {/* Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* 📊 Main Content Area */}
-      <main className="w-full lg:pl-56 flex flex-col min-h-screen">
+      <main className="w-full lg:pl-64 flex flex-col min-h-screen">
         {/* 🗓️ Calendar Header */}
         <Card className="p-2 lg:p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-2 lg:gap-4">
@@ -766,7 +797,7 @@ const Budget = () => {
                 </div>
               )}
             </AlertDialogDescription>
-          </AlertDialogHeader>
+                    </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               setShowDeleteDialog(false);
@@ -792,7 +823,7 @@ const Budget = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <span className="font-medium">Source:</span>
                     <span>{deletingIncome.source}</span>
-                                        <span className="font-medium">Amount:</span>
+                    <span className="font-medium">Amount:</span>
                     <span>{formatCurrency(deletingIncome.amount)}</span>
                     <span className="font-medium">Date:</span>
                     <span>{dayjs(deletingIncome.date).format('MMMM D, YYYY')}</span>
