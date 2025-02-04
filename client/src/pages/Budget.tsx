@@ -605,7 +605,7 @@ const Budget = () => {
             <div className="flex flex-wrap items-center gap-3 lg:gap-6">
               <ThemeToggle />
               <div>
-                <p className="text-xs lg:text-sm text-muted-foreground">Total Income</p>
+                <p className="text-xs lg:text-sm text-muted-foreground">Total Net Income</p>
                 <p className="text-base lg:text-lg font-semibold text-green-600">
                   {formatCurrency(monthlyTotals.totalIncome)}
                 </p>
