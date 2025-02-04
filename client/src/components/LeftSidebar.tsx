@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Income, Bill } from "@/types";
 import { 
@@ -39,6 +39,8 @@ export function LeftSidebar({
   onAddBill,
   onReset,
 }: LeftSidebarProps) {
+  const [, setLocation] = useLocation();
+
   // Calculate all income occurrences for the current month
   const getMonthlyIncomeOccurrences = () => {
     const currentDate = dayjs();

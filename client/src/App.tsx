@@ -3,9 +3,9 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import Budget from "@/pages/Budget";
-import MonthlyToDate from "@/pages/monthly-to-date";
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
+import MonthlyToDateDialog from "@/components/MonthlyToDateDialog";
 
 interface Income {
   id: string;
@@ -21,28 +21,31 @@ interface Bill {
   day: number;
 }
 
-
 function Router() {
+  const [showMonthlyToDate, setShowMonthlyToDate] = useState(false);
+
   return (
-    <Switch>
-      <Route path="/" component={Budget} />
-      <Route path="/reports/monthly-to-date" component={MonthlyToDate} />
-    </Switch>
+    <>
+      <Switch>
+        <Route path="/" component={Budget} />
+        <Route path="/reports/monthly-to-date">
+          {() => {
+            setShowMonthlyToDate(true);
+            return null;
+          }}
+        </Route>
+      </Switch>
+      <MonthlyToDateDialog
+        isOpen={showMonthlyToDate}
+        onOpenChange={setShowMonthlyToDate}
+      />
+    </>
   );
 }
 
 function App() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   useEffect(() => {
     // Clear existing data first
