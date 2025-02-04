@@ -18,6 +18,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import Budget from "@/pages/Budget";
+import Categories from "@/pages/Categories";
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import MonthlyToDateDialog from "@/components/MonthlyToDateDialog";
@@ -164,6 +165,7 @@ function Router() {
       {/* 🛣️ Route Configuration */}
       <Switch>
         <Route path="/" component={Budget} />
+        <Route path="/categories" component={Categories} />
         {/* 📊 Report Routes */}
         <Route path="/reports/monthly-to-date">
           {() => {
