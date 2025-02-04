@@ -33,7 +33,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Request logging middleware with detailed information
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -45,7 +45,6 @@ app.use((req, res, next) => {
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
-  // Log request details
   log(`Incoming ${req.method} ${path} from ${req.ip}`);
   if (Object.keys(req.headers).length > 0) {
     log(`Headers: ${JSON.stringify(req.headers)}`);
@@ -68,7 +67,7 @@ app.use((req, res, next) => {
 (async () => {
   const server = registerRoutes(app);
 
-  // Global error handler with detailed logging
+  // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -85,11 +84,11 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use port 3000 for Replit deployment, 5001 for local development
-  const PORT = process.env.REPL_SLUG ? 3000 : 5001;
+  // Use port 3000 for Replit deployment
+  const PORT = 3000;
 
-  server.listen(PORT, () => {
-    log(`Server is running at http://localhost:${PORT}`);
+  server.listen(PORT, "0.0.0.0", () => {
+    log(`Server is running at http://0.0.0.0:${PORT}`);
     log(`Server environment: ${app.get("env")}`);
     log(`Trust proxy enabled: ${app.get('trust proxy')}`);
   });
