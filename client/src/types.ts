@@ -10,4 +10,14 @@ export interface Bill {
   name: string;
   amount: number;
   day: number;
+  reminderEnabled?: boolean;
+  reminderDays?: number;
+}
+
+export interface BillReminder {
+  billId: string;
+  billName: string;
+  dueDate: string;
+  amount: number;
+  reminderDate: string;
 }
