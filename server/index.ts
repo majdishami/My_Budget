@@ -14,7 +14,7 @@ app.set('trust proxy', true);
 // Configure CORS for Replit's environment
 app.use((req, res, next) => {
   const allowedOrigins = [
-    'https://codecrafthub.majdi01.repl.co',
+    'https://workspace.majdi01.repl.co',
     process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : undefined,
     'http://localhost:5000',
     '*' // Allow all origins temporarily for testing
