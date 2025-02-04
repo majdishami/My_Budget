@@ -243,13 +243,13 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                 <CardTitle className="text-sm font-medium">Future Transactions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="text-gray-500">
+                <div className="text-green-300">
                   Income: {formatCurrency(summary.futureIncome)}
                 </div>
-                <div className="text-gray-500">
+                <div className="text-red-300">
                   Expenses: {formatCurrency(summary.futureExpenses)}
                 </div>
-                <div className="text-gray-500 font-bold">
+                <div className={`font-bold ${futureNet >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                   Net: {formatCurrency(futureNet)}
                 </div>
               </CardContent>
@@ -278,7 +278,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                   .map((transaction, index) => {
                     const textColor = transaction.occurred
                       ? transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      : 'text-gray-500';
+                      : transaction.type === 'income' ? 'text-green-300' : 'text-red-300';
 
                     return (
                       <TableRow key={index}>
@@ -291,8 +291,8 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                           {transaction.occurred ? 'Occurred' : 'Pending'}
                         </TableCell>
                       </TableRow>
-                    )}
-                  )}
+                    );
+                  })}
               </TableBody>
             </Table>
           </CardContent>
