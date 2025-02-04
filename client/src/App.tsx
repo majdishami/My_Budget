@@ -169,11 +169,11 @@ function App() {
     const storedBills = localStorage.getItem("bills");
 
     if (!storedIncomes) {
-      const today = dayjs();
+      const baseDate = dayjs('2025-01-01');
       const sampleIncomes: Income[] = [
-        { id: "1", source: "Majdi's Salary", amount: Math.round(4739), date: today.date(1).toISOString() },
-        { id: "2", source: "Majdi's Salary", amount: Math.round(4739), date: today.date(15).toISOString() },
-        { id: "3", source: "Ruba's Salary", amount: Math.round(2168), date: "2025-01-10" }
+        { id: "1", source: "Majdi's Salary", amount: Math.round(4739), date: baseDate.date(1).toISOString() },
+        { id: "2", source: "Majdi's Salary", amount: Math.round(4739), date: baseDate.date(15).toISOString() },
+        { id: "3", source: "Ruba's Salary", amount: Math.round(2168), date: baseDate.date(10).toISOString() }
       ];
       setIncomes(sampleIncomes);
       localStorage.setItem("incomes", JSON.stringify(sampleIncomes));

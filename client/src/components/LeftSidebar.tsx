@@ -298,7 +298,7 @@ export function LeftSidebar({
           <AlertDialogHeader>
             <AlertDialogTitle>Reset to Default Values</AlertDialogTitle>
             <AlertDialogDescription>
-              All Bills and Incomes will be reset to Feb.2025 numbers. This action cannot be undone.
+              All Bills and Incomes will be reset to Jan.01.2025 numbers. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
