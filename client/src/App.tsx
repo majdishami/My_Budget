@@ -151,7 +151,6 @@ function Router() {
       <AnnualReportDialog
         isOpen={showAnnualReport}
         onOpenChange={handleAnnualReportOpenChange}
-        selectedYear={dayjs().year()}
       />
     </>
   );

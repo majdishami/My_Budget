@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Card,
@@ -24,20 +25,30 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface AnnualReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedYear: number;
+  selectedYear?: number; // Added optional selectedYear
 }
 
 export default function AnnualReportDialog({
   isOpen,
   onOpenChange,
-  selectedYear,
+  selectedYear = dayjs().year(), // Default to current year
 }: AnnualReportDialogProps) {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
+  const [year, setSelectedYear] = useState(selectedYear); // Use provided or default year
+  const currentYear = dayjs().year();
+  const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
   useEffect(() => {
     if (isOpen) {
@@ -66,15 +77,15 @@ export default function AnnualReportDialog({
 
     // For Ruba's bi-weekly salary
     const startDate = dayjs('2025-01-10');
-    const yearStart = dayjs(selectedYear.toString()).startOf('year');
-    const yearEnd = dayjs(selectedYear.toString()).endOf('year');
+    const yearStart = dayjs(year.toString()).startOf('year');
+    const yearEnd = dayjs(year.toString()).endOf('year');
 
     let currentDate = startDate.clone();
     let biweeklyPayments = 0;
 
     // Count bi-weekly payments within the selected year
     while (currentDate.isBefore(yearEnd) || currentDate.isSame(yearEnd, 'day')) {
-      if (currentDate.year() === selectedYear && currentDate.day() === 5) { // Friday
+      if (currentDate.year() === year && currentDate.day() === 5) { // Friday
         const weeksDiff = currentDate.diff(startDate, 'week');
         if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
           biweeklyPayments++;
@@ -103,16 +114,33 @@ export default function AnnualReportDialog({
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center justify-between">
-            Annual Report for {selectedYear}
-            <DialogClose asChild>
-              <Button variant="ghost" size="sm">Close</Button>
-            </DialogClose>
+            Annual Report
+            <div className="flex items-center gap-4">
+              <Select
+                value={year.toString()}
+                onValueChange={(value) => setSelectedYear(parseInt(value))}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue>{year}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((yearOption) => (
+                    <SelectItem key={yearOption} value={yearOption.toString()}>
+                      {yearOption}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <DialogClose asChild>
+                <Button variant="ghost" size="sm">Close</Button>
+              </DialogClose>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
         {/* Annual Income Summary */}
         <div className="space-y-6">
-          <h2 className="text-lg font-semibold">Annual Income Summary</h2>
+          <h2 className="text-lg font-semibold">Annual NET Income Summary</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="py-4">
@@ -211,7 +239,7 @@ export default function AnnualReportDialog({
                 </div>
                 <div className="flex justify-between font-bold pt-2 border-t">
                   <span>Net Annual Balance:</span>
-                  <span className={annualIncomeSummary.totalIncome - totalAnnualExpenses >= 0 ? 
+                  <span className={annualIncomeSummary.totalIncome - totalAnnualExpenses >= 0 ?
                     "text-green-600" : "text-red-600"}>
                     {formatCurrency(annualIncomeSummary.totalIncome - totalAnnualExpenses)}
                   </span>
