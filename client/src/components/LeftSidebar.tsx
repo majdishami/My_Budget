@@ -215,23 +215,6 @@ export function LeftSidebar({
         </div>
       </div>
 
-      {/* Categories Section */}
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold px-2">Categories</h2>
-        <div className="space-y-2">
-          <Link href="/categories">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start"
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              Manage Categories
-            </Button>
-          </Link>
-        </div>
-      </div>
-
       {/* Reports Section */}
       <div className="space-y-2">
         <h2 className="text-lg font-semibold px-2">Reports</h2>
