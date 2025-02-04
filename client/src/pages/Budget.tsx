@@ -511,8 +511,8 @@ const Budget = () => {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* 📱 Sidebar Navigation */}
-      <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
+      {/* 📱 Sidebar Navigation - Now collapsible on mobile */}
+      <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto transition-transform duration-200 ease-in-out lg:translate-x-0 -translate-x-full lg:w-56 z-30">
         <LeftSidebar
           incomes={incomes}
           bills={bills}
@@ -525,19 +525,19 @@ const Budget = () => {
       </aside>
 
       {/* 📊 Main Content Area */}
-      <main className="w-full pl-56 flex flex-col min-h-screen">
+      <main className="w-full lg:pl-56 flex flex-col min-h-screen">
         {/* 🗓️ Calendar Header */}
-        <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+        <Card className="p-2 lg:p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-2 lg:gap-4">
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold">
+              <h1 className="text-xl lg:text-2xl font-bold">
                 My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
               </h1>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <select 
                   value={selectedMonth}
                   onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-                  className="p-2 border rounded bg-background min-w-[120px]"
+                  className="p-2 border rounded bg-background min-w-[120px] text-base touch-manipulation"
                   aria-label="Select month"
                 >
                   {months.map(month => (
@@ -550,7 +550,7 @@ const Budget = () => {
                 <select
                   value={selectedYear}
                   onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                  className="p-2 border rounded bg-background min-w-[100px]"
+                  className="p-2 border rounded bg-background min-w-[100px] text-base touch-manipulation"
                   aria-label="Select year"
                 >
                   {years.map(year => (
@@ -561,7 +561,7 @@ const Budget = () => {
                 <select
                   value={selectedDay}
                   onChange={(e) => setSelectedDay(parseInt(e.target.value))}
-                  className="p-2 border rounded bg-background min-w-[80px]"
+                  className="p-2 border rounded bg-background min-w-[80px] text-base touch-manipulation"
                   aria-label="Select day"
                 >
                   {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
@@ -573,24 +573,24 @@ const Budget = () => {
               </div>
             </div>
 
-            {/* 🧮 Monthly Totals Display */}
-            <div className="flex flex-wrap items-center gap-4 lg:gap-6">
+            {/* 🧮 Monthly Totals Display - Responsive layout */}
+            <div className="flex flex-wrap items-center gap-3 lg:gap-6">
               <ThemeToggle />
               <div>
-                <p className="text-sm text-muted-foreground">Total Income</p>
-                <p className="text-lg font-semibold text-green-600">
+                <p className="text-xs lg:text-sm text-muted-foreground">Total Income</p>
+                <p className="text-base lg:text-lg font-semibold text-green-600">
                   {formatCurrency(monthlyTotals.totalIncome)}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Bills</p>
-                <p className="text-lg font-semibold text-red-600">
+                <p className="text-xs lg:text-sm text-muted-foreground">Total Bills</p>
+                <p className="text-base lg:text-lg font-semibold text-red-600">
                   {formatCurrency(monthlyTotals.totalBills)}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Net Balance</p>
-                <p className={`text-lg font-semibold ${
+                <p className="text-xs lg:text-sm text-muted-foreground">Net Balance</p>
+                <p className={`text-base lg:text-lg font-semibold ${
                   monthlyTotals.balance >= 0 ? "text-green-600" : "text-red-600"
                 }`}>
                   {formatCurrency(monthlyTotals.balance)}
@@ -600,15 +600,15 @@ const Budget = () => {
           </div>
         </Card>
 
-        {/* 🗓️ Calendar Grid */}
-        <div className="flex-1 p-4 overflow-y-auto">
+        {/* 🗓️ Calendar Grid - Mobile optimized */}
+        <div className="flex-1 p-2 lg:p-4 overflow-y-auto">
           <Card className="w-full">
             <div className="w-full overflow-hidden">
-              <table className="w-full table-fixed border-collapse">
+              <table className="w-full table-fixed border-collapse text-sm lg:text-base">
                 <thead className="sticky top-0 bg-background z-10">
                   <tr>
                     {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
-                      <th key={day} className="p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
+                      <th key={day} className="p-1 lg:p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
                         {day}
                       </th>
                     ))}
@@ -620,7 +620,7 @@ const Budget = () => {
                       {Array.from({ length: 7 }, (_, dayIndex) => {
                         const dayNumber = calendarDays[weekIndex * 7 + dayIndex];
                         if (dayNumber === null) {
-                          return <td key={dayIndex} className="border p-2 bg-muted/10 h-36 lg:h-48" />;
+                          return <td key={dayIndex} className="border p-1 lg:p-2 bg-muted/10 h-24 lg:h-48" />;
                         }
 
                         const dayIncomes = getIncomeForDay(dayNumber);
@@ -632,7 +632,8 @@ const Budget = () => {
                             key={dayIndex}
                             onClick={() => handleDayClick(dayNumber)}
                             className={cn(
-                              "border p-2 align-top cursor-pointer transition-colors h-36 lg:h-48 relative",
+                              "border p-1 lg:p-2 align-top cursor-pointer transition-colors h-24 lg:h-48 relative touch-manipulation",
+                              "active:bg-accent/70", // Better touch feedback
                               "hover:bg-accent",
                               isCurrentDay(dayNumber) && "ring-2 ring-primary ring-offset-2 border-primary",
                               selectedDay === dayNumber && "bg-accent/50 font-semibold",
@@ -641,7 +642,7 @@ const Budget = () => {
                           >
                             <div className="flex justify-between items-start mb-1">
                               <span className={cn(
-                                "font-medium text-lg",
+                                "font-medium text-base lg:text-lg",
                                 isCurrentDay(dayNumber) && "text-primary font-bold"
                               )}>
                                 {dayNumber}
@@ -657,14 +658,14 @@ const Budget = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="space-y-0.5 text-xs overflow-y-auto max-h-[calc(100%-2rem)]">
+                            <div className="space-y-0.5 text-[10px] lg:text-xs overflow-y-auto max-h-[calc(100%-2rem)]">
                               {dayIncomes.length > 0 && (
                                 <div className="space-y-0.5">
                                   <p className="font-medium text-green-600 dark:text-green-400">Income</p>
                                   {dayIncomes.map((income, index) => (
                                     <div 
                                       key={income.id} 
-                                      className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1"
+                                      className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1 py-0.5 touch-manipulation"
                                     >
                                       <span className="truncate max-w-[60%]">
                                         {index + 1}. {income.source}
@@ -682,7 +683,7 @@ const Budget = () => {
                                   {dayBills.map((bill, index) => (
                                     <div 
                                       key={bill.id} 
-                                      className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
+                                      className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1 py-0.5 touch-manipulation"
                                     >
                                       <span className="truncate max-w-[60%]">
                                         {index + 1}. {bill.name}
@@ -791,7 +792,7 @@ const Budget = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <span className="font-medium">Source:</span>
                     <span>{deletingIncome.source}</span>
-                    <span className="font-medium">Amount:</span>
+                                        <span className="font-medium">Amount:</span>
                     <span>{formatCurrency(deletingIncome.amount)}</span>
                     <span className="font-medium">Date:</span>
                     <span>{dayjs(deletingIncome.date).format('MMMM D, YYYY')}</span>
@@ -817,7 +818,8 @@ const Budget = () => {
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>      </AlertDialog>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
