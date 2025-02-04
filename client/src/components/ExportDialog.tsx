@@ -138,9 +138,7 @@ export function ExportDialog({ isOpen, onOpenChange, incomes, bills }: ExportDia
                   mode="single"
                   selected={startDate}
                   onSelect={(date) => setStartDate(date || undefined)}
-                  disabled={(date) =>
-                    date > new Date() || (endDate ? date > endDate : false)
-                  }
+                  disabled={(date) => endDate ? date > endDate : false}
                   initialFocus
                 />
               </PopoverContent>
@@ -172,9 +170,7 @@ export function ExportDialog({ isOpen, onOpenChange, incomes, bills }: ExportDia
                   mode="single"
                   selected={endDate}
                   onSelect={(date) => setEndDate(date || undefined)}
-                  disabled={(date) =>
-                    date > new Date() || (startDate ? date < startDate : false)
-                  }
+                  disabled={(date) => startDate ? date < startDate : false}
                   initialFocus
                 />
               </PopoverContent>
