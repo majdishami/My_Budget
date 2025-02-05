@@ -174,11 +174,11 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[400px]" aria-describedby="date-range-description">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Select Date Range</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center space-y-4 py-4">
+          <div id="date-range-description" className="flex flex-col items-center space-y-4 py-4">
             <div className="border rounded-lg p-4 bg-background">
               <Calendar
                 mode="range"
@@ -201,25 +201,21 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2">
-            <div>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setDate(undefined);
-                  onOpenChange(false);
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-            <div>
-              <Button
-                onClick={() => setShowReport(true)}
-                disabled={!date?.from || !date?.to}
-              >
-                Generate Report
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDate(undefined);
+                onOpenChange(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => setShowReport(true)}
+              disabled={!date?.from || !date?.to}
+            >
+              Generate Report
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -228,12 +224,15 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="report-content-description">
         <DialogHeader>
           <DialogTitle className="text-xl">
             Financial Report: {dayjs(date?.from).format('MMM D, YYYY')} - {dayjs(date?.to).format('MMM D, YYYY')}
           </DialogTitle>
         </DialogHeader>
+        <div id="report-content-description" className="sr-only">
+          Financial report showing income and expenses between selected dates
+        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-4 mb-4">
