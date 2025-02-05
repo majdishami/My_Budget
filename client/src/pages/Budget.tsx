@@ -592,10 +592,10 @@ const Budget = () => {
                   Budget - {dayjs().month(selectedMonth).format("MMM")} {selectedYear}
                 </h1>
                 <Button
-                  variant="ghost"
-                  size="icon"
+                  variant="outline"
+                  size="sm"
                   onClick={() => window.location.reload()}
-                  className="h-8 w-8 lg:hidden" // Only show on mobile
+                  className="lg:hidden" // Only show on mobile
                   aria-label="Refresh page"
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -721,9 +721,11 @@ const Budget = () => {
                           >
                             <div className="flex justify-between items-start mb-1">
                               <span className={cn(
-                                "font-medium text-base lg:text-lg z-10 relative", // Added z-10 and relative to ensure visibility
-                                isCurrentDay(dayNumber) && "text-primary font-bold",
-                                selectedDay === dayNumber && "text-foreground" // Ensure text is visible when selected
+                                "font-medium text-base lg:text-lg relative",
+                                "px-1.5 py-0.5 rounded",
+                                "bg-background/95 backdrop-blur-sm", 
+                                selectedDay === dayNumber && "bg-accent-foreground/10",
+                                isCurrentDay(dayNumber) && "text-primary font-bold"
                               )}>
                                 {dayNumber}
                               </span>
@@ -779,11 +781,12 @@ const Budget = () => {
                           </td>
                         );
                       })}
-                    </tr>                  ))}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          </Card>
+                    </Card>
         </div>
       </main>
 
