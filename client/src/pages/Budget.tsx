@@ -112,20 +112,70 @@ const Budget = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
 
-  /**
-   * 🔄 Initialize Default Data
-   * Sets up initial income and bill data if none exists
-   */
+  // Helper functions for data persistence - moved inside component
+  const saveIncomes = (newIncomes: Income[]) => {
+    try {
+      localStorage.setItem("incomes", JSON.stringify(newIncomes));
+      setIncomes(newIncomes);
+    } catch (error) {
+      console.error("Error saving incomes:", error);
+    }
+  };
+
+  const saveBills = (newBills: Bill[]) => {
+    try {
+      localStorage.setItem("bills", JSON.stringify(newBills));
+      setBills(newBills);
+    } catch (error) {
+      console.error("Error saving bills:", error);
+    }
+  };
+
+  const initializeDefaultData = () => {
+    try {
+      const today = dayjs();
+      const sampleIncomes: Income[] = [
+        { id: crypto.randomUUID(), source: "Majdi's Salary", amount: 4739, date: today.date(1).toISOString() },
+        { id: crypto.randomUUID(), source: "Majdi's Salary", amount: 4739, date: today.date(15).toISOString() },
+        { id: crypto.randomUUID(), source: "Ruba's Salary", amount: 2168, date: today.day(5).toISOString() }
+      ];
+
+      const sampleBills: Bill[] = [
+        { id: crypto.randomUUID(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1 },
+        { id: crypto.randomUUID(), name: "Maid's 1st payment", amount: 120, day: 1 },
+        { id: crypto.randomUUID(), name: "Monthly Rent", amount: 3750, day: 1 },
+        { id: crypto.randomUUID(), name: "Sling TV (CC 9550)", amount: 75, day: 3 },
+        { id: crypto.randomUUID(), name: "Cox Internet", amount: 81, day: 6 },
+        { id: crypto.randomUUID(), name: "Water Bill", amount: 80, day: 7 },
+        { id: crypto.randomUUID(), name: "NV Energy Electrical ($100 winter months)", amount: 250, day: 7 },
+        { id: crypto.randomUUID(), name: "TransAmerica Life Insurance", amount: 77, day: 9 },
+        { id: crypto.randomUUID(), name: "Credit Card minimum payments", amount: 225, day: 14 },
+        { id: crypto.randomUUID(), name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14 },
+        { id: crypto.randomUUID(), name: "Expenses & Groceries charged on (CC 2647)", amount: 3000, day: 16 },
+        { id: crypto.randomUUID(), name: "Maid's 2nd Payment of the month", amount: 120, day: 17 },
+        { id: crypto.randomUUID(), name: "SoFi Personal Loan", amount: 1915, day: 17 },
+        { id: crypto.randomUUID(), name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75, day: 17 },
+        { id: crypto.randomUUID(), name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704, day: 28 }
+      ];
+
+      localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
+      localStorage.setItem("bills", JSON.stringify(sampleBills));
+      setIncomes(sampleIncomes);
+      setBills(sampleBills);
+    } catch (error) {
+      console.error("Error initializing default data:", error);
+    }
+  };
+
+  // Load data on component mount
   useEffect(() => {
     try {
-      // Load data from localStorage
       const storedIncomes = localStorage.getItem("incomes");
       const storedBills = localStorage.getItem("bills");
 
       if (storedIncomes) {
         try {
           const parsedIncomes = JSON.parse(storedIncomes);
-          // Validate the data structure
           if (Array.isArray(parsedIncomes)) {
             setIncomes(parsedIncomes.map((income: Income) => ({
               ...income,
@@ -147,7 +197,6 @@ const Budget = () => {
       if (storedBills) {
         try {
           const parsedBills = JSON.parse(storedBills);
-          // Validate the data structure
           if (Array.isArray(parsedBills)) {
             setBills(parsedBills.map((bill: Bill) => ({
               ...bill,
@@ -848,7 +897,7 @@ const Budget = () => {
               setDeletingBill(null);
             }}>
               Cancel
-                        </AlertDialogCancel>
+            </AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete}>
               Delete
             </AlertDialogAction>
@@ -897,151 +946,6 @@ const Budget = () => {
       </AlertDialog>
     </div>
   );
-};
-
-// Add helper function for initializing default data
-const initializeDefaultData = () => {
-  const today = dayjs();
-  const sampleIncomes: Income[] = [
-    { id: crypto.randomUUID(), source: "Majdi's Salary", amount: Math.round(4739), date: today.date(1).toISOString() },
-    { id: crypto.randomUUID(), source: "Majdi's Salary", amount: Math.round(4739), date: today.date(15).toISOString() },
-    { id: crypto.randomUUID(), source: "Ruba's Salary", amount: Math.round(2168), date: today.day(5).toISOString() }
-  ];
-
-  const sampleBills: Bill[] = [
-    { id: crypto.randomUUID(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: Math.round(429), day: 1 },
-    { id: crypto.randomUUID(), name: "Maid's 1st payment", amount: Math.round(120), day: 1 },
-    { id: crypto.randomUUID(), name: "Monthly Rent", amount: Math.round(3750), day: 1 },
-    { id: crypto.randomUUID(), name: "Sling TV (CC 9550)", amount: Math.round(75), day: 3 },
-    { id: crypto.randomUUID(), name: "Cox Internet", amount: Math.round(81), day: 6 },
-    { id: crypto.randomUUID(), name: "Water Bill", amount: Math.round(80), day: 7 },
-    { id: crypto.randomUUID(), name: "NV Energy Electrical ($100 winter months)", amount: Math.round(250), day: 7 },
-    { id: crypto.randomUUID(), name: "TransAmerica Life Insurance", amount: Math.round(77), day: 9 },
-    { id: crypto.randomUUID(), name: "Credit Card minimum payments", amount: Math.round(225), day: 14 },
-    { id: crypto.randomUUID(), name: "Apple/Google/YouTube (CC 9550)", amount: Math.round(130), day: 14 },
-    { id: crypto.randomUUID(), name: "Expenses & Groceries charged on (CC 2647)", amount: Math.round(3000), day: 16 },
-    { id: crypto.randomUUID(), name: "Maid's 2nd Payment of the month", amount: Math.round(120), day: 17 },
-    { id: crypto.randomUUID(), name: "SoFi Personal Loan", amount: Math.round(1915), day: 17 },
-    { id: crypto.randomUUID(), name: "Southwest Gas ($200 in winter/$45 in summer)", amount: Math.round(75), day: 17 },
-    { id: crypto.randomUUID(), name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: Math.round(704), day: 28 }
-  ];
-
-  try {
-    localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
-    localStorage.setItem("bills", JSON.stringify(sampleBills));
-    setIncomes(sampleIncomes);
-    setBills(sampleBills);
-  } catch (error) {
-    console.error("Error setting default data:", error);
-  }
-};
-
-// Update the save functions for transactions
-const saveIncomes = (newIncomes: Income[]) => {
-  try {
-    localStorage.setItem("incomes", JSON.stringify(newIncomes));
-    setIncomes(newIncomes);
-  } catch (error) {
-    console.error("Error saving incomes:", error);
-    // TODO: Show error toast to user
-  }
-};
-
-const saveBills = (newBills: Bill[]) => {
-  try {
-    localStorage.setItem("bills", JSON.stringify(newBills));
-    setBills(newBills);
-  } catch (error) {
-    console.error("Error saving bills:", error);
-    // TODO: Show error toast to user
-  }
-};
-
-// Update the handlers to use the new save functions
-const handleConfirmAddIncome = (newIncome: Omit<Income, 'id'> & { occurrenceType: OccurrenceType }) => {
-  const { occurrenceType, ...incomeData } = newIncome;
-  const newIncomes: Income[] = [...incomes];
-  const startDate = dayjs(newIncome.date);
-
-  switch (occurrenceType) {
-    case 'once':
-      newIncomes.push({
-        ...incomeData,
-        id: crypto.randomUUID()
-      });
-      break;
-    case 'monthly':
-      // Add income for the next 12 months
-      for (let i = 0; i < 12; i++) {
-        const date = startDate.add(i, 'month');
-        newIncomes.push({
-          ...incomeData,
-          id: `${crypto.randomUUID()}`,
-          date: date.toISOString()
-        });
-      }
-      break;
-    case 'biweekly':
-      // Add bi-weekly income for the next 6 months
-      let biweeklyDate = startDate;
-      for (let i = 0; biweeklyDate.diff(startDate, 'month') < 6; i++) {
-        newIncomes.push({
-          ...incomeData,
-          id: `${crypto.randomUUID()}`,
-          date: biweeklyDate.toISOString()
-        });
-        biweeklyDate = biweeklyDate.add(2, 'week');
-      }
-      break;
-    case 'twice-monthly':
-      // Add income for the 1st and 15th of each month for the next 6 months
-      for (let i = 0; i < 6; i++) {
-        const month = startDate.add(i, 'month');
-        // First of the month
-        newIncomes.push({
-          ...incomeData,
-          id: `${crypto.randomUUID()}`,
-          date: month.date(1).toISOString()
-        });
-        // 15th of the month
-        newIncomes.push({
-          ...incomeData,
-          id: `${crypto.randomUUID()}`,
-          date: month.date(15).toISOString()
-        });
-      }
-      break;
-  }
-
-  saveIncomes(newIncomes);
-  setShowAddIncomeDialog(false);
-};
-
-const handleConfirmAddBill = (newBill: Omit<Bill, 'id'>) => {
-  const bill: Bill = {
-    ...newBill,
-    id: crypto.randomUUID()
-  };
-  saveBills([...bills, bill]);
-  setShowAddExpenseDialog(false);
-};
-
-const confirmDelete = () => {
-  if (deletingBill) {
-    const newBills = bills.filter(b => b.id !== deletingBill.id);
-    saveBills(newBills);
-    setShowDeleteDialog(false);
-    setDeletingBill(null);
-  }
-};
-
-const confirmIncomeDelete = () => {
-  if (deletingIncome) {
-    const newIncomes = incomes.filter(i => i.source !== deletingIncome.source);
-    saveIncomes(newIncomes);
-    setShowDeleteIncomeDialog(false);
-    setDeletingIncome(null);
-  }
 };
 
 export default Budget;
