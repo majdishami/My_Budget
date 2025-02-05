@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import dayjs from 'dayjs';
 import { useLocation } from 'wouter';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
 import {
   Table,
   TableBody,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/table";
 
 interface Transaction {
+  id: number;
   date: string;
   description: string;
   amount: number;
@@ -22,95 +24,44 @@ interface Transaction {
 }
 
 export default function MonthlyToDateReport() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const today = dayjs(); // Use current date
-  const startOfMonth = today.startOf('month');
-  const endOfMonth = today.endOf('month');
+  const today = dayjs();
+  const startOfMonth = today.startOf('month').format('YYYY-MM-DD');
+  const endOfMonth = today.endOf('month').format('YYYY-MM-DD');
   const [, setLocation] = useLocation();
 
-  useEffect(() => {
-    try {
-      const mockTransactions: Transaction[] = [];
+  const { data: transactions = [], isLoading, error } = useQuery<Transaction[]>({
+    queryKey: ['/api/transactions/monthly', { startDate: startOfMonth, endDate: endOfMonth }],
+  });
 
-      // Add Majdi's salary occurrences
-      const majdiPayDates = ['01', '15'];
-      majdiPayDates.forEach(day => {
-        const payDate = today.format(`YYYY-MM-${day}`);
-        if (dayjs(payDate).isSameOrBefore(today)) {
-          mockTransactions.push({
-            date: payDate,
-            description: "Majdi's Salary",
-            amount: 4739,
-            type: 'income'
-          });
-        }
-      });
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-4 max-w-5xl">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-32 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      // Calculate Ruba's bi-weekly salary dates
-      const rubaStartDate = dayjs('2024-01-10'); // Changed to past date
-      let nextPayDate = rubaStartDate;
-
-      while (nextPayDate.isSameOrBefore(today)) {
-        if (nextPayDate.month() === today.month() && nextPayDate.date() <= today.date()) {
-          mockTransactions.push({
-            date: nextPayDate.format('YYYY-MM-DD'),
-            description: "Ruba's Salary",
-            amount: 2168,
-            type: 'income'
-          });
-        }
-        nextPayDate = nextPayDate.add(14, 'day');
-      }
-
-      // Add Monthly Expenses for all months
-      const monthlyExpenses = [
-        {
-          description: 'ATT Phone Bill',
-          amount: 429,
-          date: 1 // Day of month
-        },
-        {
-          description: "Maid's 1st payment",
-          amount: 120,
-          date: 1
-        },
-        {
-          description: 'Monthly Rent',
-          amount: 3750,
-          date: 1
-        },
-        {
-          description: 'Sling TV',
-          amount: 75,
-          date: 3
-        }
-      ];
-
-      monthlyExpenses.forEach(expense => {
-        const expenseDate = today.date(expense.date);
-        if (expenseDate.isSameOrBefore(today)) {
-          mockTransactions.push({
-            date: expenseDate.format('YYYY-MM-DD'),
-            description: expense.description,
-            amount: expense.amount,
-            type: 'expense'
-          });
-        }
-      });
-
-      setTransactions(mockTransactions);
-    } catch (error) {
-      console.error('Error generating transactions:', error);
-      setTransactions([]); // Set empty array on error
-    }
-  }, [today]);
+  if (error) {
+    return (
+      <div className="container mx-auto p-4 max-w-5xl">
+        <div className="text-red-600">Error loading transactions. Please try again.</div>
+      </div>
+    );
+  }
 
   const totals = transactions.reduce(
     (acc, transaction) => {
       if (transaction.type === 'income') {
-        acc.income += transaction.amount;
+        acc.income += Number(transaction.amount);
       } else {
-        acc.expenses += transaction.amount;
+        acc.expenses += Number(transaction.amount);
       }
       return acc;
     },
@@ -187,9 +138,9 @@ export default function MonthlyToDateReport() {
               <TableBody>
                 {transactions
                   .filter(t => t.type === 'income')
-                  .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                  .map((transaction, index) => (
-                    <TableRow key={index}>
+                  .sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
+                  .map((transaction) => (
+                    <TableRow key={transaction.id}>
                       <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                       <TableCell>{transaction.description}</TableCell>
                       <TableCell className="text-right text-green-600">
@@ -218,9 +169,9 @@ export default function MonthlyToDateReport() {
               <TableBody>
                 {transactions
                   .filter(t => t.type === 'expense')
-                  .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                  .map((transaction, index) => (
-                    <TableRow key={index}>
+                  .sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
+                  .map((transaction) => (
+                    <TableRow key={transaction.id}>
                       <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                       <TableCell>{transaction.description}</TableCell>
                       <TableCell className="text-right text-red-600">

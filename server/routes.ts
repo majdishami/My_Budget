@@ -1,17 +1,28 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { users, insertUserSchema, categories, insertCategorySchema } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { users, insertUserSchema, categories, insertCategorySchema, transactions } from "@db/schema";
+import { eq, and, gte, lte } from "drizzle-orm";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
 import crypto from "crypto";
+import { z } from "zod";
 
 // Hash password using SHA-256
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+// Type for User from passport
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      username: string;
+    }
+  }
 }
 
 export function registerRoutes(app: Express): Server {
@@ -54,13 +65,13 @@ export function registerRoutes(app: Express): Server {
         return done(null, false, { message: 'Invalid username or password' });
       }
 
-      return done(null, user);
+      return done(null, { id: user.id, username: user.username });
     } catch (err) {
       return done(err);
     }
   }));
 
-  passport.serializeUser((user: any, done) => {
+  passport.serializeUser((user, done) => {
     done(null, user.id);
   });
 
@@ -69,7 +80,7 @@ export function registerRoutes(app: Express): Server {
       const user = await db.query.users.findFirst({
         where: eq(users.id, id),
       });
-      done(null, user);
+      done(null, user ? { id: user.id, username: user.username } : null);
     } catch (err) {
       done(err);
     }
@@ -125,9 +136,44 @@ export function registerRoutes(app: Express): Server {
     res.json({ authenticated: true });
   });
 
+  // Transaction Routes
+  const dateRangeSchema = z.object({
+    startDate: z.string(),
+    endDate: z.string(),
+  });
+
+  app.get('/api/transactions/monthly', requireAuth, async (req, res) => {
+    try {
+      const { startDate, endDate } = dateRangeSchema.parse(req.query);
+
+      // After requireAuth middleware, req.user should be defined
+      if (!req.user) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      const monthlyTransactions = await db.query.transactions.findMany({
+        where: and(
+          eq(transactions.user_id, req.user.id),
+          gte(transactions.date, new Date(startDate)),
+          lte(transactions.date, new Date(endDate))
+        ),
+        orderBy: (transactions, { desc }) => [desc(transactions.date)],
+      });
+
+      res.json(monthlyTransactions);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      res.status(400).json({ message: 'Invalid request' });
+    }
+  });
+
   // Category Routes
   app.post('/api/categories', requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
       const categoryData = await insertCategorySchema.parseAsync({
         ...req.body,
         user_id: req.user.id
@@ -145,6 +191,10 @@ export function registerRoutes(app: Express): Server {
 
   app.get('/api/categories', requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
       const userCategories = await db.query.categories.findMany({
         where: eq(categories.user_id, req.user.id),
       });
@@ -156,6 +206,10 @@ export function registerRoutes(app: Express): Server {
 
   app.patch('/api/categories/:id', requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
       const categoryId = parseInt(req.params.id);
       const category = await db.query.categories.findFirst({
         where: eq(categories.id, categoryId),
