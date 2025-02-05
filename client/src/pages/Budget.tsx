@@ -87,7 +87,7 @@ const formatCurrency = (amount: number) => {
 
 const Budget = () => {
   // 🕒 Time Management
-  const today = dayjs('2025-02-04'); // Set to February 4th, 2025
+  const today = dayjs(); // Use current date instead of hardcoded one
 
   // 📊 State Management
   const [selectedYear, setSelectedYear] = useState(today.year());
