@@ -5,8 +5,8 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_LIMIT = 3 // Limit number of toasts
+const TOAST_REMOVE_DELAY = 5000 // 5 seconds
 
 type ToasterToast = ToastProps & {
   id: string
@@ -90,8 +90,12 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
+      // Clear existing timeout
+      if (toastId && toastTimeouts.has(toastId)) {
+        clearTimeout(toastTimeouts.get(toastId))
+        toastTimeouts.delete(toastId)
+      }
+
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {

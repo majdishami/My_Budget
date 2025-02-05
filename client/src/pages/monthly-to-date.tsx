@@ -23,95 +23,101 @@ interface Transaction {
 
 export default function MonthlyToDateReport() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const today = dayjs('2024-05-01'); // Current date from context
+  const today = dayjs(); // Use current date
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    const mockTransactions: Transaction[] = [];
+    try {
+      const mockTransactions: Transaction[] = [];
 
-    // Add Majdi's salary occurrences
-    const majdiPayDates = ['01', '15'];
-    majdiPayDates.forEach(day => {
-      const payDate = today.format(`YYYY-MM-${day}`);
-      if (dayjs(payDate).isSame(today, 'day') || dayjs(payDate).isBefore(today)) {
-        mockTransactions.push({
-          date: payDate,
-          description: "Majdi's Salary",
-          amount: Math.round(4739), // Round to remove decimals
-          type: 'income'
-        });
+      // Add Majdi's salary occurrences
+      const majdiPayDates = ['01', '15'];
+      majdiPayDates.forEach(day => {
+        const payDate = today.format(`YYYY-MM-${day}`);
+        if (dayjs(payDate).isSameOrBefore(today)) {
+          mockTransactions.push({
+            date: payDate,
+            description: "Majdi's Salary",
+            amount: 4739,
+            type: 'income'
+          });
+        }
+      });
+
+      // Calculate Ruba's bi-weekly salary dates
+      const rubaStartDate = dayjs('2024-01-10'); // Changed to past date
+      let nextPayDate = rubaStartDate;
+
+      while (nextPayDate.isSameOrBefore(today)) {
+        if (nextPayDate.month() === today.month() && nextPayDate.date() <= today.date()) {
+          mockTransactions.push({
+            date: nextPayDate.format('YYYY-MM-DD'),
+            description: "Ruba's Salary",
+            amount: 2168,
+            type: 'income'
+          });
+        }
+        nextPayDate = nextPayDate.add(14, 'day');
       }
-    });
 
-    // Calculate Ruba's bi-weekly salary dates
-    const rubaStartDate = dayjs('2025-01-10'); // First pay date
-    let nextPayDate = rubaStartDate;
-
-    while (nextPayDate.isBefore(today) || nextPayDate.isSame(today, 'day')) {
-      if (nextPayDate.month() === today.month() && nextPayDate.date() <= today.date()) {
-        mockTransactions.push({
-          date: nextPayDate.format('YYYY-MM-DD'),
-          description: "Ruba's Salary",
-          amount: Math.round(2168), // Round to remove decimals
-          type: 'income'
-        });
-      }
-      nextPayDate = nextPayDate.add(14, 'day');
-    }
-
-    // Add Monthly Expenses for February
-    if (today.month() === 1) { // February is month 1 in zero-based months
-      // February 1st expenses
-      mockTransactions.push({
-        date: startOfMonth.format('YYYY-MM-DD'),
-        description: 'ATT Phone Bill',
-        amount: 429,
-        type: 'expense'
-      });
-
-      mockTransactions.push({
-        date: startOfMonth.format('YYYY-MM-DD'),
-        description: "Maid's 1st payment",
-        amount: 120,
-        type: 'expense'
-      });
-
-      mockTransactions.push({
-        date: startOfMonth.format('YYYY-MM-DD'),
-        description: 'Monthly Rent',
-        amount: 3750,
-        type: 'expense'
-      });
-
-      // February 3rd expenses
-      if (today.date() >= 3) {
-        mockTransactions.push({
-          date: today.format('YYYY-MM-DD'), //Corrected date format here
+      // Add Monthly Expenses for all months
+      const monthlyExpenses = [
+        {
+          description: 'ATT Phone Bill',
+          amount: 429,
+          date: 1 // Day of month
+        },
+        {
+          description: "Maid's 1st payment",
+          amount: 120,
+          date: 1
+        },
+        {
+          description: 'Monthly Rent',
+          amount: 3750,
+          date: 1
+        },
+        {
           description: 'Sling TV',
           amount: 75,
-          type: 'expense'
-        });
-      }
-    }
+          date: 3
+        }
+      ];
 
-    setTransactions(mockTransactions);
+      monthlyExpenses.forEach(expense => {
+        const expenseDate = today.date(expense.date);
+        if (expenseDate.isSameOrBefore(today)) {
+          mockTransactions.push({
+            date: expenseDate.format('YYYY-MM-DD'),
+            description: expense.description,
+            amount: expense.amount,
+            type: 'expense'
+          });
+        }
+      });
+
+      setTransactions(mockTransactions);
+    } catch (error) {
+      console.error('Error generating transactions:', error);
+      setTransactions([]); // Set empty array on error
+    }
   }, [today]);
 
   const totals = transactions.reduce(
     (acc, transaction) => {
       if (transaction.type === 'income') {
-        acc.income += Math.round(transaction.amount); // Round to remove decimals
+        acc.income += transaction.amount;
       } else {
-        acc.expenses += Math.round(transaction.amount); // Round to remove decimals
+        acc.expenses += transaction.amount;
       }
       return acc;
     },
     { income: 0, expenses: 0 }
   );
 
-  const netBalance = Math.round(totals.income - totals.expenses); // Round net balance
+  const netBalance = totals.income - totals.expenses;
 
   return (
     <div className="container mx-auto p-4 max-w-5xl">
