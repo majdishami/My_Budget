@@ -36,7 +36,7 @@ import {
   DialogClose,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Menu, X } from "lucide-react";
+import { Menu, X, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -520,7 +520,7 @@ const Budget = () => {
   };
 
   const handleConfirmBillEdit = (updatedBill: Bill) => {
-    const newBills = bills.map(bill => 
+    const newBills = bills.map(bill =>
       bill.id === updatedBill.id ? updatedBill : bill
     );
     setBills(newBills);
@@ -587,11 +587,22 @@ const Budget = () => {
         <Card className="p-2 lg:p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-1 lg:gap-4">
             <div className="space-y-1 lg:space-y-2 pl-8 lg:pl-0"> {/* Added left padding for menu button */}
-              <h1 className="text-sm lg:text-2xl font-bold truncate">
-                Budget - {dayjs().month(selectedMonth).format("MMM")} {selectedYear}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm lg:text-2xl font-bold truncate">
+                  Budget - {dayjs().month(selectedMonth).format("MMM")} {selectedYear}
+                </h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => window.location.reload()}
+                  className="h-8 w-8 lg:hidden" // Only show on mobile
+                  aria-label="Refresh page"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
               <div className="flex flex-wrap items-center gap-1 lg:gap-2">
-                <select 
+                <select
                   value={selectedMonth}
                   onChange={(e) => handleMonthChange(parseInt(e.target.value))}
                   className="p-1 lg:p-2 border rounded bg-background min-w-[100px] lg:min-w-[120px] text-xs lg:text-base touch-manipulation"
@@ -704,14 +715,15 @@ const Budget = () => {
                                 "before:content-[''] before:absolute before:-inset-[2px]",
                                 "before:border-2 before:border-primary before:rounded-sm"
                               ],
-                              selectedDay === dayNumber && "bg-accent/50 font-semibold",
+                              selectedDay === dayNumber && "bg-accent/50",
                               hasTransactions && "shadow-sm"
                             )}
                           >
                             <div className="flex justify-between items-start mb-1">
                               <span className={cn(
-                                "font-medium text-base lg:text-lg",
-                                isCurrentDay(dayNumber) && "text-primary font-bold"
+                                "font-medium text-base lg:text-lg z-10 relative", // Added z-10 and relative to ensure visibility
+                                isCurrentDay(dayNumber) && "text-primary font-bold",
+                                selectedDay === dayNumber && "text-foreground" // Ensure text is visible when selected
                               )}>
                                 {dayNumber}
                               </span>
@@ -731,8 +743,8 @@ const Budget = () => {
                                 <div className="space-y-0.5">
                                   <p className="font-medium text-green-600 dark:text-green-400">Income</p>
                                   {dayIncomes.map((income, index) => (
-                                    <div 
-                                      key={income.id} 
+                                    <div
+                                      key={income.id}
                                       className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1 py-0.5 touch-manipulation"
                                     >
                                       <span className="truncate max-w-[60%]">
@@ -749,8 +761,8 @@ const Budget = () => {
                                 <div className="space-y-0.5">
                                   <p className="font-medium text-red-600 dark:text-red-400">Expenses</p>
                                   {dayBills.map((bill, index) => (
-                                    <div 
-                                      key={bill.id} 
+                                    <div
+                                      key={bill.id}
                                       className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1 py-0.5 touch-manipulation"
                                     >
                                       <span className="truncate max-w-[60%]">
@@ -767,8 +779,7 @@ const Budget = () => {
                           </td>
                         );
                       })}
-                    </tr>
-                  ))}
+                    </tr>                  ))}
                 </tbody>
               </table>
             </div>
