@@ -4,6 +4,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { X } from 'lucide-react';
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isBetween);
@@ -60,7 +62,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
-  const today = dayjs(); // Use current date instead of hardcoded value
+  const today = dayjs();
+  const [dateError, setDateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -68,6 +71,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       setDate(undefined);
       setShowReport(false);
       setTransactions([]);
+      setDateError(null);
     }
   }, [isOpen]);
 
@@ -76,6 +80,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     // Validate date range
     if (dayjs(date.to).isBefore(date.from)) {
+      setDateError("End date cannot be before start date");
       setDate({
         from: date.from,
         to: date.from
@@ -83,6 +88,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       return;
     }
 
+    setDateError(null);
     const selectedBill = bills.find(bill => bill.id === selectedBillId);
     if (!selectedBill) return;
 
@@ -114,12 +120,24 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   if (!selectedBillId || !showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent
+          className="sm:max-w-[400px]"
+          aria-describedby="expense-report-description"
+        >
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
               {selectedBillId ? 'Select Date Range' : 'Select Expense'}
             </DialogTitle>
+            <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
           </DialogHeader>
+
+          <div id="expense-report-description" className="sr-only">
+            Select an expense and date range to generate a detailed expense report
+          </div>
+
           <div className="flex flex-col space-y-4 py-4">
             {!selectedBillId ? (
               <Select onValueChange={(value) => setSelectedBillId(value)}>
@@ -140,12 +158,20 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                   <Calendar
                     mode="range"
                     selected={date}
-                    onSelect={setDate}
+                    onSelect={(newDate) => {
+                      setDate(newDate);
+                      setDateError(null);
+                    }}
                     numberOfMonths={1}
                     defaultMonth={today.toDate()}
                     className="rounded-md"
                   />
                 </div>
+                {dateError && (
+                  <div className="text-sm text-red-500">
+                    {dateError}
+                  </div>
+                )}
                 <div className="text-sm text-muted-foreground">
                   {date?.from ? (
                     <>
@@ -165,6 +191,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
               onClick={() => {
                 setSelectedBillId(undefined);
                 setDate(undefined);
+                setDateError(null);
                 onOpenChange(false);
               }}
             >
@@ -173,7 +200,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             {selectedBillId && (
               <Button
                 onClick={() => setShowReport(true)}
-                disabled={!date?.from || !date?.to}
+                disabled={!date?.from || !date?.to || !!dateError}
               >
                 Generate Report
               </Button>
@@ -188,14 +215,18 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-labelledby="expense-report-title">
         <DialogHeader>
-          <DialogTitle className="text-xl">
+          <DialogTitle id="expense-report-title" className="text-xl">
             Expense Report: {selectedBill.name}
             <div className="text-sm font-normal text-muted-foreground mt-1">
               {date?.from ? `${dayjs(date?.from).format('MMM D, YYYY')} - ${dayjs(date?.to).format('MMM D, YYYY')}` : ''}
             </div>
           </DialogTitle>
+          <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
         </DialogHeader>
 
         {transactions.length === 0 ? (
@@ -207,7 +238,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           </Alert>
         ) : (
           <>
-            {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <Card>
                 <CardHeader className="py-4">
@@ -243,7 +273,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
               </Card>
             </div>
 
-            {/* Transactions Table */}
             <Card>
               <CardHeader className="py-4">
                 <CardTitle className="text-sm font-medium">All Occurrences</CardTitle>
