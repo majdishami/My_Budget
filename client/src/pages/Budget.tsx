@@ -769,8 +769,7 @@ const Budget = () => {
                                     >
                                       <span className="truncate max-w-[60%]">
                                         {index + 1}. {bill.name}
-                                      </span>
-                                      <span className="font-medium shrink-0">
+                                      </span>                                      <span className="font-medium shrink-0">
                                         {formatCurrency(bill.amount)}
                                       </span>
                                     </div>
@@ -786,7 +785,7 @@ const Budget = () => {
                 </tbody>
               </table>
             </div>
-                    </Card>
+          </Card>
         </div>
       </main>
 
