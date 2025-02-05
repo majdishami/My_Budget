@@ -117,54 +117,57 @@ const Budget = () => {
    * Sets up initial income and bill data if none exists
    */
   useEffect(() => {
-    const storedIncomes = localStorage.getItem("incomes");
-    const storedBills = localStorage.getItem("bills");
+    try {
+      // Load data from localStorage
+      const storedIncomes = localStorage.getItem("incomes");
+      const storedBills = localStorage.getItem("bills");
 
-    // 💵 Initialize Default Incomes
-    if (!storedIncomes) {
-      const today = dayjs();
-      const sampleIncomes: Income[] = [
-        // Majdi's bi-monthly salary
-        { id: "1", source: "Majdi's Salary", amount: Math.round(4739), date: today.date(1).toISOString() },
-        { id: "2", source: "Majdi's Salary", amount: Math.round(4739), date: today.date(15).toISOString() },
-        // Ruba's bi-weekly salary - starting from the next Friday
-        { id: "3", source: "Ruba's Salary", amount: Math.round(2168), date: today.day(5).toISOString() }
-      ];
-      setIncomes(sampleIncomes);
-      localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
-    } else {
-      setIncomes(JSON.parse(storedIncomes).map((income: Income) => ({
-        ...income,
-        amount: Math.round(income.amount)
-      })));
-    }
+      if (storedIncomes) {
+        try {
+          const parsedIncomes = JSON.parse(storedIncomes);
+          // Validate the data structure
+          if (Array.isArray(parsedIncomes)) {
+            setIncomes(parsedIncomes.map((income: Income) => ({
+              ...income,
+              amount: Math.round(income.amount),
+              id: income.id || crypto.randomUUID()
+            })));
+          } else {
+            console.error("Invalid incomes data structure");
+            initializeDefaultData();
+          }
+        } catch (error) {
+          console.error("Error parsing incomes:", error);
+          initializeDefaultData();
+        }
+      } else {
+        initializeDefaultData();
+      }
 
-    // 💸 Initialize Default Bills
-    if (!storedBills) {
-      const sampleBills: Bill[] = [
-        { id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: Math.round(429), day: 1 },
-        { id: "2", name: "Maid's 1st payment", amount: Math.round(120), day: 1 },
-        { id: "3", name: "Monthly Rent", amount: Math.round(3750), day: 1 },
-        { id: "4", name: "Sling TV (CC 9550)", amount: Math.round(75), day: 3 },
-        { id: "5", name: "Cox Internet", amount: Math.round(81), day: 6 },
-        { id: "6", name: "Water Bill", amount: Math.round(80), day: 7 },
-        { id: "7", name: "NV Energy Electrical ($100 winter months)", amount: Math.round(250), day: 7 },
-        { id: "8", name: "TransAmerica Life Insurance", amount: Math.round(77), day: 9 },
-        { id: "9", name: "Credit Card minimum payments", amount: Math.round(225), day: 14 },
-        { id: "10", name: "Apple/Google/YouTube (CC 9550)", amount: Math.round(130), day: 14 },
-        { id: "11", name: "Expenses & Groceries charged on (CC 2647)", amount: Math.round(3000), day: 16 },
-        { id: "12", name: "Maid's 2nd Payment of the month", amount: Math.round(120), day: 17 },
-        { id: "13", name: "SoFi Personal Loan", amount: Math.round(1915), day: 17 },
-        { id: "14", name: "Southwest Gas ($200 in winter/$45 in summer)", amount: Math.round(75), day: 17 },
-        { id: "15", name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: Math.round(704), day: 28 }
-      ];
-      setBills(sampleBills);
-      localStorage.setItem("bills", JSON.stringify(sampleBills));
-    } else {
-      setBills(JSON.parse(storedBills).map((bill: Bill) => ({
-        ...bill,
-        amount: Math.round(bill.amount)
-      })));
+      if (storedBills) {
+        try {
+          const parsedBills = JSON.parse(storedBills);
+          // Validate the data structure
+          if (Array.isArray(parsedBills)) {
+            setBills(parsedBills.map((bill: Bill) => ({
+              ...bill,
+              amount: Math.round(bill.amount),
+              id: bill.id || crypto.randomUUID()
+            })));
+          } else {
+            console.error("Invalid bills data structure");
+            initializeDefaultData();
+          }
+        } catch (error) {
+          console.error("Error parsing bills:", error);
+          initializeDefaultData();
+        }
+      } else {
+        initializeDefaultData();
+      }
+    } catch (error) {
+      console.error("Error accessing localStorage:", error);
+      initializeDefaultData();
     }
   }, []);
 
@@ -355,8 +358,7 @@ const Budget = () => {
   const confirmDelete = () => {
     if (deletingBill) {
       const newBills = bills.filter(b => b.id !== deletingBill.id);
-      setBills(newBills);
-      localStorage.setItem("bills", JSON.stringify(newBills));
+      saveBills(newBills);
       setShowDeleteDialog(false);
       setDeletingBill(null);
     }
@@ -382,8 +384,7 @@ const Budget = () => {
       return income;
     });
 
-    setIncomes(newIncomes);
-    localStorage.setItem("incomes", JSON.stringify(newIncomes));
+    saveIncomes(newIncomes);
     setShowEditIncomeDialog(false);
     setEditingIncome(null);
   };
@@ -392,8 +393,7 @@ const Budget = () => {
     if (deletingIncome) {
       // Remove all occurrences of the income source
       const newIncomes = incomes.filter(i => i.source !== deletingIncome.source);
-      setIncomes(newIncomes);
-      localStorage.setItem("incomes", JSON.stringify(newIncomes));
+      saveIncomes(newIncomes);
       setShowDeleteIncomeDialog(false);
       setDeletingIncome(null);
     }
@@ -410,15 +410,14 @@ const Budget = () => {
    */
   const handleConfirmAddIncome = (newIncome: Omit<Income, 'id'> & { occurrenceType: OccurrenceType }) => {
     const { occurrenceType, ...incomeData } = newIncome;
-    const baseId = (incomes.length + 1).toString();
-    const newIncomes: Income[] = [];
+    const newIncomes: Income[] = [...incomes];
     const startDate = dayjs(newIncome.date);
 
     switch (occurrenceType) {
       case 'once':
         newIncomes.push({
           ...incomeData,
-          id: baseId
+          id: crypto.randomUUID()
         });
         break;
 
@@ -428,7 +427,7 @@ const Budget = () => {
           const date = startDate.add(i, 'month');
           newIncomes.push({
             ...incomeData,
-            id: `${baseId}-${i}`,
+            id: `${crypto.randomUUID()}`,
             date: date.toISOString()
           });
         }
@@ -440,7 +439,7 @@ const Budget = () => {
         for (let i = 0; biweeklyDate.diff(startDate, 'month') < 6; i++) {
           newIncomes.push({
             ...incomeData,
-            id: `${baseId}-${i}`,
+            id: `${crypto.randomUUID()}`,
             date: biweeklyDate.toISOString()
           });
           biweeklyDate = biweeklyDate.add(2, 'week');
@@ -454,22 +453,20 @@ const Budget = () => {
           // First of the month
           newIncomes.push({
             ...incomeData,
-            id: `${baseId}-${i}-1`,
+            id: `${crypto.randomUUID()}`,
             date: month.date(1).toISOString()
           });
           // 15th of the month
           newIncomes.push({
             ...incomeData,
-            id: `${baseId}-${i}-2`,
+            id: `${crypto.randomUUID()}`,
             date: month.date(15).toISOString()
           });
         }
         break;
     }
 
-    const updatedIncomes = [...incomes, ...newIncomes];
-    setIncomes(updatedIncomes);
-    localStorage.setItem("incomes", JSON.stringify(updatedIncomes));
+    saveIncomes(newIncomes);
     setShowAddIncomeDialog(false);
   };
 
@@ -484,11 +481,9 @@ const Budget = () => {
   const handleConfirmAddBill = (newBill: Omit<Bill, 'id'>) => {
     const bill: Bill = {
       ...newBill,
-      id: (bills.length + 1).toString()
+      id: crypto.randomUUID()
     };
-    const newBills = [...bills, bill];
-    setBills(newBills);
-    localStorage.setItem("bills", JSON.stringify(newBills));
+    saveBills([...bills, bill]);
     setShowAddExpenseDialog(false);
   };
 
@@ -523,8 +518,7 @@ const Budget = () => {
     const newBills = bills.map(bill =>
       bill.id === updatedBill.id ? updatedBill : bill
     );
-    setBills(newBills);
-    localStorage.setItem("bills", JSON.stringify(newBills));
+    saveBills(newBills);
     setShowEditDialog(false);
     setEditingBill(null);
   };
@@ -854,7 +848,7 @@ const Budget = () => {
               setDeletingBill(null);
             }}>
               Cancel
-            </AlertDialogCancel>
+                        </AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete}>
               Delete
             </AlertDialogAction>
@@ -903,6 +897,151 @@ const Budget = () => {
       </AlertDialog>
     </div>
   );
+};
+
+// Add helper function for initializing default data
+const initializeDefaultData = () => {
+  const today = dayjs();
+  const sampleIncomes: Income[] = [
+    { id: crypto.randomUUID(), source: "Majdi's Salary", amount: Math.round(4739), date: today.date(1).toISOString() },
+    { id: crypto.randomUUID(), source: "Majdi's Salary", amount: Math.round(4739), date: today.date(15).toISOString() },
+    { id: crypto.randomUUID(), source: "Ruba's Salary", amount: Math.round(2168), date: today.day(5).toISOString() }
+  ];
+
+  const sampleBills: Bill[] = [
+    { id: crypto.randomUUID(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: Math.round(429), day: 1 },
+    { id: crypto.randomUUID(), name: "Maid's 1st payment", amount: Math.round(120), day: 1 },
+    { id: crypto.randomUUID(), name: "Monthly Rent", amount: Math.round(3750), day: 1 },
+    { id: crypto.randomUUID(), name: "Sling TV (CC 9550)", amount: Math.round(75), day: 3 },
+    { id: crypto.randomUUID(), name: "Cox Internet", amount: Math.round(81), day: 6 },
+    { id: crypto.randomUUID(), name: "Water Bill", amount: Math.round(80), day: 7 },
+    { id: crypto.randomUUID(), name: "NV Energy Electrical ($100 winter months)", amount: Math.round(250), day: 7 },
+    { id: crypto.randomUUID(), name: "TransAmerica Life Insurance", amount: Math.round(77), day: 9 },
+    { id: crypto.randomUUID(), name: "Credit Card minimum payments", amount: Math.round(225), day: 14 },
+    { id: crypto.randomUUID(), name: "Apple/Google/YouTube (CC 9550)", amount: Math.round(130), day: 14 },
+    { id: crypto.randomUUID(), name: "Expenses & Groceries charged on (CC 2647)", amount: Math.round(3000), day: 16 },
+    { id: crypto.randomUUID(), name: "Maid's 2nd Payment of the month", amount: Math.round(120), day: 17 },
+    { id: crypto.randomUUID(), name: "SoFi Personal Loan", amount: Math.round(1915), day: 17 },
+    { id: crypto.randomUUID(), name: "Southwest Gas ($200 in winter/$45 in summer)", amount: Math.round(75), day: 17 },
+    { id: crypto.randomUUID(), name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: Math.round(704), day: 28 }
+  ];
+
+  try {
+    localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
+    localStorage.setItem("bills", JSON.stringify(sampleBills));
+    setIncomes(sampleIncomes);
+    setBills(sampleBills);
+  } catch (error) {
+    console.error("Error setting default data:", error);
+  }
+};
+
+// Update the save functions for transactions
+const saveIncomes = (newIncomes: Income[]) => {
+  try {
+    localStorage.setItem("incomes", JSON.stringify(newIncomes));
+    setIncomes(newIncomes);
+  } catch (error) {
+    console.error("Error saving incomes:", error);
+    // TODO: Show error toast to user
+  }
+};
+
+const saveBills = (newBills: Bill[]) => {
+  try {
+    localStorage.setItem("bills", JSON.stringify(newBills));
+    setBills(newBills);
+  } catch (error) {
+    console.error("Error saving bills:", error);
+    // TODO: Show error toast to user
+  }
+};
+
+// Update the handlers to use the new save functions
+const handleConfirmAddIncome = (newIncome: Omit<Income, 'id'> & { occurrenceType: OccurrenceType }) => {
+  const { occurrenceType, ...incomeData } = newIncome;
+  const newIncomes: Income[] = [...incomes];
+  const startDate = dayjs(newIncome.date);
+
+  switch (occurrenceType) {
+    case 'once':
+      newIncomes.push({
+        ...incomeData,
+        id: crypto.randomUUID()
+      });
+      break;
+    case 'monthly':
+      // Add income for the next 12 months
+      for (let i = 0; i < 12; i++) {
+        const date = startDate.add(i, 'month');
+        newIncomes.push({
+          ...incomeData,
+          id: `${crypto.randomUUID()}`,
+          date: date.toISOString()
+        });
+      }
+      break;
+    case 'biweekly':
+      // Add bi-weekly income for the next 6 months
+      let biweeklyDate = startDate;
+      for (let i = 0; biweeklyDate.diff(startDate, 'month') < 6; i++) {
+        newIncomes.push({
+          ...incomeData,
+          id: `${crypto.randomUUID()}`,
+          date: biweeklyDate.toISOString()
+        });
+        biweeklyDate = biweeklyDate.add(2, 'week');
+      }
+      break;
+    case 'twice-monthly':
+      // Add income for the 1st and 15th of each month for the next 6 months
+      for (let i = 0; i < 6; i++) {
+        const month = startDate.add(i, 'month');
+        // First of the month
+        newIncomes.push({
+          ...incomeData,
+          id: `${crypto.randomUUID()}`,
+          date: month.date(1).toISOString()
+        });
+        // 15th of the month
+        newIncomes.push({
+          ...incomeData,
+          id: `${crypto.randomUUID()}`,
+          date: month.date(15).toISOString()
+        });
+      }
+      break;
+  }
+
+  saveIncomes(newIncomes);
+  setShowAddIncomeDialog(false);
+};
+
+const handleConfirmAddBill = (newBill: Omit<Bill, 'id'>) => {
+  const bill: Bill = {
+    ...newBill,
+    id: crypto.randomUUID()
+  };
+  saveBills([...bills, bill]);
+  setShowAddExpenseDialog(false);
+};
+
+const confirmDelete = () => {
+  if (deletingBill) {
+    const newBills = bills.filter(b => b.id !== deletingBill.id);
+    saveBills(newBills);
+    setShowDeleteDialog(false);
+    setDeletingBill(null);
+  }
+};
+
+const confirmIncomeDelete = () => {
+  if (deletingIncome) {
+    const newIncomes = incomes.filter(i => i.source !== deletingIncome.source);
+    saveIncomes(newIncomes);
+    setShowDeleteIncomeDialog(false);
+    setDeletingIncome(null);
+  }
 };
 
 export default Budget;
