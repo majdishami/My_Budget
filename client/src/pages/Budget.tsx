@@ -19,7 +19,7 @@
  * - Responsive design optimizations
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { Income, Bill } from "@/types";
@@ -112,11 +112,16 @@ const Budget = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
 
-  // Helper functions for data persistence - moved inside component
+  // Move save functions outside useEffect to prevent recreation on each render
   const saveIncomes = (newIncomes: Income[]) => {
     try {
-      localStorage.setItem("incomes", JSON.stringify(newIncomes));
-      setIncomes(newIncomes);
+      const sanitizedIncomes = newIncomes.map(income => ({
+        ...income,
+        amount: Math.round(income.amount),
+        id: income.id || crypto.randomUUID()
+      }));
+      localStorage.setItem("incomes", JSON.stringify(sanitizedIncomes));
+      setIncomes(sanitizedIncomes);
     } catch (error) {
       console.error("Error saving incomes:", error);
     }
@@ -124,23 +129,27 @@ const Budget = () => {
 
   const saveBills = (newBills: Bill[]) => {
     try {
-      localStorage.setItem("bills", JSON.stringify(newBills));
-      setBills(newBills);
+      const sanitizedBills = newBills.map(bill => ({
+        ...bill,
+        amount: Math.round(bill.amount),
+        id: bill.id || crypto.randomUUID()
+      }));
+      localStorage.setItem("bills", JSON.stringify(sanitizedBills));
+      setBills(sanitizedBills);
     } catch (error) {
       console.error("Error saving bills:", error);
     }
   };
 
-  const initializeDefaultData = () => {
+  const initializeDefaultData = useCallback(() => {
     try {
-      const today = dayjs();
-      const sampleIncomes: Income[] = [
+      const defaultIncomes: Income[] = [
         { id: crypto.randomUUID(), source: "Majdi's Salary", amount: 4739, date: today.date(1).toISOString() },
         { id: crypto.randomUUID(), source: "Majdi's Salary", amount: 4739, date: today.date(15).toISOString() },
         { id: crypto.randomUUID(), source: "Ruba's Salary", amount: 2168, date: today.day(5).toISOString() }
       ];
 
-      const sampleBills: Bill[] = [
+      const defaultBills: Bill[] = [
         { id: crypto.randomUUID(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1 },
         { id: crypto.randomUUID(), name: "Maid's 1st payment", amount: 120, day: 1 },
         { id: crypto.randomUUID(), name: "Monthly Rent", amount: 3750, day: 1 },
@@ -158,14 +167,12 @@ const Budget = () => {
         { id: crypto.randomUUID(), name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704, day: 28 }
       ];
 
-      localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
-      localStorage.setItem("bills", JSON.stringify(sampleBills));
-      setIncomes(sampleIncomes);
-      setBills(sampleBills);
+      saveIncomes(defaultIncomes);
+      saveBills(defaultBills);
     } catch (error) {
       console.error("Error initializing default data:", error);
     }
-  };
+  }, [today]);
 
   // Load data on component mount
   useEffect(() => {
@@ -173,52 +180,48 @@ const Budget = () => {
       const storedIncomes = localStorage.getItem("incomes");
       const storedBills = localStorage.getItem("bills");
 
+      let shouldInitialize = false;
+
       if (storedIncomes) {
         try {
           const parsedIncomes = JSON.parse(storedIncomes);
-          if (Array.isArray(parsedIncomes)) {
-            setIncomes(parsedIncomes.map((income: Income) => ({
-              ...income,
-              amount: Math.round(income.amount),
-              id: income.id || crypto.randomUUID()
-            })));
+          if (Array.isArray(parsedIncomes) && parsedIncomes.length > 0) {
+            saveIncomes(parsedIncomes);
           } else {
-            console.error("Invalid incomes data structure");
-            initializeDefaultData();
+            shouldInitialize = true;
           }
         } catch (error) {
           console.error("Error parsing incomes:", error);
-          initializeDefaultData();
+          shouldInitialize = true;
         }
       } else {
-        initializeDefaultData();
+        shouldInitialize = true;
       }
 
       if (storedBills) {
         try {
           const parsedBills = JSON.parse(storedBills);
-          if (Array.isArray(parsedBills)) {
-            setBills(parsedBills.map((bill: Bill) => ({
-              ...bill,
-              amount: Math.round(bill.amount),
-              id: bill.id || crypto.randomUUID()
-            })));
+          if (Array.isArray(parsedBills) && parsedBills.length > 0) {
+            saveBills(parsedBills);
           } else {
-            console.error("Invalid bills data structure");
-            initializeDefaultData();
+            shouldInitialize = true;
           }
         } catch (error) {
           console.error("Error parsing bills:", error);
-          initializeDefaultData();
+          shouldInitialize = true;
         }
       } else {
+        shouldInitialize = true;
+      }
+
+      if (shouldInitialize) {
         initializeDefaultData();
       }
     } catch (error) {
       console.error("Error accessing localStorage:", error);
       initializeDefaultData();
     }
-  }, []);
+  }, [initializeDefaultData]);
 
   /**
    * 📅 Income Calculation for Specific Day
@@ -528,17 +531,21 @@ const Budget = () => {
    * Handles adding a new bill entry.
    */
   const handleConfirmAddBill = (newBill: Omit<Bill, 'id'>) => {
-    const bill: Bill = {
+    const billWithId: Bill = {
       ...newBill,
       id: crypto.randomUUID()
     };
-    saveBills([...bills, bill]);
+    saveBills([...bills, billWithId]);
     setShowAddExpenseDialog(false);
   };
 
   const handleReset = () => {
-    localStorage.clear();
-    window.location.reload();
+    try {
+      localStorage.clear();
+      initializeDefaultData();
+    } catch (error) {
+      console.error("Error resetting data:", error);
+    }
   };
 
   const years = useMemo(() => {
@@ -792,8 +799,7 @@ const Budget = () => {
                                       key={income.id}
                                       className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1 py-0.5 touch-manipulation"
                                     >
-                                      <span className="truncate max-w-[60%]">
-                                        {index + 1}. {income.source}
+                                      <span className="truncate max-w-[60%]">                                        {index + 1}. {income.source}
                                       </span>
                                       <span className="font-medium shrink-0">
                                         {formatCurrency(income.amount)}
