@@ -71,16 +71,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     ];
 
     try {
+      // Set state first
       setIncomes(defaultIncomes);
       setBills(defaultBills);
 
-      // Save to localStorage after state updates
-      window.localStorage.setItem("incomes", JSON.stringify(defaultIncomes));
-      window.localStorage.setItem("bills", JSON.stringify(defaultBills));
-
-      console.log("[DataContext] Initialized default data", { incomes: defaultIncomes.length, bills: defaultBills.length });
+      // Then try to save to localStorage
+      try {
+        window.localStorage.setItem("budgetIncomes", JSON.stringify(defaultIncomes));
+        window.localStorage.setItem("budgetBills", JSON.stringify(defaultBills));
+        console.log("[DataContext] Successfully saved default data to localStorage");
+      } catch (storageError) {
+        console.error("[DataContext] Failed to save to localStorage:", storageError);
+      }
     } catch (error) {
-      console.error("[DataContext] Error initializing default data:", error);
+      console.error("[DataContext] Error in initializeDefaultData:", error);
     }
   };
 
@@ -100,16 +104,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Update state first
       setIncomes(sanitizedIncomes);
+      console.log("[DataContext] State updated with new incomes", { count: sanitizedIncomes.length });
 
-      // Then persist to localStorage
-      window.localStorage.setItem("incomes", JSON.stringify(sanitizedIncomes));
-      console.log("[DataContext] Saved incomes successfully", { count: sanitizedIncomes.length });
+      // Then try to save to localStorage
+      try {
+        window.localStorage.setItem("budgetIncomes", JSON.stringify(sanitizedIncomes));
+        console.log("[DataContext] Successfully saved incomes to localStorage");
+      } catch (storageError) {
+        console.error("[DataContext] Failed to save incomes to localStorage:", storageError);
+        throw storageError;
+      }
     } catch (error) {
-      console.error("[DataContext] Error saving incomes:", error);
-      // Revert to last known good state
-      const storedIncomes = window.localStorage.getItem("incomes");
-      if (storedIncomes) {
-        setIncomes(JSON.parse(storedIncomes));
+      console.error("[DataContext] Error in saveIncomes:", error);
+      // Attempt to revert to last known good state
+      try {
+        const storedIncomes = window.localStorage.getItem("budgetIncomes");
+        if (storedIncomes) {
+          const parsedIncomes = JSON.parse(storedIncomes);
+          setIncomes(parsedIncomes);
+          console.log("[DataContext] Successfully reverted to previous income state");
+        }
+      } catch (revertError) {
+        console.error("[DataContext] Failed to revert incomes:", revertError);
       }
     }
   };
@@ -130,35 +146,59 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Update state first
       setBills(sanitizedBills);
+      console.log("[DataContext] State updated with new bills", { count: sanitizedBills.length });
 
-      // Then persist to localStorage
-      window.localStorage.setItem("bills", JSON.stringify(sanitizedBills));
-      console.log("[DataContext] Saved bills successfully", { count: sanitizedBills.length });
+      // Then try to save to localStorage
+      try {
+        window.localStorage.setItem("budgetBills", JSON.stringify(sanitizedBills));
+        console.log("[DataContext] Successfully saved bills to localStorage");
+      } catch (storageError) {
+        console.error("[DataContext] Failed to save bills to localStorage:", storageError);
+        throw storageError;
+      }
     } catch (error) {
-      console.error("[DataContext] Error saving bills:", error);
-      // Revert to last known good state
-      const storedBills = window.localStorage.getItem("bills");
-      if (storedBills) {
-        setBills(JSON.parse(storedBills));
+      console.error("[DataContext] Error in saveBills:", error);
+      // Attempt to revert to last known good state
+      try {
+        const storedBills = window.localStorage.getItem("budgetBills");
+        if (storedBills) {
+          const parsedBills = JSON.parse(storedBills);
+          setBills(parsedBills);
+          console.log("[DataContext] Successfully reverted to previous bills state");
+        }
+      } catch (revertError) {
+        console.error("[DataContext] Failed to revert bills:", revertError);
       }
     }
   };
 
   const resetData = () => {
     try {
-      window.localStorage.clear();
+      window.localStorage.removeItem("budgetIncomes");
+      window.localStorage.removeItem("budgetBills");
+      console.log("[DataContext] Cleared localStorage");
       initializeDefaultData();
-      console.log("[DataContext] Data reset completed");
     } catch (error) {
-      console.error("[DataContext] Error resetting data:", error);
+      console.error("[DataContext] Error in resetData:", error);
     }
   };
 
   // Load data on mount
   useEffect(() => {
     try {
-      const storedIncomes = window.localStorage.getItem("incomes");
-      const storedBills = window.localStorage.getItem("bills");
+      // Check if localStorage is available
+      if (typeof window === 'undefined' || !window.localStorage) {
+        console.error("[DataContext] localStorage is not available");
+        initializeDefaultData();
+        return;
+      }
+
+      const storedIncomes = window.localStorage.getItem("budgetIncomes");
+      const storedBills = window.localStorage.getItem("budgetBills");
+      console.log("[DataContext] Retrieved from localStorage:", { 
+        hasIncomes: !!storedIncomes, 
+        hasBills: !!storedBills 
+      });
 
       let shouldInitialize = false;
 
@@ -167,16 +207,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           const parsedIncomes = JSON.parse(storedIncomes);
           if (Array.isArray(parsedIncomes) && parsedIncomes.every(isValidIncome)) {
             setIncomes(parsedIncomes);
-            console.log("[DataContext] Loaded incomes successfully", { count: parsedIncomes.length });
+            console.log("[DataContext] Successfully loaded incomes", { count: parsedIncomes.length });
           } else {
             console.warn("[DataContext] Invalid stored incomes format");
             shouldInitialize = true;
           }
-        } catch {
-          console.error("[DataContext] Error parsing stored incomes");
+        } catch (parseError) {
+          console.error("[DataContext] Failed to parse stored incomes:", parseError);
           shouldInitialize = true;
         }
       } else {
+        console.log("[DataContext] No stored incomes found");
         shouldInitialize = true;
       }
 
@@ -185,25 +226,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           const parsedBills = JSON.parse(storedBills);
           if (Array.isArray(parsedBills) && parsedBills.every(isValidBill)) {
             setBills(parsedBills);
-            console.log("[DataContext] Loaded bills successfully", { count: parsedBills.length });
+            console.log("[DataContext] Successfully loaded bills", { count: parsedBills.length });
           } else {
             console.warn("[DataContext] Invalid stored bills format");
             shouldInitialize = true;
           }
-        } catch {
-          console.error("[DataContext] Error parsing stored bills");
+        } catch (parseError) {
+          console.error("[DataContext] Failed to parse stored bills:", parseError);
           shouldInitialize = true;
         }
       } else {
+        console.log("[DataContext] No stored bills found");
         shouldInitialize = true;
       }
 
       if (shouldInitialize) {
-        console.log("[DataContext] Initializing default data due to missing or invalid stored data");
+        console.log("[DataContext] Initializing default data");
         initializeDefaultData();
       }
     } catch (error) {
-      console.error("[DataContext] Error accessing localStorage:", error);
+      console.error("[DataContext] Error in initialization:", error);
       initializeDefaultData();
     }
   }, []);
