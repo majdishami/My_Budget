@@ -10,7 +10,7 @@ import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { Income, Bill } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, generateId } from "@/lib/utils";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -44,7 +44,6 @@ import { EditIncomeDialog } from "@/components/EditIncomeDialog";
 import { EditExpenseDialog } from "@/components/EditExpenseDialog";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
-import crypto from 'crypto';
 
 dayjs.extend(isBetween);
 
@@ -328,7 +327,7 @@ const Budget = () => {
       case 'once':
         newIncomes.push({
           ...incomeData,
-          id: crypto.randomUUID()
+          id: generateId()
         });
         break;
 
@@ -338,7 +337,7 @@ const Budget = () => {
           const date = startDate.add(i, 'month');
           newIncomes.push({
             ...incomeData,
-            id: crypto.randomUUID(),
+            id: generateId(),
             date: date.toISOString()
           });
         }
@@ -350,7 +349,7 @@ const Budget = () => {
         for (let i = 0; biweeklyDate.diff(startDate, 'month') < 6; i++) {
           newIncomes.push({
             ...incomeData,
-            id: crypto.randomUUID(),
+            id: generateId(),
             date: biweeklyDate.toISOString()
           });
           biweeklyDate = biweeklyDate.add(2, 'week');
@@ -363,12 +362,12 @@ const Budget = () => {
           const month = startDate.add(i, 'month');
           newIncomes.push({
             ...incomeData,
-            id: crypto.randomUUID(),
+            id: generateId(),
             date: month.date(1).toISOString()
           });
           newIncomes.push({
             ...incomeData,
-            id: crypto.randomUUID(),
+            id: generateId(),
             date: month.date(15).toISOString()
           });
         }
@@ -390,7 +389,7 @@ const Budget = () => {
   const handleConfirmAddBill = (newBill: Omit<Bill, 'id'>) => {
     const billWithId: Bill = {
       ...newBill,
-      id: crypto.randomUUID()
+      id: generateId()
     };
     saveBills([...bills, billWithId]);
     setShowAddExpenseDialog(false);
