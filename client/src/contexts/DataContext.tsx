@@ -71,12 +71,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     ];
 
     try {
-      localStorage.setItem("incomes", JSON.stringify(defaultIncomes));
-      localStorage.setItem("bills", JSON.stringify(defaultBills));
       setIncomes(defaultIncomes);
       setBills(defaultBills);
+
+      // Save to localStorage after state updates
+      window.localStorage.setItem("incomes", JSON.stringify(defaultIncomes));
+      window.localStorage.setItem("bills", JSON.stringify(defaultBills));
+
+      console.log("[DataContext] Initialized default data", { incomes: defaultIncomes.length, bills: defaultBills.length });
     } catch (error) {
-      console.error("Error initializing default data:", error);
+      console.error("[DataContext] Error initializing default data:", error);
     }
   };
 
@@ -94,12 +98,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         amount: Number(income.amount)
       }));
 
+      // Update state first
       setIncomes(sanitizedIncomes);
-      localStorage.setItem("incomes", JSON.stringify(sanitizedIncomes));
+
+      // Then persist to localStorage
+      window.localStorage.setItem("incomes", JSON.stringify(sanitizedIncomes));
+      console.log("[DataContext] Saved incomes successfully", { count: sanitizedIncomes.length });
     } catch (error) {
-      console.error("Error saving incomes:", error);
+      console.error("[DataContext] Error saving incomes:", error);
       // Revert to last known good state
-      const storedIncomes = localStorage.getItem("incomes");
+      const storedIncomes = window.localStorage.getItem("incomes");
       if (storedIncomes) {
         setIncomes(JSON.parse(storedIncomes));
       }
@@ -120,12 +128,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         amount: Number(bill.amount)
       }));
 
+      // Update state first
       setBills(sanitizedBills);
-      localStorage.setItem("bills", JSON.stringify(sanitizedBills));
+
+      // Then persist to localStorage
+      window.localStorage.setItem("bills", JSON.stringify(sanitizedBills));
+      console.log("[DataContext] Saved bills successfully", { count: sanitizedBills.length });
     } catch (error) {
-      console.error("Error saving bills:", error);
+      console.error("[DataContext] Error saving bills:", error);
       // Revert to last known good state
-      const storedBills = localStorage.getItem("bills");
+      const storedBills = window.localStorage.getItem("bills");
       if (storedBills) {
         setBills(JSON.parse(storedBills));
       }
@@ -134,18 +146,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const resetData = () => {
     try {
-      localStorage.clear();
+      window.localStorage.clear();
       initializeDefaultData();
+      console.log("[DataContext] Data reset completed");
     } catch (error) {
-      console.error("Error resetting data:", error);
+      console.error("[DataContext] Error resetting data:", error);
     }
   };
 
   // Load data on mount
   useEffect(() => {
     try {
-      const storedIncomes = localStorage.getItem("incomes");
-      const storedBills = localStorage.getItem("bills");
+      const storedIncomes = window.localStorage.getItem("incomes");
+      const storedBills = window.localStorage.getItem("bills");
 
       let shouldInitialize = false;
 
@@ -154,12 +167,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           const parsedIncomes = JSON.parse(storedIncomes);
           if (Array.isArray(parsedIncomes) && parsedIncomes.every(isValidIncome)) {
             setIncomes(parsedIncomes);
+            console.log("[DataContext] Loaded incomes successfully", { count: parsedIncomes.length });
           } else {
-            console.warn("Invalid stored incomes format");
+            console.warn("[DataContext] Invalid stored incomes format");
             shouldInitialize = true;
           }
         } catch {
-          console.error("Error parsing stored incomes");
+          console.error("[DataContext] Error parsing stored incomes");
           shouldInitialize = true;
         }
       } else {
@@ -171,12 +185,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           const parsedBills = JSON.parse(storedBills);
           if (Array.isArray(parsedBills) && parsedBills.every(isValidBill)) {
             setBills(parsedBills);
+            console.log("[DataContext] Loaded bills successfully", { count: parsedBills.length });
           } else {
-            console.warn("Invalid stored bills format");
+            console.warn("[DataContext] Invalid stored bills format");
             shouldInitialize = true;
           }
         } catch {
-          console.error("Error parsing stored bills");
+          console.error("[DataContext] Error parsing stored bills");
           shouldInitialize = true;
         }
       } else {
@@ -184,10 +199,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (shouldInitialize) {
+        console.log("[DataContext] Initializing default data due to missing or invalid stored data");
         initializeDefaultData();
       }
     } catch (error) {
-      console.error("Error accessing localStorage:", error);
+      console.error("[DataContext] Error accessing localStorage:", error);
       initializeDefaultData();
     }
   }, []);
