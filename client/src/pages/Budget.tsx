@@ -36,13 +36,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -66,7 +59,7 @@ const formatCurrency = (amount: number) => {
   }).format(Math.round(amount));
 };
 
-export function Budget() {
+const Budget = () => {
   const { incomes, bills, saveIncomes, saveBills, resetData } = useData();
 
   // Time Management
@@ -812,3 +805,5 @@ export function Budget() {
     </div>
   );
 };
+
+export default Budget;
