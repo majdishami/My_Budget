@@ -60,28 +60,25 @@ function Router() {
     }
   }, [error]);
 
-  // Generic dialog handler with enhanced error handling
   const handleDialogOpenChange = (
     dialogSetter: React.Dispatch<React.SetStateAction<boolean>>,
     open: boolean,
-    dialogType: DialogType
+    reportType: string
   ) => {
     try {
       dialogSetter(open);
       if (!open) {
         setLocation('/');
       }
-      logger.info(`${dialogType} dialog state changed`, { open });
+      logger.info(`${reportType} dialog state changed`, { open });
       setError(null); // Clear any previous errors
     } catch (err) {
       const error = err as Error;
-      const errorMessage = `Failed to ${open ? 'open' : 'close'} ${dialogType} report`;
-      logger.error(`Error handling ${dialogType} dialog`, { error });
-
+      logger.error(`Error handling ${reportType} dialog`, { error });
       setError({
-        message: `${errorMessage}: ${error.message}`,
+        message: `Failed to ${open ? 'open' : 'close'} ${reportType} report: ${error.message}`,
         severity: 'error',
-        timeout: 5000 // Auto-dismiss after 5 seconds for non-critical errors
+        timeout: 5000
       });
     }
   };
@@ -144,29 +141,29 @@ function Router() {
       {/* 📈 Report Dialogs */}
       <MonthlyToDateDialog
         isOpen={showMonthlyToDate}
-        onOpenChange={(open) => handleDialogOpenChange(setShowMonthlyToDate, open, 'monthly-to-date')}
+        onOpenChange={(open) => handleDialogOpenChange(setShowMonthlyToDate, open, "Monthly-to-date")}
       />
       <MonthlyReportDialog
         isOpen={showMonthlyReport}
-        onOpenChange={(open) => handleDialogOpenChange(setShowMonthlyReport, open, 'monthly')}
+        onOpenChange={(open) => handleDialogOpenChange(setShowMonthlyReport, open, "Monthly")}
       />
       <DateRangeReportDialog
         isOpen={showDateRangeReport}
-        onOpenChange={(open) => handleDialogOpenChange(setShowDateRangeReport, open, 'date-range')}
+        onOpenChange={(open) => handleDialogOpenChange(setShowDateRangeReport, open, "Date Range")}
       />
       <ExpenseReportDialog
         isOpen={showExpenseReport}
-        onOpenChange={(open) => handleDialogOpenChange(setShowExpenseReport, open, 'expense')}
+        onOpenChange={(open) => handleDialogOpenChange(setShowExpenseReport, open, "Expense")}
         bills={bills}
       />
       <IncomeReportDialog
         isOpen={showIncomeReport}
-        onOpenChange={(open) => handleDialogOpenChange(setShowIncomeReport, open, 'income')}
+        onOpenChange={(open) => handleDialogOpenChange(setShowIncomeReport, open, "Income")}
         incomes={incomes}
       />
       <AnnualReportDialog
         isOpen={showAnnualReport}
-        onOpenChange={(open) => handleDialogOpenChange(setShowAnnualReport, open, 'annual')}
+        onOpenChange={(open) => handleDialogOpenChange(setShowAnnualReport, open, "Annual")}
       />
     </ErrorBoundary>
   );
