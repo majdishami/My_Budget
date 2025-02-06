@@ -1,0 +1,86 @@
+
+### 🛠 **Potential Issues & Debugging Suggestions**
+#### 1️⃣ **Routing and State Update Order**
+- The approach of modifying state (`setShowMonthlyToDate(true)`) within `<Route>` components without ensuring synchronous updates may cause unexpected behavior.
+- **Solution:**
+  - Instead of setting state directly within `Route`, use `useEffect` to track route changes.
+
+  ```tsx
+  useEffect(() => {
+    if (location === "/reports/monthly-to-date") {
+      setShowMonthlyToDate(true);
+    }
+  }, [location]);
+  ```
+
+---
+
+#### 2️⃣ **Error Handling with Dialogs**
+- If an error occurs in `handle*OpenChange` functions, `logger.error` logs it, but the error isn't propagated or handled for the UI.
+- **Solution:** 
+  - Consider setting an `error` state and displaying a message when an error occurs.
+
+  ```tsx
+  const [error, setError] = useState<string | null>(null);
+
+  const handleMonthlyToDateOpenChange = (open: boolean) => {
+    try {
+      setShowMonthlyToDate(open);
+      if (!open) setLocation('/');
+      logger.info('Monthly-to-date dialog state changed', { open });
+    } catch (error) {
+      logger.error('Error handling monthly-to-date dialog', { error });
+      setError('Failed to open Monthly-to-Date report.');
+    }
+  };
+  ```
+
+  - Display the error message somewhere in the UI.
+
+---
+
+#### 3️⃣ **Redundant Dialog Open State Updates**
+- Each dialog state function follows the same pattern.
+- **Optimization:** Use a generic function.
+
+  ```tsx
+  const handleDialogOpenChange = (dialogSetter: React.Dispatch<React.SetStateAction<boolean>>, open: boolean, reportType: string) => {
+    try {
+      dialogSetter(open);
+      if (!open) setLocation('/');
+      logger.info(`${reportType} dialog state changed`, { open });
+    } catch (error) {
+      logger.error(`Error handling ${reportType} dialog`, { error });
+    }
+  };
+  ```
+
+  - Then call:
+    ```tsx
+    <MonthlyToDateDialog
+      isOpen={showMonthlyToDate}
+      onOpenChange={(open) => handleDialogOpenChange(setShowMonthlyToDate, open, "Monthly-to-date")}
+    />
+    ```
+
+---
+
+#### 4️⃣ **ErrorBoundary Placement**
+- Wrapping `QueryClientProvider` inside `ErrorBoundary` is good, but wrapping **everything** inside `ErrorBoundary` may hide underlying errors.
+- **Solution:** 
+  - Wrap only components that require extra error handling.
+
+  ```tsx
+  function App() {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <ErrorBoundary>
+          <Router />
+        </ErrorBoundary>
+        <Toaster />
+      </QueryClientProvider>
+    );
+  }
+  ```
+
+---
