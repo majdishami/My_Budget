@@ -246,6 +246,7 @@ const Budget = () => {
    * - Calculating running totals
    */
   const handleEditTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+    handleCloseDialogs(); // Close any open dialogs first
     if (type === 'income') {
       setEditingIncome(data as Income);
       setShowEditIncomeDialog(true);
@@ -256,6 +257,7 @@ const Budget = () => {
   };
 
   const handleDeleteTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+    handleCloseDialogs(); // Close any open dialogs first
     if (type === 'income') {
       setDeletingIncome(data as Income);
       setShowDeleteIncomeDialog(true);
@@ -269,8 +271,7 @@ const Budget = () => {
     if (deletingBill) {
       const newBills = bills.filter(b => b.id !== deletingBill.id);
       saveBills(newBills);
-      setShowDeleteDialog(false);
-      setDeletingBill(null);
+      handleCloseDialogs();
     }
   };
 
@@ -304,13 +305,13 @@ const Budget = () => {
       // Remove all occurrences of the income source
       const newIncomes = incomes.filter(i => i.id !== deletingIncome.id);
       saveIncomes(newIncomes);
-      setShowDeleteIncomeDialog(false);
-      setDeletingIncome(null);
+      handleCloseDialogs();
     }
   };
 
 
   const handleAddIncome = () => {
+    handleCloseDialogs();
     setShowAddIncomeDialog(true);
   };
 
@@ -379,6 +380,7 @@ const Budget = () => {
   };
 
   const handleAddBill = () => {
+    handleCloseDialogs();
     setShowAddExpenseDialog(true);
   };
 
@@ -428,6 +430,24 @@ const Budget = () => {
     saveBills(newBills);
     setShowEditDialog(false);
     setEditingBill(null);
+  };
+
+  const handleCloseDialogs = () => {
+    setShowDayDialog(false);
+    setShowEditDialog(false);
+    setShowAddBillDialog(false);
+    setShowAddExpenseDialog(false);
+    setShowDeleteDialog(false);
+    setShowEditIncomeDialog(false);
+    setShowAddIncomeDialog(false);
+    setShowDeleteIncomeDialog(false);
+    setShowDailySummary(false);
+
+    // Reset editing/deleting states
+    setEditingBill(null);
+    setDeletingBill(null);
+    setEditingIncome(null);
+    setDeletingIncome(null);
   };
 
   /**

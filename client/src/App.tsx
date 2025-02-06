@@ -2,23 +2,6 @@
  * ================================================
  * 🚀 Main Application Component
  * ================================================
- * Manages routing, global state, and dialog components
- * for the budget tracking application.
- * 
- * Core Responsibilities:
- * 🛣️ Route configuration and management
- * 🌍 Global state management for financial data
- * 💬 Dialog coordination for user interactions
- * 📊 Initial data setup and persistence
- * 🐛 Error boundary and logging implementation
- * 🎨 Theme management and styling
- * 
- * Key Features:
- * 💰 Income tracking with bi-weekly/monthly options
- * 💳 Bill management with reminder system
- * 📅 Calendar integration for due dates
- * 📈 Comprehensive financial reporting
- * 🔔 Smart notification system
  */
 
 import { Switch, Route } from "wouter";
@@ -38,29 +21,11 @@ import { useLocation } from "wouter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { logger } from "@/lib/logger";
 import { ThemeToggle } from "@/components/ThemeToggle"; 
-
-/**
- * 📊 Core Data Interfaces
- * Define essential data structures for financial tracking
- */
-interface Income {
-  id: string;
-  source: string;
-  amount: number;
-  date: string;
-}
-
-interface Bill {
-  id: string;
-  name: string;
-  amount: number;
-  day: number;
-}
+import { useData } from "@/contexts/DataContext";
 
 /**
  * 🛣️ Router Component
  * Manages application routing and dialog states
- * Handles navigation and user interaction flows
  */
 function Router() {
   // 📊 Report Dialog States
@@ -71,39 +36,17 @@ function Router() {
   const [showIncomeReport, setShowIncomeReport] = useState(false);
   const [showAnnualReport, setShowAnnualReport] = useState(false);
 
-  // 🧭 Navigation and Data Management
+  // Get data from context
+  const { bills, incomes } = useData();
   const [, setLocation] = useLocation();
-  const [bills, setBills] = useState<Bill[]>([]);
-
-  /**
-   * 📋 Load Initial Bill Data
-   * Retrieves and sets up stored bills on component mount
-   * Includes error handling and logging
-   */
-  useEffect(() => {
-    try {
-      const storedBills = localStorage.getItem("bills");
-      if (storedBills) {
-        const parsedBills = JSON.parse(storedBills);
-        setBills(parsedBills);
-        logger.info('Bills loaded successfully', { count: parsedBills.length });
-      }
-    } catch (error) {
-      logger.error('Failed to load bills from localStorage', { error });
-    }
-  }, []);
 
   /**
    * 🔄 Dialog Management Functions
-   * Handle opening/closing of report dialogs and navigation
-   * Includes error handling and logging for each action
    */
   const handleMonthlyToDateOpenChange = (open: boolean) => {
     try {
       setShowMonthlyToDate(open);
-      if (!open) {
-        setLocation('/');
-      }
+      if (!open) setLocation('/');
       logger.info('Monthly-to-date dialog state changed', { open });
     } catch (error) {
       logger.error('Error handling monthly-to-date dialog', { error });
@@ -113,9 +56,7 @@ function Router() {
   const handleMonthlyReportOpenChange = (open: boolean) => {
     try {
       setShowMonthlyReport(open);
-      if (!open) {
-        setLocation('/');
-      }
+      if (!open) setLocation('/');
       logger.info('Monthly report dialog state changed', { open });
     } catch (error) {
       logger.error('Error handling monthly report dialog', { error });
@@ -125,9 +66,7 @@ function Router() {
   const handleDateRangeReportOpenChange = (open: boolean) => {
     try {
       setShowDateRangeReport(open);
-      if (!open) {
-        setLocation('/');
-      }
+      if (!open) setLocation('/');
       logger.info('Date range report dialog state changed', { open });
     } catch (error) {
       logger.error('Error handling date range report dialog', { error });
@@ -137,9 +76,7 @@ function Router() {
   const handleExpenseReportOpenChange = (open: boolean) => {
     try {
       setShowExpenseReport(open);
-      if (!open) {
-        setLocation('/');
-      }
+      if (!open) setLocation('/');
       logger.info('Expense report dialog state changed', { open });
     } catch (error) {
       logger.error('Error handling expense report dialog', { error });
@@ -149,9 +86,7 @@ function Router() {
   const handleIncomeReportOpenChange = (open: boolean) => {
     try {
       setShowIncomeReport(open);
-      if (!open) {
-        setLocation('/');
-      }
+      if (!open) setLocation('/');
       logger.info('Income report dialog state changed', { open });
     } catch (error) {
       logger.error('Error handling income report dialog', { error });
@@ -161,9 +96,7 @@ function Router() {
   const handleAnnualReportOpenChange = (open: boolean) => {
     try {
       setShowAnnualReport(open);
-      if (!open) {
-        setLocation('/');
-      }
+      if (!open) setLocation('/');
       logger.info('Annual report dialog state changed', { open });
     } catch (error) {
       logger.error('Error handling annual report dialog', { error });
@@ -235,6 +168,7 @@ function Router() {
       <IncomeReportDialog
         isOpen={showIncomeReport}
         onOpenChange={handleIncomeReportOpenChange}
+        incomes={incomes}
       />
       <AnnualReportDialog
         isOpen={showAnnualReport}
@@ -246,90 +180,11 @@ function Router() {
 
 /**
  * 🎯 Main App Component
- * Provides global configuration and initial data setup
- * Manages theme, financial data, and application state
  */
 function App() {
-  // 💰 Global Financial Data State
-  const [incomes, setIncomes] = useState<Income[]>([]);
-  const [bills, setBills] = useState<Bill[]>([]);
-
-  /**
-   * 🔄 Initialize Default Data
-   * Sets up initial income and expense data
-   * Handles data persistence and error logging
-   */
-  useEffect(() => {
-    try {
-      // Clear existing data first
-      localStorage.removeItem("incomes");
-      localStorage.removeItem("bills");
-
-      const storedIncomes = localStorage.getItem("incomes");
-      const storedBills = localStorage.getItem("bills");
-
-      // 💵 Setup Default Incomes
-      if (!storedIncomes) {
-        const baseDate = dayjs('2025-01-01');
-        const sampleIncomes: Income[] = [
-          // Bi-monthly salary entries
-          { id: "1", source: "Majdi's Salary", amount: Math.round(4739), date: baseDate.date(1).toISOString() },
-          { id: "2", source: "Majdi's Salary", amount: Math.round(4739), date: baseDate.date(15).toISOString() },
-          // Bi-weekly salary entry
-          { id: "3", source: "Ruba's Salary", amount: Math.round(2168), date: baseDate.date(10).toISOString() }
-        ];
-        setIncomes(sampleIncomes);
-        localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
-        logger.info('Default incomes initialized', { count: sampleIncomes.length });
-      } else {
-        const parsedIncomes = JSON.parse(storedIncomes).map((income: Income) => ({
-          ...income,
-          amount: Math.round(income.amount)
-        }));
-        setIncomes(parsedIncomes);
-        logger.info('Incomes loaded from storage', { count: parsedIncomes.length });
-      }
-
-      // 🧾 Setup Default Bills
-      if (!storedBills) {
-        const sampleBills: Bill[] = [
-          // Monthly recurring bills
-          { id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: Math.round(429), day: 1 },
-          { id: "2", name: "Maid's 1st payment", amount: Math.round(120), day: 1 },
-          { id: "3", name: "Monthly Rent", amount: Math.round(3750), day: 1 },
-          { id: "4", name: "Sling TV (CC 9550)", amount: Math.round(75), day: 3 },
-          { id: "5", name: "Cox Internet", amount: Math.round(81), day: 6 },
-          { id: "6", name: "Water Bill", amount: Math.round(80), day: 7 },
-          { id: "7", name: "NV Energy Electrical ($100 winter months)", amount: Math.round(250), day: 7 },
-          { id: "8", name: "TransAmerica Life Insurance", amount: Math.round(77), day: 9 },
-          { id: "9", name: "Credit Card minimum payments", amount: Math.round(225), day: 14 },
-          { id: "10", name: "Apple/Google/YouTube (CC 9550)", amount: Math.round(130), day: 14 },
-          { id: "11", name: "Expenses & Groceries charged on (CC 2647)", amount: Math.round(3000), day: 16 },
-          { id: "12", name: "Maid's 2nd Payment of the month", amount: Math.round(120), day: 17 },
-          { id: "13", name: "SoFi Personal Loan", amount: Math.round(1915), day: 17 },
-          { id: "14", name: "Southwest Gas ($200 in winter/$45 in summer)", amount: Math.round(75), day: 17 },
-          { id: "15", name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: Math.round(704), day: 28 }
-        ];
-        setBills(sampleBills);
-        localStorage.setItem("bills", JSON.stringify(sampleBills));
-        logger.info('Default bills initialized', { count: sampleBills.length });
-      } else {
-        const parsedBills = JSON.parse(storedBills).map((bill: Bill) => ({
-          ...bill,
-          amount: Math.round(bill.amount)
-        }));
-        setBills(parsedBills);
-        logger.info('Bills loaded from storage', { count: parsedBills.length });
-      }
-    } catch (error) {
-      logger.error('Error initializing application data', { error });
-    }
-  }, []);
-
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        {/* 🛣️ Route Configuration */}
         <Router />
         <Toaster />
       </QueryClientProvider>
