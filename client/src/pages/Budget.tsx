@@ -51,6 +51,7 @@ import { EditIncomeDialog } from "@/components/EditIncomeDialog";
 import { EditExpenseDialog } from "@/components/EditExpenseDialog";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
+import crypto from 'crypto';
 
 dayjs.extend(isBetween);
 
@@ -65,7 +66,7 @@ const formatCurrency = (amount: number) => {
   }).format(Math.round(amount));
 };
 
-const Budget = () => {
+export function Budget() {
   const { incomes, bills, saveIncomes, saveBills, resetData } = useData();
 
   // Time Management
@@ -79,6 +80,7 @@ const Budget = () => {
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAddBillDialog, setShowAddBillDialog] = useState(false);
+  const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
   const [deletingBill, setDeletingBill] = useState<Bill | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
@@ -810,5 +812,3 @@ const Budget = () => {
     </div>
   );
 };
-
-export default Budget;
