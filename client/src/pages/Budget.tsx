@@ -302,7 +302,7 @@ const Budget = () => {
   const confirmIncomeDelete = () => {
     if (deletingIncome) {
       // Remove all occurrences of the income source
-      const newIncomes = incomes.filter(i => i.source !== deletingIncome.source);
+      const newIncomes = incomes.filter(i => i.id !== deletingIncome.id);
       saveIncomes(newIncomes);
       setShowDeleteIncomeDialog(false);
       setDeletingIncome(null);
@@ -767,7 +767,7 @@ const Budget = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Income</AlertDialogTitle>
             <AlertDialogDescription className="space-y-4">
-              <p>Are you sure you want to delete this income? This will remove all occurrences of this income. This action cannot be undone.</p>
+              <p>Are you sure you want to delete this income? This action cannot be undone.</p>
               {deletingIncome && (
                 <div className="mt-4 space-y-2 border rounded-lg p-4 bg-muted/30">
                   <div className="grid grid-cols-2 gap-2">
@@ -777,12 +777,6 @@ const Budget = () => {
                     <span>{formatCurrency(deletingIncome.amount)}</span>
                     <span className="font-medium">Date:</span>
                     <span>{dayjs(deletingIncome.date).format('MMMM D, YYYY')}</span>
-                    {deletingIncome.source === "Ruba's Salary" && (
-                      <>
-                        <span className="font-medium">Type:</span>
-                        <span>Bi-weekly (Every other Friday)</span>
-                      </>
-                    )}
                   </div>
                 </div>
               )}
