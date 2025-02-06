@@ -4,7 +4,7 @@
  * ================================================
  */
 
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -17,11 +17,14 @@ import DateRangeReportDialog from "@/components/DateRangeReportDialog";
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import IncomeReportDialog from "@/components/IncomeReportDialog";
 import AnnualReportDialog from "@/components/AnnualReportDialog";
-import { useLocation } from "wouter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { logger } from "@/lib/logger";
 import { ThemeToggle } from "@/components/ThemeToggle"; 
 import { useData } from "@/contexts/DataContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { X } from "lucide-react";
+
+type DialogType = 'monthly-to-date' | 'monthly' | 'date-range' | 'expense' | 'income' | 'annual';
 
 /**
  * 🛣️ Router Component
@@ -35,144 +38,98 @@ function Router() {
   const [showExpenseReport, setShowExpenseReport] = useState(false);
   const [showIncomeReport, setShowIncomeReport] = useState(false);
   const [showAnnualReport, setShowAnnualReport] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get data from context
+  // Get data from context and location
   const { bills, incomes } = useData();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
-  /**
-   * 🔄 Dialog Management Functions
-   */
-  const handleMonthlyToDateOpenChange = (open: boolean) => {
+  // Generic dialog handler
+  const handleDialogOpenChange = (
+    dialogSetter: React.Dispatch<React.SetStateAction<boolean>>,
+    open: boolean,
+    dialogType: DialogType
+  ) => {
     try {
-      setShowMonthlyToDate(open);
+      dialogSetter(open);
       if (!open) setLocation('/');
-      logger.info('Monthly-to-date dialog state changed', { open });
+      logger.info(`${dialogType} dialog state changed`, { open });
+      setError(null); // Clear any previous errors
     } catch (error) {
-      logger.error('Error handling monthly-to-date dialog', { error });
+      const errorMessage = `Failed to ${open ? 'open' : 'close'} ${dialogType} report`;
+      logger.error(`Error handling ${dialogType} dialog`, { error });
+      setError(errorMessage);
     }
   };
 
-  const handleMonthlyReportOpenChange = (open: boolean) => {
-    try {
-      setShowMonthlyReport(open);
-      if (!open) setLocation('/');
-      logger.info('Monthly report dialog state changed', { open });
-    } catch (error) {
-      logger.error('Error handling monthly report dialog', { error });
-    }
-  };
+  // Use effects to handle route-based dialog states
+  useEffect(() => {
+    const dialogStates: Record<string, () => void> = {
+      '/reports/monthly-to-date': () => setShowMonthlyToDate(true),
+      '/reports/monthly': () => setShowMonthlyReport(true),
+      '/reports/date-range': () => setShowDateRangeReport(true),
+      '/reports/expenses': () => setShowExpenseReport(true),
+      '/reports/income': () => setShowIncomeReport(true),
+      '/reports/annual': () => setShowAnnualReport(true),
+    };
 
-  const handleDateRangeReportOpenChange = (open: boolean) => {
-    try {
-      setShowDateRangeReport(open);
-      if (!open) setLocation('/');
-      logger.info('Date range report dialog state changed', { open });
-    } catch (error) {
-      logger.error('Error handling date range report dialog', { error });
+    const handler = dialogStates[location];
+    if (handler) {
+      handler();
     }
-  };
-
-  const handleExpenseReportOpenChange = (open: boolean) => {
-    try {
-      setShowExpenseReport(open);
-      if (!open) setLocation('/');
-      logger.info('Expense report dialog state changed', { open });
-    } catch (error) {
-      logger.error('Error handling expense report dialog', { error });
-    }
-  };
-
-  const handleIncomeReportOpenChange = (open: boolean) => {
-    try {
-      setShowIncomeReport(open);
-      if (!open) setLocation('/');
-      logger.info('Income report dialog state changed', { open });
-    } catch (error) {
-      logger.error('Error handling income report dialog', { error });
-    }
-  };
-
-  const handleAnnualReportOpenChange = (open: boolean) => {
-    try {
-      setShowAnnualReport(open);
-      if (!open) setLocation('/');
-      logger.info('Annual report dialog state changed', { open });
-    } catch (error) {
-      logger.error('Error handling annual report dialog', { error });
-    }
-  };
+  }, [location]);
 
   return (
     <ErrorBoundary>
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive" className="fixed top-4 right-4 w-auto z-50">
+          <AlertDescription className="flex items-center gap-2">
+            {error}
+            <button 
+              onClick={() => setError(null)}
+              className="p-1 hover:bg-accent rounded"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* 🛣️ Route Configuration */}
       <Switch>
         <Route path="/" component={Budget} />
-        {/* 📊 Report Routes */}
-        <Route path="/reports/monthly-to-date">
-          {() => {
-            setShowMonthlyToDate(true);
-            return null;
-          }}
-        </Route>
-        <Route path="/reports/monthly">
-          {() => {
-            setShowMonthlyReport(true);
-            return null;
-          }}
-        </Route>
-        <Route path="/reports/date-range">
-          {() => {
-            setShowDateRangeReport(true);
-            return null;
-          }}
-        </Route>
-        <Route path="/reports/expenses">
-          {() => {
-            setShowExpenseReport(true);
-            return null;
-          }}
-        </Route>
-        <Route path="/reports/income">
-          {() => {
-            setShowIncomeReport(true);
-            return null;
-          }}
-        </Route>
-        <Route path="/reports/annual">
-          {() => {
-            setShowAnnualReport(true);
-            return null;
-          }}
+        <Route path="/reports/:type">
+          {() => null} {/* Routes now handled by useEffect */}
         </Route>
       </Switch>
 
       {/* 📈 Report Dialogs */}
       <MonthlyToDateDialog
         isOpen={showMonthlyToDate}
-        onOpenChange={handleMonthlyToDateOpenChange}
+        onOpenChange={(open) => handleDialogOpenChange(setShowMonthlyToDate, open, 'monthly-to-date')}
       />
       <MonthlyReportDialog
         isOpen={showMonthlyReport}
-        onOpenChange={handleMonthlyReportOpenChange}
+        onOpenChange={(open) => handleDialogOpenChange(setShowMonthlyReport, open, 'monthly')}
       />
       <DateRangeReportDialog
         isOpen={showDateRangeReport}
-        onOpenChange={handleDateRangeReportOpenChange}
+        onOpenChange={(open) => handleDialogOpenChange(setShowDateRangeReport, open, 'date-range')}
       />
       <ExpenseReportDialog
         isOpen={showExpenseReport}
-        onOpenChange={handleExpenseReportOpenChange}
+        onOpenChange={(open) => handleDialogOpenChange(setShowExpenseReport, open, 'expense')}
         bills={bills}
       />
       <IncomeReportDialog
         isOpen={showIncomeReport}
-        onOpenChange={handleIncomeReportOpenChange}
+        onOpenChange={(open) => handleDialogOpenChange(setShowIncomeReport, open, 'income')}
         incomes={incomes}
       />
       <AnnualReportDialog
         isOpen={showAnnualReport}
-        onOpenChange={handleAnnualReportOpenChange}
+        onOpenChange={(open) => handleDialogOpenChange(setShowAnnualReport, open, 'annual')}
       />
     </ErrorBoundary>
   );
@@ -183,12 +140,12 @@ function Router() {
  */
 function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <ErrorBoundary>
         <Router />
         <Toaster />
-      </QueryClientProvider>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </QueryClientProvider>
   );
 }
 
