@@ -26,6 +26,12 @@ import { X } from "lucide-react";
 
 type DialogType = 'monthly-to-date' | 'monthly' | 'date-range' | 'expense' | 'income' | 'annual';
 
+interface ErrorState {
+  message: string;
+  severity: 'error' | 'warning';
+  timeout?: number;
+}
+
 /**
  * 🛣️ Router Component
  * Manages application routing and dialog states
@@ -38,13 +44,23 @@ function Router() {
   const [showExpenseReport, setShowExpenseReport] = useState(false);
   const [showIncomeReport, setShowIncomeReport] = useState(false);
   const [showAnnualReport, setShowAnnualReport] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorState | null>(null);
 
   // Get data from context and location
   const { bills, incomes } = useData();
   const [location, setLocation] = useLocation();
 
-  // Generic dialog handler
+  // Clear error after timeout if specified
+  useEffect(() => {
+    if (error?.timeout) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, error.timeout);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  // Generic dialog handler with enhanced error handling
   const handleDialogOpenChange = (
     dialogSetter: React.Dispatch<React.SetStateAction<boolean>>,
     open: boolean,
@@ -52,13 +68,21 @@ function Router() {
   ) => {
     try {
       dialogSetter(open);
-      if (!open) setLocation('/');
+      if (!open) {
+        setLocation('/');
+      }
       logger.info(`${dialogType} dialog state changed`, { open });
       setError(null); // Clear any previous errors
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       const errorMessage = `Failed to ${open ? 'open' : 'close'} ${dialogType} report`;
       logger.error(`Error handling ${dialogType} dialog`, { error });
-      setError(errorMessage);
+
+      setError({
+        message: `${errorMessage}: ${error.message}`,
+        severity: 'error',
+        timeout: 5000 // Auto-dismiss after 5 seconds for non-critical errors
+      });
     }
   };
 
@@ -75,7 +99,15 @@ function Router() {
 
     const handler = dialogStates[location];
     if (handler) {
-      handler();
+      try {
+        handler();
+      } catch (err) {
+        const error = err as Error;
+        setError({
+          message: `Failed to handle route change: ${error.message}`,
+          severity: 'error'
+        });
+      }
     }
   }, [location]);
 
@@ -83,12 +115,17 @@ function Router() {
     <ErrorBoundary>
       {/* Error Alert */}
       {error && (
-        <Alert variant="destructive" className="fixed top-4 right-4 w-auto z-50">
+        <Alert 
+          variant={error.severity === 'error' ? "destructive" : "default"}
+          className="fixed top-4 right-4 w-auto z-50 animate-in fade-in slide-in-from-top-2"
+          role="alert"
+        >
           <AlertDescription className="flex items-center gap-2">
-            {error}
+            {error.message}
             <button 
               onClick={() => setError(null)}
               className="p-1 hover:bg-accent rounded"
+              aria-label="Dismiss error"
             >
               <X className="h-4 w-4" />
             </button>
