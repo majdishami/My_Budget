@@ -134,7 +134,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Budget} />
         <Route path="/reports/:type">
-          {() => null} {/* Routes now handled by useEffect */}
+          {null} {/* Routes handled by useEffect */}
         </Route>
       </Switch>
 
