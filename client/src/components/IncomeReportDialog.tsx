@@ -14,6 +14,7 @@ import { DateRange } from "react-day-picker";
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isBetween from 'dayjs/plugin/isBetween';
+import { Income } from "@/types";
 import {
   Table,
   TableBody,
@@ -36,9 +37,10 @@ interface Transaction {
 interface IncomeReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  incomes: Income[];
 }
 
-export default function IncomeReportDialog({ isOpen, onOpenChange }: IncomeReportDialogProps) {
+export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: IncomeReportDialogProps) {
   const [date, setDate] = useState<DateRange | undefined>();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showReport, setShowReport] = useState(false);
@@ -59,42 +61,45 @@ export default function IncomeReportDialog({ isOpen, onOpenChange }: IncomeRepor
     const endDate = dayjs(date.to);
     const mockTransactions: Transaction[] = [];
 
-    // Add Majdi's salary occurrences
-    const majdiPayDates = Array.from({ length: 12 }, (_, i) => {
-      const month = startDate.add(i, 'month');
-      return [
-        month.date(1),  // 1st of month
-        month.date(15), // 15th of month
-      ];
-    }).flat();
+    // Generate transactions based on provided incomes
+    incomes.forEach(income => {
+      if (income.source === "Majdi's Salary") {
+        const payDates = Array.from({ length: 12 }, (_, i) => {
+          const month = startDate.add(i, 'month');
+          return [
+            month.date(1),  // 1st of month
+            month.date(15), // 15th of month
+          ];
+        }).flat();
 
-    majdiPayDates.forEach(payDate => {
-      if (payDate.isBetween(startDate, endDate, 'day', '[]')) {
-        mockTransactions.push({
-          date: payDate.format('YYYY-MM-DD'),
-          description: "Majdi's Salary",
-          amount: Math.round(4739),
-          occurred: payDate.isSameOrBefore(today)
+        payDates.forEach(payDate => {
+          if (payDate.isBetween(startDate, endDate, 'day', '[]')) {
+            mockTransactions.push({
+              date: payDate.format('YYYY-MM-DD'),
+              description: income.source,
+              amount: income.amount,
+              occurred: payDate.isSameOrBefore(today)
+            });
+          }
         });
+      } else if (income.source === "Ruba's Salary") {
+        let payDate = dayjs('2025-01-10');
+        while (payDate.isSameOrBefore(endDate)) {
+          if (payDate.isBetween(startDate, endDate, 'day', '[]')) {
+            mockTransactions.push({
+              date: payDate.format('YYYY-MM-DD'),
+              description: income.source,
+              amount: income.amount,
+              occurred: payDate.isSameOrBefore(today)
+            });
+          }
+          payDate = payDate.add(14, 'day');
+        }
       }
     });
 
-    // Add Ruba's bi-weekly salary
-    let rubaPayDate = dayjs('2025-01-10');
-    while (rubaPayDate.isSameOrBefore(endDate)) {
-      if (rubaPayDate.isBetween(startDate, endDate, 'day', '[]')) {
-        mockTransactions.push({
-          date: rubaPayDate.format('YYYY-MM-DD'),
-          description: "Ruba's Salary",
-          amount: Math.round(2168),
-          occurred: rubaPayDate.isSameOrBefore(today)
-        });
-      }
-      rubaPayDate = rubaPayDate.add(14, 'day');
-    }
-
     setTransactions(mockTransactions);
-  }, [showReport, date]);
+  }, [showReport, date, incomes]);
 
   const summary = transactions.reduce(
     (acc, transaction) => {
