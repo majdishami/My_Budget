@@ -36,15 +36,11 @@ export default function DailySummaryDialog({
   selectedYear,
   dayIncomes,
   dayBills,
-  totalIncomeUpToToday: providedIncomeUpToToday,
-  totalBillsUpToToday: providedBillsUpToToday
+  totalIncomeUpToToday,
+  totalBillsUpToToday
 }: DailySummaryDialogProps) {
   const selectedDate = dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
-  const today = dayjs();
-
-  // For future dates, set incurred totals to 0
-  const totalIncomeUpToToday = selectedDate.isAfter(today) ? 0 : providedIncomeUpToToday;
-  const totalBillsUpToToday = selectedDate.isAfter(today) ? 0 : providedBillsUpToToday;
+  const currentDate = selectedDate.format('MMMM D, YYYY');
 
   const dailyIncome = dayIncomes.reduce((sum, income) => sum + income.amount, 0);
   const dailyBills = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
@@ -79,9 +75,6 @@ export default function DailySummaryDialog({
   // 3. Balance of Remaining = Remaining Income - Remaining Expenses
   const remainingBalance = remainingIncome - remainingExpenses;
 
-  const currentDate = selectedDate.format('MMMM D, YYYY');
-  const isFutureMonth = selectedDate.isAfter(today, 'month');
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -94,108 +87,100 @@ export default function DailySummaryDialog({
         </DialogHeader>
 
         <div className="space-y-6">
-          {!isFutureMonth && (
-            <>
-              {/* Today's Activity */}
-              <Card className="p-4">
-                <h3 className="text-lg font-semibold mb-4">Today's Activity</h3>
+          {/* Today's Activity */}
+          <Card className="p-4">
+            <h3 className="text-lg font-semibold mb-4">Today's Activity</h3>
 
-                {/* Income Details */}
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Income Transactions</h4>
-                  {dayIncomes.length > 0 ? (
-                    <div className="space-y-2">
-                      {dayIncomes.map((income, index) => (
-                        <div key={income.id} className="flex justify-between items-center text-sm bg-green-50 dark:bg-green-950/30 p-2 rounded">
-                          <span>{income.source}</span>
-                          <span className="font-medium text-green-600 dark:text-green-400">
-                            {formatCurrency(income.amount)}
-                          </span>
-                        </div>
-                      ))}
+            {/* Income Details */}
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Income Transactions</h4>
+              {dayIncomes.length > 0 ? (
+                <div className="space-y-2">
+                  {dayIncomes.map((income, index) => (
+                    <div key={income.id} className="flex justify-between items-center text-sm bg-green-50 dark:bg-green-950/30 p-2 rounded">
+                      <span>{income.source}</span>
+                      <span className="font-medium text-green-600 dark:text-green-400">
+                        {formatCurrency(income.amount)}
+                      </span>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No income transactions today</p>
-                  )}
+                  ))}
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No income transactions today</p>
+              )}
+            </div>
 
-                {/* Expense Details */}
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Expense Transactions</h4>
-                  {dayBills.length > 0 ? (
-                    <div className="space-y-2">
-                      {dayBills.map((bill, index) => (
-                        <div key={bill.id} className="flex justify-between items-center text-sm bg-red-50 dark:bg-red-950/30 p-2 rounded">
-                          <span>{bill.name}</span>
-                          <span className="font-medium text-red-600 dark:text-red-400">
-                            {formatCurrency(bill.amount)}
-                          </span>
-                        </div>
-                      ))}
+            {/* Expense Details */}
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Expense Transactions</h4>
+              {dayBills.length > 0 ? (
+                <div className="space-y-2">
+                  {dayBills.map((bill, index) => (
+                    <div key={bill.id} className="flex justify-between items-center text-sm bg-red-50 dark:bg-red-950/30 p-2 rounded">
+                      <span>{bill.name}</span>
+                      <span className="font-medium text-red-600 dark:text-red-400">
+                        {formatCurrency(bill.amount)}
+                      </span>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No expense transactions today</p>
-                  )}
+                  ))}
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No expense transactions today</p>
+              )}
+            </div>
 
-                {/* Daily Summary */}
-                <div className="pt-4 border-t">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-sm">
-                      <p className="text-muted-foreground">Total Day's Income</p>
-                      <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                        {formatCurrency(dailyIncome)}
-                      </p>
-                    </div>
-                    <div className="text-sm">
-                      <p className="text-muted-foreground">Total Day's Expenses</p>
-                      <p className="text-lg font-semibold text-red-600 dark:text-red-400">
-                        {formatCurrency(dailyBills)}
-                      </p>
-                    </div>
-                  </div>
+            {/* Daily Summary */}
+            <div className="pt-4 border-t">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-sm">
+                  <p className="text-muted-foreground">Total Day's Income</p>
+                  <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                    {formatCurrency(dailyIncome)}
+                  </p>
                 </div>
-              </Card>
+                <div className="text-sm">
+                  <p className="text-muted-foreground">Total Day's Expenses</p>
+                  <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+                    {formatCurrency(dailyBills)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
 
-              {/* 1st of Month Up To Selected Day */}
-              <Card className="p-4">
-                <h3 className="text-lg font-semibold mb-4">1st of Month Up To Selected Day</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-sm">
-                    <p className="text-muted-foreground">Incurred Income</p>
-                    <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                      {formatCurrency(totalIncomeUpToToday)}
-                    </p>
-                  </div>
-                  <div className="text-sm">
-                    <p className="text-muted-foreground">Incurred Expenses</p>
-                    <p className="text-lg font-semibold text-red-600 dark:text-red-400">
-                      {formatCurrency(totalBillsUpToToday)}
-                    </p>
-                  </div>
-                  <div className="text-sm">
-                    <p className="text-muted-foreground">Balance</p>
-                    <p className={`text-lg font-semibold ${
-                      totalNet >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                    }`}>
-                      {formatCurrency(totalNet)}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </>
-          )}
+          {/* 1st of Month Up To Selected Day */}
+          <Card className="p-4">
+            <h3 className="text-lg font-semibold mb-4">1st of Month Up To Selected Day</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-sm">
+                <p className="text-muted-foreground">Incurred Income</p>
+                <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                  {formatCurrency(totalIncomeUpToToday)}
+                </p>
+              </div>
+              <div className="text-sm">
+                <p className="text-muted-foreground">Incurred Expenses</p>
+                <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+                  {formatCurrency(totalBillsUpToToday)}
+                </p>
+              </div>
+              <div className="text-sm">
+                <p className="text-muted-foreground">Balance</p>
+                <p className={`text-lg font-semibold ${
+                  totalNet >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                }`}>
+                  {formatCurrency(totalNet)}
+                </p>
+              </div>
+            </div>
+          </Card>
 
           {/* Remaining Till End Of Month */}
           <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-4">
-              {isFutureMonth ? "Monthly Summary" : "Remaining Till End Of Month"}
-            </h3>
+            <h3 className="text-lg font-semibold mb-4">Remaining Till End Of Month</h3>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-sm">
-                <p className="text-muted-foreground">
-                  {isFutureMonth ? "Total Income" : "Remaining Income"}
-                </p>
+                <p className="text-muted-foreground">Remaining Income</p>
                 <p className="text-lg font-semibold text-green-600 dark:text-green-400">
                   {formatCurrency(remainingIncome)}
                 </p>
@@ -204,9 +189,7 @@ export default function DailySummaryDialog({
                 </p>
               </div>
               <div className="text-sm">
-                <p className="text-muted-foreground">
-                  {isFutureMonth ? "Total Expenses" : "Remaining Expenses"}
-                </p>
+                <p className="text-muted-foreground">Remaining Expenses</p>
                 <p className="text-lg font-semibold text-red-600 dark:text-red-400">
                   {formatCurrency(remainingExpenses)}
                 </p>
@@ -215,9 +198,7 @@ export default function DailySummaryDialog({
                 </p>
               </div>
               <div className="text-sm">
-                <p className="text-muted-foreground">
-                  {isFutureMonth ? "Net Balance" : "Balance of Remaining"}
-                </p>
+                <p className="text-muted-foreground">Balance of Remaining</p>
                 <p className={`text-lg font-semibold ${
                   remainingBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }`}>
