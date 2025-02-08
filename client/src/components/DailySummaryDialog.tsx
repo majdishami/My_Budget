@@ -80,7 +80,7 @@ export default function DailySummaryDialog({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Today's Transactions Section */}
+          {/* Today's Activity */}
           <Card className="p-4">
             <h3 className="text-lg font-semibold mb-4">Today's Activity</h3>
 
@@ -141,7 +141,7 @@ export default function DailySummaryDialog({
             </div>
           </Card>
 
-          {/* 1st of Month Up To Selected Day Summary */}
+          {/* 1st of Month Up To Selected Day */}
           <Card className="p-4">
             <h3 className="text-lg font-semibold mb-4">1st of Month Up To Selected Day</h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
