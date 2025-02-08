@@ -8,6 +8,7 @@ import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 import Budget from "@/pages/Budget";
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
@@ -22,7 +23,7 @@ import { logger } from "@/lib/logger";
 import { ThemeToggle } from "@/components/ThemeToggle"; 
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 type DialogType = 'monthly-to-date' | 'monthly' | 'date-range' | 'expense' | 'income' | 'annual';
 
@@ -45,10 +46,22 @@ function Router() {
   const [showIncomeReport, setShowIncomeReport] = useState(false);
   const [showAnnualReport, setShowAnnualReport] = useState(false);
   const [error, setError] = useState<ErrorState | null>(null);
+  const { toast } = useToast();
 
   // Get data from context and location
-  const { bills, incomes } = useData();
+  const { bills, incomes, isLoading, error: dataError } = useData();
   const [location, setLocation] = useLocation();
+
+  // Show data error toast
+  useEffect(() => {
+    if (dataError) {
+      toast({
+        variant: "destructive",
+        title: "Data Error",
+        description: dataError.message,
+      });
+    }
+  }, [dataError, toast]);
 
   // Clear error after timeout if specified
   useEffect(() => {
@@ -68,13 +81,12 @@ function Router() {
     try {
       dialogSetter(open);
       if (!open) {
-        // Only update location if we're closing the dialog
         setLocation('/', { replace: true });
       }
       logger.info(`${reportType} dialog state changed`, { open });
-      setError(null); // Clear any previous errors
+      setError(null);
     } catch (err) {
-      const error = err as Error;
+      const error = err instanceof Error ? err : new Error('Unknown error occurred');
       logger.error(`Error handling ${reportType} dialog`, { error });
       setError({
         message: `Failed to ${open ? 'open' : 'close'} ${reportType} report: ${error.message}`,
@@ -98,32 +110,41 @@ function Router() {
     const handler = dialogStates[location];
     if (handler) {
       try {
-        // Reset all dialogs first to prevent multiple dialogs being open
-        setShowMonthlyToDate(false);
-        setShowMonthlyReport(false);
-        setShowDateRangeReport(false);
-        setShowExpenseReport(false);
-        setShowIncomeReport(false);
-        setShowAnnualReport(false);
+        // Reset all dialogs first
+        Object.keys(dialogStates).forEach(() => {
+          setShowMonthlyToDate(false);
+          setShowMonthlyReport(false);
+          setShowDateRangeReport(false);
+          setShowExpenseReport(false);
+          setShowIncomeReport(false);
+          setShowAnnualReport(false);
+        });
 
-        // Then open the requested dialog
         handler();
         logger.info('Route changed successfully', { location });
       } catch (err) {
-        const error = err as Error;
+        const error = err instanceof Error ? err : new Error('Unknown error occurred');
         logger.error('Failed to handle route change', { error, location });
         setError({
           message: `Failed to handle route change: ${error.message}`,
           severity: 'error',
           timeout: 5000
         });
-        setLocation('/', { replace: true }); // Redirect to home on error
+        setLocation('/', { replace: true });
       }
     }
   }, [location, setLocation]);
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <ErrorBoundary fallback={<div className="p-4">Something went wrong. Please try again.</div>}>
+    <ErrorBoundary>
       {/* Error Alert */}
       {error && (
         <Alert 
@@ -148,10 +169,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Budget} />
         <Route path="/reports/:type">
-          {(params) => {
-            // This is just a placeholder component since dialogs are handled by useEffect
-            return null;
-          }}
+          {() => null /* Dialog handling is done via useEffect */}
         </Route>
         <Route>
           {/* 404 Route */}
