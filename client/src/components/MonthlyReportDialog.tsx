@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { X } from "lucide-react";
+import { X, Calendar, AlertCircle } from "lucide-react";
 
 interface Transaction {
   date: string;
@@ -187,12 +187,16 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="border-b pb-4">
           <DialogTitle className="text-xl font-bold flex items-center justify-between">
-            Monthly Report - February 2025
             <div className="flex items-center gap-2">
-              <div className="text-sm font-normal text-muted-foreground">
-                As of February 8, 2025
+              Monthly Report - February 2025
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="text-sm font-normal flex items-center gap-1 bg-muted px-2 py-1 rounded-md">
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                <span>As of February 8, 2025</span>
               </div>
               <DialogClose className="rounded-sm opacity-70 hover:opacity-100">
                 <X className="h-4 w-4" />
@@ -202,25 +206,66 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-8">
+        <div className="space-y-8 pt-4">
+          {/* Monthly Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="bg-muted/50">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(occurredIncomesTotal + pendingIncomesTotal)}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  <span className="text-green-600">✓ {formatCurrency(occurredIncomesTotal)}</span> occurred +{' '}
+                  <span className="text-green-400">⌛ {formatCurrency(pendingIncomesTotal)}</span> pending
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(occurredExpensesTotal + pendingExpensesTotal)}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  <span className="text-red-600">✓ {formatCurrency(occurredExpensesTotal)}</span> occurred +{' '}
+                  <span className="text-red-400">⌛ {formatCurrency(pendingExpensesTotal)}</span> pending
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${monthlyTotal.balance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                  {formatCurrency(monthlyTotal.balance)}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Expected month-end balance
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Occurred Transactions Section */}
-          <div className="space-y-4">
-            <div className="border-b pb-2">
-              <h2 className="text-lg font-semibold">Transactions Through February 8</h2>
-              <p className="text-sm text-muted-foreground">
-                Income: {formatCurrency(occurredIncomesTotal)} | 
-                Expenses: {formatCurrency(occurredExpensesTotal)} | 
-                Balance: <span className={occurredBalance >= 0 ? 'text-green-600' : 'text-red-600'}>
-                  {formatCurrency(occurredBalance)}
-                </span>
-              </p>
-            </div>
+          <div className="border rounded-lg p-4 bg-green-50/50 dark:bg-green-950/20">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+              <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
+              Occurred Transactions (Through Feb 8)
+            </h2>
 
             {/* Occurred Income */}
             {occurredIncomes.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Income Received</CardTitle>
+              <Card className="mb-4 border-green-200">
+                <CardHeader className="py-4 bg-green-50/50">
+                  <CardTitle className="text-sm font-medium text-green-700">Income Received</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -236,8 +281,8 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                         <TableRow key={i}>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
-                          <TableCell className="text-right text-green-600">
-                            {formatCurrency(t.amount)}
+                          <TableCell className="text-right text-green-600 font-medium">
+                            ✓ {formatCurrency(t.amount)}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -249,9 +294,9 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
 
             {/* Occurred Expenses */}
             {occurredExpenses.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Expenses Paid</CardTitle>
+              <Card className="border-red-200">
+                <CardHeader className="py-4 bg-red-50/50">
+                  <CardTitle className="text-sm font-medium text-red-700">Expenses Paid</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -267,8 +312,8 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                         <TableRow key={i}>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
-                          <TableCell className="text-right text-red-600">
-                            {formatCurrency(t.amount)}
+                          <TableCell className="text-right text-red-600 font-medium">
+                            ✓ {formatCurrency(t.amount)}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -280,23 +325,17 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
           </div>
 
           {/* Pending Transactions Section */}
-          <div className="space-y-4">
-            <div className="border-b pb-2">
-              <h2 className="text-lg font-semibold">Remaining Transactions</h2>
-              <p className="text-sm text-muted-foreground">
-                Expected Income: {formatCurrency(pendingIncomesTotal)} | 
-                Expected Expenses: {formatCurrency(pendingExpensesTotal)} | 
-                Expected Balance: <span className={pendingBalance >= 0 ? 'text-green-600' : 'text-red-600'}>
-                  {formatCurrency(pendingBalance)}
-                </span>
-              </p>
-            </div>
+          <div className="border rounded-lg p-4 bg-yellow-50/50 dark:bg-yellow-950/20">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+              <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full"></span>
+              Pending Transactions (After Feb 8)
+            </h2>
 
             {/* Pending Income */}
             {pendingIncomes.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Expected Income</CardTitle>
+              <Card className="mb-4 border-green-100">
+                <CardHeader className="py-4 bg-green-50/30">
+                  <CardTitle className="text-sm font-medium text-green-600">Expected Income</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -312,8 +351,8 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                         <TableRow key={i}>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
-                          <TableCell className="text-right text-green-600">
-                            {formatCurrency(t.amount)}
+                          <TableCell className="text-right text-green-400 font-medium">
+                            ⌛ {formatCurrency(t.amount)}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -325,9 +364,9 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
 
             {/* Pending Expenses */}
             {pendingExpenses.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Expected Expenses</CardTitle>
+              <Card className="border-red-100">
+                <CardHeader className="py-4 bg-red-50/30">
+                  <CardTitle className="text-sm font-medium text-red-600">Expected Expenses</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -343,8 +382,8 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                         <TableRow key={i}>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
-                          <TableCell className="text-right text-red-600">
-                            {formatCurrency(t.amount)}
+                          <TableCell className="text-right text-red-400 font-medium">
+                            ⌛ {formatCurrency(t.amount)}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -353,43 +392,6 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                 </CardContent>
               </Card>
             )}
-          </div>
-
-          {/* Monthly Total Summary */}
-          <div className="pt-4 border-t">
-            <h2 className="text-lg font-semibold mb-4">Monthly Total Summary</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
-                    {formatCurrency(monthlyTotal.income)}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
-                    {formatCurrency(monthlyTotal.expenses)}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Monthly Balance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${monthlyTotal.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(monthlyTotal.balance)}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </div>
       </DialogContent>
