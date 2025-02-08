@@ -171,30 +171,28 @@ export default function DailySummaryDialog({
           {/* Remaining Till End Of Month */}
           <Card className="p-4">
             <h3 className="text-lg font-semibold mb-4">Remaining Till End Of Month</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-sm">
-                  <p className="text-muted-foreground">Remaining Income</p>
-                  <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                    {formatCurrency(remainingIncome)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    From total {formatCurrency(totalMonthIncome)}
-                  </p>
-                </div>
-                <div className="text-sm">
-                  <p className="text-muted-foreground">Remaining Expenses</p>
-                  <p className="text-lg font-semibold text-red-600 dark:text-red-400">
-                    {formatCurrency(remainingExpenses)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    From total {formatCurrency(totalMonthExpenses)}
-                  </p>
-                </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-sm">
+                <p className="text-muted-foreground">Remaining Income</p>
+                <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                  {formatCurrency(remainingIncome)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  From total {formatCurrency(totalMonthIncome)}
+                </p>
               </div>
-              <div className="pt-4 border-t">
-                <p className="text-sm text-muted-foreground">Balance of Remaining</p>
-                <p className={`text-xl font-bold ${
+              <div className="text-sm">
+                <p className="text-muted-foreground">Remaining Expenses</p>
+                <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+                  {formatCurrency(remainingExpenses)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  From total {formatCurrency(totalMonthExpenses)}
+                </p>
+              </div>
+              <div className="text-sm">
+                <p className="text-muted-foreground">Balance of Remaining</p>
+                <p className={`text-lg font-semibold ${
                   remainingBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }`}>
                   {formatCurrency(remainingBalance)}
