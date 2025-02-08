@@ -36,6 +36,28 @@ export default function DailySummaryDialog({
   const dailyBills = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
   const totalNet = totalIncomeUpToToday - totalBillsUpToToday;
 
+  // Calculate total month's income (Majdi's bi-monthly + Ruba's bi-weekly)
+  const totalMonthIncome = (() => {
+    const majdiSalary = dayIncomes.find(income => income.source === "Majdi's Salary")?.amount ?? 0;
+    const rubaSalary = dayIncomes.find(income => income.source === "Ruba's Salary")?.amount ?? 0;
+
+    // Majdi gets paid twice a month
+    const majdiMonthlyTotal = majdiSalary * 2;
+
+    // Ruba gets paid bi-weekly (approximately 2.17 times per month)
+    const rubaMonthlyTotal = Math.round(rubaSalary * 2.17);
+
+    return majdiMonthlyTotal + rubaMonthlyTotal;
+  })();
+
+  // Calculate total month's expenses
+  const totalMonthExpenses = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
+
+  // Calculate remaining amounts
+  const remainingIncome = totalMonthIncome - totalIncomeUpToToday;
+  const remainingExpenses = totalMonthExpenses - totalBillsUpToToday;
+  const remainingBalance = remainingIncome - remainingExpenses;
+
   const currentDate = dayjs()
     .year(selectedYear)
     .month(selectedMonth)
@@ -135,6 +157,41 @@ export default function DailySummaryDialog({
               }`}>
                 {formatCurrency(totalNet)}
               </p>
+            </div>
+          </Card>
+
+          {/* New Section: Remaining Till End Of Month */}
+          <Card className="p-4">
+            <h3 className="text-lg font-semibold mb-4">Remaining Till End Of Month</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-sm">
+                  <p className="text-muted-foreground">Remaining Income</p>
+                  <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                    {formatCurrency(remainingIncome)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    From total {formatCurrency(totalMonthIncome)}
+                  </p>
+                </div>
+                <div className="text-sm">
+                  <p className="text-muted-foreground">Remaining Expenses</p>
+                  <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+                    {formatCurrency(remainingExpenses)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    From total {formatCurrency(totalMonthExpenses)}
+                  </p>
+                </div>
+              </div>
+              <div className="pt-4 border-t">
+                <p className="text-sm text-muted-foreground">Balance of Remaining</p>
+                <p className={`text-xl font-bold ${
+                  remainingBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                }`}>
+                  {formatCurrency(remainingBalance)}
+                </p>
+              </div>
             </div>
           </Card>
         </div>
