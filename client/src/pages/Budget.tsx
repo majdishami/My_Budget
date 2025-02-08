@@ -58,7 +58,7 @@ const formatCurrency = (amount: number) => {
   }).format(Math.round(amount));
 };
 
-const Budget = () => {
+export const Budget = () => {
   const { incomes, bills, saveIncomes, saveBills, resetData } = useData();
 
   // Time Management
@@ -80,7 +80,6 @@ const Budget = () => {
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   const [deletingIncome, setDeletingIncome] = useState<Income | null>(null);
   const [showDeleteIncomeDialog, setShowDeleteIncomeDialog] = useState(false);
-  const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
   const [showDailySummary, setShowDailySummary] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 

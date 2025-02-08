@@ -6,7 +6,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
@@ -59,24 +59,23 @@ interface ExpenseReportDialogProps {
 
 export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: ExpenseReportDialogProps) {
   const [selectedBillId, setSelectedBillId] = useState<string | undefined>();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
-  const today = dayjs();
   const [dateError, setDateError] = useState<string | null>(null);
+  const today = useMemo(() => dayjs(), []); // Memoize today's date
 
   useEffect(() => {
     if (!isOpen) {
       setSelectedBillId(undefined);
       setDate(undefined);
       setShowReport(false);
-      setTransactions([]);
       setDateError(null);
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!showReport || !selectedBillId || !date?.from || !date?.to) return;
+  // Memoize transactions calculation
+  const transactions = useMemo(() => {
+    if (!showReport || !selectedBillId || !date?.from || !date?.to) return [];
 
     // Validate date range
     if (dayjs(date.to).isBefore(date.from)) {
@@ -85,22 +84,22 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         from: date.from,
         to: date.from
       });
-      return;
+      return [];
     }
 
     setDateError(null);
     const selectedBill = bills.find(bill => bill.id === selectedBillId);
-    if (!selectedBill) return;
+    if (!selectedBill) return [];
 
     const startDate = dayjs(date.from);
     const endDate = dayjs(date.to);
-    const mockTransactions: Transaction[] = [];
+    const result: Transaction[] = [];
 
     let currentMonth = startDate.startOf('month');
     while (currentMonth.isSameOrBefore(endDate)) {
       const transactionDate = currentMonth.date(selectedBill.day);
       if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
-        mockTransactions.push({
+        result.push({
           date: transactionDate.format('YYYY-MM-DD'),
           description: selectedBill.name,
           amount: selectedBill.amount,
@@ -110,12 +109,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       currentMonth = currentMonth.add(1, 'month');
     }
 
-    setTransactions(mockTransactions);
+    return result;
   }, [showReport, selectedBillId, date, bills, today]);
 
-  const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
-  const occurredAmount = transactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0);
-  const pendingAmount = totalAmount - occurredAmount;
+  // Memoize summary calculations
+  const summary = useMemo(() => {
+    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+    const occurredAmount = transactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0);
+    return {
+      totalAmount,
+      occurredAmount,
+      pendingAmount: totalAmount - occurredAmount
+    };
+  }, [transactions]);
 
   if (!selectedBillId || !showReport) {
     return (
@@ -224,9 +230,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             </div>
           </DialogTitle>
           <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </DialogClose>
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
         </DialogHeader>
 
         {transactions.length === 0 ? (
@@ -245,7 +251,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-600">
-                    {formatCurrency(totalAmount)}
+                    {formatCurrency(summary.totalAmount)}
                   </div>
                 </CardContent>
               </Card>
@@ -256,7 +262,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-600">
-                    {formatCurrency(occurredAmount)}
+                    {formatCurrency(summary.occurredAmount)}
                   </div>
                 </CardContent>
               </Card>
@@ -267,7 +273,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-300">
-                    {formatCurrency(pendingAmount)}
+                    {formatCurrency(summary.pendingAmount)}
                   </div>
                 </CardContent>
               </Card>
