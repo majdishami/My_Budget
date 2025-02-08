@@ -56,6 +56,12 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showReport, setShowReport] = useState(false);
 
+  // Add state for summary totals
+  const [summaryTotals, setSummaryTotals] = useState({
+    occurred: 0,
+    pending: 0
+  });
+
   // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
@@ -65,6 +71,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
       });
       setShowReport(false);
       setTransactions([]);
+      setSummaryTotals({ occurred: 0, pending: 0 });
     }
   }, [isOpen, today]);
 
@@ -143,7 +150,22 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
     };
 
     const newTransactions = generateTransactions();
+
+    // Calculate summary totals
+    const totals = newTransactions.reduce(
+      (acc, transaction) => {
+        if (transaction.occurred) {
+          acc.occurred += transaction.amount;
+        } else {
+          acc.pending += transaction.amount;
+        }
+        return acc;
+      },
+      { occurred: 0, pending: 0 }
+    );
+
     setTransactions(newTransactions);
+    setSummaryTotals(totals);
   }, [showReport, date?.from, date?.to, incomes, today]);
 
   if (!showReport) {
@@ -208,6 +230,27 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
             </div>
           </DialogTitle>
         </DialogHeader>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Paid Income</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(summaryTotals.occurred)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Pending Income</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(summaryTotals.pending)}</div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="mt-4">
           <Table>
             <TableHeader>
