@@ -33,110 +33,156 @@ interface MonthlyReportDialogProps {
 
 export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyReportDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const FIXED_DATE = '2025-02-08';
-  const today = dayjs(FIXED_DATE);
+  const REFERENCE_DATE = dayjs('2025-02-08'); // February 8, 2025
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const mockTransactions: Transaction[] = [];
-
-    // Add Majdi's salary for February
-    if (today.date() >= 1) {
-      mockTransactions.push({
+    // Generate all transactions for February
+    const allTransactions: Transaction[] = [
+      // Income transactions
+      {
         date: '2025-02-01',
         description: "Majdi's Salary",
         amount: 4739,
         type: 'income'
-      });
-    }
-    if (today.date() >= 15) {
-      mockTransactions.push({
-        date: '2025-02-15',
-        description: "Majdi's Salary",
-        amount: 4739,
-        type: 'income'
-      });
-    }
-
-    // Add Ruba's bi-weekly salary for February
-    if (today.date() >= 7) {
-      mockTransactions.push({
+      },
+      {
         date: '2025-02-07',
         description: "Ruba's Salary",
         amount: 2168,
         type: 'income'
-      });
-    }
-    if (today.date() >= 21) {
-      mockTransactions.push({
+      },
+      {
+        date: '2025-02-15',
+        description: "Majdi's Salary",
+        amount: 4739,
+        type: 'income'
+      },
+      {
         date: '2025-02-21',
         description: "Ruba's Salary",
         amount: 2168,
         type: 'income'
-      });
-    }
-
-    // Add February expenses with dates
-    const expenses = [
-      { date: '01', name: 'ATT Phone Bill', amount: 429 },
-      { date: '01', name: "Maid's 1st payment", amount: 120 },
-      { date: '01', name: 'Monthly Rent', amount: 3750 },
-      { date: '03', name: 'Sling TV', amount: 75 },
-      { date: '06', name: 'Cox Internet', amount: 81 },
-      { date: '07', name: 'Water Bill', amount: 80 },
-      { date: '07', name: 'NV Energy Electrical', amount: 250 },
-      { date: '09', name: 'TransAmerica Life Insurance', amount: 77 },
-      { date: '14', name: 'Credit Card minimum payments', amount: 225 },
-      { date: '14', name: 'Apple/Google/YouTube', amount: 130 },
-      { date: '16', name: 'Expenses & Groceries', amount: 3000 },
-      { date: '17', name: "Maid's 2nd Payment", amount: 120 },
-      { date: '17', name: 'SoFi Personal Loan', amount: 1915 },
-      { date: '17', name: 'Southwest Gas', amount: 75 },
-      { date: '28', name: 'Car Insurance for 3 cars', amount: 704 }
+      },
+      // Expense transactions
+      {
+        date: '2025-02-01',
+        description: 'ATT Phone Bill',
+        amount: 429,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-01',
+        description: "Maid's 1st payment",
+        amount: 120,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-01',
+        description: 'Monthly Rent',
+        amount: 3750,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-03',
+        description: 'Sling TV',
+        amount: 75,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-06',
+        description: 'Cox Internet',
+        amount: 81,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-07',
+        description: 'Water Bill',
+        amount: 80,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-07',
+        description: 'NV Energy Electrical',
+        amount: 250,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-09',
+        description: 'TransAmerica Life Insurance',
+        amount: 77,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-14',
+        description: 'Credit Card minimum payments',
+        amount: 225,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-14',
+        description: 'Apple/Google/YouTube',
+        amount: 130,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-16',
+        description: 'Expenses & Groceries',
+        amount: 3000,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-17',
+        description: "Maid's 2nd Payment",
+        amount: 120,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-17',
+        description: 'SoFi Personal Loan',
+        amount: 1915,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-17',
+        description: 'Southwest Gas',
+        amount: 75,
+        type: 'expense'
+      },
+      {
+        date: '2025-02-28',
+        description: 'Car Insurance for 3 cars',
+        amount: 704,
+        type: 'expense'
+      }
     ];
 
-    // Only add expenses that have occurred before or on the current date
-    expenses.forEach(expense => {
-      const expenseDate = parseInt(expense.date);
-      if (expenseDate <= today.date()) {
-        mockTransactions.push({
-          date: `2025-02-${expense.date}`,
-          description: expense.name,
-          amount: expense.amount,
-          type: 'expense'
-        });
-      }
-    });
+    setTransactions(allTransactions);
+  }, [isOpen]);
 
-    setTransactions(mockTransactions);
-  }, [isOpen, today]);
-
-  // Filter transactions based on the current date (Feb 8)
-  const occurredTransactions = transactions.filter(t => 
-    dayjs(t.date).isSameOrBefore(today)
-  );
-
-  const pendingTransactions = transactions.filter(t => 
-    dayjs(t.date).isAfter(today)
-  );
+  // Split transactions into occurred and pending
+  const occurred = transactions.filter(t => dayjs(t.date).isSameOrBefore(REFERENCE_DATE));
+  const pending = transactions.filter(t => dayjs(t.date).isAfter(REFERENCE_DATE));
 
   // Calculate summaries
-  const occurredIncomes = occurredTransactions.filter(t => t.type === 'income');
-  const occurredExpenses = occurredTransactions.filter(t => t.type === 'expense');
+  const occurredIncomes = occurred.filter(t => t.type === 'income');
+  const occurredExpenses = occurred.filter(t => t.type === 'expense');
   const occurredIncomesTotal = occurredIncomes.reduce((sum, t) => sum + t.amount, 0);
   const occurredExpensesTotal = occurredExpenses.reduce((sum, t) => sum + t.amount, 0);
   const occurredBalance = occurredIncomesTotal - occurredExpensesTotal;
 
-  const pendingIncomes = pendingTransactions.filter(t => t.type === 'income');
-  const pendingExpenses = pendingTransactions.filter(t => t.type === 'expense');
+  const pendingIncomes = pending.filter(t => t.type === 'income');
+  const pendingExpenses = pending.filter(t => t.type === 'expense');
   const pendingIncomesTotal = pendingIncomes.reduce((sum, t) => sum + t.amount, 0);
   const pendingExpensesTotal = pendingExpenses.reduce((sum, t) => sum + t.amount, 0);
   const pendingBalance = pendingIncomesTotal - pendingExpensesTotal;
 
-  const totalIncome = occurredIncomesTotal + pendingIncomesTotal;
-  const totalExpenses = occurredExpensesTotal + pendingExpensesTotal;
-  const monthlyBalance = totalIncome - totalExpenses;
+  const monthlyTotal = {
+    income: occurredIncomesTotal + pendingIncomesTotal,
+    expenses: occurredExpensesTotal + pendingExpensesTotal,
+    balance: (occurredIncomesTotal + pendingIncomesTotal) - (occurredExpensesTotal + pendingExpensesTotal)
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -146,7 +192,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
             Monthly Report - February 2025
             <div className="flex items-center gap-2">
               <div className="text-sm font-normal text-muted-foreground">
-                Report as of Feb 8, 2025
+                As of February 8, 2025
               </div>
               <DialogClose className="rounded-sm opacity-70 hover:opacity-100">
                 <X className="h-4 w-4" />
@@ -156,242 +202,190 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Month-to-Date Section */}
-          <div className="border-b pb-6">
-            <h2 className="text-lg font-semibold mb-4">Transactions Up To Feb 8</h2>
+        <div className="space-y-8">
+          {/* Occurred Transactions Section */}
+          <div className="space-y-4">
+            <div className="border-b pb-2">
+              <h2 className="text-lg font-semibold">Transactions Through February 8</h2>
+              <p className="text-sm text-muted-foreground">
+                Income: {formatCurrency(occurredIncomesTotal)} | 
+                Expenses: {formatCurrency(occurredExpensesTotal)} | 
+                Balance: <span className={occurredBalance >= 0 ? 'text-green-600' : 'text-red-600'}>
+                  {formatCurrency(occurredBalance)}
+                </span>
+              </p>
+            </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {/* Occurred Income */}
+            {occurredIncomes.length > 0 && (
               <Card>
-                <CardHeader className="py-4">
+                <CardHeader>
                   <CardTitle className="text-sm font-medium">Income Received</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
-                    {formatCurrency(occurredIncomesTotal)}
-                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {occurredIncomes.map((t, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
+                          <TableCell>{t.description}</TableCell>
+                          <TableCell className="text-right text-green-600">
+                            {formatCurrency(t.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Occurred Expenses */}
+            {occurredExpenses.length > 0 && (
               <Card>
-                <CardHeader className="py-4">
+                <CardHeader>
                   <CardTitle className="text-sm font-medium">Expenses Paid</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
-                    {formatCurrency(occurredExpensesTotal)}
-                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {occurredExpenses.map((t, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
+                          <TableCell>{t.description}</TableCell>
+                          <TableCell className="text-right text-red-600">
+                            {formatCurrency(t.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="py-4">
-                  <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${occurredBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(occurredBalance)}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Occurred Transactions Tables */}
-            <div className="space-y-4">
-              {occurredIncomes.length > 0 && (
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Income Received</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {occurredIncomes.map((transaction, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{dayjs(transaction.date).format('MMM D')}</TableCell>
-                            <TableCell>{transaction.description}</TableCell>
-                            <TableCell className="text-right text-green-600">
-                              {formatCurrency(transaction.amount)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
-
-              {occurredExpenses.length > 0 && (
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Expenses Paid</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {occurredExpenses.map((transaction, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{dayjs(transaction.date).format('MMM D')}</TableCell>
-                            <TableCell>{transaction.description}</TableCell>
-                            <TableCell className="text-right text-red-600">
-                              {formatCurrency(transaction.amount)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* Remaining Month Section */}
-          <div className="border-b pb-6">
-            <h2 className="text-lg font-semibold mb-4">Remaining Transactions (After Feb 8)</h2>
+          {/* Pending Transactions Section */}
+          <div className="space-y-4">
+            <div className="border-b pb-2">
+              <h2 className="text-lg font-semibold">Remaining Transactions</h2>
+              <p className="text-sm text-muted-foreground">
+                Expected Income: {formatCurrency(pendingIncomesTotal)} | 
+                Expected Expenses: {formatCurrency(pendingExpensesTotal)} | 
+                Expected Balance: <span className={pendingBalance >= 0 ? 'text-green-600' : 'text-red-600'}>
+                  {formatCurrency(pendingBalance)}
+                </span>
+              </p>
+            </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {/* Pending Income */}
+            {pendingIncomes.length > 0 && (
               <Card>
-                <CardHeader className="py-4">
+                <CardHeader>
                   <CardTitle className="text-sm font-medium">Expected Income</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
-                    {formatCurrency(pendingIncomesTotal)}
-                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingIncomes.map((t, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
+                          <TableCell>{t.description}</TableCell>
+                          <TableCell className="text-right text-green-600">
+                            {formatCurrency(t.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Pending Expenses */}
+            {pendingExpenses.length > 0 && (
               <Card>
-                <CardHeader className="py-4">
+                <CardHeader>
                   <CardTitle className="text-sm font-medium">Expected Expenses</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
-                    {formatCurrency(pendingExpensesTotal)}
-                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingExpenses.map((t, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
+                          <TableCell>{t.description}</TableCell>
+                          <TableCell className="text-right text-red-600">
+                            {formatCurrency(t.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="py-4">
-                  <CardTitle className="text-sm font-medium">Expected Balance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${pendingBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(pendingBalance)}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Pending Transactions Tables */}
-            <div className="space-y-4">
-              {pendingIncomes.length > 0 && (
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Expected Income</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pendingIncomes.map((transaction, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{dayjs(transaction.date).format('MMM D')}</TableCell>
-                            <TableCell>{transaction.description}</TableCell>
-                            <TableCell className="text-right text-green-600">
-                              {formatCurrency(transaction.amount)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
-
-              {pendingExpenses.length > 0 && (
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Expected Expenses</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pendingExpenses.map((transaction, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{dayjs(transaction.date).format('MMM D')}</TableCell>
-                            <TableCell>{transaction.description}</TableCell>
-                            <TableCell className="text-right text-red-600">
-                              {formatCurrency(transaction.amount)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Monthly Total Summary */}
-          <div className="pt-4">
+          <div className="pt-4 border-t">
             <h2 className="text-lg font-semibold mb-4">Monthly Total Summary</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
-                <CardHeader className="py-4">
+                <CardHeader>
                   <CardTitle className="text-sm font-medium">Total Income</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-green-600">
-                    {formatCurrency(totalIncome)}
+                    {formatCurrency(monthlyTotal.income)}
                   </div>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="py-4">
+                <CardHeader>
                   <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-600">
-                    {formatCurrency(totalExpenses)}
+                    {formatCurrency(monthlyTotal.expenses)}
                   </div>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="py-4">
+                <CardHeader>
                   <CardTitle className="text-sm font-medium">Monthly Balance</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-2xl font-bold ${monthlyBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(monthlyBalance)}
+                  <div className={`text-2xl font-bold ${monthlyTotal.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(monthlyTotal.balance)}
                   </div>
                 </CardContent>
               </Card>
