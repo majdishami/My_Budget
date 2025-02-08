@@ -67,6 +67,14 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
     const endDate = dayjs(date.to);
     const mockTransactions: Transaction[] = [];
 
+    // Helper function to check if a date has occurred
+    const hasDateOccurred = (checkDate: dayjs.Dayjs) => {
+      return checkDate.isBefore(today) || 
+             (checkDate.isSame(today, 'day') && 
+              checkDate.isSame(today, 'month') && 
+              checkDate.isSame(today, 'year'));
+    };
+
     // Generate transactions based on provided incomes
     incomes.forEach(income => {
       if (income.source === "Majdi's Salary") {
@@ -83,7 +91,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               date: firstPayday.format('YYYY-MM-DD'),
               description: income.source,
               amount: income.amount / 2, // Split monthly amount
-              occurred: firstPayday.isBefore(today) || firstPayday.isSame(today, 'day')
+              occurred: hasDateOccurred(firstPayday)
             });
           }
 
@@ -92,7 +100,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               date: fifteenthPayday.format('YYYY-MM-DD'),
               description: income.source,
               amount: income.amount / 2, // Split monthly amount
-              occurred: fifteenthPayday.isBefore(today) || fifteenthPayday.isSame(today, 'day')
+              occurred: hasDateOccurred(fifteenthPayday)
             });
           }
 
@@ -111,7 +119,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
             date: payDate.format('YYYY-MM-DD'),
             description: income.source,
             amount: income.amount,
-            occurred: payDate.isBefore(today) || payDate.isSame(today, 'day')
+            occurred: hasDateOccurred(payDate)
           });
           payDate = payDate.add(14, 'day');
         }
