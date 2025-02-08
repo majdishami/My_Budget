@@ -33,7 +33,7 @@ interface MonthlyReportDialogProps {
 
 export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyReportDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const today = dayjs();
+  const today = dayjs(); // Use actual current date
   const reportDate = today.format('MMMM D, YYYY');
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');
@@ -42,36 +42,35 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
     if (!isOpen) return;
 
     const mockTransactions: Transaction[] = [];
+    const currentYear = today.year();
+    const currentMonth = today.month() + 1;
 
-    // Add Majdi's salary for the month
+    // Add Majdi's salary
     mockTransactions.push({
-      date: '2025-02-01',
+      date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`,
       description: "Majdi's Salary",
       amount: Math.round(4739),
       type: 'income'
     });
     mockTransactions.push({
-      date: '2025-02-15',
+      date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`,
       description: "Majdi's Salary",
       amount: Math.round(4739),
       type: 'income'
     });
 
-    // Add Ruba's bi-weekly salary for the month
-    mockTransactions.push({
-      date: '2025-02-07',
-      description: "Ruba's Salary",
-      amount: Math.round(2168),
-      type: 'income'
-    });
-    mockTransactions.push({
-      date: '2025-02-21',
-      description: "Ruba's Salary",
-      amount: Math.round(2168),
-      type: 'income'
+    // Add Ruba's bi-weekly salary
+    const rubaPayDates = ['07', '21'];
+    rubaPayDates.forEach(day => {
+      mockTransactions.push({
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${day}`,
+        description: "Ruba's Salary",
+        amount: Math.round(2168),
+        type: 'income'
+      });
     });
 
-    // Add all monthly expenses
+    // Add monthly expenses
     const monthlyExpenses = [
       { day: 1, name: 'ATT Phone Bill', amount: 429 },
       { day: 1, name: "Maid's 1st payment", amount: 120 },
@@ -92,7 +91,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
 
     monthlyExpenses.forEach(expense => {
       mockTransactions.push({
-        date: `2025-02-${String(expense.day).padStart(2, '0')}`,
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(expense.day).padStart(2, '0')}`,
         description: expense.name,
         amount: Math.round(expense.amount),
         type: 'expense'
@@ -100,7 +99,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
     });
 
     setTransactions(mockTransactions);
-  }, [isOpen]);
+  }, [isOpen, today]);
 
   // Separate transactions into occurred and pending
   const { 
