@@ -39,8 +39,14 @@ interface DateRangeReportDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface RemainingCalculations {
+  remainingIncome: number;
+  remainingExpenses: number;
+  remainingBalance: number;
+}
+
 export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRangeReportDialogProps) {
-  const today = dayjs('2025-02-08'); // Set to current date (February 08, 2025)
+  const today = dayjs('2025-02-08'); 
   const defaultDateRange = {
     from: today.toDate(),
     to: undefined
@@ -49,13 +55,12 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   const [date, setDate] = useState<DateRange | undefined>(defaultDateRange);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showReport, setShowReport] = useState(false);
+  const [remainingCalcs, setRemainingCalcs] = useState<RemainingCalculations | null>(null);
 
-  // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
       setShowReport(false);
       setTransactions([]);
-      // Only reset date if it's different from default
       if (date?.from !== defaultDateRange.from || date?.to !== defaultDateRange.to) {
         setDate(defaultDateRange);
       }
@@ -69,12 +74,11 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
     const endDate = dayjs(date.to);
     const mockTransactions: Transaction[] = [];
 
-    // Add Majdi's salary for the selected range
     const majdiPayDates = Array.from({ length: 12 }, (_, i) => {
       const month = startDate.add(i, 'month');
       return [
-        month.date(1),  // 1st of month
-        month.date(15), // 15th of month
+        month.date(1),  
+        month.date(15), 
       ];
     }).flat();
 
@@ -90,7 +94,6 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
       }
     });
 
-    // Add Ruba's bi-weekly salary
     let rubaPayDate = dayjs('2025-01-10');
     while (rubaPayDate.isSameOrBefore(endDate)) {
       if (rubaPayDate.isBetween(startDate, endDate, 'day', '[]')) {
@@ -105,7 +108,6 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
       rubaPayDate = rubaPayDate.add(14, 'day');
     }
 
-    // Add monthly expenses for each month in the range
     const monthlyExpenses = [
       { day: 1, name: 'ATT Phone Bill', amount: 429 },
       { day: 1, name: "Maid's 1st payment", amount: 120 },
@@ -144,7 +146,6 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
     setTransactions(mockTransactions);
   }, [showReport, date, today]);
 
-  // Group transactions by month
   const groupedTransactions = transactions.reduce((groups: Record<string, Transaction[]>, transaction) => {
     const monthKey = dayjs(transaction.date).format('YYYY-MM');
     if (!groups[monthKey]) {
@@ -154,7 +155,6 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
     return groups;
   }, {});
 
-  // Sort month keys
   const sortedMonths = Object.keys(groupedTransactions).sort();
 
   const summary = transactions.reduce(
@@ -181,6 +181,43 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   const occurredNet = summary.occurredIncome - summary.occurredExpenses;
   const futureNet = summary.futureIncome - summary.futureExpenses;
 
+  const calculateRemaining = (selectedDate: Date) => {
+    const selectedDay = dayjs(selectedDate);
+    const monthStart = selectedDay.startOf('month');
+    const monthEnd = selectedDay.endOf('month');
+
+    const monthTransactions = transactions.filter(t => {
+      const transDate = dayjs(t.date);
+      return transDate.isSame(selectedDay, 'month');
+    });
+
+    const monthlyIncome = monthTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const monthlyExpenses = monthTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const incurredIncome = monthTransactions
+      .filter(t => t.type === 'income' && dayjs(t.date).isSameOrBefore(selectedDay))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const incurredExpenses = monthTransactions
+      .filter(t => t.type === 'expense' && dayjs(t.date).isSameOrBefore(selectedDay))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const remainingIncome = monthlyIncome - incurredIncome;
+    const remainingExpenses = monthlyExpenses - incurredExpenses;
+    const remainingBalance = remainingIncome - remainingExpenses;
+
+    setRemainingCalcs({
+      remainingIncome,
+      remainingExpenses,
+      remainingBalance
+    });
+  };
+
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -193,12 +230,39 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
               <Calendar
                 mode="range"
                 selected={date}
-                onSelect={setDate}
+                onSelect={(newDate) => {
+                  setDate(newDate);
+                  if (newDate?.from) {
+                    calculateRemaining(newDate.from);
+                  } else {
+                    setRemainingCalcs(null);
+                  }
+                }}
                 numberOfMonths={1}
                 defaultMonth={today.toDate()}
                 className="rounded-md"
               />
             </div>
+            {remainingCalcs && (
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">
+                    Remaining Till End Of Month
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="text-green-600">
+                    Remaining Income: {formatCurrency(remainingCalcs.remainingIncome)}
+                  </div>
+                  <div className="text-red-600">
+                    Remaining Expenses: {formatCurrency(remainingCalcs.remainingExpenses)}
+                  </div>
+                  <div className={`font-bold ${remainingCalcs.remainingBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    Balance of Remaining: {formatCurrency(remainingCalcs.remainingBalance)}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             <div className="text-sm text-muted-foreground">
               {date?.from ? (
                 <>
@@ -244,7 +308,6 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
           Financial report showing income and expenses between selected dates
         </div>
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="space-y-4">
             <Card>
@@ -283,7 +346,6 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
           </div>
         </div>
 
-        {/* Monthly Grouped Transactions */}
         <div className="space-y-4">
           {sortedMonths.map(monthKey => {
             const monthTransactions = groupedTransactions[monthKey];
@@ -314,7 +376,6 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {/* Income Section */}
                   {monthIncomes.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-sm font-medium mb-2">Income</h4>
@@ -347,7 +408,6 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                     </div>
                   )}
 
-                  {/* Expense Section */}
                   {monthExpenses.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium mb-2">Expenses</h4>
