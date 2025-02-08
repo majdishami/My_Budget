@@ -5,7 +5,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ interface RemainingCalculations {
 }
 
 export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRangeReportDialogProps) {
-  const today = dayjs('2025-02-08'); 
+  const today = dayjs('2025-02-08');
   const defaultDateRange = {
     from: today.toDate(),
     to: undefined
@@ -77,8 +77,8 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
     const majdiPayDates = Array.from({ length: 12 }, (_, i) => {
       const month = startDate.add(i, 'month');
       return [
-        month.date(1),  
-        month.date(15), 
+        month.date(1),
+        month.date(15),
       ];
     }).flat();
 
@@ -144,7 +144,47 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
     }
 
     setTransactions(mockTransactions);
-  }, [showReport, date, today]);
+    // Only calculate remaining if we have a from date
+    if (date?.from) {
+      calculateRemaining(date?.from);
+    }
+  }, [showReport, date?.from, date?.to]); // Add proper dependencies
+
+  // Memoize the calculation function to prevent unnecessary recalculations
+  const calculateRemaining = useCallback((selectedDate: Date) => {
+    const selectedDay = dayjs(selectedDate);
+
+    const monthTransactions = transactions.filter(t => {
+      const transDate = dayjs(t.date);
+      return transDate.isSame(selectedDay, 'month');
+    });
+
+    const monthlyIncome = monthTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const monthlyExpenses = monthTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const incurredIncome = monthTransactions
+      .filter(t => t.type === 'income' && dayjs(t.date).isSameOrBefore(selectedDay))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const incurredExpenses = monthTransactions
+      .filter(t => t.type === 'expense' && dayjs(t.date).isSameOrBefore(selectedDay))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const remainingIncome = monthlyIncome - incurredIncome;
+    const remainingExpenses = monthlyExpenses - incurredExpenses;
+    const remainingBalance = remainingIncome - remainingExpenses;
+
+    setRemainingCalcs({
+      remainingIncome,
+      remainingExpenses,
+      remainingBalance
+    });
+  }, [transactions]); // Add transactions as dependency
 
   const groupedTransactions = transactions.reduce((groups: Record<string, Transaction[]>, transaction) => {
     const monthKey = dayjs(transaction.date).format('YYYY-MM');
@@ -181,42 +221,6 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   const occurredNet = summary.occurredIncome - summary.occurredExpenses;
   const futureNet = summary.futureIncome - summary.futureExpenses;
 
-  const calculateRemaining = (selectedDate: Date) => {
-    const selectedDay = dayjs(selectedDate);
-    const monthStart = selectedDay.startOf('month');
-    const monthEnd = selectedDay.endOf('month');
-
-    const monthTransactions = transactions.filter(t => {
-      const transDate = dayjs(t.date);
-      return transDate.isSame(selectedDay, 'month');
-    });
-
-    const monthlyIncome = monthTransactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const monthlyExpenses = monthTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const incurredIncome = monthTransactions
-      .filter(t => t.type === 'income' && dayjs(t.date).isSameOrBefore(selectedDay))
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const incurredExpenses = monthTransactions
-      .filter(t => t.type === 'expense' && dayjs(t.date).isSameOrBefore(selectedDay))
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const remainingIncome = monthlyIncome - incurredIncome;
-    const remainingExpenses = monthlyExpenses - incurredExpenses;
-    const remainingBalance = remainingIncome - remainingExpenses;
-
-    setRemainingCalcs({
-      remainingIncome,
-      remainingExpenses,
-      remainingBalance
-    });
-  };
 
   if (!showReport) {
     return (
@@ -232,6 +236,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                 selected={date}
                 onSelect={(newDate) => {
                   setDate(newDate);
+                  // Only calculate if we have a from date
                   if (newDate?.from) {
                     calculateRemaining(newDate.from);
                   } else {
