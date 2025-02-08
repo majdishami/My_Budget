@@ -52,14 +52,20 @@ export default function Reports() {
 
         if (firstPayday.isBetween(startDate, endDate, 'day', '[]')) {
           // Only add to income if the date has occurred
-          if (firstPayday.isBefore(today) || firstPayday.isSame(today, 'day')) {
+          if (firstPayday.isBefore(today) || 
+              (firstPayday.isSame(today, 'day') && 
+               firstPayday.isSame(today, 'month') && 
+               firstPayday.isSame(today, 'year'))) {
             income += 2250; // Half of monthly salary
           }
         }
 
         if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]')) {
           // Only add to income if the date has occurred
-          if (fifteenthPayday.isBefore(today) || fifteenthPayday.isSame(today, 'day')) {
+          if (fifteenthPayday.isBefore(today) || 
+              (fifteenthPayday.isSame(today, 'day') && 
+               fifteenthPayday.isSame(today, 'month') && 
+               fifteenthPayday.isSame(today, 'year'))) {
             income += 2250; // Other half of monthly salary
           }
         }
@@ -76,7 +82,10 @@ export default function Reports() {
       while (biweeklyDate.isSameOrBefore(endDate)) {
         if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]')) {
           // Only add to income if the date has occurred
-          if (biweeklyDate.isBefore(today) || biweeklyDate.isSame(today, 'day')) {
+          if (biweeklyDate.isBefore(today) || 
+              (biweeklyDate.isSame(today, 'day') && 
+               biweeklyDate.isSame(today, 'month') && 
+               biweeklyDate.isSame(today, 'year'))) {
             income += 2000;
           }
         }
@@ -87,7 +96,8 @@ export default function Reports() {
       // Monthly expenses (rent, utilities, etc.)
       currentDate = startDate.startOf('month');
       while (currentDate.isSameOrBefore(endDate)) {
-        if (currentDate.isBefore(today) || currentDate.isSame(today, 'month')) {
+        if (currentDate.isBefore(today, 'month') || 
+            currentDate.isSame(today, 'month')) {
           // Only add expenses for months that have occurred
           expenses += 3200;
         }

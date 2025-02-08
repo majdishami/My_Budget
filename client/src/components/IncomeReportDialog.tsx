@@ -47,18 +47,24 @@ interface IncomeReportDialogProps {
 }
 
 export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: IncomeReportDialogProps) {
-  const [date, setDate] = useState<DateRange | undefined>();
+  const today = dayjs(); // Use actual current date
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: today.toDate(), // Default to current date
+    to: undefined
+  });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showReport, setShowReport] = useState(false);
-  const today = dayjs(); // Use actual current date
 
   useEffect(() => {
     if (!isOpen) {
-      setDate(undefined);
+      setDate({
+        from: today.toDate(), // Reset to current date when dialog reopens
+        to: undefined
+      });
       setShowReport(false);
       setTransactions([]);
     }
-  }, [isOpen]);
+  }, [isOpen, today]);
 
   useEffect(() => {
     if (!showReport || !date?.from || !date?.to) return;
