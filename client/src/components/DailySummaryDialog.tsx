@@ -50,40 +50,25 @@ export default function DailySummaryDialog({
   const dailyBills = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
   const totalNet = totalIncomeUpToToday - totalBillsUpToToday;
 
-  // Set fixed values for February 2025 or calculate for other months
-  const totalMonthIncome = selectedMonth === 1 && selectedYear === 2025 ? 13814 : (() => {
-    const majdiSalary = dayIncomes.find(income => income.source === "Majdi's Salary")?.amount ?? 0;
-    const rubaSalary = dayIncomes.find(income => income.source === "Ruba's Salary")?.amount ?? 0;
+  // Predefined monthly totals for the year 2025
+  const monthlyTotals = {
+    0: { income: 13814, expenses: 11031 }, // January
+    1: { income: 13814, expenses: 11031 }, // February
+    2: { income: 13814, expenses: 11031 }, // March
+    3: { income: 13814, expenses: 11031 }, // April
+    4: { income: 13814, expenses: 11031 }, // May
+    5: { income: 13814, expenses: 11031 }, // June
+    6: { income: 13814, expenses: 11031 }, // July
+    7: { income: 13814, expenses: 11031 }, // August
+    8: { income: 13814, expenses: 11031 }, // September
+    9: { income: 13814, expenses: 11031 }, // October
+    10: { income: 13814, expenses: 11031 }, // November
+    11: { income: 13814, expenses: 11031 }, // December
+  };
 
-    // Majdi's bi-monthly salary (1st and 15th)
-    const majdiMonthlyTotal = majdiSalary * 2;
-
-    // Calculate Ruba's bi-weekly payments for the month
-    const startDate = dayjs('2025-01-10');
-    const monthStart = dayjs(`${selectedYear}-${selectedMonth + 1}-01`);
-    const monthEnd = monthStart.endOf('month');
-
-    let currentDate = startDate.clone();
-    let biweeklyPayments = 0;
-
-    // Count bi-weekly payments in the selected month
-    while (currentDate.isBefore(monthEnd) || currentDate.isSame(monthEnd, 'day')) {
-      if (currentDate.month() === selectedMonth && currentDate.year() === selectedYear) {
-        const weeksDiff = currentDate.diff(startDate, 'week');
-        if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
-          biweeklyPayments++;
-        }
-      }
-      currentDate = currentDate.add(14, 'day');
-    }
-
-    const rubaMonthlyTotal = rubaSalary * biweeklyPayments;
-    return majdiMonthlyTotal + rubaMonthlyTotal;
-  })();
-
-  // Set fixed values for February 2025 or calculate for other months
-  const totalMonthExpenses = selectedMonth === 1 && selectedYear === 2025 ? 11031 : 
-    dayBills.reduce((sum, bill) => sum + bill.amount, 0);
+  // Get the total income and expenses for the selected month
+  const totalMonthIncome = monthlyTotals[selectedMonth].income;
+  const totalMonthExpenses = monthlyTotals[selectedMonth].expenses;
 
   // 1. Remaining Income = Total income of the selected month - total income incurred till the day selected
   const remainingIncome = totalMonthIncome - totalIncomeUpToToday;
