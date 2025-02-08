@@ -144,7 +144,7 @@ export default function DailySummaryDialog({
           {/* 1st of Month Up To Selected Day */}
           <Card className="p-4">
             <h3 className="text-lg font-semibold mb-4">1st of Month Up To Selected Day</h3>
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="text-sm">
                 <p className="text-muted-foreground">Incurred Income</p>
                 <p className="text-lg font-semibold text-green-600 dark:text-green-400">
@@ -157,14 +157,14 @@ export default function DailySummaryDialog({
                   {formatCurrency(totalBillsUpToToday)}
                 </p>
               </div>
-            </div>
-            <div className="pt-4 border-t">
-              <p className="text-sm text-muted-foreground">Balance from 1st till selected date</p>
-              <p className={`text-xl font-bold ${
-                totalNet >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-              }`}>
-                {formatCurrency(totalNet)}
-              </p>
+              <div className="text-sm">
+                <p className="text-muted-foreground">Balance</p>
+                <p className={`text-lg font-semibold ${
+                  totalNet >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                }`}>
+                  {formatCurrency(totalNet)}
+                </p>
+              </div>
             </div>
           </Card>
 
