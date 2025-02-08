@@ -68,7 +68,8 @@ function Router() {
     try {
       dialogSetter(open);
       if (!open) {
-        setLocation('/');
+        // Only update location if we're closing the dialog
+        setLocation('/', { replace: true });
       }
       logger.info(`${reportType} dialog state changed`, { open });
       setError(null); // Clear any previous errors
@@ -83,7 +84,7 @@ function Router() {
     }
   };
 
-  // Use effects to handle route-based dialog states
+  // Enhanced route handling with better error management
   useEffect(() => {
     const dialogStates: Record<string, () => void> = {
       '/reports/monthly-to-date': () => setShowMonthlyToDate(true),
@@ -97,19 +98,32 @@ function Router() {
     const handler = dialogStates[location];
     if (handler) {
       try {
+        // Reset all dialogs first to prevent multiple dialogs being open
+        setShowMonthlyToDate(false);
+        setShowMonthlyReport(false);
+        setShowDateRangeReport(false);
+        setShowExpenseReport(false);
+        setShowIncomeReport(false);
+        setShowAnnualReport(false);
+
+        // Then open the requested dialog
         handler();
+        logger.info('Route changed successfully', { location });
       } catch (err) {
         const error = err as Error;
+        logger.error('Failed to handle route change', { error, location });
         setError({
           message: `Failed to handle route change: ${error.message}`,
-          severity: 'error'
+          severity: 'error',
+          timeout: 5000
         });
+        setLocation('/', { replace: true }); // Redirect to home on error
       }
     }
-  }, [location]);
+  }, [location, setLocation]);
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary fallback={<div className="p-4">Something went wrong. Please try again.</div>}>
       {/* Error Alert */}
       {error && (
         <Alert 
@@ -134,7 +148,25 @@ function Router() {
       <Switch>
         <Route path="/" component={Budget} />
         <Route path="/reports/:type">
-          {null} {/* Routes handled by useEffect */}
+          {(params) => {
+            // This is just a placeholder component since dialogs are handled by useEffect
+            return null;
+          }}
+        </Route>
+        <Route>
+          {/* 404 Route */}
+          <div className="flex items-center justify-center h-screen">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold mb-4">404</h1>
+              <p className="mb-4">Page not found</p>
+              <button 
+                onClick={() => setLocation('/')}
+                className="text-primary hover:underline"
+              >
+                Go back home
+              </button>
+            </div>
+          </div>
         </Route>
       </Switch>
 
