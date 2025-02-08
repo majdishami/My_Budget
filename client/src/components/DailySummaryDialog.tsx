@@ -52,39 +52,14 @@ export default function DailySummaryDialog({
     return majdiMonthlyTotal + rubaMonthlyTotal;
   })();
 
-  // Calculate total month's expenses and expenses after selected date
-  const { totalMonthExpenses, expensesAfterSelectedDay } = (() => {
-    const total = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
-    const selectedDate = dayjs()
-      .year(selectedYear)
-      .month(selectedMonth)
-      .date(selectedDay);
-
-    // Calculate expenses that are due after the selected day
-    const expensesAfter = dayBills.reduce((sum, bill) => {
-      const billDueDate = dayjs()
-        .year(selectedYear)
-        .month(selectedMonth)
-        .date(bill.day);
-
-      // If bill is due after selected date, add to sum
-      if (billDueDate.isAfter(selectedDate)) {
-        return sum + bill.amount;
-      }
-      return sum;
-    }, 0);
-
-    return {
-      totalMonthExpenses: total,
-      expensesAfterSelectedDay: expensesAfter
-    };
-  })();
+  // Calculate total month's expenses
+  const totalMonthExpenses = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
 
   // Calculate remaining amounts according to specifications
-  // 1. Remaining Income = Total month's income - Total income received up to selected day
+  // 1. Remaining Income = Total income of the selected month - total income incurred till the day selected
   const remainingIncome = totalMonthIncome - totalIncomeUpToToday;
 
-  // 2. Remaining Expenses = Total month's expenses - Total expenses up to selected day
+  // 2. Remaining Expenses = total expenses of the selected month - total expenses incurred till the day selected
   const remainingExpenses = totalMonthExpenses - totalBillsUpToToday;
 
   // 3. Balance of Remaining = Remaining Income - Remaining Expenses
