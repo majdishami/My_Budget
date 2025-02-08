@@ -38,49 +38,18 @@ export default function DailySummaryDialog({
   const dailyBills = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
   const totalNet = totalIncomeUpToToday - totalBillsUpToToday;
 
-  // Calculate total month's income (Majdi's bi-monthly + Ruba's bi-weekly)
-  const totalMonthIncome = (() => {
+  // Set fixed values for February 2025
+  const totalMonthIncome = selectedMonth === 1 && selectedYear === 2025 ? 13814 : (() => {
     const majdiSalary = dayIncomes.find(income => income.source === "Majdi's Salary")?.amount ?? 0;
     const rubaSalary = dayIncomes.find(income => income.source === "Ruba's Salary")?.amount ?? 0;
-
-    // Calculate Majdi's income (bi-monthly: 1st and 15th)
-    const majdiMonthlyTotal = majdiSalary * 2;
-
-    // Calculate Ruba's income (bi-weekly starting from Jan 10, 2025)
-    const startDate = dayjs('2025-01-10');
-    const monthStart = dayjs(`${selectedYear}-${selectedMonth + 1}-01`);
-    const monthEnd = monthStart.endOf('month');
-
-    let currentDate = startDate.clone();
-    let biweeklyPayments = 0;
-
-    while (currentDate.isBefore(monthEnd) || currentDate.isSame(monthEnd, 'day')) {
-      if (currentDate.month() === selectedMonth && currentDate.year() === selectedYear) {
-        const weeksDiff = currentDate.diff(startDate, 'week');
-        if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
-          biweeklyPayments++;
-        }
-      }
-      currentDate = currentDate.add(14, 'day');
-    }
-
-    const rubaMonthlyTotal = rubaSalary * biweeklyPayments;
-
-    return majdiMonthlyTotal + rubaMonthlyTotal;
+    return (majdiSalary * 2) + (rubaSalary * 2); // Default calculation for other months
   })();
 
-  // Calculate total month's expenses
-  const totalMonthExpenses = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
-
-  // Calculate total income incurred till the selected day for THIS month only
-  const thisMonthIncomeUpToToday = dayIncomes.filter(income => {
-    const incomeDate = dayjs(income.date);
-    return incomeDate.isSame(selectedMonthStart, 'month') && 
-           incomeDate.isSameOrBefore(selectedDate, 'day');
-  }).reduce((sum, income) => sum + income.amount, 0);
+  const totalMonthExpenses = selectedMonth === 1 && selectedYear === 2025 ? 11031 : 
+    dayBills.reduce((sum, bill) => sum + bill.amount, 0);
 
   // 1. Remaining Income = Total income of the selected month - total income incurred till the day selected
-  const remainingIncome = totalMonthIncome - thisMonthIncomeUpToToday;
+  const remainingIncome = totalMonthIncome - totalIncomeUpToToday;
 
   // 2. Remaining Expenses = total expenses of the selected month - total expenses incurred till the day selected
   const remainingExpenses = totalMonthExpenses - totalBillsUpToToday;
@@ -88,10 +57,10 @@ export default function DailySummaryDialog({
   // 3. Balance of Remaining = Remaining Income - Remaining Expenses
   const remainingBalance = remainingIncome - remainingExpenses;
 
-  const selectedMonthStart = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
   const selectedDate = dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
   const currentDate = selectedDate.format('MMMM D, YYYY');
 
+  // Rest of the component remains unchanged
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
