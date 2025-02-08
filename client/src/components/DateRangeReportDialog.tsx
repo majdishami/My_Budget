@@ -40,17 +40,24 @@ interface DateRangeReportDialogProps {
 }
 
 export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRangeReportDialogProps) {
-  const [date, setDate] = useState<DateRange | undefined>();
+  const today = dayjs('2025-02-08'); // Set to current date (February 08, 2025)
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: today.toDate(),
+    to: undefined
+  });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showReport, setShowReport] = useState(false);
-  const today = dayjs('2024-05-01'); // Current date
 
   useEffect(() => {
     if (!isOpen) {
+      setDate({
+        from: today.toDate(),
+        to: undefined
+      });
       setShowReport(false);
-      setDate(undefined);
+      setTransactions([]);
     }
-  }, [isOpen]);
+  }, [isOpen, today]);
 
   useEffect(() => {
     if (!showReport || !date?.from || !date?.to) return;
@@ -132,7 +139,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
     }
 
     setTransactions(mockTransactions);
-  }, [showReport, date]);
+  }, [showReport, date, today]);
 
   // Group transactions by month
   const groupedTransactions = transactions.reduce((groups: Record<string, Transaction[]>, transaction) => {
@@ -204,7 +211,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
             <Button
               variant="outline"
               onClick={() => {
-                setDate(undefined);
+                setDate({from: today.toDate(), to: undefined});
                 onOpenChange(false);
               }}
             >
