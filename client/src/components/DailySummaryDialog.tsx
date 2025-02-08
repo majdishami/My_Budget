@@ -3,10 +3,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Income, Bill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { X } from "lucide-react";
 import dayjs from "dayjs";
 
 interface DailySummaryDialogProps {
@@ -60,8 +62,8 @@ export default function DailySummaryDialog({
     .date(selectedDay);
 
   // Calculate remaining amounts
-  const remainingIncome = totalMonthIncome - totalIncomeUpToToday;
-  const remainingExpenses = totalMonthExpenses - totalBillsUpToToday;
+  const remainingIncome = Math.max(0, totalMonthIncome - totalIncomeUpToToday);
+  const remainingExpenses = Math.max(0, totalMonthExpenses - totalBillsUpToToday);
   const remainingBalance = remainingIncome - remainingExpenses;
 
   const currentDate = selectedDate.format('MMMM D, YYYY');
@@ -71,6 +73,10 @@ export default function DailySummaryDialog({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="text-xl">Financial Summary for {currentDate}</DialogTitle>
+          <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
         </DialogHeader>
 
         <div className="space-y-6">
