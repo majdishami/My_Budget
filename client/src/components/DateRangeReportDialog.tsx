@@ -41,23 +41,26 @@ interface DateRangeReportDialogProps {
 
 export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRangeReportDialogProps) {
   const today = dayjs('2025-02-08'); // Set to current date (February 08, 2025)
-  const [date, setDate] = useState<DateRange | undefined>({
+  const defaultDateRange = {
     from: today.toDate(),
     to: undefined
-  });
+  };
+
+  const [date, setDate] = useState<DateRange | undefined>(defaultDateRange);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showReport, setShowReport] = useState(false);
 
+  // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      setDate({
-        from: today.toDate(),
-        to: undefined
-      });
       setShowReport(false);
       setTransactions([]);
+      // Only reset date if it's different from default
+      if (date?.from !== defaultDateRange.from || date?.to !== defaultDateRange.to) {
+        setDate(defaultDateRange);
+      }
     }
-  }, [isOpen, today]);
+  }, [isOpen, defaultDateRange]);
 
   useEffect(() => {
     if (!showReport || !date?.from || !date?.to) return;
@@ -211,7 +214,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
             <Button
               variant="outline"
               onClick={() => {
-                setDate({from: today.toDate(), to: undefined});
+                setDate(defaultDateRange);
                 onOpenChange(false);
               }}
             >
