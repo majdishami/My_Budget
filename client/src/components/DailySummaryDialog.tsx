@@ -61,9 +61,14 @@ export default function DailySummaryDialog({
     .month(selectedMonth)
     .date(selectedDay);
 
-  // Calculate remaining amounts
-  const remainingIncome = Math.max(0, totalMonthIncome - totalIncomeUpToToday);
-  const remainingExpenses = Math.max(0, totalMonthExpenses - totalBillsUpToToday);
+  // Calculate remaining amounts according to specifications
+  // 1. Remaining Income = Total month's income - Total income received up to selected day
+  const remainingIncome = totalMonthIncome - totalIncomeUpToToday;
+
+  // 2. Remaining Expenses = Total month's expenses - Total expenses already incurred
+  const remainingExpenses = totalMonthExpenses - totalBillsUpToToday;
+
+  // 3. Balance of Remaining = Remaining Income - Remaining Expenses
   const remainingBalance = remainingIncome - remainingExpenses;
 
   const currentDate = selectedDate.format('MMMM D, YYYY');
