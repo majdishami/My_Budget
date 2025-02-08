@@ -246,7 +246,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               <CardTitle className="text-sm font-medium">Pending Income</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-400">{formatCurrency(summaryTotals.pending)}</div>
+              <div className="text-2xl font-bold text-green-200">{formatCurrency(summaryTotals.pending)}</div>
             </CardContent>
           </Card>
         </div>
