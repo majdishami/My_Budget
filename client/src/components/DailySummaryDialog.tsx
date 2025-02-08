@@ -10,6 +10,11 @@ import { formatCurrency } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { X } from "lucide-react";
 import dayjs from "dayjs";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import isBetween from "dayjs/plugin/isBetween";
+
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isBetween);
 
 interface DailySummaryDialogProps {
   isOpen: boolean;
@@ -31,9 +36,16 @@ export default function DailySummaryDialog({
   selectedYear,
   dayIncomes,
   dayBills,
-  totalIncomeUpToToday,
-  totalBillsUpToToday
+  totalIncomeUpToToday: providedIncomeUpToToday,
+  totalBillsUpToToday: providedBillsUpToToday
 }: DailySummaryDialogProps) {
+  const selectedDate = dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
+  const today = dayjs();
+
+  // For future dates, set incurred totals to 0
+  const totalIncomeUpToToday = selectedDate.isAfter(today) ? 0 : providedIncomeUpToToday;
+  const totalBillsUpToToday = selectedDate.isAfter(today) ? 0 : providedBillsUpToToday;
+
   const dailyIncome = dayIncomes.reduce((sum, income) => sum + income.amount, 0);
   const dailyBills = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
   const totalNet = totalIncomeUpToToday - totalBillsUpToToday;
@@ -82,10 +94,8 @@ export default function DailySummaryDialog({
   // 3. Balance of Remaining = Remaining Income - Remaining Expenses
   const remainingBalance = remainingIncome - remainingExpenses;
 
-  const selectedDate = dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
   const currentDate = selectedDate.format('MMMM D, YYYY');
 
-  // Rest of the component remains unchanged
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
