@@ -83,7 +83,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               date: firstPayday.format('YYYY-MM-DD'),
               description: income.source,
               amount: income.amount / 2, // Split monthly amount
-              occurred: firstPayday.isSameOrBefore(today)
+              occurred: firstPayday.isBefore(today) || firstPayday.isSame(today, 'day')
             });
           }
 
@@ -92,7 +92,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               date: fifteenthPayday.format('YYYY-MM-DD'),
               description: income.source,
               amount: income.amount / 2, // Split monthly amount
-              occurred: fifteenthPayday.isSameOrBefore(today)
+              occurred: fifteenthPayday.isBefore(today) || fifteenthPayday.isSame(today, 'day')
             });
           }
 
@@ -111,7 +111,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
             date: payDate.format('YYYY-MM-DD'),
             description: income.source,
             amount: income.amount,
-            occurred: payDate.isSameOrBefore(today)
+            occurred: payDate.isBefore(today) || payDate.isSame(today, 'day')
           });
           payDate = payDate.add(14, 'day');
         }

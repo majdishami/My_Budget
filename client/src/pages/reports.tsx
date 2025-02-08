@@ -38,7 +38,7 @@ export default function Reports() {
   useEffect(() => {
     const startDate = dayjs(dateRange.from);
     const endDate = dayjs(dateRange.to);
-    const today = dayjs();
+    const today = dayjs(); // Use actual current date
 
     const calculateTotals = () => {
       let income = 0;
@@ -50,14 +50,18 @@ export default function Reports() {
         const firstPayday = currentDate.date(1);
         const fifteenthPayday = currentDate.date(15);
 
-        if (firstPayday.isBetween(startDate, endDate, 'day', '[]') && 
-            firstPayday.isSameOrBefore(today)) {
-          income += 2250; // Half of monthly salary
+        if (firstPayday.isBetween(startDate, endDate, 'day', '[]')) {
+          // Only add to income if the date has occurred
+          if (firstPayday.isBefore(today) || firstPayday.isSame(today, 'day')) {
+            income += 2250; // Half of monthly salary
+          }
         }
 
-        if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]') && 
-            fifteenthPayday.isSameOrBefore(today)) {
-          income += 2250; // Other half of monthly salary
+        if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]')) {
+          // Only add to income if the date has occurred
+          if (fifteenthPayday.isBefore(today) || fifteenthPayday.isSame(today, 'day')) {
+            income += 2250; // Other half of monthly salary
+          }
         }
 
         currentDate = currentDate.add(1, 'month');
@@ -70,9 +74,11 @@ export default function Reports() {
       }
 
       while (biweeklyDate.isSameOrBefore(endDate)) {
-        if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]') && 
-            biweeklyDate.isSameOrBefore(today)) {
-          income += 2000;
+        if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]')) {
+          // Only add to income if the date has occurred
+          if (biweeklyDate.isBefore(today) || biweeklyDate.isSame(today, 'day')) {
+            income += 2000;
+          }
         }
         biweeklyDate = biweeklyDate.add(14, 'day');
       }
@@ -81,8 +87,8 @@ export default function Reports() {
       // Monthly expenses (rent, utilities, etc.)
       currentDate = startDate.startOf('month');
       while (currentDate.isSameOrBefore(endDate)) {
-        if (currentDate.isSameOrBefore(today)) {
-          // Monthly fixed expenses
+        if (currentDate.isBefore(today) || currentDate.isSame(today, 'month')) {
+          // Only add expenses for months that have occurred
           expenses += 3200;
         }
         currentDate = currentDate.add(1, 'month');
