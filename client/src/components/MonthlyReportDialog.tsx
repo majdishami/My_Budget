@@ -33,7 +33,7 @@ interface MonthlyReportDialogProps {
 
 export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyReportDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const REFERENCE_DATE = dayjs('2025-02-08'); // February 8, 2025
+  const REFERENCE_DATE = dayjs('2025-02-08');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -198,9 +198,14 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                 <AlertCircle className="h-4 w-4 text-muted-foreground" />
                 <span>As of February 8, 2025</span>
               </div>
-              <DialogClose className="rounded-sm opacity-70 hover:opacity-100">
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
+              <DialogClose asChild>
+                <button 
+                  className="rounded-sm opacity-70 hover:opacity-100"
+                  aria-label="Close dialog"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </button>
               </DialogClose>
             </div>
           </DialogTitle>

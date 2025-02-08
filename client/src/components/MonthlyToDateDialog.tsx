@@ -25,7 +25,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import dayjs from 'dayjs';
 import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -150,7 +149,7 @@ export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToD
     { income: 0, expenses: 0 }
   );
 
-  const netBalance = Math.round(totals.income - totals.expenses);
+  const netBalance = totals.income - totals.expenses;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -159,9 +158,14 @@ export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToD
           <DialogTitle className="text-xl">
             Monthly Report - {today.format('MMMM YYYY')} (Up to {today.format('MMMM D')})
           </DialogTitle>
-          <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
+          <DialogClose asChild>
+            <button 
+              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+              aria-label="Close dialog"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </button>
           </DialogClose>
         </DialogHeader>
 
