@@ -72,10 +72,6 @@ export default function DailySummaryDialog({
   // Calculate total month's expenses
   const totalMonthExpenses = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
 
-  // Calculate remaining amounts according to specifications
-  const selectedMonthStart = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
-  const selectedDate = dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
-
   // Calculate total income incurred till the selected day for THIS month only
   const thisMonthIncomeUpToToday = dayIncomes.filter(income => {
     const incomeDate = dayjs(income.date);
@@ -92,6 +88,8 @@ export default function DailySummaryDialog({
   // 3. Balance of Remaining = Remaining Income - Remaining Expenses
   const remainingBalance = remainingIncome - remainingExpenses;
 
+  const selectedMonthStart = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
+  const selectedDate = dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
   const currentDate = selectedDate.format('MMMM D, YYYY');
 
   return (
