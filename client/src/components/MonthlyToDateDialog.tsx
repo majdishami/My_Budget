@@ -34,10 +34,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-/**
- * 💳 Transaction Interface
- * Defines the structure for financial transactions
- */
 interface Transaction {
   date: string;
   description: string;
@@ -45,24 +41,22 @@ interface Transaction {
   type: 'income' | 'expense';
 }
 
-/**
- * 🎯 Component Props
- * Configuration options for the dialog
- */
 interface MonthlyToDateDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-/**
- * 📊 Monthly To Date Dialog Component
- * Renders a comprehensive view of monthly finances
- */
 export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToDateDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const today = dayjs(); // Use actual current date
+  const today = dayjs();
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');
+
+  // Expected monthly totals for February 2025
+  const expectedMonthlyTotals = {
+    income: 13814, // Total expected income for the month
+    expenses: 11031, // Total expected expenses for the month
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -151,6 +145,11 @@ export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToD
 
   const netBalance = totals.income - totals.expenses;
 
+  // Calculate remaining amounts
+  const remainingIncome = expectedMonthlyTotals.income - totals.income;
+  const remainingExpenses = expectedMonthlyTotals.expenses - totals.expenses;
+  const remainingBalance = remainingIncome - remainingExpenses;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
@@ -207,6 +206,31 @@ export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToD
             </CardContent>
           </Card>
         </div>
+
+        {/* Remaining Till End Of Month Section */}
+        <Card className="mb-6 bg-muted/50">
+          <CardHeader className="py-4">
+            <CardTitle className="text-lg font-semibold">Remaining Till End Of Month</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Remaining Income:</span>
+                <span className="font-medium text-green-600">{formatCurrency(remainingIncome)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Remaining Expenses:</span>
+                <span className="font-medium text-red-600">{formatCurrency(remainingExpenses)}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t">
+                <span className="text-sm font-medium">Balance of Remaining:</span>
+                <span className={`font-medium ${remainingBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                  {formatCurrency(remainingBalance)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="space-y-4">
           <Card>
