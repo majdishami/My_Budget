@@ -101,53 +101,52 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
     setTransactions(mockTransactions);
   }, [isOpen, today]);
 
-  // Separate transactions into occurred and pending
-  const { 
-    occurredIncomes, 
-    pendingIncomes, 
-    occurredExpenses, 
-    pendingExpenses,
-    summaries 
+  // Calculate occurred and pending transactions
+  const {
+    occurred,
+    pending,
+    summary
   } = useMemo(() => {
     const occurred = {
-      incomes: transactions
-        .filter(t => t.type === 'income' && dayjs(t.date).isSameOrBefore(today))
-        .sort((a, b) => dayjs(a.date).diff(dayjs(b.date))),
-      expenses: transactions
-        .filter(t => t.type === 'expense' && dayjs(t.date).isSameOrBefore(today))
-        .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+      income: transactions.filter(t => 
+        t.type === 'income' && dayjs(t.date).isSameOrBefore(today)
+      ).sort((a, b) => dayjs(a.date).diff(dayjs(b.date))),
+      expenses: transactions.filter(t => 
+        t.type === 'expense' && dayjs(t.date).isSameOrBefore(today)
+      ).sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
     };
 
     const pending = {
-      incomes: transactions
-        .filter(t => t.type === 'income' && dayjs(t.date).isAfter(today))
-        .sort((a, b) => dayjs(a.date).diff(dayjs(b.date))),
-      expenses: transactions
-        .filter(t => t.type === 'expense' && dayjs(t.date).isAfter(today))
-        .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+      income: transactions.filter(t => 
+        t.type === 'income' && dayjs(t.date).isAfter(today)
+      ).sort((a, b) => dayjs(a.date).diff(dayjs(b.date))),
+      expenses: transactions.filter(t => 
+        t.type === 'expense' && dayjs(t.date).isAfter(today)
+      ).sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
     };
 
-    const sums = {
-      occurredIncome: occurred.incomes.reduce((sum, t) => sum + t.amount, 0),
-      pendingIncome: pending.incomes.reduce((sum, t) => sum + t.amount, 0),
-      occurredExpenses: occurred.expenses.reduce((sum, t) => sum + t.amount, 0),
-      pendingExpenses: pending.expenses.reduce((sum, t) => sum + t.amount, 0)
-    };
-
-    return {
-      occurredIncomes: occurred.incomes,
-      pendingIncomes: pending.incomes,
-      occurredExpenses: occurred.expenses,
-      pendingExpenses: pending.expenses,
-      summaries: {
-        ...sums,
-        totalIncome: sums.occurredIncome + sums.pendingIncome,
-        totalExpenses: sums.occurredExpenses + sums.pendingExpenses,
-        currentBalance: sums.occurredIncome - sums.occurredExpenses,
-        projectedBalance: (sums.occurredIncome + sums.pendingIncome) - 
-                         (sums.occurredExpenses + sums.pendingExpenses)
+    const summary = {
+      occurred: {
+        income: occurred.income.reduce((sum, t) => sum + t.amount, 0),
+        expenses: occurred.expenses.reduce((sum, t) => sum + t.amount, 0),
+        balance: occurred.income.reduce((sum, t) => sum + t.amount, 0) - 
+                occurred.expenses.reduce((sum, t) => sum + t.amount, 0)
+      },
+      pending: {
+        income: pending.income.reduce((sum, t) => sum + t.amount, 0),
+        expenses: pending.expenses.reduce((sum, t) => sum + t.amount, 0),
+        balance: pending.income.reduce((sum, t) => sum + t.amount, 0) - 
+                pending.expenses.reduce((sum, t) => sum + t.amount, 0)
+      },
+      total: {
+        income: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
+        expenses: transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
+        balance: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) -
+                transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
       }
     };
+
+    return { occurred, pending, summary };
   }, [transactions, today]);
 
   return (
@@ -168,187 +167,178 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className={`text-2xl font-bold ${summaries.currentBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(summaries.currentBalance)}
-                </div>
-                <div className="text-sm text-muted-foreground">Based on occurred transactions</div>
-              </CardContent>
-            </Card>
+        {/* Monthly Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Month To Date</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${summary.occurred.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(summary.occurred.balance)}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Income: {formatCurrency(summary.occurred.income)}<br />
+                Expenses: {formatCurrency(summary.occurred.expenses)}
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Projected Balance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className={`text-2xl font-bold ${summaries.projectedBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(summaries.projectedBalance)}
-                </div>
-                <div className="text-sm text-muted-foreground">End of month projection</div>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Remaining</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${summary.pending.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(summary.pending.balance)}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Income: {formatCurrency(summary.pending.income)}<br />
+                Expenses: {formatCurrency(summary.pending.expenses)}
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(summaries.totalIncome)}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {formatCurrency(summaries.occurredIncome)} received / {formatCurrency(summaries.pendingIncome)} pending
-                </div>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Monthly Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${summary.total.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(summary.total.balance)}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Income: {formatCurrency(summary.total.income)}<br />
+                Expenses: {formatCurrency(summary.total.expenses)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  {formatCurrency(summaries.totalExpenses)}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {formatCurrency(summaries.occurredExpenses)} paid / {formatCurrency(summaries.pendingExpenses)} pending
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Occurred Transactions */}
+        <div className="space-y-4 mb-8">
+          <h3 className="text-lg font-semibold border-b pb-2">Month to Date Transactions</h3>
 
-          {/* Occurred Transactions */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Occurred Transactions</h3>
-
-            {/* Occurred Income */}
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Income Received</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
+          {/* Occurred Income */}
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Income Received</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {occurred.income.map((transaction, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell className="text-right text-green-600">
+                        {formatCurrency(transaction.amount)}
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {occurredIncomes.map((transaction, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell className="text-right text-green-600">
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
-            {/* Occurred Expenses */}
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Expenses Paid</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
+          {/* Occurred Expenses */}
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Expenses Paid</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {occurred.expenses.map((transaction, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell className="text-right text-red-600">
+                        {formatCurrency(transaction.amount)}
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {occurredExpenses.map((transaction, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell className="text-right text-red-600">
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Pending Transactions */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Pending Transactions</h3>
+        {/* Pending Transactions */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold border-b pb-2">Remaining Transactions</h3>
 
-            {/* Pending Income */}
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Expected Income</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
+          {/* Pending Income */}
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Expected Income</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pending.income.map((transaction, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell className="text-right text-green-600">
+                        {formatCurrency(transaction.amount)}
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingIncomes.map((transaction, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell className="text-right text-green-600">
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
-            {/* Pending Expenses */}
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Upcoming Expenses</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
+          {/* Pending Expenses */}
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Upcoming Expenses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pending.expenses.map((transaction, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell className="text-right text-red-600">
+                        {formatCurrency(transaction.amount)}
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingExpenses.map((transaction, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell className="text-right text-red-600">
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </DialogContent>
     </Dialog>
