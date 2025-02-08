@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
+import isBetween from 'dayjs/plugin/isBetween';
 
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +15,9 @@ import { FileText, Download, Printer } from 'lucide-react';
 
 // Utils
 import { formatCurrency } from '@/lib/reportUtils';
+
+// Initialize dayjs plugins
+dayjs.extend(isBetween);
 
 export default function Reports() {
   // Set default date range to current month
@@ -34,29 +38,55 @@ export default function Reports() {
   useEffect(() => {
     const startDate = dayjs(dateRange.from);
     const endDate = dayjs(dateRange.to);
+    const today = dayjs();
 
-    // Here you would typically fetch data from your API
-    // For now, we'll calculate based on the date range
     const calculateTotals = () => {
       let income = 0;
       let expenses = 0;
 
-      // Example calculation (replace with actual data fetching)
-      // Monthly income (prorated for partial months)
-      const monthsDiff = endDate.diff(startDate, 'month', true);
-      income = Math.round(4500 * monthsDiff); // Base monthly income
+      // Calculate Majdi's salary (1st and 15th of each month)
+      let currentDate = startDate.startOf('month');
+      while (currentDate.isSameOrBefore(endDate)) {
+        const firstPayday = currentDate.date(1);
+        const fifteenthPayday = currentDate.date(15);
 
-      // Add bi-weekly salary
-      let biweeklyDate = dayjs('2025-01-10');
+        if (firstPayday.isBetween(startDate, endDate, 'day', '[]') && 
+            firstPayday.isSameOrBefore(today)) {
+          income += 2250; // Half of monthly salary
+        }
+
+        if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]') && 
+            fifteenthPayday.isSameOrBefore(today)) {
+          income += 2250; // Other half of monthly salary
+        }
+
+        currentDate = currentDate.add(1, 'month');
+      }
+
+      // Calculate Ruba's bi-weekly salary
+      let biweeklyDate = dayjs('2025-01-10'); // Starting date
+      while (biweeklyDate.isBefore(startDate)) {
+        biweeklyDate = biweeklyDate.add(14, 'day');
+      }
+
       while (biweeklyDate.isSameOrBefore(endDate)) {
-        if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]')) {
+        if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]') && 
+            biweeklyDate.isSameOrBefore(today)) {
           income += 2000;
         }
         biweeklyDate = biweeklyDate.add(14, 'day');
       }
 
-      // Calculate expenses (example calculation)
-      expenses = Math.round(3200 * monthsDiff);
+      // Calculate expenses
+      // Monthly expenses (rent, utilities, etc.)
+      currentDate = startDate.startOf('month');
+      while (currentDate.isSameOrBefore(endDate)) {
+        if (currentDate.isSameOrBefore(today)) {
+          // Monthly fixed expenses
+          expenses += 3200;
+        }
+        currentDate = currentDate.add(1, 'month');
+      }
 
       setTotals({
         income,

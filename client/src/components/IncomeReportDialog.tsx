@@ -72,11 +72,12 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
       if (income.source === "Majdi's Salary") {
         // Calculate monthly occurrences within the date range
         let currentDate = startDate.startOf('month');
+
         while (currentDate.isSameOrBefore(endDate)) {
-          // Add salary on 1st and 15th of each month
           const firstPayday = currentDate.date(1);
           const fifteenthPayday = currentDate.date(15);
 
+          // Only add transactions that fall within the date range
           if (firstPayday.isBetween(startDate, endDate, 'day', '[]')) {
             mockTransactions.push({
               date: firstPayday.format('YYYY-MM-DD'),
@@ -98,8 +99,8 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
           currentDate = currentDate.add(1, 'month');
         }
       } else if (income.source === "Ruba's Salary") {
-        // Start from the first occurrence after start date
-        let payDate = dayjs('2025-01-10');
+        // Find the first bi-weekly payment date that's not before the start date
+        let payDate = dayjs('2025-01-10'); // Initial bi-weekly payment date
         while (payDate.isBefore(startDate)) {
           payDate = payDate.add(14, 'day');
         }
