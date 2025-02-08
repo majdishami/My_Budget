@@ -47,7 +47,7 @@ export default function DailySummaryDialog({
   const totalNet = totalIncomeUpToToday - totalBillsUpToToday;
 
   // Predefined monthly totals for the year 2025
-  const monthlyTotals = {
+  const monthlyTotals: Record<number, { income: number, expenses: number }> = {
     0: { income: 13814, expenses: 11031 }, // January
     1: { income: 13814, expenses: 11031 }, // February
     2: { income: 13814, expenses: 11031 }, // March

@@ -543,6 +543,8 @@ const App = () => {
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
         selectedDay={selectedDay}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
         dayIncomes={getIncomeForDay(selectedDay)}
         dayBills={getBillsForDay(selectedDay)}
         totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
