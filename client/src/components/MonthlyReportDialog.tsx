@@ -33,7 +33,7 @@ interface MonthlyReportDialogProps {
 
 export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyReportDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const today = dayjs();
+  const today = dayjs('2025-02-08'); // Current date: February 8, 2025
   const reportDate = today.format('MMMM D, YYYY');
   const currentYear = today.year();
   const currentMonth = today.month() + 1;
@@ -44,8 +44,8 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
     const mockTransactions: Transaction[] = [];
 
     // Add Majdi's salary
-    const majdiSalaryDates = ['01', '15'];
-    majdiSalaryDates.forEach(day => {
+    const majdiPayDates = ['01', '15'];
+    majdiPayDates.forEach(day => {
       mockTransactions.push({
         date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${day}`,
         description: "Majdi's Salary",
@@ -96,7 +96,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
     setTransactions(mockTransactions);
   }, [isOpen]);
 
-  // Separate transactions into occurred and pending based on today's date
+  // Separate transactions into occurred and pending based on today's date (Feb 8)
   const occurredIncomes = transactions
     .filter(t => t.type === 'income' && dayjs(t.date).isSameOrBefore(today))
     .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
