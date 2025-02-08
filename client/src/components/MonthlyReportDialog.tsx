@@ -5,7 +5,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import dayjs from 'dayjs';
@@ -33,30 +33,25 @@ interface MonthlyReportDialogProps {
 
 export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyReportDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const today = dayjs(); // Use actual current date
+  const today = dayjs();
   const reportDate = today.format('MMMM D, YYYY');
-  const startOfMonth = today.startOf('month');
-  const endOfMonth = today.endOf('month');
+  const currentYear = today.year();
+  const currentMonth = today.month() + 1;
 
   useEffect(() => {
     if (!isOpen) return;
 
     const mockTransactions: Transaction[] = [];
-    const currentYear = today.year();
-    const currentMonth = today.month() + 1;
 
     // Add Majdi's salary
-    mockTransactions.push({
-      date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`,
-      description: "Majdi's Salary",
-      amount: Math.round(4739),
-      type: 'income'
-    });
-    mockTransactions.push({
-      date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`,
-      description: "Majdi's Salary",
-      amount: Math.round(4739),
-      type: 'income'
+    const majdiSalaryDates = ['01', '15'];
+    majdiSalaryDates.forEach(day => {
+      mockTransactions.push({
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${day}`,
+        description: "Majdi's Salary",
+        amount: 4739,
+        type: 'income'
+      });
     });
 
     // Add Ruba's bi-weekly salary
@@ -65,7 +60,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
       mockTransactions.push({
         date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${day}`,
         description: "Ruba's Salary",
-        amount: Math.round(2168),
+        amount: 2168,
         type: 'income'
       });
     });
@@ -93,61 +88,43 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
       mockTransactions.push({
         date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(expense.day).padStart(2, '0')}`,
         description: expense.name,
-        amount: Math.round(expense.amount),
+        amount: expense.amount,
         type: 'expense'
       });
     });
 
     setTransactions(mockTransactions);
-  }, [isOpen, today]);
+  }, [isOpen]);
 
-  // Calculate occurred and pending transactions
-  const {
-    occurred,
-    pending,
-    summary
-  } = useMemo(() => {
-    const occurred = {
-      income: transactions.filter(t => 
-        t.type === 'income' && dayjs(t.date).isSameOrBefore(today)
-      ).sort((a, b) => dayjs(a.date).diff(dayjs(b.date))),
-      expenses: transactions.filter(t => 
-        t.type === 'expense' && dayjs(t.date).isSameOrBefore(today)
-      ).sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-    };
+  // Separate transactions into occurred and pending based on today's date
+  const occurredIncomes = transactions
+    .filter(t => t.type === 'income' && dayjs(t.date).isSameOrBefore(today))
+    .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
 
-    const pending = {
-      income: transactions.filter(t => 
-        t.type === 'income' && dayjs(t.date).isAfter(today)
-      ).sort((a, b) => dayjs(a.date).diff(dayjs(b.date))),
-      expenses: transactions.filter(t => 
-        t.type === 'expense' && dayjs(t.date).isAfter(today)
-      ).sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-    };
+  const occurredExpenses = transactions
+    .filter(t => t.type === 'expense' && dayjs(t.date).isSameOrBefore(today))
+    .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
 
-    const summary = {
-      occurred: {
-        income: occurred.income.reduce((sum, t) => sum + t.amount, 0),
-        expenses: occurred.expenses.reduce((sum, t) => sum + t.amount, 0),
-        balance: occurred.income.reduce((sum, t) => sum + t.amount, 0) - 
-                occurred.expenses.reduce((sum, t) => sum + t.amount, 0)
-      },
-      pending: {
-        income: pending.income.reduce((sum, t) => sum + t.amount, 0),
-        expenses: pending.expenses.reduce((sum, t) => sum + t.amount, 0),
-        balance: pending.income.reduce((sum, t) => sum + t.amount, 0) - 
-                pending.expenses.reduce((sum, t) => sum + t.amount, 0)
-      },
-      total: {
-        income: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
-        expenses: transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
-        balance: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) -
-                transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
-      }
-    };
+  const pendingIncomes = transactions
+    .filter(t => t.type === 'income' && dayjs(t.date).isAfter(today))
+    .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
 
-    return { occurred, pending, summary };
-  }, [transactions, today]);
+  const pendingExpenses = transactions
+    .filter(t => t.type === 'expense' && dayjs(t.date).isAfter(today))
+    .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
+
+  // Calculate summaries
+  const occurredIncomesTotal = occurredIncomes.reduce((sum, t) => sum + t.amount, 0);
+  const occurredExpensesTotal = occurredExpenses.reduce((sum, t) => sum + t.amount, 0);
+  const occurredBalance = occurredIncomesTotal - occurredExpensesTotal;
+
+  const pendingIncomesTotal = pendingIncomes.reduce((sum, t) => sum + t.amount, 0);
+  const pendingExpensesTotal = pendingExpenses.reduce((sum, t) => sum + t.amount, 0);
+  const pendingBalance = pendingIncomesTotal - pendingExpensesTotal;
+
+  const totalIncome = occurredIncomesTotal + pendingIncomesTotal;
+  const totalExpenses = occurredExpensesTotal + pendingExpensesTotal;
+  const totalBalance = totalIncome - totalExpenses;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -167,57 +144,18 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
           </DialogTitle>
         </DialogHeader>
 
-        {/* Monthly Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Month To Date</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${summary.occurred.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(summary.occurred.balance)}
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">
-                Income: {formatCurrency(summary.occurred.income)}<br />
-                Expenses: {formatCurrency(summary.occurred.expenses)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Remaining</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${summary.pending.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(summary.pending.balance)}
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">
-                Income: {formatCurrency(summary.pending.income)}<br />
-                Expenses: {formatCurrency(summary.pending.expenses)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Monthly Total</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${summary.total.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(summary.total.balance)}
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">
-                Income: {formatCurrency(summary.total.income)}<br />
-                Expenses: {formatCurrency(summary.total.expenses)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Occurred Transactions */}
+        {/* Month-to-Date Section */}
         <div className="space-y-4 mb-8">
-          <h3 className="text-lg font-semibold border-b pb-2">Month to Date Transactions</h3>
+          <div className="border-b pb-2">
+            <h3 className="text-lg font-semibold">Month-to-Date Summary (As of {reportDate})</h3>
+            <div className="text-sm text-muted-foreground mt-1">
+              Income: {formatCurrency(occurredIncomesTotal)} | 
+              Expenses: {formatCurrency(occurredExpensesTotal)} | 
+              Balance: <span className={occurredBalance >= 0 ? 'text-green-600' : 'text-red-600'}>
+                {formatCurrency(occurredBalance)}
+              </span>
+            </div>
+          </div>
 
           {/* Occurred Income */}
           <Card>
@@ -234,7 +172,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {occurred.income.map((transaction, index) => (
+                  {occurredIncomes.map((transaction, index) => (
                     <TableRow key={index}>
                       <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                       <TableCell>{transaction.description}</TableCell>
@@ -263,7 +201,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {occurred.expenses.map((transaction, index) => (
+                  {occurredExpenses.map((transaction, index) => (
                     <TableRow key={index}>
                       <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                       <TableCell>{transaction.description}</TableCell>
@@ -278,9 +216,18 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
           </Card>
         </div>
 
-        {/* Pending Transactions */}
+        {/* Remaining Month Section */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Remaining Transactions</h3>
+          <div className="border-b pb-2">
+            <h3 className="text-lg font-semibold">Remaining Month Summary</h3>
+            <div className="text-sm text-muted-foreground mt-1">
+              Expected Income: {formatCurrency(pendingIncomesTotal)} | 
+              Expected Expenses: {formatCurrency(pendingExpensesTotal)} | 
+              Expected Balance: <span className={pendingBalance >= 0 ? 'text-green-600' : 'text-red-600'}>
+                {formatCurrency(pendingBalance)}
+              </span>
+            </div>
+          </div>
 
           {/* Pending Income */}
           <Card>
@@ -297,7 +244,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pending.income.map((transaction, index) => (
+                  {pendingIncomes.map((transaction, index) => (
                     <TableRow key={index}>
                       <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                       <TableCell>{transaction.description}</TableCell>
@@ -326,7 +273,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pending.expenses.map((transaction, index) => (
+                  {pendingExpenses.map((transaction, index) => (
                     <TableRow key={index}>
                       <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                       <TableCell>{transaction.description}</TableCell>
@@ -339,6 +286,27 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
               </Table>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Monthly Total Summary */}
+        <div className="mt-8 pt-4 border-t">
+          <h3 className="text-lg font-semibold mb-2">Monthly Total Summary</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <span className="text-sm font-medium">Total Income:</span>
+              <span className="text-green-600 ml-2">{formatCurrency(totalIncome)}</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium">Total Expenses:</span>
+              <span className="text-red-600 ml-2">{formatCurrency(totalExpenses)}</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium">Net Balance:</span>
+              <span className={`ml-2 ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(totalBalance)}
+              </span>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
