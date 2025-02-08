@@ -38,13 +38,38 @@ export default function DailySummaryDialog({
   const dailyBills = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
   const totalNet = totalIncomeUpToToday - totalBillsUpToToday;
 
-  // Set fixed values for February 2025
+  // Set fixed values for February 2025 or calculate for other months
   const totalMonthIncome = selectedMonth === 1 && selectedYear === 2025 ? 13814 : (() => {
     const majdiSalary = dayIncomes.find(income => income.source === "Majdi's Salary")?.amount ?? 0;
     const rubaSalary = dayIncomes.find(income => income.source === "Ruba's Salary")?.amount ?? 0;
-    return (majdiSalary * 2) + (rubaSalary * 2); // Default calculation for other months
+
+    // Majdi's bi-monthly salary (1st and 15th)
+    const majdiMonthlyTotal = majdiSalary * 2;
+
+    // Calculate Ruba's bi-weekly payments for the month
+    const startDate = dayjs('2025-01-10');
+    const monthStart = dayjs(`${selectedYear}-${selectedMonth + 1}-01`);
+    const monthEnd = monthStart.endOf('month');
+
+    let currentDate = startDate.clone();
+    let biweeklyPayments = 0;
+
+    // Count bi-weekly payments in the selected month
+    while (currentDate.isBefore(monthEnd) || currentDate.isSame(monthEnd, 'day')) {
+      if (currentDate.month() === selectedMonth && currentDate.year() === selectedYear) {
+        const weeksDiff = currentDate.diff(startDate, 'week');
+        if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+          biweeklyPayments++;
+        }
+      }
+      currentDate = currentDate.add(14, 'day');
+    }
+
+    const rubaMonthlyTotal = rubaSalary * biweeklyPayments;
+    return majdiMonthlyTotal + rubaMonthlyTotal;
   })();
 
+  // Set fixed values for February 2025 or calculate for other months
   const totalMonthExpenses = selectedMonth === 1 && selectedYear === 2025 ? 11031 : 
     dayBills.reduce((sum, bill) => sum + bill.amount, 0);
 
