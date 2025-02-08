@@ -20,10 +20,12 @@ import { formatCurrency } from '@/lib/reportUtils';
 dayjs.extend(isBetween);
 
 export default function Reports() {
+  const today = dayjs(); // Use actual current date
+
   // Set default date range to current month
   const [dateRange, setDateRange] = useState<{from: Date; to: Date}>({
-    from: dayjs().startOf('month').toDate(),
-    to: dayjs().endOf('month').toDate()
+    from: today.startOf('month').toDate(),
+    to: today.endOf('month').toDate()
   });
 
   const [totals, setTotals] = useState({
@@ -38,11 +40,18 @@ export default function Reports() {
   useEffect(() => {
     const startDate = dayjs(dateRange.from);
     const endDate = dayjs(dateRange.to);
-    const today = dayjs(); // Use actual current date
 
     const calculateTotals = () => {
       let income = 0;
       let expenses = 0;
+
+      // Helper function to check if a date has occurred
+      const hasDateOccurred = (checkDate: dayjs.Dayjs) => {
+        return checkDate.isBefore(today) || 
+               (checkDate.isSame(today, 'day') && 
+                checkDate.isSame(today, 'month') && 
+                checkDate.isSame(today, 'year'));
+      };
 
       // Calculate Majdi's salary (1st and 15th of each month)
       let currentDate = startDate.startOf('month');
@@ -51,21 +60,13 @@ export default function Reports() {
         const fifteenthPayday = currentDate.date(15);
 
         if (firstPayday.isBetween(startDate, endDate, 'day', '[]')) {
-          // Only add to income if the date has occurred
-          if (firstPayday.isBefore(today) || 
-              (firstPayday.isSame(today, 'day') && 
-               firstPayday.isSame(today, 'month') && 
-               firstPayday.isSame(today, 'year'))) {
+          if (hasDateOccurred(firstPayday)) {
             income += 2250; // Half of monthly salary
           }
         }
 
         if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]')) {
-          // Only add to income if the date has occurred
-          if (fifteenthPayday.isBefore(today) || 
-              (fifteenthPayday.isSame(today, 'day') && 
-               fifteenthPayday.isSame(today, 'month') && 
-               fifteenthPayday.isSame(today, 'year'))) {
+          if (hasDateOccurred(fifteenthPayday)) {
             income += 2250; // Other half of monthly salary
           }
         }
@@ -81,11 +82,7 @@ export default function Reports() {
 
       while (biweeklyDate.isSameOrBefore(endDate)) {
         if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]')) {
-          // Only add to income if the date has occurred
-          if (biweeklyDate.isBefore(today) || 
-              (biweeklyDate.isSame(today, 'day') && 
-               biweeklyDate.isSame(today, 'month') && 
-               biweeklyDate.isSame(today, 'year'))) {
+          if (hasDateOccurred(biweeklyDate)) {
             income += 2000;
           }
         }
@@ -97,7 +94,8 @@ export default function Reports() {
       currentDate = startDate.startOf('month');
       while (currentDate.isSameOrBefore(endDate)) {
         if (currentDate.isBefore(today, 'month') || 
-            currentDate.isSame(today, 'month')) {
+            (currentDate.isSame(today, 'month') && 
+             currentDate.isSame(today, 'year'))) {
           // Only add expenses for months that have occurred
           expenses += 3200;
         }
@@ -112,7 +110,7 @@ export default function Reports() {
     };
 
     calculateTotals();
-  }, [dateRange]);
+  }, [dateRange, today]);
 
   const handlePrint = () => {
     window.print();
