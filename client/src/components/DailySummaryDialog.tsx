@@ -56,8 +56,19 @@ export default function DailySummaryDialog({
   const totalMonthExpenses = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
 
   // Calculate remaining amounts according to specifications
+  // We need to ensure we only count income and expenses for the current month
+  const selectedMonthStart = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
+  const selectedDate = dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
+
+  // Calculate total income incurred till the selected day for THIS month only
+  const thisMonthIncomeUpToToday = dayIncomes.filter(income => {
+    const incomeDate = dayjs(income.date); // Assuming income has a 'date' property
+    return incomeDate.isSame(selectedMonthStart, 'month');
+  }).reduce((sum, income) => sum + income.amount, 0);
+
+
   // 1. Remaining Income = Total income of the selected month - total income incurred till the day selected
-  const remainingIncome = totalMonthIncome - totalIncomeUpToToday;
+  const remainingIncome = totalMonthIncome - thisMonthIncomeUpToToday;
 
   // 2. Remaining Expenses = total expenses of the selected month - total expenses incurred till the day selected
   const remainingExpenses = totalMonthExpenses - totalBillsUpToToday;
@@ -65,11 +76,7 @@ export default function DailySummaryDialog({
   // 3. Balance of Remaining = Remaining Income - Remaining Expenses
   const remainingBalance = remainingIncome - remainingExpenses;
 
-  const currentDate = dayjs()
-    .year(selectedYear)
-    .month(selectedMonth)
-    .date(selectedDay)
-    .format('MMMM D, YYYY');
+  const currentDate = selectedDate.format('MMMM D, YYYY');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
