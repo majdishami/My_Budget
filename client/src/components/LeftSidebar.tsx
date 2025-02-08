@@ -34,8 +34,7 @@ import {
 import dayjs from "dayjs";
 import { useState } from "react";
 import { ExportDialog } from "@/components/ExportDialog";
-import {ViewRemindersDialog} from "@/components/ViewRemindersDialog"; //Added import
-
+import { ViewRemindersDialog } from "@/components/ViewRemindersDialog";
 
 interface LeftSidebarProps {
   incomes: Income[];
