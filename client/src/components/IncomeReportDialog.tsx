@@ -50,7 +50,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
   const [date, setDate] = useState<DateRange | undefined>();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showReport, setShowReport] = useState(false);
-  const today = dayjs('2024-05-01'); // Current date
+  const today = dayjs(); // Use actual current date
 
   useEffect(() => {
     if (!isOpen) {
@@ -70,42 +70,57 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
     // Generate transactions based on provided incomes
     incomes.forEach(income => {
       if (income.source === "Majdi's Salary") {
-        const payDates = Array.from({ length: 12 }, (_, i) => {
-          const month = startDate.add(i, 'month');
-          return [
-            month.date(1),  // 1st of month
-            month.date(15), // 15th of month
-          ];
-        }).flat();
+        // Calculate monthly occurrences within the date range
+        let currentDate = startDate.startOf('month');
+        while (currentDate.isSameOrBefore(endDate)) {
+          // Add salary on 1st and 15th of each month
+          const firstPayday = currentDate.date(1);
+          const fifteenthPayday = currentDate.date(15);
 
-        payDates.forEach(payDate => {
-          if (payDate.isBetween(startDate, endDate, 'day', '[]')) {
+          if (firstPayday.isBetween(startDate, endDate, 'day', '[]')) {
             mockTransactions.push({
-              date: payDate.format('YYYY-MM-DD'),
+              date: firstPayday.format('YYYY-MM-DD'),
               description: income.source,
-              amount: income.amount,
-              occurred: payDate.isSameOrBefore(today)
+              amount: income.amount / 2, // Split monthly amount
+              occurred: firstPayday.isSameOrBefore(today)
             });
           }
-        });
+
+          if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]')) {
+            mockTransactions.push({
+              date: fifteenthPayday.format('YYYY-MM-DD'),
+              description: income.source,
+              amount: income.amount / 2, // Split monthly amount
+              occurred: fifteenthPayday.isSameOrBefore(today)
+            });
+          }
+
+          currentDate = currentDate.add(1, 'month');
+        }
       } else if (income.source === "Ruba's Salary") {
+        // Start from the first occurrence after start date
         let payDate = dayjs('2025-01-10');
+        while (payDate.isBefore(startDate)) {
+          payDate = payDate.add(14, 'day');
+        }
+
+        // Add bi-weekly occurrences within range
         while (payDate.isSameOrBefore(endDate)) {
-          if (payDate.isBetween(startDate, endDate, 'day', '[]')) {
-            mockTransactions.push({
-              date: payDate.format('YYYY-MM-DD'),
-              description: income.source,
-              amount: income.amount,
-              occurred: payDate.isSameOrBefore(today)
-            });
-          }
+          mockTransactions.push({
+            date: payDate.format('YYYY-MM-DD'),
+            description: income.source,
+            amount: income.amount,
+            occurred: payDate.isSameOrBefore(today)
+          });
           payDate = payDate.add(14, 'day');
         }
       }
     });
 
+    // Sort transactions by date
+    mockTransactions.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
     setTransactions(mockTransactions);
-  }, [showReport, date, incomes]);
+  }, [showReport, date, incomes, today]);
 
   const summary = transactions.reduce(
     (acc, transaction) => {
@@ -304,7 +319,6 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
                 <TableBody>
                   {transactions
                     .filter(t => t.description === "Majdi's Salary")
-                    .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
                     .map((transaction, index) => (
                       <TableRow key={index}>
                         <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
@@ -340,7 +354,6 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
                 <TableBody>
                   {transactions
                     .filter(t => t.description === "Ruba's Salary")
-                    .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
                     .map((transaction, index) => (
                       <TableRow key={index}>
                         <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,11 +16,57 @@ import { FileText, Download, Printer } from 'lucide-react';
 import { formatCurrency } from '@/lib/reportUtils';
 
 export default function Reports() {
+  // Set default date range to current month
   const [dateRange, setDateRange] = useState<{from: Date; to: Date}>({
-    from: new Date(),
-    to: new Date()
+    from: dayjs().startOf('month').toDate(),
+    to: dayjs().endOf('month').toDate()
   });
+
+  const [totals, setTotals] = useState({
+    income: 0,
+    expenses: 0,
+    balance: 0
+  });
+
   const { toast } = useToast();
+
+  // Calculate totals when date range changes
+  useEffect(() => {
+    const startDate = dayjs(dateRange.from);
+    const endDate = dayjs(dateRange.to);
+
+    // Here you would typically fetch data from your API
+    // For now, we'll calculate based on the date range
+    const calculateTotals = () => {
+      let income = 0;
+      let expenses = 0;
+
+      // Example calculation (replace with actual data fetching)
+      // Monthly income (prorated for partial months)
+      const monthsDiff = endDate.diff(startDate, 'month', true);
+      income = Math.round(4500 * monthsDiff); // Base monthly income
+
+      // Add bi-weekly salary
+      let biweeklyDate = dayjs('2025-01-10');
+      while (biweeklyDate.isSameOrBefore(endDate)) {
+        if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]')) {
+          income += 2000;
+        }
+        biweeklyDate = biweeklyDate.add(14, 'day');
+      }
+
+      // Calculate expenses (example calculation)
+      expenses = Math.round(3200 * monthsDiff);
+
+      setTotals({
+        income,
+        expenses,
+        balance: income - expenses
+      });
+    };
+
+    calculateTotals();
+  }, [dateRange]);
 
   const handlePrint = () => {
     window.print();
@@ -68,7 +115,7 @@ export default function Reports() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(45000)}
+              {formatCurrency(totals.income)}
             </div>
           </CardContent>
         </Card>
@@ -79,7 +126,7 @@ export default function Reports() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(32000)}
+              {formatCurrency(totals.expenses)}
             </div>
           </CardContent>
         </Card>
@@ -90,7 +137,7 @@ export default function Reports() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {formatCurrency(13000)}
+              {formatCurrency(totals.balance)}
             </div>
           </CardContent>
         </Card>
@@ -107,6 +154,7 @@ export default function Reports() {
         </CardContent>
       </Card>
 
+      {/* Transaction Details Card */}
       <Card className="print:shadow-none">
         <CardHeader>
           <CardTitle>Transaction Details</CardTitle>
@@ -123,14 +171,15 @@ export default function Reports() {
                 </tr>
               </thead>
               <tbody className="divide-y">
+                {/* Add dynamic transaction rows based on date range */}
                 <tr>
-                  <td className="p-2">2024-02-01</td>
+                  <td className="p-2">{dayjs(dateRange.from).format('YYYY-MM-DD')}</td>
                   <td className="p-2">Monthly Rent</td>
                   <td className="p-2 text-right text-red-600">-$3,750.00</td>
                   <td className="p-2">Expense</td>
                 </tr>
                 <tr>
-                  <td className="p-2">2024-02-01</td>
+                  <td className="p-2">{dayjs(dateRange.from).format('YYYY-MM-DD')}</td>
                   <td className="p-2">Salary</td>
                   <td className="p-2 text-right text-green-600">$4,739.00</td>
                   <td className="p-2">Income</td>
