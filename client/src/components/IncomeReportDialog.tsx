@@ -1,3 +1,10 @@
+// External dependencies
+import { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import isBetween from 'dayjs/plugin/isBetween';
+
+// UI Components
 import {
   Dialog,
   DialogContent,
@@ -5,16 +12,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { DateRange } from "react-day-picker";
-import dayjs from 'dayjs';
-import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
-import isBetween from 'dayjs/plugin/isBetween';
-import { Income } from "@/types";
 import {
   Table,
   TableBody,
@@ -24,6 +24,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+// Types and Utils
+import { DateRange } from "react-day-picker";
+import { Income } from "@/types";
+import { formatCurrency } from '@/lib/utils';
+
+// Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isBetween);
 
