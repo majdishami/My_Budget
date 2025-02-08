@@ -1,12 +1,18 @@
 import { useState } from 'react';
+
+// UI Components
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ReportFilter } from '@/components/ReportFilter';
 import { ChartComponent } from '@/components/ChartComponent';
 import { PDFReport } from '@/components/PDFReport';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Printer } from 'lucide-react';
-import { formatCurrency } from '@/lib/reportUtils';
 import { useToast } from '@/hooks/use-toast';
+
+// Icons
+import { FileText, Download, Printer } from 'lucide-react';
+
+// Utils
+import { formatCurrency } from '@/lib/reportUtils';
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState<{from: Date; to: Date}>({
@@ -66,7 +72,7 @@ export default function Reports() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Total Expenses</CardTitle>
@@ -77,7 +83,7 @@ export default function Reports() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Net Balance</CardTitle>
@@ -117,7 +123,6 @@ export default function Reports() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {/* Sample transactions - replace with actual data */}
                 <tr>
                   <td className="p-2">2024-02-01</td>
                   <td className="p-2">Monthly Rent</td>
