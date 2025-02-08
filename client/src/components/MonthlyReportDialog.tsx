@@ -199,7 +199,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                 <span>As of February 8, 2025</span>
               </div>
               <DialogClose asChild>
-                <button 
+                <button
                   className="rounded-sm opacity-70 hover:opacity-100"
                   aria-label="Close dialog"
                 >
@@ -249,11 +249,23 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                 <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${monthlyTotal.balance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                  {formatCurrency(monthlyTotal.balance)}
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  Expected month-end balance
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold">
+                    <div className={`${monthlyTotal.balance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                      {formatCurrency(monthlyTotal.balance)}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      <span className={`${occurredBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                        ✓ {formatCurrency(occurredBalance)}
+                      </span> occurred +{' '}
+                      <span className={`${pendingBalance >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+                        ⌛ {formatCurrency(pendingBalance)}
+                      </span> pending
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Expected month-end balance
+                  </div>
                 </div>
               </CardContent>
             </Card>
