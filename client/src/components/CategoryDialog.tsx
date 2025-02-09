@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
   color: z.string().min(1, "Color is required"),
-  icon: z.string().optional()
+  icon: z.string().optional().nullable().transform(val => val || undefined)
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -28,10 +28,11 @@ interface CategoryDialogProps {
 export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: CategoryDialogProps) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
 
-  const defaultFormValues = useMemo(() => 
-    initialData || { name: "", color: "#000000", icon: "" },
-    [initialData]
-  );
+  const defaultFormValues = useMemo(() => ({
+    name: initialData?.name || "",
+    color: initialData?.color || "#000000",
+    icon: initialData?.icon || ""
+  }), [initialData]);
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -40,16 +41,24 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
 
   // Reset form when initialData changes
   useEffect(() => {
-    form.reset(defaultFormValues);
-  }, [defaultFormValues, form]);
+    if (isOpen) {
+      form.reset(defaultFormValues);
+    }
+  }, [isOpen, defaultFormValues, form]);
 
-  const handleSubmit = (data: CategoryFormData) => {
-    onSubmit({
-      ...data,
-      icon: data.icon?.trim() || undefined // Convert empty string to undefined
-    });
-    onOpenChange(false);
-    form.reset();
+  const handleSubmit = async (data: CategoryFormData) => {
+    try {
+      // Transform empty strings to undefined for optional fields
+      const transformedData = {
+        ...data,
+        icon: data.icon?.trim() || undefined
+      };
+      await onSubmit(transformedData);
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error submitting category:', error);
+    }
   };
 
   return (
@@ -102,7 +111,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                           color={field.value}
                           onChange={(color) => {
                             field.onChange(color?.hex || "#000000");
-                            setColorPickerOpen(false); // Close picker after selection
+                            setColorPickerOpen(false);
                           }}
                         />
                       </PopoverContent>
@@ -122,7 +131,8 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                   <FormControl>
                     <Input 
                       placeholder="Enter icon name" 
-                      {...field} 
+                      {...field}
+                      value={field.value || ""}
                       autoComplete="off"
                       spellCheck="false"
                     />
