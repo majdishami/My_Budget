@@ -46,7 +46,7 @@ interface Transaction {
   amount: number;
   occurred: boolean;
   category: string;
-  color?: string; // Added color property
+  color?: string;
 }
 
 interface Bill {
@@ -102,17 +102,23 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
   // Group bills by category and prepare dropdown options
   const dropdownOptions = useMemo(() => {
-    const categorizedBills = bills.reduce((acc, bill) => {
-      const category = categories.find(c => c.id === bill.categoryId)?.name || 'Uncategorized';
-      if (!acc[category]) {
-        acc[category] = [];
+    const categorizedBills = bills.reduce<Record<string, (Bill & { categoryColor: string })[]>>((acc, bill) => {
+      const category = categories.find(c => c.id === bill.categoryId);
+      const categoryName = category ? category.name : 'Uncategorized';
+      if (!acc[categoryName]) {
+        acc[categoryName] = [];
       }
-      acc[category].push(bill);
+      acc[categoryName].push({
+        ...bill,
+        categoryColor: category?.color || '#D3D3D3'
+      });
       return acc;
-    }, {} as Record<string, Bill[]>);
+    }, {});
 
     return {
-      categories: Object.keys(categorizedBills).sort(),
+      categories: Object.keys(categorizedBills).sort((a, b) => 
+        a === 'Uncategorized' ? 1 : b === 'Uncategorized' ? -1 : a.localeCompare(b)
+      ),
       categorizedBills
     };
   }, [bills, categories]);
@@ -140,10 +146,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         const expenseId = selectedValue.replace('expense_', '');
         filteredBills = bills.filter(bill => bill.id === expenseId);
       } else if (selectedValue.startsWith('category_')) {
-        const category = selectedValue.replace('category_', '');
+        const categoryName = selectedValue.replace('category_', '');
         filteredBills = bills.filter(bill => {
-          const billCategory = categories.find(c => c.id === bill.categoryId)?.name;
-          return billCategory === category;
+          const category = categories.find(c => c.id === bill.categoryId);
+          return category?.name === categoryName;
         });
       }
     }
@@ -159,7 +165,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
       filteredBills.forEach(bill => {
         const category = categories.find(c => c.id === bill.categoryId);
-        if (!category) return;
+        const categoryName = category ? category.name : 'Uncategorized';
+        const categoryColor = category?.color || '#D3D3D3';
 
         let currentMonth = startDate.startOf('month');
         while (currentMonth.isSameOrBefore(endDate)) {
@@ -173,14 +180,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             }
 
             // Find existing category total for this month
-            let categoryTotal = categoryTotalsByMonth[monthKey].find(ct => ct.category === category.name);
+            let categoryTotal = categoryTotalsByMonth[monthKey].find(ct => ct.category === categoryName);
 
             if (!categoryTotal) {
               categoryTotal = {
-                category: category.name,
+                category: categoryName,
                 amount: 0,
                 occurred: false,
-                color: category.color
+                color: categoryColor
               };
               categoryTotalsByMonth[monthKey].push(categoryTotal);
             }
@@ -209,18 +216,21 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     } else {
       // Generate regular transactions for other views
       filteredBills.forEach(bill => {
+        const category = categories.find(c => c.id === bill.categoryId);
+        const categoryName = category ? category.name : 'Uncategorized';
+        const categoryColor = category?.color || '#D3D3D3';
+
         let currentMonth = startDate.startOf('month');
         while (currentMonth.isSameOrBefore(endDate)) {
           const transactionDate = currentMonth.date(bill.day);
           if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
-            const category = categories.find(c => c.id === bill.categoryId);
             result.push({
               date: transactionDate.format('YYYY-MM-DD'),
               description: bill.name,
               amount: bill.amount,
               occurred: transactionDate.isSameOrBefore(today),
-              category: category?.name || 'Uncategorized',
-              color: category?.color || '#D3D3D3'
+              category: categoryName,
+              color: categoryColor
             });
           }
           currentMonth = currentMonth.add(1, 'month');
