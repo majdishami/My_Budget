@@ -628,6 +628,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           <TableHead className="text-right">Total Amount</TableHead>
                           <TableHead className="text-right">Paid Amount</TableHead>
                           <TableHead className="text-right">Pending Amount</TableHead>
+                          <TableHead className="text-right">Occurrences</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -654,6 +655,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             </TableCell>
                             <TableCell className="text-right text-red-300">
                               {formatCurrency(expense.pendingAmount)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {expense.transactions.length}
                             </TableCell>
                           </TableRow>
                         ))}
