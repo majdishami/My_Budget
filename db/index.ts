@@ -7,45 +7,87 @@ import { join } from 'path';
 
 // Load environment variables from .env file
 const envPath = join(process.cwd(), '.env');
-console.log('Looking for .env file at:', envPath);
+console.log('Loading environment variables from:', envPath);
+config({ path: envPath });
 
-const result = config({ path: envPath });
+// Detailed connection logging
+console.log('Database connection parameters:', {
+  host: process.env.PGHOST,
+  port: process.env.PGPORT,
+  database: process.env.PGDATABASE,
+  user: process.env.PGUSER,
+  // Don't log password for security
+});
 
-if (result.error) {
-  console.error('Error loading .env file:', result.error);
-  process.exit(1);
-}
-
-// Initialize pool with simplified configuration for local development
+// Initialize pool with explicit parameters and SSL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Disable SSL for local development
-  ssl: false,
+  ssl: {
+    rejectUnauthorized: false // Required for Neon PostgreSQL
+  },
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
+
+// Add error handling for the pool
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client:', err);
+  process.exit(-1);
 });
 
 const db = drizzle(pool, { schema });
 
-// Test the connection
-async function testConnection() {
-  try {
-    console.log('Testing database connection...');
-    const client = await pool.connect();
+// Enhanced connection testing with retries
+async function testConnection(retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const result = await client.query('SELECT NOW()');
-      console.log('Database connection successful:', result.rows[0]);
-    } finally {
-      client.release();
+      console.log(`Connection attempt ${attempt}/${retries}...`);
+      const client = await pool.connect();
+
+      try {
+        // Basic connectivity test
+        await client.query('SELECT NOW()');
+        console.log('Basic connectivity test passed');
+
+        // Schema verification
+        const tables = await client.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public'
+          AND table_type = 'BASE TABLE';
+        `);
+
+        console.log('Available tables:', tables.rows.map(r => r.table_name));
+
+        // Verify categories table specifically
+        const categoryCheck = await client.query(`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'categories'
+          );
+        `);
+
+        if (!categoryCheck.rows[0].exists) {
+          throw new Error('Categories table not found in schema');
+        }
+
+        console.log('Database connection and schema verified successfully');
+        return true;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error(`Attempt ${attempt} failed:`, error);
+      if (attempt === retries) {
+        throw error;
+      }
+      // Wait before retrying with exponential backoff
+      await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt), 10000)));
     }
-  } catch (error) {
-    console.error('Error connecting to database:', error);
-    if (error instanceof Error) {
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack
-      });
-    }
-    throw error;
   }
+  return false;
 }
 
 // Initialize connection
@@ -55,4 +97,4 @@ testConnection().catch(error => {
   process.exit(1);
 });
 
-export { pool, db };
+export { db, pool };
