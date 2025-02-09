@@ -16,12 +16,21 @@ if (result.error) {
   process.exit(1);
 }
 
-// Initialize pool with enhanced error handling
+// Log database connection details (without sensitive information)
+const dbUrl = new URL(process.env.DATABASE_URL || 'postgresql://localhost');
+console.log('Connecting to database:', {
+  host: dbUrl.hostname,
+  port: dbUrl.port,
+  database: dbUrl.pathname.substring(1),
+  ssl: dbUrl.hostname === 'localhost' ? 'disabled' : 'enabled'
+});
+
+// Initialize pool with environment-aware SSL configuration
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false, // Required for Neon and similar hosted PostgreSQL services
-  },
+  ssl: dbUrl.hostname !== 'localhost' ? {
+    rejectUnauthorized: false
+  } : undefined,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
