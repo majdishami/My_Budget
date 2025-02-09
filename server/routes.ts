@@ -179,11 +179,16 @@ export function registerRoutes(app: Express): Server {
       const categoryData = await insertCategorySchema.partial().parseAsync({
         name: req.body.name,
         color: req.body.color,
-        icon: req.body.icon || undefined,
+        icon: req.body.icon === null ? undefined : req.body.icon,
       });
 
       const [updatedCategory] = await db.update(categories)
-        .set(categoryData)
+        .set({
+          ...categoryData,
+          name: categoryData.name.trim(),
+          color: categoryData.color.trim(),
+          icon: categoryData.icon?.trim()
+        })
         .where(eq(categories.id, categoryId))
         .returning();
 

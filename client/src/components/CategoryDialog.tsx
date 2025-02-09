@@ -11,9 +11,9 @@ import { ChromePicker } from 'react-color';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const categorySchema = z.object({
-  name: z.string().min(1, "Category name is required"),
-  color: z.string().min(1, "Color is required"),
-  icon: z.string().optional().nullable().transform(val => val || undefined)
+  name: z.string().min(1, "Category name is required").transform(val => val.trim()),
+  color: z.string().min(1, "Color is required").transform(val => val.trim()),
+  icon: z.string().nullable().optional().transform(val => val?.trim() || null)
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -36,10 +36,10 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
-    defaultValues: defaultFormValues
+    defaultValues: defaultFormValues,
+    mode: "onChange"
   });
 
-  // Reset form when initialData changes
   useEffect(() => {
     if (isOpen) {
       form.reset(defaultFormValues);
@@ -48,12 +48,11 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
 
   const handleSubmit = async (data: CategoryFormData) => {
     try {
-      // Transform empty strings to undefined for optional fields
-      const transformedData = {
-        ...data,
-        icon: data.icon?.trim() || undefined
-      };
-      await onSubmit(transformedData);
+      await onSubmit({
+        name: data.name,
+        color: data.color,
+        icon: data.icon || null
+      });
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -69,7 +68,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4" autoComplete="off">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -80,8 +79,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                     <Input 
                       placeholder="Enter category name" 
                       {...field} 
-                      autoComplete="off"
-                      spellCheck="false"
+                      value={field.value || ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -133,8 +131,6 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       placeholder="Enter icon name" 
                       {...field}
                       value={field.value || ""}
-                      autoComplete="off"
-                      spellCheck="false"
                     />
                   </FormControl>
                   <FormMessage />

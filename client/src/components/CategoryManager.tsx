@@ -98,9 +98,9 @@ export function CategoryManager() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: data.name,
-          color: data.color,
-          icon: data.icon || undefined
+          name: data.name.trim(),
+          color: data.color.trim(),
+          icon: data.icon?.trim() || null
         }),
       });
 
