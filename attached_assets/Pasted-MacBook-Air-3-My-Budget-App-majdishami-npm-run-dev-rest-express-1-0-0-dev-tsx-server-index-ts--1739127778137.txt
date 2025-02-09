@@ -1,0 +1,59 @@
+MacBook-Air-3:My Budget App majdishami$ npm run dev
+
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+Initializing database connection...
+Testing database connection...
+Error connecting to database: error: database "majdishami" does not exist
+    at /Users/majdishami/My developed Apps/My Budget App/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async testConnection (/Users/majdishami/My developed Apps/My Budget App/db/index.ts:37:20) {
+  length: 95,
+  severity: 'FATAL',
+  code: '3D000',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'postinit.c',
+  line: '904',
+  routine: 'InitPostgres'
+}
+Error details: {
+  message: 'database "majdishami" does not exist',
+  stack: 'error: database "majdishami" does not exist\n' +
+    '    at /Users/majdishami/My developed Apps/My Budget App/node_modules/pg-pool/index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n' +
+    '    at async testConnection (/Users/majdishami/My developed Apps/My Budget App/db/index.ts:37:20)'
+}
+Fatal database configuration error: error: database "majdishami" does not exist
+    at /Users/majdishami/My developed Apps/My Budget App/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async testConnection (/Users/majdishami/My developed Apps/My Budget App/db/index.ts:37:20) {
+  length: 95,
+  severity: 'FATAL',
+  code: '3D000',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'postinit.c',
+  line: '904',
+  routine: 'InitPostgres'
+}
+MacBook-Air-3:My Budget App majdishami$ 

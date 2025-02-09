@@ -4,9 +4,9 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "./schema";
 import 'dotenv/config';
 
-// Enhanced environment variable validation
+// Enhanced environment variable validation and debugging
 function validateEnvVariables() {
-  const required = ['DATABASE_URL'];
+  const required = ['DATABASE_URL', 'PGDATABASE', 'PGUSER', 'PGPASSWORD', 'PGHOST', 'PGPORT'];
   const missing = required.filter(key => !process.env[key]);
 
   if (missing.length > 0) {
@@ -15,17 +15,27 @@ function validateEnvVariables() {
       `Please ensure these are set in your .env file or environment.`
     );
   }
+
+  // Log connection info (without sensitive data)
+  console.log('Attempting to connect to:', process.env.PGHOST + ':' + process.env.PGPORT);
 }
 
 // Validate environment variables
 validateEnvVariables();
 
 // Initialize pool with enhanced error handling
-const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 5000,
+const pool = new Pool({
+  host: process.env.PGHOST,
+  port: parseInt(process.env.PGPORT as string),
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
+  ssl: {
+    rejectUnauthorized: true
+  },
   max: 20,
-  idleTimeoutMillis: 30000
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 });
 
 const db = drizzle(pool, { schema });
