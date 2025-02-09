@@ -67,10 +67,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const [dateError, setDateError] = useState<string | null>(null);
   const today = useMemo(() => dayjs(), []); // Memoize today's date
 
-  // Get unique categories from bills
+  // Get unique categories from bills, including undefined/null as "Uncategorized"
   const categories = useMemo(() => {
     const uniqueCategories = new Set(bills.map(bill => bill.category || 'Uncategorized'));
-    return ['all', ...Array.from(uniqueCategories)];
+    return ['all', ...Array.from(uniqueCategories).sort()];
   }, [bills]);
 
   // Reset state when dialog closes
@@ -400,6 +400,15 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             }}
           >
             Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              // Handle form submission here
+              setShowReport(true);
+            }}
+            disabled={!date?.from || !date?.to || !!dateError}
+          >
+            Submit
           </Button>
           <Button 
             onClick={() => {
