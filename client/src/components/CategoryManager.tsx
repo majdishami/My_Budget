@@ -23,14 +23,14 @@ interface Category {
   id: number;
   name: string;
   color: string;
-  icon?: string;
+  icon?: string | null;
   created_at?: string;
 }
 
 interface CategoryFormData {
   name: string;
   color: string;
-  icon?: string;
+  icon?: string | null;
 }
 
 interface DialogState {
@@ -44,7 +44,7 @@ export function CategoryManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Centralized dialog state management
+  // Move dialog state up before any conditional returns
   const [dialogState, setDialogState] = useState<DialogState>({
     add: false,
     edit: null,
@@ -60,10 +60,8 @@ export function CategoryManager() {
   } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     queryFn: async () => {
-      console.log('Fetching categories...');
       try {
         const result = await apiRequest('/api/categories');
-        console.log('Categories fetch result:', result);
         return result;
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -74,63 +72,12 @@ export function CategoryManager() {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Loading state with skeleton UI
-  if (isLoadingCategories) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Categories</h2>
-          <div className="w-32 h-9 bg-gray-200 animate-pulse rounded-md" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <div className="p-4">
-                <div className="w-full h-6 bg-gray-200 animate-pulse rounded" />
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Error state with retry button
-  if (categoriesError) {
-    return (
-      <div className="p-4">
-        <Card className="border-red-200 bg-red-50">
-          <div className="p-4">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle className="h-8 w-8 text-red-600" />
-              <div className="text-red-800">
-                <h3 className="font-semibold">Failed to load categories</h3>
-                <p className="text-sm">Please try again later</p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => refetch()}
-                className="mt-2"
-              >
-                Retry
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  // Mutation with proper error handling and loading states
+  // Define mutations before any conditional rendering
   const createMutation = useMutation({
     mutationFn: async (newCategory: CategoryFormData) => {
       return apiRequest('/api/categories', {
         method: 'POST',
-        body: JSON.stringify({
-          name: newCategory.name,
-          color: newCategory.color,
-          icon: newCategory.icon
-        }),
+        body: JSON.stringify(newCategory),
       });
     },
     onSuccess: () => {
@@ -157,7 +104,7 @@ export function CategoryManager() {
         body: JSON.stringify({
           name: data.name.trim(),
           color: data.color.trim(),
-          icon: data.icon?.trim() || null
+          icon: data.icon || null
         }),
       });
     },
@@ -201,7 +148,6 @@ export function CategoryManager() {
     },
   });
 
-  // Enhanced handlers with proper TypeScript types
   const handleSubmit = (data: CategoryFormData) => {
     if (dialogState.edit) {
       updateMutation.mutate({ ...data, id: dialogState.edit.id });
@@ -228,6 +174,50 @@ export function CategoryManager() {
     }
   };
 
+  if (isLoadingCategories) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">Categories</h2>
+          <div className="w-32 h-9 bg-gray-200 animate-pulse rounded-md" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <div className="p-4">
+                <div className="w-full h-6 bg-gray-200 animate-pulse rounded" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (categoriesError) {
+    return (
+      <div className="p-4">
+        <Card className="border-red-200 bg-red-50">
+          <div className="p-4">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-8 w-8 text-red-600" />
+              <div className="text-red-800">
+                <h3 className="font-semibold">Failed to load categories</h3>
+                <p className="text-sm">Please try again later</p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
+                className="mt-2"
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
