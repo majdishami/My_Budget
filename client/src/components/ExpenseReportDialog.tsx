@@ -169,84 +169,35 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     const endDate = dayjs(date.to);
     const result: Transaction[] = [];
 
-    // For "all_categories", group by category
-    if (selectedValue === "all_categories") {
-      // Create a map to store category totals for each month
-      const categoryTotalsByMonth: Record<string, CategoryTotal[]> = {};
+    // Generate transactions for each bill
+    filteredBills.forEach(bill => {
+      const category = categories.find(c => c.id === bill.categoryId);
+      const categoryName = category ? category.name : 'Uncategorized';
+      const categoryColor = category?.color || '#D3D3D3';
 
-      filteredBills.forEach(bill => {
-        const category = categories.find(c => c.id === bill.categoryId);
-        const categoryName = category ? category.name : 'Uncategorized';
-        const categoryColor = category?.color || '#D3D3D3';
+      // Generate all occurrences within the date range
+      let currentDate = startDate.clone().startOf('month').date(bill.day);
 
-        let currentMonth = startDate.startOf('month');
-        while (currentMonth.isSameOrBefore(endDate)) {
-          const transactionDate = currentMonth.date(bill.day);
+      // If the first occurrence is before the start date, move to next month
+      if (currentDate.isBefore(startDate)) {
+        currentDate = currentDate.add(1, 'month');
+      }
 
-          if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
-            const monthKey = transactionDate.format('YYYY-MM');
-
-            if (!categoryTotalsByMonth[monthKey]) {
-              categoryTotalsByMonth[monthKey] = [];
-            }
-
-            // Find existing category total for this month
-            let categoryTotal = categoryTotalsByMonth[monthKey].find(ct => ct.category === categoryName);
-
-            if (!categoryTotal) {
-              categoryTotal = {
-                category: categoryName,
-                amount: 0,
-                occurred: false,
-                color: categoryColor,
-                count: 0 // Initialize count
-              };
-              categoryTotalsByMonth[monthKey].push(categoryTotal);
-            }
-
-            categoryTotal.amount += bill.amount;
-            const isOccurred = transactionDate.isSameOrBefore(today);
-            categoryTotal.occurred = categoryTotal.occurred || isOccurred;
-            categoryTotal.count++; // Increment count
-          }
-          currentMonth = currentMonth.add(1, 'month');
-        }
-      });
-
-      // Convert category totals to transactions
-      Object.entries(categoryTotalsByMonth).forEach(([monthKey, categoryTotals]) => {
-        categoryTotals.forEach(ct => {
+      while (currentDate.isSameOrBefore(endDate)) {
+        // Only add if the occurrence falls within the date range
+        if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
           result.push({
-            date: dayjs(monthKey).format('YYYY-MM-DD'),
-            description: ct.category,
-            amount: ct.amount,
-            occurred: ct.occurred,
-            category: ct.category,
-            color: ct.color
-          });
-        });
-      });
-    } else {
-      // Generate regular transactions for other views
-      filteredBills.forEach(bill => {
-        const category = categories.find(c => c.id === bill.categoryId);
-        const categoryName = category ? category.name : 'Uncategorized';
-        const categoryColor = category?.color || '#D3D3D3';
-
-        const transactionDate = dayjs(startDate).date(bill.day); //Fixed to use only start date for total count.
-
-        if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
-          result.push({
-            date: transactionDate.format('YYYY-MM-DD'),
+            date: currentDate.format('YYYY-MM-DD'),
             description: bill.name,
             amount: bill.amount,
-            occurred: transactionDate.isSameOrBefore(today),
+            occurred: currentDate.isSameOrBefore(today),
             category: categoryName,
             color: categoryColor
           });
         }
-      });
-    }
+        currentDate = currentDate.add(1, 'month');
+      }
+    });
 
     return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
   }, [showReport, selectedValue, date, bills, categories, today]);
@@ -359,13 +310,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
     } else if (selectedValue === "all") {
-      // Expense totals logic
+      // Expense totals logic with occurrences
       const totals: Record<string, { 
         description: string;
         category: string;
         total: number; 
         occurred: number; 
-        pending: number; 
+        pending: number;
+        occurrences: number;
         color: string;
       }> = {};
 
@@ -377,6 +329,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             total: 0,
             occurred: 0,
             pending: 0,
+            occurrences: 0,
             color: t.color || '#D3D3D3'
           };
         }
@@ -386,11 +339,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         } else {
           totals[t.description].pending += t.amount;
         }
+        totals[t.description].occurrences++;
       });
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
     } else if (selectedValue.startsWith('category_') || selectedValue.startsWith('expense_')) {
-      // Individual category/expense totals logic
+      // Individual category/expense totals logic with occurrences
       const totals: Record<string, { 
         description: string;
         category: string;
