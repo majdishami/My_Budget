@@ -1,3 +1,129 @@
+### Debugging `CategoryDialog.tsx`
+
+I will review the potential issues in your `CategoryDialog.tsx` component and suggest fixes. Here are the areas I’ll analyze:
+
+1. **State Management Issues**
+2. **Form Handling Issues**
+3. **Color Picker Bugs**
+4. **Rendering Issues**
+5. **Performance Improvements**
+6. **TypeScript Type Errors**
+
+---
+
+### 🔍 **1. State Management Issues**
+#### ✅ **Potential Issues:**
+- **`defaultValues` in `useForm` does not update when `initialData` changes**  
+  - The form doesn't reset when `initialData` changes, leading to old values being displayed when editing a category.
+
+#### 🛠 **Fix**
+Use `useEffect` to reset the form when `initialData` changes:
+
+```tsx
+import { useEffect } from "react";
+
+useEffect(() => {
+  form.reset(initialData || { name: "", color: "#000000", icon: "" });
+}, [initialData]);
+```
+
+---
+
+### 🔍 **2. Form Handling Issues**
+#### ✅ **Potential Issues:**
+- **Form submission does not prevent empty input for `icon`**  
+  - `icon` is `optional`, but if the user enters an empty string, it might cause issues in some parts of the app.
+
+#### 🛠 **Fix**
+Ensure `icon` is always stored as `undefined` if empty:
+
+```tsx
+const handleSubmit = (data: CategoryFormData) => {
+  onSubmit({
+    ...data,
+    icon: data.icon?.trim() || undefined // Convert empty string to undefined
+  });
+  onOpenChange(false);
+  form.reset();
+};
+```
+
+---
+
+### 🔍 **3. Color Picker Bugs**
+#### ✅ **Potential Issues:**
+- **Popover doesn't close when selecting a color**  
+  - The color picker remains open, requiring the user to manually close it.
+
+#### 🛠 **Fix**
+Close the color picker when a new color is selected:
+
+```tsx
+<ChromePicker
+  color={field.value}
+  onChange={(color) => {
+    field.onChange(color.hex);
+    setColorPickerOpen(false); // Close picker
+  }}
+/>
+```
+
+---
+
+### 🔍 **4. Rendering Issues**
+#### ✅ **Potential Issues:**
+- **Button text is misaligned with color preview in PopoverTrigger**  
+  - The color button UI might not align properly on different screen sizes.
+
+#### 🛠 **Fix**
+Ensure the button remains visually aligned:
+
+```tsx
+<Button variant="outline" className="w-full flex items-center justify-between">
+  <span className="flex items-center gap-2">
+    <Circle className="h-4 w-4" fill={field.value} />
+    <span className="truncate">{field.value}</span> {/* Prevents overflow */}
+  </span>
+  <Palette className="h-4 w-4" />
+</Button>
+```
+
+---
+
+### 🔍 **5. Performance Improvements**
+#### ✅ **Potential Issues:**
+- **Re-rendering occurs too often when typing in inputs**  
+  - React Hook Form’s default behavior minimizes re-renders, but tracking `isOpen` in the component state may cause unnecessary updates.
+
+#### 🛠 **Fix**
+Use `useMemo` to prevent unnecessary recalculations:
+
+```tsx
+const defaultFormValues = useMemo(() => initialData || { name: "", color: "#000000", icon: "" }, [initialData]);
+const form = useForm<CategoryFormData>({
+  resolver: zodResolver(categorySchema),
+  defaultValues: defaultFormValues
+});
+```
+
+---
+
+### 🔍 **6. TypeScript Type Errors**
+#### ✅ **Potential Issues:**
+- **`field.onChange(color.hex)` might trigger an error if `color` is undefined**  
+  - The ChromePicker library sometimes passes `null` if a color is not selected.
+
+#### 🛠 **Fix**
+Add null-checking:
+
+```tsx
+onChange={(color) => field.onChange(color?.hex || "#000000")}
+```
+
+---
+
+### ✅ **Final Debugged Code (Summary of Fixes)**
+```tsx
 import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,7 +133,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Circle, Palette } from "lucide-react";
-import { ChromePicker } from 'react-color';
+import { ChromePicker } from "react-color";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const categorySchema = z.object({
@@ -28,25 +154,20 @@ interface CategoryDialogProps {
 export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: CategoryDialogProps) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
 
-  const defaultFormValues = useMemo(() => 
-    initialData || { name: "", color: "#000000", icon: "" },
-    [initialData]
-  );
-
+  const defaultFormValues = useMemo(() => initialData || { name: "", color: "#000000", icon: "" }, [initialData]);
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
     defaultValues: defaultFormValues
   });
 
-  // Reset form when initialData changes
   useEffect(() => {
     form.reset(defaultFormValues);
-  }, [defaultFormValues, form]);
+  }, [defaultFormValues]);
 
   const handleSubmit = (data: CategoryFormData) => {
     onSubmit({
       ...data,
-      icon: data.icon?.trim() || undefined // Convert empty string to undefined
+      icon: data.icon?.trim() || undefined
     });
     onOpenChange(false);
     form.reset();
@@ -97,7 +218,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                           color={field.value}
                           onChange={(color) => {
                             field.onChange(color?.hex || "#000000");
-                            setColorPickerOpen(false); // Close picker after selection
+                            setColorPickerOpen(false);
                           }}
                         />
                       </PopoverContent>
@@ -133,3 +254,15 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
     </Dialog>
   );
 }
+```
+
+---
+
+### 🚀 **Summary of Fixes**
+✔ **Form resets correctly when `initialData` changes**  
+✔ **Color picker auto-closes when a color is selected**  
+✔ **Avoids empty `icon` values**  
+✔ **Improves performance by memoizing default values**  
+✔ **Prevents unnecessary re-renders**  
+
+Let me know if you're still facing any issues! 🚀
