@@ -2,12 +2,14 @@ import { QueryClient } from '@tanstack/react-query';
 
 // Determine the API base URL based on the environment
 const getBaseUrl = () => {
-  // In development, use the backend port (5000)
+  // In development, determine if we're running on Replit or locally
   if (process.env.NODE_ENV === 'development') {
-    // Use window.location.protocol and hostname, but with port 5000
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
-    return `${protocol}//${hostname}:5000`;
+    const isReplit = hostname.endsWith('.replit.dev');
+    // Use port 5000 for Replit, 5001 for local development
+    const port = isReplit ? '5000' : '5001';
+    return `${protocol}//${hostname}:${port}`;
   }
   return '';
 };
