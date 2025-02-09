@@ -4,7 +4,7 @@
  * ================================================
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -24,7 +24,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, X } from "lucide-react";
-import CategoriesPage from "@/pages/Categories"; // Fixed import
+import CategoriesPage from "@/pages/Categories";
+import NotFound from "@/pages/not-found";
 
 // Types for dialog management
 type DialogType = 'monthly-to-date' | 'monthly' | 'date-range' | 'expense' | 'income' | 'annual';
@@ -35,17 +36,25 @@ interface ErrorState {
   timeout?: number;
 }
 
+interface DialogState {
+  [key: string]: boolean;
+}
+
 /**
  * Router Component
  * Manages application routing and dialog states
  */
 function Router() {
-  const [showMonthlyToDate, setShowMonthlyToDate] = useState(false);
-  const [showMonthlyReport, setShowMonthlyReport] = useState(false);
-  const [showDateRangeReport, setShowDateRangeReport] = useState(false);
-  const [showExpenseReport, setShowExpenseReport] = useState(false);
-  const [showIncomeReport, setShowIncomeReport] = useState(false);
-  const [showAnnualReport, setShowAnnualReport] = useState(false);
+  // Centralized dialog state management
+  const [dialogStates, setDialogStates] = useState<DialogState>({
+    monthlyToDate: false,
+    monthlyReport: false,
+    dateRangeReport: false,
+    expenseReport: false,
+    incomeReport: false,
+    annualReport: false,
+  });
+
   const [error, setError] = useState<ErrorState | null>(null);
   const { toast } = useToast();
 
@@ -53,6 +62,7 @@ function Router() {
   const { bills, incomes, isLoading, error: dataError } = useData();
   const [location, setLocation] = useLocation();
 
+  // Handle data error
   useEffect(() => {
     if (dataError) {
       toast({
@@ -63,25 +73,27 @@ function Router() {
     }
   }, [dataError, toast]);
 
+  // Handle error timeout
   useEffect(() => {
     if (error?.timeout) {
-      const timer = setTimeout(() => {
-        setError(null);
-      }, error.timeout);
+      const timer = setTimeout(() => setError(null), error.timeout);
       return () => clearTimeout(timer);
     }
   }, [error]);
 
-  const handleDialogOpenChange = (
-    dialogSetter: React.Dispatch<React.SetStateAction<boolean>>,
+  // Optimized dialog state management
+  const handleDialogOpenChange = useCallback((
+    dialogKey: keyof DialogState,
     open: boolean,
-    reportType: string
+    reportType: DialogType
   ) => {
     try {
-      dialogSetter(open);
+      setDialogStates(prev => ({ ...prev, [dialogKey]: open }));
+
       if (!open) {
         setLocation('/', { replace: true });
       }
+
       logger.info(`${reportType} dialog state changed`, { open });
       setError(null);
     } catch (err) {
@@ -93,31 +105,29 @@ function Router() {
         timeout: 5000
       });
     }
-  };
+  }, [setLocation]);
 
+  // Route-based dialog management
   useEffect(() => {
-    const dialogStates: Record<string, () => void> = {
-      '/reports/monthly-to-date': () => setShowMonthlyToDate(true),
-      '/reports/monthly': () => setShowMonthlyReport(true),
-      '/reports/date-range': () => setShowDateRangeReport(true),
-      '/reports/expenses': () => setShowExpenseReport(true),
-      '/reports/income': () => setShowIncomeReport(true),
-      '/reports/annual': () => setShowAnnualReport(true),
+    const routeToDialog: Record<string, { key: keyof DialogState; type: DialogType }> = {
+      '/reports/monthly-to-date': { key: 'monthlyToDate', type: 'monthly-to-date' },
+      '/reports/monthly': { key: 'monthlyReport', type: 'monthly' },
+      '/reports/date-range': { key: 'dateRangeReport', type: 'date-range' },
+      '/reports/expenses': { key: 'expenseReport', type: 'expense' },
+      '/reports/income': { key: 'incomeReport', type: 'income' },
+      '/reports/annual': { key: 'annualReport', type: 'annual' },
     };
 
-    const handler = dialogStates[location];
-    if (handler) {
+    const dialogInfo = routeToDialog[location];
+    if (dialogInfo) {
       try {
-        Object.keys(dialogStates).forEach(() => {
-          setShowMonthlyToDate(false);
-          setShowMonthlyReport(false);
-          setShowDateRangeReport(false);
-          setShowExpenseReport(false);
-          setShowIncomeReport(false);
-          setShowAnnualReport(false);
-        });
+        // Reset all dialogs
+        const resetDialogs = Object.keys(dialogStates).reduce(
+          (acc, key) => ({ ...acc, [key]: false }), {}
+        );
 
-        handler();
+        // Set the active dialog
+        setDialogStates({ ...resetDialogs, [dialogInfo.key]: true });
         logger.info('Route changed successfully', { location });
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Unknown error occurred');
@@ -163,51 +173,36 @@ function Router() {
 
       <Switch>
         <Route path="/" component={Budget} />
-        <Route path="/categories" component={CategoriesPage} /> {/* Updated import */}
-        <Route path="/reports/:type">
-          {() => null}
-        </Route>
-        <Route>
-          <div className="flex items-center justify-center h-screen">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold mb-4">404</h1>
-              <p className="mb-4">Page not found</p>
-              <button
-                onClick={() => setLocation('/')}
-                className="text-primary hover:underline"
-              >
-                Go back home
-              </button>
-            </div>
-          </div>
-        </Route>
+        <Route path="/categories" component={CategoriesPage} />
+        <Route path="/reports/:type" component={NotFound} />
+        <Route component={NotFound} />
       </Switch>
 
       <MonthlyToDateDialog
-        isOpen={showMonthlyToDate}
-        onOpenChange={(open) => handleDialogOpenChange(setShowMonthlyToDate, open, "Monthly-to-date")}
+        isOpen={dialogStates.monthlyToDate}
+        onOpenChange={(open) => handleDialogOpenChange('monthlyToDate', open, 'monthly-to-date')}
       />
       <MonthlyReportDialog
-        isOpen={showMonthlyReport}
-        onOpenChange={(open) => handleDialogOpenChange(setShowMonthlyReport, open, "Monthly")}
+        isOpen={dialogStates.monthlyReport}
+        onOpenChange={(open) => handleDialogOpenChange('monthlyReport', open, 'monthly')}
       />
       <DateRangeReportDialog
-        isOpen={showDateRangeReport}
-        onOpenChange={(open) => handleDialogOpenChange(setShowDateRangeReport, open, "Date Range")}
+        isOpen={dialogStates.dateRangeReport}
+        onOpenChange={(open) => handleDialogOpenChange('dateRangeReport', open, 'date-range')}
       />
       <ExpenseReportDialog
-        isOpen={showExpenseReport}
-        onOpenChange={(open) => handleDialogOpenChange(setShowExpenseReport, open, "Expense")}
+        isOpen={dialogStates.expenseReport}
+        onOpenChange={(open) => handleDialogOpenChange('expenseReport', open, 'expense')}
         bills={bills}
       />
       <IncomeReportDialog
-        isOpen={showIncomeReport}
-        onOpenChange={(open) => handleDialogOpenChange(setShowIncomeReport, open, "Income")}
+        isOpen={dialogStates.incomeReport}
+        onOpenChange={(open) => handleDialogOpenChange('incomeReport', open, 'income')}
         incomes={incomes}
       />
       <AnnualReportDialog
-        isOpen={showAnnualReport}
-        onOpenChange={(open) => handleDialogOpenChange(setShowAnnualReport, open, "Annual")}
+        isOpen={dialogStates.annualReport}
+        onOpenChange={(open) => handleDialogOpenChange('annualReport', open, 'annual')}
       />
     </ErrorBoundary>
   );
