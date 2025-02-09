@@ -270,9 +270,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     setPreviousReport(null);
   };
 
-  // Calculate category totals for summary section
+  // Update the categoryTotals calculation to work for both modes
   const categoryTotals = useMemo(() => {
-    if (!transactions.length || selectedValue !== "all_categories") return [];
+    if (!transactions.length || (selectedValue !== "all_categories" && selectedValue !== "all")) return [];
 
     const totals: Record<string, { 
       category: string; 
@@ -488,7 +488,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
               </div>
 
               {/* Category Summary Section */}
-              {selectedValue === "all_categories" && categoryTotals.length > 0 && (
+              {(selectedValue === "all_categories" || selectedValue === "all") && categoryTotals.length > 0 && (
                 <Card>
                   <CardHeader className="py-4">
                     <CardTitle className="text-lg font-medium">Category Summary</CardTitle>
