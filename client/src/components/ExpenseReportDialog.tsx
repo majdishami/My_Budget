@@ -76,6 +76,16 @@ interface ExpenseReportDialogProps {
   bills: Bill[];
 }
 
+interface GroupedExpense {
+  description: string;
+  category: string;
+  totalAmount: number;
+  occurredAmount: number;
+  pendingAmount: number;
+  color: string;
+  transactions: Transaction[];
+}
+
 export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: ExpenseReportDialogProps) {
   const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
@@ -240,6 +250,38 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
   }, [showReport, selectedValue, date, bills, categories, today]);
+
+  // Group transactions by expense name for the "all" view
+  const groupedExpenses = useMemo(() => {
+    if (selectedValue !== "all") return [];
+
+    const groups: Record<string, GroupedExpense> = {};
+
+    transactions.forEach(transaction => {
+      if (!groups[transaction.description]) {
+        groups[transaction.description] = {
+          description: transaction.description,
+          category: transaction.category,
+          totalAmount: 0,
+          occurredAmount: 0,
+          pendingAmount: 0,
+          color: transaction.color || '#D3D3D3',
+          transactions: []
+        };
+      }
+
+      const group = groups[transaction.description];
+      group.totalAmount += transaction.amount;
+      if (transaction.occurred) {
+        group.occurredAmount += transaction.amount;
+      } else {
+        group.pendingAmount += transaction.amount;
+      }
+      group.transactions.push(transaction);
+    });
+
+    return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
+  }, [transactions, selectedValue]);
 
   // Calculate summary totals
   const summary = useMemo(() => {
@@ -578,10 +620,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 </Card>
               )}
 
-              {selectedValue === "all" && itemTotals.length > 0 && (
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-lg font-medium">Expense Summary</CardTitle>
+              {selectedValue === "all" && groupedExpenses.length > 0 && (
+                <Card className="mb-4">
+                  <CardHeader>
+                    <CardTitle>Expenses Summary</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Table>
@@ -589,32 +631,36 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                         <TableRow>
                           <TableHead>Expense</TableHead>
                           <TableHead>Category</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                          <TableHead className="text-right">Paid</TableHead>
-                          <TableHead className="text-right">Pending</TableHead>
+                          <TableHead className="text-right">Monthly Amount</TableHead>
+                          <TableHead className="text-right">Total Amount</TableHead>
+                          <TableHead className="text-right">Paid Amount</TableHead>
+                          <TableHead className="text-right">Pending Amount</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {itemTotals.map((item: any) => (
-                          <TableRow key={item.description}>
-                            <TableCell>{item.description}</TableCell>
+                        {groupedExpenses.map((expense) => (
+                          <TableRow key={expense.description}>
+                            <TableCell>{expense.description}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <div
                                   className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: item.color }}
+                                  style={{ backgroundColor: expense.color }}
                                 />
-                                {item.category}
+                                {expense.category}
                               </div>
                             </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(expense.totalAmount / expense.transactions.length)}
+                            </TableCell>
                             <TableCell className="text-right font-medium">
-                              {formatCurrency(item.total)}
+                              {formatCurrency(expense.totalAmount)}
                             </TableCell>
                             <TableCell className="text-right text-red-600">
-                              {formatCurrency(item.occurred)}
+                              {formatCurrency(expense.occurredAmount)}
                             </TableCell>
                             <TableCell className="text-right text-red-300">
-                              {formatCurrency(item.pending)}
+                              {formatCurrency(expense.pendingAmount)}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -623,112 +669,114 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                   </CardContent>
                 </Card>
               )}
-            </div>
 
-            <div className="space-y-4">
-              {sortedMonths.map(monthKey => {
-                const monthTransactions = groupedTransactions[monthKey];
-                const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
-                const monthlyPaid = monthTransactions
-                  .filter(t => t.occurred)
-                  .reduce((sum, t) => sum + t.amount, 0);
+              {selectedValue !== "all" && (
+                <div className="space-y-4">
+                  {sortedMonths.map(monthKey => {
+                    const monthTransactions = groupedTransactions[monthKey];
+                    const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+                    const monthlyPaid = monthTransactions
+                      .filter(t => t.occurred)
+                      .reduce((sum, t) => sum + t.amount, 0);
 
-                return (
-                  <Card key={monthKey}>
-                    <CardHeader className="py-4">
-                      <CardTitle className="text-lg font-medium">
-                        {dayjs(monthKey).format('MMMM YYYY')}
-                      </CardTitle>
-                      <div className="text-sm space-y-1">
-                        <div className="text-red-600">
-                          Monthly Total: {formatCurrency(monthlyTotal)}
-                        </div>
-                        <div className="text-red-600">
-                          Paid to Date: {formatCurrency(monthlyPaid)}
-                        </div>
-                        <div className="text-red-300">
-                          Remaining: {formatCurrency(monthlyTotal - monthlyPaid)}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            {selectedValue === "all_categories" ? (
-                              <>
-                                <TableHead>Category</TableHead>
-                                <TableHead className="text-right">Total Amount</TableHead>
-                                <TableHead>Status</TableHead>
-                              </>
-                            ) : (
-                              <>
-                                <TableHead>Due Date</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead>Category</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                                <TableHead>Status</TableHead>
-                              </>
-                            )}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {monthTransactions
-                            .sort((a, b) => {
-                              if (selectedValue === "all_categories") {
-                                return a.category.localeCompare(b.category);
-                              }
-                              return dayjs(a.date).diff(dayjs(b.date));
-                            })
-                            .map((transaction, index) => (
-                              <TableRow key={`${transaction.date}-${index}`}>
+                    return (
+                      <Card key={monthKey}>
+                        <CardHeader className="py-4">
+                          <CardTitle className="text-lg font-medium">
+                            {dayjs(monthKey).format('MMMM YYYY')}
+                          </CardTitle>
+                          <div className="text-sm space-y-1">
+                            <div className="text-red-600">
+                              Monthly Total: {formatCurrency(monthlyTotal)}
+                            </div>
+                            <div className="text-red-600">
+                              Paid to Date: {formatCurrency(monthlyPaid)}
+                            </div>
+                            <div className="text-red-300">
+                              Remaining: {formatCurrency(monthlyTotal - monthlyPaid)}
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
                                 {selectedValue === "all_categories" ? (
                                   <>
-                                    <TableCell>
-                                      <div className="flex items-center gap-2">
-                                        <div
-                                          className="w-3 h-3 rounded-full"
-                                          style={{ backgroundColor: transaction.color }}
-                                        />
-                                        {transaction.category}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
-                                      {formatCurrency(transaction.amount)}
-                                    </TableCell>
-                                    <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
-                                      {transaction.occurred ? 'Paid' : 'Pending'}
-                                    </TableCell>
+                                    <TableHead>Category</TableHead>
+                                    <TableHead className="text-right">Total Amount</TableHead>
+                                    <TableHead>Status</TableHead>
                                   </>
                                 ) : (
                                   <>
-                                    <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                                    <TableCell>{transaction.description}</TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center gap-2">
-                                        <div
-                                          className="w-3 h-3 rounded-full"
-                                          style={{ backgroundColor: transaction.color }}
-                                        />
-                                        {transaction.category}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
-                                      {formatCurrency(transaction.amount)}
-                                    </TableCell>
-                                    <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
-                                      {transaction.occurred ? 'Paid' : 'Pending'}
-                                    </TableCell>
+                                    <TableHead>Due Date</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead>Category</TableHead>
+                                    <TableHead className="text-right">Amount</TableHead>
+                                    <TableHead>Status</TableHead>
                                   </>
                                 )}
                               </TableRow>
-                            ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                            </TableHeader>
+                            <TableBody>
+                              {monthTransactions
+                                .sort((a, b) => {
+                                  if (selectedValue === "all_categories") {
+                                    return a.category.localeCompare(b.category);
+                                  }
+                                  return dayjs(a.date).diff(dayjs(b.date));
+                                })
+                                .map((transaction, index) => (
+                                  <TableRow key={`${transaction.date}-${index}`}>
+                                    {selectedValue === "all_categories" ? (
+                                      <>
+                                        <TableCell>
+                                          <div className="flex items-center gap-2">
+                                            <div
+                                              className="w-3 h-3 rounded-full"
+                                              style={{ backgroundColor: transaction.color }}
+                                            />
+                                            {transaction.category}
+                                          </div>
+                                        </TableCell>
+                                        <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                                          {formatCurrency(transaction.amount)}
+                                        </TableCell>
+                                        <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                                          {transaction.occurred ? 'Paid' : 'Pending'}
+                                        </TableCell>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                                        <TableCell>{transaction.description}</TableCell>
+                                        <TableCell>
+                                          <div className="flex items-center gap-2">
+                                            <div
+                                              className="w-3 h-3 rounded-full"
+                                              style={{ backgroundColor: transaction.color }}
+                                            />
+                                            {transaction.category}
+                                          </div>
+                                        </TableCell>
+                                        <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                                          {formatCurrency(transaction.amount)}
+                                        </TableCell>
+                                        <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                                          {transaction.occurred ? 'Paid' : 'Pending'}
+                                        </TableCell>
+                                      </>
+                                    )}
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </>
         )}
