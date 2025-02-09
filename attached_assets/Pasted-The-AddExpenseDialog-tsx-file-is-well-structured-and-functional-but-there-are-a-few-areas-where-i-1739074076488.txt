@@ -1,0 +1,324 @@
+The `AddExpenseDialog.tsx` file is well-structured and functional, but there are a few areas where improvements or debugging might be necessary:
+
+### 1. **Input Validation:**
+   - The `amount` and `day` inputs are not validated before being passed to the `onConfirm` function. This could lead to invalid values being submitted (e.g., negative amounts or days outside the 1-31 range).
+
+   **Fix:**
+   Add validation checks before calling `onConfirm`:
+   ```typescript
+   const handleConfirm = () => {
+     const parsedAmount = parseFloat(amount);
+     const parsedDay = parseInt(day);
+
+     if (isNaN(parsedAmount) || parsedAmount <= 0) {
+       alert("Please enter a valid amount greater than 0.");
+       return;
+     }
+
+     if (isNaN(parsedDay) || parsedDay < 1 || parsedDay > 31) {
+       alert("Please enter a valid day between 1 and 31.");
+       return;
+     }
+
+     onConfirm({
+       name,
+       amount: parsedAmount,
+       day: parsedDay,
+       reminderEnabled,
+       reminderDays
+     });
+
+     // Reset form
+     setName('');
+     setAmount('');
+     setDay('1');
+     setReminderEnabled(false);
+     setReminderDays(7);
+   };
+   ```
+
+### 2. **Reminder Days Validation:**
+   - The `reminderDays` value is not validated when setting a reminder. It could be set to a negative number or an excessively large number.
+
+   **Fix:**
+   Add validation in the `handleReminderSave` function:
+   ```typescript
+   const handleReminderSave = (enabled: boolean, days: number) => {
+     if (days < 1 || days > 30) {
+       alert("Reminder days must be between 1 and 30.");
+       return;
+     }
+     setReminderEnabled(enabled);
+     setReminderDays(days);
+   };
+   ```
+
+### 3. **Reset Form on Dialog Close:**
+   - The form fields are only reset when the user confirms the expense. If the user cancels the dialog, the form fields retain their values, which could lead to confusion when reopening the dialog.
+
+   **Fix:**
+   Reset the form fields when the dialog is closed:
+   ```typescript
+   const handleOpenChange = (open: boolean) => {
+     if (!open) {
+       // Reset form when dialog is closed
+       setName('');
+       setAmount('');
+       setDay('1');
+       setReminderEnabled(false);
+       setReminderDays(7);
+     }
+     onOpenChange(open);
+   };
+
+   return (
+     <>
+       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+         {/* Dialog content */}
+       </Dialog>
+       {/* ReminderDialog */}
+     </>
+   );
+   ```
+
+### 4. **Accessibility Improvements:**
+   - The `Input` components lack proper `aria-label` or `aria-describedby` attributes, which could improve accessibility for screen readers.
+
+   **Fix:**
+   Add `aria-label` or `aria-describedby` attributes to the `Input` components:
+   ```typescript
+   <Input
+     id="name"
+     value={name}
+     onChange={(e) => setName(e.target.value)}
+     placeholder="Enter expense name"
+     aria-label="Expense name"
+   />
+   <Input
+     id="amount"
+     type="number"
+     step="0.01"
+     value={amount}
+     onChange={(e) => setAmount(e.target.value)}
+     placeholder="Enter amount"
+     aria-label="Expense amount"
+   />
+   <Input
+     id="day"
+     type="number"
+     min="1"
+     max="31"
+     value={day}
+     onChange={(e) => setDay(e.target.value)}
+     placeholder="Enter day (1-31)"
+     aria-label="Day of month"
+   />
+   ```
+
+### 5. **Error Handling for `parseFloat` and `parseInt`:**
+   - The `parseFloat` and `parseInt` functions are used without handling potential `NaN` values, which could lead to unexpected behavior.
+
+   **Fix:**
+   Add checks for `NaN` values:
+   ```typescript
+   const parsedAmount = parseFloat(amount);
+   const parsedDay = parseInt(day);
+
+   if (isNaN(parsedAmount) || isNaN(parsedDay)) {
+     alert("Please enter valid numbers for amount and day.");
+     return;
+   }
+   ```
+
+### 6. **Reminder Button Text:**
+   - The reminder button text could be more descriptive when a reminder is enabled.
+
+   **Fix:**
+   Update the button text to be more descriptive:
+   ```typescript
+   <Button
+     variant="outline"
+     onClick={() => setShowReminderDialog(true)}
+     className="w-full"
+   >
+     <Bell className="mr-2 h-4 w-4" />
+     {reminderEnabled ? `Reminder: ${reminderDays} day(s) before` : 'Set Reminder'}
+   </Button>
+   ```
+
+### Updated `AddExpenseDialog.tsx` with Fixes:
+Here’s the updated file with all the fixes applied:
+
+```typescript
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { Bill } from "@/types";
+import { ReminderDialog } from "@/components/ReminderDialog";
+import { Bell } from "lucide-react";
+
+interface AddExpenseDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (newBill: Omit<Bill, 'id'>) => void;
+}
+
+export function AddExpenseDialog({
+  isOpen,
+  onOpenChange,
+  onConfirm,
+}: AddExpenseDialogProps) {
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
+  const [day, setDay] = useState('1');
+  const [showReminderDialog, setShowReminderDialog] = useState(false);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderDays, setReminderDays] = useState(7);
+
+  const handleConfirm = () => {
+    const parsedAmount = parseFloat(amount);
+    const parsedDay = parseInt(day);
+
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      alert("Please enter a valid amount greater than 0.");
+      return;
+    }
+
+    if (isNaN(parsedDay) || parsedDay < 1 || parsedDay > 31) {
+      alert("Please enter a valid day between 1 and 31.");
+      return;
+    }
+
+    onConfirm({
+      name,
+      amount: parsedAmount,
+      day: parsedDay,
+      reminderEnabled,
+      reminderDays
+    });
+
+    // Reset form
+    setName('');
+    setAmount('');
+    setDay('1');
+    setReminderEnabled(false);
+    setReminderDays(7);
+  };
+
+  const handleReminderSave = (enabled: boolean, days: number) => {
+    if (days < 1 || days > 30) {
+      alert("Reminder days must be between 1 and 30.");
+      return;
+    }
+    setReminderEnabled(enabled);
+    setReminderDays(days);
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      // Reset form when dialog is closed
+      setName('');
+      setAmount('');
+      setDay('1');
+      setReminderEnabled(false);
+      setReminderDays(7);
+    }
+    onOpenChange(open);
+  };
+
+  const dummyBill: Bill = {
+    id: 'temp',
+    name,
+    amount: parseFloat(amount || '0'),
+    day: parseInt(day),
+    reminderEnabled,
+    reminderDays
+  };
+
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Expense</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="name">Name</label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter expense name"
+                aria-label="Expense name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="amount">Amount</label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
+                aria-label="Expense amount"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="day">Day of Month</label>
+              <Input
+                id="day"
+                type="number"
+                min="1"
+                max="31"
+                value={day}
+                onChange={(e) => setDay(e.target.value)}
+                placeholder="Enter day (1-31)"
+                aria-label="Day of month"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowReminderDialog(true)}
+              className="w-full"
+            >
+              <Bell className="mr-2 h-4 w-4" />
+              {reminderEnabled ? `Reminder: ${reminderDays} day(s) before` : 'Set Reminder'}
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirm}>Add Expense</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <ReminderDialog
+        bill={dummyBill}
+        isOpen={showReminderDialog}
+        onOpenChange={setShowReminderDialog}
+        onSave={handleReminderSave}
+      />
+    </>
+  );
+}
+```
+
+### Summary of Changes:
+1. **Input Validation:** Added validation for `amount` and `day` inputs.
+2. **Reminder Days Validation:** Added validation for `reminderDays`.
+3. **Reset Form on Dialog Close:** Reset form fields when the dialog is closed.
+4. **Accessibility Improvements:** Added `aria-label` attributes to `Input` components.
+5. **Error Handling:** Added checks for `NaN` values.
+6. **Reminder Button Text:** Improved the reminder button text for better clarity.
+
+These changes should make the `AddExpenseDialog` more robust, user-friendly, and accessible. Let me know if you need further assistance!
