@@ -4,13 +4,13 @@
  * ================================================
  */
 
+import { useState, useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import Budget from "@/pages/Budget";
-import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import MonthlyToDateDialog from "@/components/MonthlyToDateDialog";
 import MonthlyReportDialog from "@/components/MonthlyReportDialog";
@@ -20,11 +20,12 @@ import IncomeReportDialog from "@/components/IncomeReportDialog";
 import AnnualReportDialog from "@/components/AnnualReportDialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { logger } from "@/lib/logger";
-import { ThemeToggle } from "@/components/ThemeToggle"; 
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, X } from "lucide-react";
 
+// Types for dialog management
 type DialogType = 'monthly-to-date' | 'monthly' | 'date-range' | 'expense' | 'income' | 'annual';
 
 interface ErrorState {
@@ -34,11 +35,10 @@ interface ErrorState {
 }
 
 /**
- * 🛣️ Router Component
+ * Router Component
  * Manages application routing and dialog states
  */
 function Router() {
-  // 📊 Report Dialog States
   const [showMonthlyToDate, setShowMonthlyToDate] = useState(false);
   const [showMonthlyReport, setShowMonthlyReport] = useState(false);
   const [showDateRangeReport, setShowDateRangeReport] = useState(false);
@@ -52,7 +52,6 @@ function Router() {
   const { bills, incomes, isLoading, error: dataError } = useData();
   const [location, setLocation] = useLocation();
 
-  // Show data error toast
   useEffect(() => {
     if (dataError) {
       toast({
@@ -63,7 +62,6 @@ function Router() {
     }
   }, [dataError, toast]);
 
-  // Clear error after timeout if specified
   useEffect(() => {
     if (error?.timeout) {
       const timer = setTimeout(() => {
@@ -96,7 +94,6 @@ function Router() {
     }
   };
 
-  // Enhanced route handling with better error management
   useEffect(() => {
     const dialogStates: Record<string, () => void> = {
       '/reports/monthly-to-date': () => setShowMonthlyToDate(true),
@@ -110,7 +107,6 @@ function Router() {
     const handler = dialogStates[location];
     if (handler) {
       try {
-        // Reset all dialogs first
         Object.keys(dialogStates).forEach(() => {
           setShowMonthlyToDate(false);
           setShowMonthlyReport(false);
@@ -145,7 +141,6 @@ function Router() {
 
   return (
     <ErrorBoundary>
-      {/* Error Alert */}
       {error && (
         <Alert 
           variant={error.severity === 'error' ? "destructive" : "default"}
@@ -165,14 +160,12 @@ function Router() {
         </Alert>
       )}
 
-      {/* 🛣️ Route Configuration */}
       <Switch>
         <Route path="/" component={Budget} />
         <Route path="/reports/:type">
-          {() => null /* Dialog handling is done via useEffect */}
+          {() => null}
         </Route>
         <Route>
-          {/* 404 Route */}
           <div className="flex items-center justify-center h-screen">
             <div className="text-center">
               <h1 className="text-4xl font-bold mb-4">404</h1>
@@ -188,7 +181,6 @@ function Router() {
         </Route>
       </Switch>
 
-      {/* 📈 Report Dialogs */}
       <MonthlyToDateDialog
         isOpen={showMonthlyToDate}
         onOpenChange={(open) => handleDialogOpenChange(setShowMonthlyToDate, open, "Monthly-to-date")}
@@ -219,9 +211,6 @@ function Router() {
   );
 }
 
-/**
- * 🎯 Main App Component
- */
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
