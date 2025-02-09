@@ -13,6 +13,7 @@ import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
+import dayjs from "dayjs";
 import {
   Select,
   SelectContent,
@@ -42,6 +43,8 @@ export function AddExpenseDialog({
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [day, setDay] = useState('1');
+  const [month, setMonth] = useState(dayjs().month() + 1 + '');
+  const [year, setYear] = useState(dayjs().year().toString());
   const [categoryId, setCategoryId] = useState<string>('');
   const [showReminderDialog, setShowReminderDialog] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
@@ -57,6 +60,8 @@ export function AddExpenseDialog({
     name?: string;
     amount?: string;
     day?: string;
+    month?: string;
+    year?: string;
     reminderDays?: string;
     category?: string;
   }>({});
@@ -72,6 +77,8 @@ export function AddExpenseDialog({
     setName('');
     setAmount('');
     setDay('1');
+    setMonth(dayjs().month() + 1 + '');
+    setYear(dayjs().year().toString());
     setCategoryId('');
     setReminderEnabled(false);
     setReminderDays(7);
@@ -95,8 +102,27 @@ export function AddExpenseDialog({
       newErrors.day = 'Please enter a valid day between 1 and 31';
     }
 
+    const monthNum = parseInt(month);
+    if (!month || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+      newErrors.month = 'Please enter a valid month between 1 and 12';
+    }
+
+    const yearNum = parseInt(year);
+    const currentYear = dayjs().year();
+    if (!year || isNaN(yearNum) || yearNum < currentYear || yearNum > currentYear + 10) {
+      newErrors.year = `Please enter a valid year between ${currentYear} and ${currentYear + 10}`;
+    }
+
     if (!categoryId) {
       newErrors.category = 'Please select a category';
+    }
+
+    // Validate the date is valid (e.g., not Feb 31)
+    if (!newErrors.day && !newErrors.month && !newErrors.year) {
+      const date = dayjs(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+      if (!date.isValid()) {
+        newErrors.day = 'Please enter a valid date';
+      }
     }
 
     setErrors(newErrors);
@@ -110,6 +136,9 @@ export function AddExpenseDialog({
       name,
       amount: parseFloat(amount),
       day: parseInt(day),
+      month: parseInt(month),
+      year: parseInt(year),
+      date: dayjs(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`).toISOString(),
       categoryId: parseInt(categoryId),
       reminderEnabled,
       reminderDays
@@ -131,11 +160,25 @@ export function AddExpenseDialog({
     setErrors(prev => ({ ...prev, reminderDays: undefined }));
   };
 
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: (i + 1).toString(),
+    label: dayjs().month(i).format('MMMM')
+  }));
+
+  const currentYear = dayjs().year();
+  const years = Array.from({ length: 11 }, (_, i) => ({
+    value: (currentYear + i).toString(),
+    label: (currentYear + i).toString()
+  }));
+
   const dummyBill: Bill = {
     id: 'temp',
     name,
     amount: parseFloat(amount || '0'),
     day: parseInt(day),
+    month: parseInt(month),
+    year: parseInt(year),
+    date: dayjs(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`).toISOString(),
     categoryId: parseInt(categoryId),
     reminderEnabled,
     reminderDays
@@ -150,9 +193,7 @@ export function AddExpenseDialog({
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <label htmlFor="expense-name" className="text-sm font-medium">
-                Name
-              </label>
+              <label htmlFor="expense-name" className="text-sm font-medium">Name</label>
               <Input
                 id="expense-name"
                 value={name}
@@ -172,9 +213,7 @@ export function AddExpenseDialog({
               )}
             </div>
             <div className="grid gap-2">
-              <label htmlFor="expense-amount" className="text-sm font-medium">
-                Amount
-              </label>
+              <label htmlFor="expense-amount" className="text-sm font-medium">Amount</label>
               <Input
                 id="expense-amount"
                 type="number"
@@ -197,9 +236,7 @@ export function AddExpenseDialog({
               )}
             </div>
             <div className="grid gap-2">
-              <label htmlFor="expense-category" className="text-sm font-medium">
-                Category
-              </label>
+              <label htmlFor="expense-category" className="text-sm font-medium">Category</label>
               <Select
                 value={categoryId}
                 onValueChange={(value) => {
@@ -238,30 +275,92 @@ export function AddExpenseDialog({
                 </Alert>
               )}
             </div>
-            <div className="grid gap-2">
-              <label htmlFor="expense-day" className="text-sm font-medium">
-                Day of Month
-              </label>
-              <Input
-                id="expense-day"
-                type="number"
-                min="1"
-                max="31"
-                value={day}
-                onChange={(e) => {
-                  setDay(e.target.value);
-                  setErrors(prev => ({ ...prev, day: undefined }));
-                }}
-                placeholder="Enter day (1-31)"
-                aria-invalid={!!errors.day}
-                aria-describedby={errors.day ? "day-error" : undefined}
-              />
-              {errors.day && (
-                <Alert variant="destructive" className="py-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription id="day-error">{errors.day}</AlertDescription>
-                </Alert>
-              )}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="grid gap-2">
+                <label htmlFor="month" className="text-sm font-medium">Month</label>
+                <Select
+                  value={month}
+                  onValueChange={(value) => {
+                    setMonth(value);
+                    setErrors(prev => ({ ...prev, month: undefined }));
+                  }}
+                >
+                  <SelectTrigger
+                    id="month"
+                    aria-invalid={!!errors.month}
+                    aria-describedby={errors.month ? "month-error" : undefined}
+                  >
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.month && (
+                  <Alert variant="destructive" className="py-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription id="month-error">{errors.month}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="expense-day" className="text-sm font-medium">Day</label>
+                <Input
+                  id="expense-day"
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={day}
+                  onChange={(e) => {
+                    setDay(e.target.value);
+                    setErrors(prev => ({ ...prev, day: undefined }));
+                  }}
+                  placeholder="Enter day"
+                  aria-invalid={!!errors.day}
+                  aria-describedby={errors.day ? "day-error" : undefined}
+                />
+                {errors.day && (
+                  <Alert variant="destructive" className="py-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription id="day-error">{errors.day}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="year" className="text-sm font-medium">Year</label>
+                <Select
+                  value={year}
+                  onValueChange={(value) => {
+                    setYear(value);
+                    setErrors(prev => ({ ...prev, year: undefined }));
+                  }}
+                >
+                  <SelectTrigger
+                    id="year"
+                    aria-invalid={!!errors.year}
+                    aria-describedby={errors.year ? "year-error" : undefined}
+                  >
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.year && (
+                  <Alert variant="destructive" className="py-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription id="year-error">{errors.year}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
             </div>
             <Button
               variant="outline"
