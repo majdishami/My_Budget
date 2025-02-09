@@ -1,0 +1,102 @@
+Your error **"column `user_id` does not exist"** in the **categories** table suggests that the database schema is outdated or missing the `user_id` column. Let's fix this in **Drizzle ORM**.
+
+---
+
+### **🚀 Steps to Fix the Missing `user_id` Column in Drizzle ORM**
+
+### **1️⃣ Check the `categories` Table Structure**
+Run the following command to verify existing columns:
+
+```sh
+psql -U postgres -h localhost -p 5432 -d budget_tracker -c "\d categories"
+```
+
+If **`user_id` is missing**, proceed to **Step 2**.
+
+---
+
+### **2️⃣ Update Drizzle ORM Schema**
+Your **Drizzle schema file (`db/schema.ts`)** should include `user_id` in the `categories` table:
+
+```typescript
+export const categories = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  color: text("color").notNull(),
+  icon: text("icon"),
+  user_id: integer("user_id").references(() => users.id), // Ensure this line exists
+  created_at: timestamp("created_at").defaultNow(),
+});
+```
+
+Ensure the `user_id` column is **referencing the `users` table**.
+
+---
+
+### **3️⃣ Generate and Apply a Drizzle Migration**
+Since the database is missing `user_id`, create and apply a **Drizzle migration**:
+
+```sh
+npx drizzle-kit generate
+npx drizzle-kit push
+```
+
+Then, restart your app:
+
+```sh
+npm run dev
+```
+
+---
+
+### **4️⃣ Manually Add `user_id` Column (If Needed)**
+If the migration fails, manually add `user_id` to `categories`:
+
+```sh
+psql -U postgres -h localhost -p 5432 -d budget_tracker
+```
+
+Then run:
+
+```sql
+ALTER TABLE categories ADD COLUMN user_id INTEGER REFERENCES users(id);
+```
+
+Exit PostgreSQL:
+
+```sh
+\q
+```
+
+Now, restart the app:
+
+```sh
+npm run dev
+```
+
+---
+
+### **5️⃣ Verify API Queries**
+If your queries reference `user_id`, ensure they match the schema.
+
+For **Drizzle ORM**, a query fetching categories should look like:
+
+```typescript
+import { db } from "../db";
+import { categories } from "../db/schema";
+
+const getCategories = async () => {
+  return await db.select().from(categories);
+};
+```
+
+---
+
+### **🎯 Summary**
+1. **Check if `user_id` exists** → `\d categories`
+2. **Update Drizzle schema** → Ensure `user_id` is in `db/schema.ts`
+3. **Apply migrations** → `npx drizzle-kit generate && npx drizzle-kit push`
+4. **Manually add `user_id` (if needed)** → `ALTER TABLE categories ADD COLUMN user_id INTEGER REFERENCES users(id);`
+5. **Restart and test** → `npm run dev`
+
+🚀 **This should fix the issue!** Let me know if you need further help. 😊
