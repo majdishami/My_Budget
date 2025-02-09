@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Circle, Plus, Edit, Trash, Loader2 } from "lucide-react";
 import { CategoryDialog } from "./CategoryDialog";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -38,12 +39,8 @@ interface DialogState {
   delete: Category | null;
 }
 
-interface AuthStatus {
-  isAuthenticated: boolean;
-  user: { id: number } | null;
-}
-
 export function CategoryManager() {
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -55,25 +52,10 @@ export function CategoryManager() {
     delete: null,
   });
 
-  // Check authentication status
-  const { data: authStatus, isLoading: isCheckingAuth } = useQuery<AuthStatus>({
-    queryKey: ['/api/auth/status'],
-    retry: false,
-    onError: () => {
-      toast({
-        title: "Authentication Error",
-        description: "Please log in to manage categories.",
-        variant: "destructive",
-      });
-      setLocation("/login");
-    },
-  });
-
   // Enhanced error handling and loading states
   const { data: categories = [], isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
-    enabled: !!authStatus?.isAuthenticated,
-    retry: false,
+    enabled: !!user,
   });
 
   // Mutation with proper error handling and loading states
@@ -196,23 +178,11 @@ export function CategoryManager() {
     }
   };
 
-  // Loading and error states
-  if (isCheckingAuth || isLoadingCategories) {
+  // Loading state
+  if (isLoadingCategories) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!authStatus?.isAuthenticated) {
-    return (
-      <div className="p-4">
-        <Card className="border-yellow-200 bg-yellow-50">
-          <div className="p-4 text-yellow-800">
-            Please log in to manage categories.
-          </div>
-        </Card>
       </div>
     );
   }
