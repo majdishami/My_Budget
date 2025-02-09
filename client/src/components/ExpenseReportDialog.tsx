@@ -18,7 +18,9 @@ import isBetween from 'dayjs/plugin/isBetween';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -60,7 +62,8 @@ interface ExpenseReportDialogProps {
 }
 
 export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: ExpenseReportDialogProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  // State for selected expense/category and filter type
+  const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
@@ -69,20 +72,31 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      setSelectedCategory("all");
+      setSelectedValue("all");
       setDate(undefined);
       setShowReport(false);
       setDateError(null);
     }
   }, [isOpen]);
 
-  // Get unique categories from bills
-  const categories = useMemo(() => {
-    const uniqueCategories = new Set(bills.map(bill => bill.category || 'Uncategorized'));
-    return ['All Categories', ...Array.from(uniqueCategories).sort()];
+  // Group bills by category and prepare dropdown options
+  const dropdownOptions = useMemo(() => {
+    const categorizedBills = bills.reduce((acc, bill) => {
+      const category = bill.category || 'Uncategorized';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(bill);
+      return acc;
+    }, {} as Record<string, Bill[]>);
+
+    return {
+      categories: Object.keys(categorizedBills).sort(),
+      categorizedBills
+    };
   }, [bills]);
 
-  // Generate transactions based on selected category and date range
+  // Generate transactions based on selection
   const transactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
@@ -99,9 +113,16 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     setDateError(null);
     let filteredBills = bills;
 
-    // Filter by category if not "All Categories"
-    if (selectedCategory !== "All Categories") {
-      filteredBills = bills.filter(bill => (bill.category || 'Uncategorized') === selectedCategory);
+    // Filter based on selection
+    if (selectedValue !== "all") {
+      if (selectedValue.startsWith('expense_')) {
+        // Individual expense selected
+        const expenseId = selectedValue.replace('expense_', '');
+        filteredBills = bills.filter(bill => bill.id === expenseId);
+      } else {
+        // Category selected
+        filteredBills = bills.filter(bill => (bill.category || 'Uncategorized') === selectedValue);
+      }
     }
 
     const startDate = dayjs(date.from);
@@ -126,7 +147,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     });
 
     return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
-  }, [showReport, selectedCategory, date, bills, today]);
+  }, [showReport, selectedValue, date, bills, today]);
 
   // Calculate summary totals
   const summary = useMemo(() => {
@@ -158,16 +179,27 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
           <div className="flex flex-col space-y-4 py-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Category</label>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <label className="text-sm font-medium mb-2 block">Select Expense or Category</label>
+              <Select value={selectedValue} onValueChange={setSelectedValue}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder="Select an option" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
+                  <SelectItem value="all">All Expenses</SelectItem>
+                  {dropdownOptions.categories.map((category) => (
+                    <SelectGroup key={category}>
+                      <SelectLabel>{category}</SelectLabel>
+                      {/* Category option */}
+                      <SelectItem value={category}>
+                        View All {category} Expenses
+                      </SelectItem>
+                      {/* Individual expenses in this category */}
+                      {dropdownOptions.categorizedBills[category].map((bill) => (
+                        <SelectItem key={bill.id} value={`expense_${bill.id}`}>
+                          {bill.name} ({formatCurrency(bill.amount)})
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
@@ -221,12 +253,23 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     );
   }
 
+  // Get the title based on selection
+  const getReportTitle = () => {
+    if (selectedValue === "all") return "All Expenses";
+    if (selectedValue.startsWith('expense_')) {
+      const expenseId = selectedValue.replace('expense_', '');
+      const bill = bills.find(b => b.id === expenseId);
+      return bill ? bill.name : "Expense Report";
+    }
+    return `${selectedValue} Expenses`;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">
-            {selectedCategory === 'All Categories' ? 'All Expenses' : `${selectedCategory} Expenses`}
+            {getReportTitle()}
             <div className="text-sm font-normal text-muted-foreground mt-1">
               {date?.from && date?.to && `${dayjs(date?.from).format('MMM D, YYYY')} - ${dayjs(date?.to).format('MMM D, YYYY')}`}
             </div>
@@ -283,7 +326,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
             <Card>
               <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">All Occurrences</CardTitle>
+                <CardTitle className="text-sm font-medium">Transactions</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -321,8 +364,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           <Button 
             variant="outline" 
             onClick={() => {
-              setSelectedCategory("all");
-              setDate(undefined);
+              setSelectedValue("all");
               setShowReport(false);
             }}
           >
