@@ -26,8 +26,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, X } from "lucide-react";
 import CategoriesPage from "@/pages/Categories";
 import NotFound from "@/pages/not-found";
-import AuthPage from "@/pages/auth-page";
-import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
 // Types for dialog management
@@ -43,10 +41,6 @@ interface DialogState {
   [key: string]: boolean;
 }
 
-/**
- * Router Component
- * Manages application routing and dialog states
- */
 function Router() {
   // Centralized dialog state management
   const [dialogStates, setDialogStates] = useState<DialogState>({
@@ -175,9 +169,8 @@ function Router() {
       )}
 
       <Switch>
-        <Route path="/auth" component={AuthPage} />
         <ProtectedRoute path="/" component={Budget} />
-        <ProtectedRoute path="/categories" component={CategoriesPage} />
+        <Route path="/categories" component={CategoriesPage} />
         <Route path="/reports/:type" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -215,12 +208,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ErrorBoundary>
-          <Router />
-          <Toaster />
-        </ErrorBoundary>
-      </AuthProvider>
+      <ErrorBoundary>
+        <Router />
+        <Toaster />
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }

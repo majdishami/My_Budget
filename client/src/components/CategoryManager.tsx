@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Circle, Plus, Edit, Trash, Loader2 } from "lucide-react";
 import { CategoryDialog } from "./CategoryDialog";
-import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -40,7 +39,6 @@ interface DialogState {
 }
 
 export function CategoryManager() {
-  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -55,7 +53,6 @@ export function CategoryManager() {
   // Enhanced error handling and loading states
   const { data: categories = [], isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
-    enabled: !!user,
   });
 
   // Mutation with proper error handling and loading states
