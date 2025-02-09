@@ -59,24 +59,19 @@ export function CategoryManager() {
     refetch
   } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
-    queryFn: () => apiRequest('/api/categories'),
+    queryFn: async () => {
+      console.log('Fetching categories...');
+      try {
+        const result = await apiRequest('/api/categories');
+        console.log('Categories fetch result:', result);
+        return result;
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
+    },
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onError: (error: unknown) => {
-      console.error('Error loading categories:', error);
-      // Log more details about the error
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack,
-        });
-      }
-      toast({
-        title: "Error loading categories",
-        description: "Failed to load categories. Please try again later.",
-        variant: "destructive",
-      });
-    }
   });
 
   // Loading state with skeleton UI

@@ -18,8 +18,7 @@ app.use((req, res, next) => {
   if (origin && (
     origin.endsWith('.replit.dev') || 
     origin === 'http://localhost:5000' ||
-    origin === 'http://localhost:5001' ||  // Added port 5001
-    origin === 'http://127.0.0.1:5001' ||  // Added port 5001 for 127.0.0.1
+    origin === 'http://127.0.0.1:5000' ||
     origin.startsWith('http://localhost:') ||
     origin.startsWith('http://127.0.0.1:')
   )) {
@@ -91,14 +90,14 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use port from environment variable or default to 5000
-  const PORT = process.env.PORT || 5000;
+  // Use port 5000 as per Replit's configuration
+  const PORT = parseInt(process.env.PORT || '5000');
   const HOST = '0.0.0.0';
 
   server.listen(PORT, HOST, () => {
     log(`Server is running at http://${HOST}:${PORT}`);
     log(`Server environment: ${app.get("env")}`);
     log(`Trust proxy enabled: ${app.get('trust proxy')}`);
-    log(`CORS and API endpoints are configured for local development`);
+    log(`CORS and API endpoints are configured for development`);
   });
 })();
