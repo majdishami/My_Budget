@@ -131,14 +131,28 @@ export function registerRoutes(app: Express): Server {
   // Category Routes
   app.get('/api/categories', async (req, res) => {
     try {
+      // Check if database is accessible
+      const dbCheck = await db.query.categories.findFirst();
+      if (!dbCheck) {
+        // If no categories exist, return empty array instead of error
+        return res.json([]);
+      }
+
       const userCategories = await db.query.categories.findMany({
         orderBy: (categories, { asc }) => [asc(categories.name)],
       });
 
+      if (!userCategories) {
+        return res.json([]);
+      }
+
       res.json(userCategories);
     } catch (error) {
       console.error('Error fetching categories:', error);
-      res.status(500).json({ message: 'Server error fetching categories' });
+      res.status(500).json({ 
+        message: 'Error fetching categories',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   });
 

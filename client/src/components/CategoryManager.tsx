@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Circle, Plus, Edit, Trash, Loader2 } from "lucide-react";
+import { Circle, Plus, Edit, Trash, Loader2, AlertCircle } from "lucide-react";
 import { CategoryDialog } from "./CategoryDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -50,10 +50,71 @@ export function CategoryManager() {
     delete: null,
   });
 
-  // Enhanced error handling and loading states
-  const { data: categories = [], isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[]>({
+  // Enhanced error handling and loading states with retry
+  const {
+    data: categories = [],
+    isLoading: isLoadingCategories,
+    error: categoriesError,
+    refetch
+  } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    onError: (error) => {
+      toast({
+        title: "Error loading categories",
+        description: "Failed to load categories. Please try again later.",
+        variant: "destructive",
+      });
+    }
   });
+
+  // Loading state with skeleton UI
+  if (isLoadingCategories) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">Categories</h2>
+          <div className="w-32 h-9 bg-gray-200 animate-pulse rounded-md" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <div className="p-4">
+                <div className="w-full h-6 bg-gray-200 animate-pulse rounded" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Error state with retry button
+  if (categoriesError) {
+    return (
+      <div className="p-4">
+        <Card className="border-red-200 bg-red-50">
+          <div className="p-4">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-8 w-8 text-red-600" />
+              <div className="text-red-800">
+                <h3 className="font-semibold">Failed to load categories</h3>
+                <p className="text-sm">Please try again later</p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
+                className="mt-2"
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   // Mutation with proper error handling and loading states
   const createMutation = useMutation({
@@ -183,26 +244,6 @@ export function CategoryManager() {
     }
   };
 
-  // Loading state
-  if (isLoadingCategories) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (categoriesError) {
-    return (
-      <div className="p-4">
-        <Card className="border-red-200 bg-red-50">
-          <div className="p-4 text-red-800">
-            Failed to load categories. Please try again later.
-          </div>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
