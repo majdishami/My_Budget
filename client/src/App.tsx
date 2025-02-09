@@ -26,7 +26,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, X } from "lucide-react";
 import CategoriesPage from "@/pages/Categories";
 import NotFound from "@/pages/not-found";
-import { ProtectedRoute } from "@/lib/protected-route";
 
 // Types for dialog management
 type DialogType = 'monthly-to-date' | 'monthly' | 'date-range' | 'expense' | 'income' | 'annual';
@@ -169,7 +168,7 @@ function Router() {
       )}
 
       <Switch>
-        <ProtectedRoute path="/" component={Budget} />
+        <Route path="/" component={Budget} />
         <Route path="/categories" component={CategoriesPage} />
         <Route path="/reports/:type" component={NotFound} />
         <Route component={NotFound} />
