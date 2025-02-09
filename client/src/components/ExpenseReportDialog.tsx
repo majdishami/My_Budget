@@ -44,7 +44,7 @@ interface Transaction {
   description: string;
   amount: number;
   occurred: boolean;
-  category?: string;
+  category: string;
 }
 
 interface Bill {
@@ -52,7 +52,7 @@ interface Bill {
   name: string;
   amount: number;
   day: number;
-  category?: string;
+  category: string;
 }
 
 interface ExpenseReportDialogProps {
@@ -82,6 +82,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   // Group bills by category and prepare dropdown options
   const dropdownOptions = useMemo(() => {
     const categorizedBills = bills.reduce((acc, bill) => {
+      // Ensure bill has a category, defaulting to 'Uncategorized' if not present
       const category = bill.category || 'Uncategorized';
       if (!acc[category]) {
         acc[category] = [];
@@ -121,7 +122,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         filteredBills = bills.filter(bill => bill.id === expenseId);
       } else {
         // Category selected
-        filteredBills = bills.filter(bill => (bill.category || 'Uncategorized') === selectedValue);
+        filteredBills = bills.filter(bill => bill.category === selectedValue);
       }
     }
 
@@ -140,7 +141,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             description: bill.name,
             amount: bill.amount,
             occurred: transactionDate.isSameOrBefore(today),
-            category: bill.category || 'Uncategorized'  // Ensure we pass the category from the bill
+            category: bill.category 
           });
         }
         currentMonth = currentMonth.add(1, 'month');
