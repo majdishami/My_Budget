@@ -1,11 +1,8 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import pkg from 'pg';
+const { Pool } = pkg;
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "./schema";
 import 'dotenv/config';
-
-// Configure WebSocket for Neon serverless
-neonConfig.webSocketConstructor = ws;
 
 // Enhanced environment variable validation
 function validateEnvVariables() {
@@ -23,30 +20,12 @@ function validateEnvVariables() {
 // Validate environment variables
 validateEnvVariables();
 
-// Parse and validate the DATABASE_URL before using it
-let databaseUrl: string;
-try {
-  const url = new URL(process.env.DATABASE_URL!);
-  if (!url.protocol || !url.host || !url.pathname) {
-    throw new Error('Invalid database URL format');
-  }
-  databaseUrl = process.env.DATABASE_URL;
-  console.log('Database connection URL validated successfully');
-  console.log('Attempting to connect to:', url.host);
-} catch (error) {
-  console.error('Invalid DATABASE_URL format:', error);
-  throw new Error('Please provide a valid postgres:// connection URL');
-}
-
 // Initialize pool with enhanced error handling
 const pool = new Pool({ 
-  connectionString: databaseUrl,
+  connectionString: process.env.DATABASE_URL,
   connectionTimeoutMillis: 5000,
   max: 20,
-  idleTimeoutMillis: 30000,
-  ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: true
-  } : false
+  idleTimeoutMillis: 30000
 });
 
 const db = drizzle(pool, { schema });
