@@ -1,0 +1,167 @@
+The provided `App.tsx` file is a well-structured React application component that manages routing, dialog states, and error handling. However, there are a few areas where improvements or debugging might be necessary:
+
+### 1. **Dialog State Management:**
+   - The `handleDialogOpenChange` function is used to manage the state of various dialogs. However, the way the dialog states are reset in the `useEffect` hook might be problematic. The `Object.keys(dialogStates).forEach` loop is not correctly resetting the states because it doesn't reference the actual state setters. Instead, it just calls the same state setters multiple times.
+
+   **Fix:**
+   ```typescript
+   useEffect(() => {
+     const dialogStates: Record<string, () => void> = {
+       '/reports/monthly-to-date': () => setShowMonthlyToDate(true),
+       '/reports/monthly': () => setShowMonthlyReport(true),
+       '/reports/date-range': () => setShowDateRangeReport(true),
+       '/reports/expenses': () => setShowExpenseReport(true),
+       '/reports/income': () => setShowIncomeReport(true),
+       '/reports/annual': () => setShowAnnualReport(true),
+     };
+
+     const handler = dialogStates[location];
+     if (handler) {
+       try {
+         // Reset all dialogs first
+         setShowMonthlyToDate(false);
+         setShowMonthlyReport(false);
+         setShowDateRangeReport(false);
+         setShowExpenseReport(false);
+         setShowIncomeReport(false);
+         setShowAnnualReport(false);
+
+         handler();
+         logger.info('Route changed successfully', { location });
+       } catch (err) {
+         const error = err instanceof Error ? err : new Error('Unknown error occurred');
+         logger.error('Failed to handle route change', { error, location });
+         setError({
+           message: `Failed to handle route change: ${error.message}`,
+           severity: 'error',
+           timeout: 5000
+         });
+         setLocation('/', { replace: true });
+       }
+     }
+   }, [location, setLocation]);
+   ```
+
+### 2. **Error Handling:**
+   - The error handling in the `handleDialogOpenChange` function is robust, but the error state is not being cleared when the dialog is closed. This could lead to lingering error messages even after the issue has been resolved.
+
+   **Fix:**
+   ```typescript
+   const handleDialogOpenChange = (
+     dialogSetter: React.Dispatch<React.SetStateAction<boolean>>,
+     open: boolean,
+     reportType: string
+   ) => {
+     try {
+       dialogSetter(open);
+       if (!open) {
+         setLocation('/', { replace: true });
+         setError(null); // Clear error when dialog is closed
+       }
+       logger.info(`${reportType} dialog state changed`, { open });
+     } catch (err) {
+       const error = err instanceof Error ? err : new Error('Unknown error occurred');
+       logger.error(`Error handling ${reportType} dialog`, { error });
+       setError({
+         message: `Failed to ${open ? 'open' : 'close'} ${reportType} report: ${error.message}`,
+         severity: 'error',
+         timeout: 5000
+       });
+     }
+   };
+   ```
+
+### 3. **Loading State:**
+   - The loading state is handled well, but the `Loader2` component could be more descriptive. Adding a loading message might improve user experience.
+
+   **Fix:**
+   ```typescript
+   if (isLoading) {
+     return (
+       <div className="flex h-screen items-center justify-center flex-col gap-2">
+         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         <p className="text-sm text-muted-foreground">Loading data...</p>
+       </div>
+     );
+   }
+   ```
+
+### 4. **404 Route:**
+   - The 404 route is functional, but the button to go back home could be more prominent. Adding a primary button style might make it more user-friendly.
+
+   **Fix:**
+   ```typescript
+   <button 
+     onClick={() => setLocation('/')}
+     className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+   >
+     Go back home
+   </button>
+   ```
+
+### 5. **Error Boundary:**
+   - The `ErrorBoundary` component is used correctly, but it might be helpful to log the error to an external service (e.g., Sentry) for better debugging in production.
+
+   **Fix:**
+   ```typescript
+   import * as Sentry from '@sentry/react';
+
+   function App() {
+     return (
+       <QueryClientProvider client={queryClient}>
+         <ErrorBoundary
+           onError={(error, errorInfo) => {
+             Sentry.captureException(error, { extra: errorInfo });
+           }}
+         >
+           <Router />
+           <Toaster />
+         </ErrorBoundary>
+       </QueryClientProvider>
+     );
+   }
+   ```
+
+### 6. **Unused Imports:**
+   - The `dayjs` import is unused and can be removed to clean up the code.
+
+   **Fix:**
+   ```typescript
+   // Remove this line
+   import dayjs from 'dayjs';
+   ```
+
+### 7. **Theme Toggle:**
+   - The `ThemeToggle` component is imported but not used in the `App` or `Router` components. If it's not needed, it should be removed.
+
+   **Fix:**
+   ```typescript
+   // Remove this line if not used
+   import { ThemeToggle } from "@/components/ThemeToggle";
+   ```
+
+### 8. **Error Alert:**
+   - The error alert is well-implemented, but the `aria-label` for the dismiss button could be more descriptive.
+
+   **Fix:**
+   ```typescript
+   <button 
+     onClick={() => setError(null)}
+     className="p-1 hover:bg-accent rounded"
+     aria-label="Dismiss error message"
+   >
+     <X className="h-4 w-4" />
+   </button>
+   ```
+
+### Summary:
+- **Dialog State Management:** Fixed the reset logic for dialog states.
+- **Error Handling:** Added error clearing when dialogs are closed.
+- **Loading State:** Enhanced the loading state with a descriptive message.
+- **404 Route:** Improved the button styling for better user experience.
+- **Error Boundary:** Added error logging to an external service.
+- **Unused Imports:** Removed unused imports.
+- **Theme Toggle:** Removed unused component import.
+- **Error Alert:** Improved accessibility with a more descriptive `aria-label`.
+
+These changes should improve the robustness, user experience, and maintainability of the application.
