@@ -37,35 +37,21 @@ app.use((req, res, next) => {
   next();
 });
 
-// Enhanced request logging middleware with detailed information
+// Enhanced request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson: any, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  // Enhanced request logging
+  // Log request details
   log(`[${req.method}] ${path} from ${req.ip}`);
   if (Object.keys(req.query).length > 0) {
     log(`Query params: ${JSON.stringify(req.query)}`);
-  }
-  if (Object.keys(req.headers).length > 0) {
-    log(`Headers: ${JSON.stringify(req.headers)}`);
   }
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-      log(logLine);
+      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
     }
   });
 
@@ -73,34 +59,38 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = registerRoutes(app);
+  try {
+    console.log('Starting server initialization...');
+    const server = registerRoutes(app);
 
-  // Enhanced global error handler with detailed logging
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    log(`Error: ${message}`);
-    if (err.stack) {
-      log(`Stack: ${err.stack}`);
+    // Enhanced error handler
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error('Server error:', err);
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
+    });
+
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
     }
-    res.status(status).json({ message });
-  });
 
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    // Use different ports for Replit vs local development
+    const isReplit = process.env.REPL_ID !== undefined;
+    const PORT = parseInt(process.env.PORT || (isReplit ? '5000' : '5001'));
+    const HOST = '0.0.0.0';
+
+    server.listen(PORT, HOST, () => {
+      console.log(`Server is running at http://${HOST}:${PORT}`);
+      console.log(`Server environment: ${app.get("env")}`);
+      console.log(`Trust proxy enabled: ${app.get('trust proxy')}`);
+      console.log(`CORS and API endpoints are configured for ${isReplit ? 'Replit' : 'local'} development`);
+    });
+
+  } catch (error) {
+    console.error('Fatal error during server initialization:', error);
+    process.exit(1);
   }
-
-  // Use different ports for Replit vs local development
-  const isReplit = process.env.REPL_ID !== undefined;
-  const PORT = parseInt(process.env.PORT || (isReplit ? '5000' : '5001'));
-  const HOST = '0.0.0.0';
-
-  server.listen(PORT, HOST, () => {
-    log(`Server is running at http://${HOST}:${PORT}`);
-    log(`Server environment: ${app.get("env")}`);
-    log(`Trust proxy enabled: ${app.get('trust proxy')}`);
-    log(`CORS and API endpoints are configured for ${isReplit ? 'Replit' : 'local'} development`);
-  });
 })();

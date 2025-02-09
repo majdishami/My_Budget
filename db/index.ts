@@ -16,7 +16,7 @@ function validateEnvVariables() {
     );
   }
 
-  // Log connection info (without sensitive data)
+  console.log('Database connection URL validated successfully');
   console.log('Attempting to connect to:', process.env.PGHOST + ':' + process.env.PGPORT);
 }
 
@@ -31,7 +31,7 @@ const pool = new Pool({
   password: process.env.PGPASSWORD,
   database: process.env.PGDATABASE,
   ssl: {
-    rejectUnauthorized: true
+    rejectUnauthorized: false // Required for self-signed certificates
   },
   max: 20,
   idleTimeoutMillis: 30000,
