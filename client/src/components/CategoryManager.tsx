@@ -62,6 +62,7 @@ export function CategoryManager() {
     queryFn: async () => {
       try {
         const result = await apiRequest('/api/categories');
+        console.log('Categories fetched:', result);
         return result;
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -72,7 +73,7 @@ export function CategoryManager() {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Define mutations before any conditional rendering
+  // Define mutations
   const createMutation = useMutation({
     mutationFn: async (newCategory: CategoryFormData) => {
       return apiRequest('/api/categories', {
@@ -183,10 +184,8 @@ export function CategoryManager() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <div className="p-4">
-                <div className="w-full h-6 bg-gray-200 animate-pulse rounded" />
-              </div>
+            <Card key={i} className="p-4">
+              <div className="w-full h-6 bg-gray-200 animate-pulse rounded" />
             </Card>
           ))}
         </div>

@@ -142,22 +142,14 @@ export function registerRoutes(app: Express): Server {
 
       // Check if database is accessible
       console.log('Attempting to fetch categories from database...');
-      const dbCheck = await db.query.categories.findFirst();
-      console.log('Initial DB check result:', dbCheck);
-
-      if (!dbCheck) {
-        console.log('No categories found in initial check, returning empty array');
-        return res.json([]);
-      }
-
-      console.log('Fetching all categories...');
       const userCategories = await db.query.categories.findMany({
         orderBy: (categories, { asc }) => [asc(categories.name)],
       });
+
       console.log('Found categories:', userCategories);
 
       if (!userCategories) {
-        console.log('No categories found in full query, returning empty array');
+        console.log('No categories found, returning empty array');
         return res.json([]);
       }
 
@@ -175,7 +167,7 @@ export function registerRoutes(app: Express): Server {
       }
       res.status(500).json({ 
         message: 'Error fetching categories',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
       });
     }
   });
