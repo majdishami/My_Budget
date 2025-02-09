@@ -388,6 +388,31 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             </Card>
           </>
         )}
+        <DialogFooter className="flex justify-end gap-2 mt-4">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedBillId(undefined);
+              setSelectedCategory("all");
+              setDate(undefined);
+              setDateError(null);
+              onOpenChange(false);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => {
+              setSelectedBillId(undefined);
+              setSelectedCategory("all");
+              setDate(undefined);
+              setShowReport(false);
+              onOpenChange(false);
+            }}
+          >
+            OK
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
