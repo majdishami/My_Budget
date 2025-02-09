@@ -29,7 +29,8 @@ export interface Income {
  * @property name - Descriptive name of the bill
  * @property amount - Amount due for the bill
  * @property day - Day of month when the bill is due (1-31)
- * @property categoryId - ID of the associated category
+ * @property category - Category of the expense (e.g., "Utilities", "Housing")
+ * @property categoryId - Optional ID of the associated category
  * @property reminderEnabled - Optional flag for reminder settings
  * @property reminderDays - Optional days before due date for reminder
  */
@@ -38,6 +39,7 @@ export interface Bill {
   name: string;
   amount: number;
   day: number;
+  category?: string;
   categoryId?: number;
   reminderEnabled?: boolean;
   reminderDays?: number;

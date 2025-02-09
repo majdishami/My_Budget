@@ -74,21 +74,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       ];
 
       const defaultBills: Bill[] = [
-        { id: generateId(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1 },
-        { id: generateId(), name: "Maid's 1st payment", amount: 120, day: 1 },
-        { id: generateId(), name: "Monthly Rent", amount: 3750, day: 1 },
-        { id: generateId(), name: "Sling TV (CC 9550)", amount: 75, day: 3 },
-        { id: generateId(), name: "Cox Internet", amount: 81, day: 6 },
-        { id: generateId(), name: "Water Bill", amount: 80, day: 7 },
-        { id: generateId(), name: "NV Energy Electrical ($100 winter months)", amount: 250, day: 7 },
-        { id: generateId(), name: "TransAmerica Life Insurance", amount: 77, day: 9 },
-        { id: generateId(), name: "Credit Card minimum payments", amount: 225, day: 14 },
-        { id: generateId(), name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14 },
-        { id: generateId(), name: "Expenses & Groceries charged on (CC 2647)", amount: 3000, day: 16 },
-        { id: generateId(), name: "Maid's 2nd Payment of the month", amount: 120, day: 17 },
-        { id: generateId(), name: "SoFi Personal Loan", amount: 1915, day: 17 },
-        { id: generateId(), name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75, day: 17 },
-        { id: generateId(), name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704, day: 28 }
+        { id: generateId(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1, category: "Utilities" },
+        { id: generateId(), name: "Maid's 1st payment", amount: 120, day: 1, category: "Services" },
+        { id: generateId(), name: "Monthly Rent", amount: 3750, day: 1, category: "Housing" },
+        { id: generateId(), name: "Sling TV (CC 9550)", amount: 75, day: 3, category: "Entertainment" },
+        { id: generateId(), name: "Cox Internet", amount: 81, day: 6, category: "Utilities" },
+        { id: generateId(), name: "Water Bill", amount: 80, day: 7, category: "Utilities" },
+        { id: generateId(), name: "NV Energy Electrical ($100 winter months)", amount: 250, day: 7, category: "Utilities" },
+        { id: generateId(), name: "TransAmerica Life Insurance", amount: 77, day: 9, category: "Insurance" },
+        { id: generateId(), name: "Credit Card minimum payments", amount: 225, day: 14, category: "Debt Payments" },
+        { id: generateId(), name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14, category: "Entertainment" },
+        { id: generateId(), name: "Expenses & Groceries charged on (CC 2647)", amount: 3000, day: 16, category: "Groceries" },
+        { id: generateId(), name: "Maid's 2nd Payment of the month", amount: 120, day: 17, category: "Services" },
+        { id: generateId(), name: "SoFi Personal Loan", amount: 1915, day: 17, category: "Debt Payments" },
+        { id: generateId(), name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75, day: 17, category: "Utilities" },
+        { id: generateId(), name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704, day: 28, category: "Insurance" }
       ];
 
       // Validate default data
@@ -243,14 +243,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <DataContext.Provider value={{ 
-      incomes, 
-      bills, 
-      saveIncomes, 
-      saveBills, 
-      resetData, 
-      isLoading, 
-      error 
+    <DataContext.Provider value={{
+      incomes,
+      bills,
+      saveIncomes,
+      saveBills,
+      resetData,
+      isLoading,
+      error
     }}>
       {children}
     </DataContext.Provider>
