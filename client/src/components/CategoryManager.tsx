@@ -44,14 +44,14 @@ export function CategoryManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // State management
+  // State management - keep all useState hooks at the top
   const [dialogState, setDialogState] = useState<DialogState>({
     add: false,
     edit: null,
     delete: null,
   });
 
-  // Enhanced query with better error handling and logging
+  // Categories query
   const {
     data: categories = [],
     isLoading: isLoadingCategories,
@@ -74,37 +74,7 @@ export function CategoryManager() {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Error component for better error visualization
-  if (categoriesError) {
-    return (
-      <div className="p-4">
-        <Card className="border-red-200 bg-red-50">
-          <div className="p-4">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle className="h-8 w-8 text-red-600" />
-              <div className="text-red-800">
-                <h3 className="font-semibold">Failed to load categories</h3>
-                <p className="text-sm text-red-600">
-                  {categoriesError instanceof Error 
-                    ? categoriesError.message 
-                    : 'An unexpected error occurred while loading categories'}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => refetch()}
-                className="mt-2"
-              >
-                Try Again
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  // Define mutations
+  // Mutations
   const createMutation = useMutation({
     mutationFn: async (newCategory: CategoryFormData) => {
       return apiRequest('/api/categories', {
@@ -180,6 +150,7 @@ export function CategoryManager() {
     },
   });
 
+  // Event handlers
   const handleSubmit = (data: CategoryFormData) => {
     if (dialogState.edit) {
       updateMutation.mutate({ ...data, id: dialogState.edit.id });
@@ -206,42 +177,45 @@ export function CategoryManager() {
     }
   };
 
+  // Render content based on state
+  let content;
   if (isLoadingCategories) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Categories</h2>
-          <div className="w-32 h-9 bg-gray-200 animate-pulse rounded-md" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="p-4">
-              <div className="w-full h-6 bg-gray-200 animate-pulse rounded" />
-            </Card>
-          ))}
-        </div>
+    content = (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="p-4">
+            <div className="w-full h-6 bg-gray-200 animate-pulse rounded" />
+          </Card>
+        ))}
       </div>
     );
-  }
-
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Categories</h2>
-        <Button
-          onClick={() => setDialogState(prev => ({ ...prev, add: true }))}
-          disabled={createMutation.isPending}
-        >
-          {createMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Plus className="h-4 w-4 mr-2" />
-          )}
-          Add Category
-        </Button>
-      </div>
-
+  } else if (categoriesError) {
+    content = (
+      <Card className="border-red-200 bg-red-50">
+        <div className="p-4">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <AlertCircle className="h-8 w-8 text-red-600" />
+            <div className="text-red-800">
+              <h3 className="font-semibold">Failed to load categories</h3>
+              <p className="text-sm text-red-600">
+                {categoriesError instanceof Error 
+                  ? categoriesError.message 
+                  : 'An unexpected error occurred while loading categories'}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+              className="mt-2"
+            >
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  } else {
+    content = (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {categories.map((category) => (
           <Card key={category.id}>
@@ -284,6 +258,28 @@ export function CategoryManager() {
           </Card>
         ))}
       </div>
+    );
+  }
+
+  // Main render
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Categories</h2>
+        <Button
+          onClick={() => setDialogState(prev => ({ ...prev, add: true }))}
+          disabled={createMutation.isPending}
+        >
+          {createMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <Plus className="h-4 w-4 mr-2" />
+          )}
+          Add Category
+        </Button>
+      </div>
+
+      {content}
 
       <CategoryDialog
         isOpen={dialogState.add || dialogState.edit !== null}
