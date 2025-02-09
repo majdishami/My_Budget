@@ -130,13 +130,8 @@ export function registerRoutes(app: Express): Server {
 
   // Category Routes
   app.get('/api/categories', async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized. Please log in.' });
-    }
-
     try {
       const userCategories = await db.query.categories.findMany({
-        where: eq(categories.user_id, (req.user as any).id),
         orderBy: (categories, { asc }) => [asc(categories.name)],
       });
 
@@ -148,14 +143,9 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.post('/api/categories', async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized. Please log in.' });
-    }
-
     try {
       const categoryData = await insertCategorySchema.parseAsync({
         ...req.body,
-        user_id: (req.user as any).id
       });
 
       const [newCategory] = await db.insert(categories)
@@ -173,14 +163,14 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch('/api/categories/:id', requireAuth, async (req, res) => {
+  app.patch('/api/categories/:id', async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
       const category = await db.query.categories.findFirst({
         where: eq(categories.id, categoryId),
       });
 
-      if (!category || category.user_id !== (req.user as any).id) {
+      if (!category) {
         return res.status(404).json({ message: 'Category not found' });
       }
 
@@ -200,14 +190,14 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.delete('/api/categories/:id', requireAuth, async (req, res) => {
+  app.delete('/api/categories/:id', async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
       const category = await db.query.categories.findFirst({
         where: eq(categories.id, categoryId),
       });
 
-      if (!category || category.user_id !== (req.user as any).id) {
+      if (!category) {
         return res.status(404).json({ message: 'Category not found' });
       }
 
