@@ -15,6 +15,7 @@ import { DateRange } from "react-day-picker";
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isBetween from 'dayjs/plugin/isBetween';
+import { useQuery } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -52,7 +53,13 @@ interface Bill {
   name: string;
   amount: number;
   day: number;
-  category: string;
+  categoryId: number;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  color: string;
 }
 
 interface ExpenseReportDialogProps {
@@ -69,6 +76,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const [previousReport, setPreviousReport] = useState<{value: string, date: DateRange | undefined} | null>(null);
   const today = useMemo(() => dayjs(), []);
 
+  // Fetch categories
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
+
   // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
@@ -83,7 +95,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   // Group bills by category and prepare dropdown options
   const dropdownOptions = useMemo(() => {
     const categorizedBills = bills.reduce((acc, bill) => {
-      const category = bill.category;
+      const category = categories.find(c => c.id === bill.categoryId)?.name || 'Uncategorized';
       if (!acc[category]) {
         acc[category] = [];
       }
@@ -95,7 +107,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       categories: Object.keys(categorizedBills).sort(),
       categorizedBills
     };
-  }, [bills]);
+  }, [bills, categories]);
 
   // Generate transactions based on selection
   const transactions = useMemo(() => {
@@ -123,7 +135,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       } else if (selectedValue.startsWith('category_')) {
         // Individual category selected
         const category = selectedValue.replace('category_', '');
-        filteredBills = bills.filter(bill => bill.category === category);
+        filteredBills = bills.filter(bill => {
+          const billCategory = categories.find(c => c.id === bill.categoryId)?.name;
+          return billCategory === category;
+        });
       }
     }
 
@@ -142,7 +157,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             description: bill.name,
             amount: bill.amount,
             occurred: transactionDate.isSameOrBefore(today),
-            category: bill.category
+            category: categories.find(c => c.id === bill.categoryId)?.name || 'Uncategorized'
           });
         }
         currentMonth = currentMonth.add(1, 'month');
@@ -150,7 +165,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     });
 
     return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
-  }, [showReport, selectedValue, date, bills, today]);
+  }, [showReport, selectedValue, date, bills, categories, today]);
 
   // Calculate summary totals
   const summary = useMemo(() => {
@@ -183,6 +198,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     Object.keys(groupedTransactions).sort((a, b) => dayjs(a).diff(dayjs(b))),
     [groupedTransactions]
   );
+
+  const handleBackToSelection = () => {
+    setShowReport(false);
+    setSelectedValue("all");
+    setDate(undefined);
+    setPreviousReport(null);
+  };
 
   if (!showReport) {
     return (
@@ -291,165 +313,142 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <DialogTitle className="text-xl">
-                  {selectedValue === "all"
-                    ? "All Expenses Combined"
-                    : selectedValue === "all_categories"
-                      ? "All Categories Combined"
-                      : selectedValue.startsWith('expense_')
-                        ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name || "Expense Report"
-                        : selectedValue.startsWith('category_')
-                          ? `${selectedValue.replace('category_', '')} Category`
-                          : "Expense Report"
-                  }
-                  <div className="text-sm font-normal text-muted-foreground mt-1">
-                    {date?.from && date?.to && `${dayjs(date?.from).format('MMM D, YYYY')} - ${dayjs(date?.to).format('MMM D, YYYY')}`}
-                  </div>
-                </DialogTitle>
-              </div>
-              <div className="flex gap-2 items-center">
-                {showReport && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setShowReport(false);
-                      setSelectedValue("all");
-                      setDate(undefined);
-                      setPreviousReport(null);
-
-                    }}
-                  >
-                    Back to Selection
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Close
-                </Button>
-                <DialogClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Close</span>
-                </DialogClose>
-              </div>
+          <div className="flex justify-between items-start">
+            <div>
+              <DialogTitle className="text-xl">
+                {selectedValue === "all"
+                  ? "All Expenses Combined"
+                  : selectedValue === "all_categories"
+                    ? "All Categories Combined"
+                    : selectedValue.startsWith('expense_')
+                      ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name || "Expense Report"
+                      : selectedValue.startsWith('category_')
+                        ? `${selectedValue.replace('category_', '')} Category`
+                        : "Expense Report"
+                }
+                <div className="text-sm font-normal text-muted-foreground mt-1">
+                  {date?.from && date?.to && `${dayjs(date?.from).format('MMM D, YYYY')} - ${dayjs(date?.to).format('MMM D, YYYY')}`}
+                </div>
+              </DialogTitle>
             </div>
-          </DialogHeader>
+            <div className="flex gap-2 items-center">
+              <Button variant="outline" onClick={handleBackToSelection}>
+                Back to Selection
+              </Button>
+              <DialogClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </DialogClose>
+            </div>
+          </div>
+        </DialogHeader>
 
-          {transactions.length === 0 ? (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                No transactions found for the selected date range.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-600">
-                      {formatCurrency(summary.totalAmount)}
-                    </div>
-                  </CardContent>
-                </Card>
+        {transactions.length === 0 ? (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No transactions found for the selected date range.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <Card>
+                <CardHeader className="py-4">
+                  <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {formatCurrency(summary.totalAmount)}
+                  </div>
+                </CardContent>
+              </Card>
 
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Paid to Date</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-600">
-                      {formatCurrency(summary.occurredAmount)}
-                    </div>
-                  </CardContent>
-                </Card>
+              <Card>
+                <CardHeader className="py-4">
+                  <CardTitle className="text-sm font-medium">Paid to Date</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {formatCurrency(summary.occurredAmount)}
+                  </div>
+                </CardContent>
+              </Card>
 
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Remaining</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-300">
-                      {formatCurrency(summary.pendingAmount)}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <Card>
+                <CardHeader className="py-4">
+                  <CardTitle className="text-sm font-medium">Remaining</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-300">
+                    {formatCurrency(summary.pendingAmount)}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-              <div className="space-y-4">
-                {sortedMonths.map(monthKey => {
-                  const monthTransactions = groupedTransactions[monthKey];
-                  const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
-                  const monthlyPaid = monthTransactions
-                    .filter(t => t.occurred)
-                    .reduce((sum, t) => sum + t.amount, 0);
+            <div className="space-y-4">
+              {sortedMonths.map(monthKey => {
+                const monthTransactions = groupedTransactions[monthKey];
+                const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+                const monthlyPaid = monthTransactions
+                  .filter(t => t.occurred)
+                  .reduce((sum, t) => sum + t.amount, 0);
 
-                  return (
-                    <Card key={monthKey}>
-                      <CardHeader className="py-4">
-                        <CardTitle className="text-lg font-medium">
-                          {dayjs(monthKey).format('MMMM YYYY')}
-                        </CardTitle>
-                        <div className="text-sm space-y-1">
-                          <div className="text-red-600">
-                            Monthly Total: {formatCurrency(monthlyTotal)}
-                          </div>
-                          <div className="text-red-600">
-                            Paid to Date: {formatCurrency(monthlyPaid)}
-                          </div>
-                          <div className="text-red-300">
-                            Remaining: {formatCurrency(monthlyTotal - monthlyPaid)}
-                          </div>
+                return (
+                  <Card key={monthKey}>
+                    <CardHeader className="py-4">
+                      <CardTitle className="text-lg font-medium">
+                        {dayjs(monthKey).format('MMMM YYYY')}
+                      </CardTitle>
+                      <div className="text-sm space-y-1">
+                        <div className="text-red-600">
+                          Monthly Total: {formatCurrency(monthlyTotal)}
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Due Date</TableHead>
-                              <TableHead>Description</TableHead>
-                              <TableHead>Category</TableHead>
-                              <TableHead className="text-right">Amount</TableHead>
-                              <TableHead>Status</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {monthTransactions
-                              .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                              .map((transaction, index) => (
-                                <TableRow key={index}>
-                                  <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                                  <TableCell>{transaction.description}</TableCell>
-                                  <TableCell>{transaction.category}</TableCell>
-                                  <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
-                                    {formatCurrency(transaction.amount)}
-                                  </TableCell>
-                                  <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
-                                    {transaction.occurred ? 'Paid' : 'Pending'}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-        <DialogFooter className="flex justify-between gap-2 mt-4">
-          {/*This section is already in the edited code.  No changes needed here.*/}
-        </DialogFooter>
+                        <div className="text-red-600">
+                          Paid to Date: {formatCurrency(monthlyPaid)}
+                        </div>
+                        <div className="text-red-300">
+                          Remaining: {formatCurrency(monthlyTotal - monthlyPaid)}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {monthTransactions
+                            .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                            .map((transaction, index) => (
+                              <TableRow key={`${transaction.date}-${index}`}>
+                                <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                                <TableCell>{transaction.description}</TableCell>
+                                <TableCell>{transaction.category}</TableCell>
+                                <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                                  {formatCurrency(transaction.amount)}
+                                </TableCell>
+                                <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                                  {transaction.occurred ? 'Paid' : 'Pending'}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
