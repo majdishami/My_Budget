@@ -7,29 +7,23 @@ import { join } from 'path';
 
 // Load environment variables from .env file
 const envPath = join(process.cwd(), '.env');
-console.log('Loading environment variables from:', envPath);
 config({ path: envPath });
 
-// Detailed connection logging
-console.log('Database connection parameters:', {
-  host: process.env.PGHOST,
-  port: process.env.PGPORT,
-  database: process.env.PGDATABASE,
-  user: process.env.PGUSER,
-  // Don't log password for security
-});
+// Create pool configuration using individual environment variables
+const poolConfig = {
+  host: process.env.PGHOST || 'localhost',
+  port: parseInt(process.env.PGPORT || '5432'),
+  database: process.env.PGDATABASE || 'budget_tracker',
+  user: process.env.PGUSER || 'postgres',
+  password: process.env.PGPASSWORD,
+  // Only enable SSL in production
+  ssl: process.env.NODE_ENV === 'production' ? {
+    rejectUnauthorized: false
+  } : false
+};
 
-// Initialize pool with environment-specific configuration
-const isProduction = process.env.NODE_ENV === 'production';
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: isProduction ? {
-    rejectUnauthorized: false // Required for Neon PostgreSQL in production
-  } : false, // Disable SSL for local development
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+// Initialize pool with configuration
+const pool = new Pool(poolConfig);
 
 // Add error handling for the pool
 pool.on('error', (err) => {
@@ -49,32 +43,17 @@ async function testConnection(retries = 3) {
       try {
         // Basic connectivity test
         await client.query('SELECT NOW()');
-        console.log('Basic connectivity test passed');
+        console.log('Database connection successful');
 
         // Schema verification
         const tables = await client.query(`
-          SELECT table_name 
-          FROM information_schema.tables 
-          WHERE table_schema = 'public'
-          AND table_type = 'BASE TABLE';
+          SELECT tablename 
+          FROM pg_catalog.pg_tables 
+          WHERE schemaname = 'public'
         `);
 
-        console.log('Available tables:', tables.rows.map(r => r.table_name));
+        console.log('Available tables:', tables.rows.map(r => r.tablename));
 
-        // Verify categories table specifically
-        const categoryCheck = await client.query(`
-          SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = 'categories'
-          );
-        `);
-
-        if (!categoryCheck.rows[0].exists) {
-          throw new Error('Categories table not found in schema');
-        }
-
-        console.log('Database connection and schema verified successfully');
         return true;
       } finally {
         client.release();
