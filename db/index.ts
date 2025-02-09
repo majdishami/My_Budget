@@ -16,24 +16,11 @@ if (result.error) {
   process.exit(1);
 }
 
-// Log database connection details (without sensitive information)
-const dbUrl = new URL(process.env.DATABASE_URL || 'postgresql://localhost');
-console.log('Connecting to database:', {
-  host: dbUrl.hostname,
-  port: dbUrl.port,
-  database: dbUrl.pathname.substring(1),
-  ssl: dbUrl.hostname === 'localhost' ? 'disabled' : 'enabled'
-});
-
-// Initialize pool with environment-aware SSL configuration
+// Initialize pool with simplified configuration for local development
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: dbUrl.hostname !== 'localhost' ? {
-    rejectUnauthorized: false
-  } : undefined,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  // Disable SSL for local development
+  ssl: false,
 });
 
 const db = drizzle(pool, { schema });
