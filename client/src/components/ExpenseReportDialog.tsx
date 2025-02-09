@@ -85,6 +85,8 @@ interface GroupedExpense {
   pendingAmount: number;
   color: string;
   transactions: Transaction[];
+  occurredCount: number;
+  pendingCount: number;
 }
 
 export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: ExpenseReportDialogProps) {
@@ -217,7 +219,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           occurredAmount: 0,
           pendingAmount: 0,
           color: transaction.color || '#D3D3D3',
-          transactions: []
+          transactions: [],
+          occurredCount: 0,
+          pendingCount: 0
         };
       }
 
@@ -225,8 +229,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       group.totalAmount += transaction.amount;
       if (transaction.occurred) {
         group.occurredAmount += transaction.amount;
+        group.occurredCount++;
       } else {
         group.pendingAmount += transaction.amount;
+        group.pendingCount++;
       }
       group.transactions.push(transaction);
     });
@@ -628,7 +634,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           <TableHead className="text-right">Total Amount</TableHead>
                           <TableHead className="text-right">Paid Amount</TableHead>
                           <TableHead className="text-right">Pending Amount</TableHead>
-                          <TableHead className="text-right">Occurrences</TableHead>
+                          <TableHead className="text-right">Paid Occurrences</TableHead>
+                          <TableHead className="text-right">Pending Occurrences</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -656,8 +663,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableCell className="text-right text-red-300">
                               {formatCurrency(expense.pendingAmount)}
                             </TableCell>
-                            <TableCell className="text-right">
-                              {expense.transactions.length}
+                            <TableCell className="text-right text-red-600">
+                              {expense.occurredCount}
+                            </TableCell>
+                            <TableCell className="text-right text-red-300">
+                              {expense.pendingCount}
                             </TableCell>
                           </TableRow>
                         ))}
