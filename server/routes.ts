@@ -126,12 +126,18 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Category Routes
-  app.get('/api/categories', async (_req, res) => {
+  app.get('/api/categories', async (req, res) => {
     try {
-      const allCategories = await db.query.categories.findMany({
-        orderBy: (categories, { asc }) => [asc(categories.name)],
-      });
-      res.json(allCategories);
+      const userCategories = req.isAuthenticated()
+        ? await db.query.categories.findMany({
+            where: eq(categories.user_id, (req.user as any).id),
+            orderBy: (categories, { asc }) => [asc(categories.name)],
+          })
+        : await db.query.categories.findMany({
+            orderBy: (categories, { asc }) => [asc(categories.name)],
+          });
+
+      res.json(userCategories);
     } catch (error) {
       console.error('Error fetching categories:', error);
       res.status(500).json({ message: 'Server error fetching categories' });
@@ -142,7 +148,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const categoryData = await insertCategorySchema.parseAsync({
         ...req.body,
-        user_id: req.user.id
+        user_id: (req.user as any).id
       });
 
       const [newCategory] = await db.insert(categories)
@@ -151,18 +157,12 @@ export function registerRoutes(app: Express): Server {
 
       res.status(201).json(newCategory);
     } catch (error) {
-      res.status(400).json({ message: 'Invalid request' });
-    }
-  });
-
-  app.get('/api/categories', requireAuth, async (req, res) => {
-    try {
-      const userCategories = await db.query.categories.findMany({
-        where: eq(categories.user_id, req.user.id),
-      });
-      res.json(userCategories);
-    } catch (error) {
-      res.status(500).json({ message: 'Server error' });
+      console.error('Error creating category:', error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(400).json({ message: 'Invalid request data' });
+      }
     }
   });
 
@@ -173,7 +173,7 @@ export function registerRoutes(app: Express): Server {
         where: eq(categories.id, categoryId),
       });
 
-      if (!category || category.user_id !== req.user.id) {
+      if (!category || category.user_id !== (req.user as any).id) {
         return res.status(404).json({ message: 'Category not found' });
       }
 
@@ -184,7 +184,33 @@ export function registerRoutes(app: Express): Server {
 
       res.json(updatedCategory);
     } catch (error) {
-      res.status(400).json({ message: 'Invalid request' });
+      console.error('Error updating category:', error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(400).json({ message: 'Invalid request data' });
+      }
+    }
+  });
+
+  app.delete('/api/categories/:id', requireAuth, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      const category = await db.query.categories.findFirst({
+        where: eq(categories.id, categoryId),
+      });
+
+      if (!category || category.user_id !== (req.user as any).id) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+
+      await db.delete(categories)
+        .where(eq(categories.id, categoryId));
+
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      res.status(500).json({ message: 'Server error deleting category' });
     }
   });
 
