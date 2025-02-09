@@ -276,7 +276,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">
-            {getReportTitle()}
+            {selectedValue === "all"
+              ? "All Expenses"
+              : selectedValue.startsWith('expense_')
+                ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name || "Expense Report"
+                : `${selectedValue} Expenses`
+            }
             <div className="text-sm font-normal text-muted-foreground mt-1">
               {date?.from && date?.to && `${dayjs(date?.from).format('MMM D, YYYY')} - ${dayjs(date?.to).format('MMM D, YYYY')}`}
             </div>
