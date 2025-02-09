@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useLocation } from "wouter";
+import { apiRequest } from '@/lib/api-client';
 
 // Enhanced TypeScript interfaces
 interface Category {
@@ -58,11 +59,9 @@ export function CategoryManager() {
     refetch
   } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
+    queryFn: () => apiRequest('/api/categories'),
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onSuccess: (data) => {
-      console.log('Categories loaded successfully:', data);
-    },
     onError: (error: unknown) => {
       console.error('Error loading categories:', error);
       // Log more details about the error
