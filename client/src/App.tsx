@@ -10,7 +10,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
-import Budget from "@/pages/Budget";
+import { Budget } from "@/pages/Budget";
 import dayjs from 'dayjs';
 import MonthlyToDateDialog from "@/components/MonthlyToDateDialog";
 import MonthlyReportDialog from "@/components/MonthlyReportDialog";
@@ -24,6 +24,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, X } from "lucide-react";
+import { Categories } from "@/pages/Categories"; // Add this import
 
 // Types for dialog management
 type DialogType = 'monthly-to-date' | 'monthly' | 'date-range' | 'expense' | 'income' | 'annual';
@@ -162,6 +163,7 @@ function Router() {
 
       <Switch>
         <Route path="/" component={Budget} />
+        <Route path="/categories" component={Categories} /> {/* Added route for Categories */}
         <Route path="/reports/:type">
           {() => null}
         </Route>

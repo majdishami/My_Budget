@@ -12,7 +12,8 @@ import {
   Trash,
   CalendarRange,
   Download,
-  Bell
+  Bell,
+  Tags // Added for Categories icon
 } from "lucide-react";
 import {
   Select,
@@ -224,6 +225,23 @@ export function LeftSidebar({
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      {/* New Categories Section */}
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold px-2">Categories</h2>
+        <div className="space-y-2">
+          <Link href="/categories">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start"
+            >
+              <Tags className="mr-2 h-4 w-4" />
+              Manage Categories
+            </Button>
+          </Link>
         </div>
       </div>
 
