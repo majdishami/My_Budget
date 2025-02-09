@@ -55,9 +55,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (typeof bill.amount !== 'number' || isNaN(bill.amount)) {
       throw new Error('Bill amount must be a valid number');
     }
-    if (typeof bill.day !== 'number' || bill.day < 1 || bill.day > 31) {
-      throw new Error('Bill day must be between 1 and 31');
+
+    // Check day only if it's not a one-time bill
+    if (!bill.isOneTime && (typeof bill.day !== 'number' || bill.day < 1 || bill.day > 31)) {
+      throw new Error('Bill day must be between 1 and 31 for recurring bills');
     }
+
+    // Validate date for one-time bills
+    if (bill.isOneTime && (!bill.date || isNaN(new Date(bill.date).getTime()))) {
+      throw new Error('One-time bills must have a valid date');
+    }
+
+    // Optional fields validation
+    if (bill.categoryId !== undefined && typeof bill.categoryId !== 'number') {
+      throw new Error('Bill categoryId must be a number if provided');
+    }
+    if (bill.reminderEnabled !== undefined && typeof bill.reminderEnabled !== 'boolean') {
+      throw new Error('Bill reminderEnabled must be a boolean if provided');
+    }
+    if (bill.reminderDays !== undefined && typeof bill.reminderDays !== 'number') {
+      throw new Error('Bill reminderDays must be a number if provided');
+    }
+
     return true;
   };
 
@@ -74,21 +93,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       ];
 
       const defaultBills: Bill[] = [
-        { id: generateId(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1, categoryId: 8 }, // Mobile phones bill
-        { id: generateId(), name: "Maid's 1st payment", amount: 120, day: 1, categoryId: 11 }, // Maid's services
-        { id: generateId(), name: "Monthly Rent", amount: 3750, day: 1, categoryId: 1 }, // House rent
-        { id: generateId(), name: "Sling TV (CC 9550)", amount: 75, day: 3, categoryId: 10 }, // TV service
-        { id: generateId(), name: "Cox Internet", amount: 81, day: 6, categoryId: 9 }, // Internet bill
-        { id: generateId(), name: "Water Bill", amount: 80, day: 7, categoryId: 7 }, // Utilities - Water Bill
-        { id: generateId(), name: "NV Energy Electrical ($100 winter months)", amount: 250, day: 7, categoryId: 5 }, // Utilities - Electrical Bill
-        { id: generateId(), name: "TransAmerica Life Insurance", amount: 77, day: 9, categoryId: 13 }, // Life insurance
-        { id: generateId(), name: "Credit Card minimum payments", amount: 225, day: 14, categoryId: 14 }, // Credit Card payments
-        { id: generateId(), name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14, categoryId: 12 }, // Online services
-        { id: generateId(), name: "Expenses & Groceries charged on (CC 2647)", amount: 3000, day: 16, categoryId: 4 }, // Groceries
-        { id: generateId(), name: "Maid's 2nd Payment of the month", amount: 120, day: 17, categoryId: 11 }, // Maid's services
-        { id: generateId(), name: "SoFi Personal Loan", amount: 1915, day: 17, categoryId: 2 }, // Personal Loan
-        { id: generateId(), name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75, day: 17, categoryId: 6 }, // Utilities - Gas Bill
-        { id: generateId(), name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704, day: 28, categoryId: 3 } // Cars Insurance
+        { id: generateId(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1, categoryId: 8 },
+        { id: generateId(), name: "Maid's 1st payment", amount: 120, day: 1, categoryId: 11 },
+        { id: generateId(), name: "Monthly Rent", amount: 3750, day: 1, categoryId: 1 },
+        { id: generateId(), name: "Sling TV (CC 9550)", amount: 75, day: 3, categoryId: 10 },
+        { id: generateId(), name: "Cox Internet", amount: 81, day: 6, categoryId: 9 },
+        { id: generateId(), name: "Water Bill", amount: 80, day: 7, categoryId: 7 },
+        { id: generateId(), name: "NV Energy Electrical ($100 winter months)", amount: 250, day: 7, categoryId: 5 },
+        { id: generateId(), name: "TransAmerica Life Insurance", amount: 77, day: 9, categoryId: 13 },
+        { id: generateId(), name: "Credit Card minimum payments", amount: 225, day: 14, categoryId: 14 },
+        { id: generateId(), name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14, categoryId: 12 },
+        { id: generateId(), name: "Expenses & Groceries charged on (CC 2647)", amount: 3000, day: 16, categoryId: 4 },
+        { id: generateId(), name: "Maid's 2nd Payment of the month", amount: 120, day: 17, categoryId: 11 },
+        { id: generateId(), name: "SoFi Personal Loan", amount: 1915, day: 17, categoryId: 2 },
+        { id: generateId(), name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75, day: 17, categoryId: 6 },
+        { id: generateId(), name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704, day: 28, categoryId: 3 }
       ];
 
       // Validate default data
@@ -103,84 +122,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("budgetBills", JSON.stringify(defaultBills));
         logger.info("Successfully initialized default data");
       } catch (storageError) {
-        logger.error("Failed to save default data to localStorage", storageError);
+        logger.error("Failed to save default data to localStorage", { error: storageError });
         throw new Error("Failed to save default data to storage");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to initialize data";
-      logger.error("Error in initializeDefaultData:", error);
+      logger.error("Error in initializeDefaultData:", { error });
       setError(new Error(errorMessage));
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const saveIncomes = async (newIncomes: Income[]) => {
-    try {
-      setError(null);
-      if (!Array.isArray(newIncomes)) {
-        throw new Error("Income data must be an array");
-      }
-
-      // Validate all incomes
-      newIncomes.forEach(isValidIncome);
-
-      const sanitizedIncomes = newIncomes.map(income => ({
-        ...income,
-        id: income.id || generateId(),
-        amount: Number(income.amount)
-      }));
-
-      setIncomes(sanitizedIncomes);
-      localStorage.setItem("budgetIncomes", JSON.stringify(sanitizedIncomes));
-      logger.info("Successfully saved incomes", { count: sanitizedIncomes.length });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to save incomes";
-      logger.error("Error in saveIncomes:", error);
-      setError(new Error(errorMessage));
-      throw error;
-    }
-  };
-
-  const saveBills = async (newBills: Bill[]) => {
-    try {
-      setError(null);
-      if (!Array.isArray(newBills)) {
-        throw new Error("Bill data must be an array");
-      }
-
-      // Validate all bills
-      newBills.forEach(isValidBill);
-
-      const sanitizedBills = newBills.map(bill => ({
-        ...bill,
-        id: bill.id || generateId(),
-        amount: Number(bill.amount)
-      }));
-
-      setBills(sanitizedBills);
-      localStorage.setItem("budgetBills", JSON.stringify(sanitizedBills));
-      logger.info("Successfully saved bills", { count: sanitizedBills.length });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to save bills";
-      logger.error("Error in saveBills:", error);
-      setError(new Error(errorMessage));
-      throw error;
-    }
-  };
-
-  const resetData = async () => {
-    try {
-      setError(null);
-      localStorage.removeItem("budgetIncomes");
-      localStorage.removeItem("budgetBills");
-      logger.info("Successfully cleared data");
-      await initializeDefaultData();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to reset data";
-      logger.error("Error in resetData:", error);
-      setError(new Error(errorMessage));
-      throw error;
     }
   };
 
@@ -190,50 +140,52 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(true);
         setError(null);
 
-        if (typeof window === 'undefined' || !window.localStorage) {
-          throw new Error("localStorage is not available");
-        }
-
-        const storedIncomes = localStorage.getItem("budgetIncomes");
-        const storedBills = localStorage.getItem("budgetBills");
-
+        let storedIncomes: Income[] = [];
+        let storedBills: Bill[] = [];
         let shouldInitialize = false;
 
-        if (storedIncomes) {
-          try {
-            const parsedIncomes = JSON.parse(storedIncomes);
+        try {
+          const incomesData = localStorage.getItem("budgetIncomes");
+          if (incomesData) {
+            const parsedIncomes = JSON.parse(incomesData);
             parsedIncomes.forEach(isValidIncome);
-            setIncomes(parsedIncomes);
+            storedIncomes = parsedIncomes;
             logger.info("Successfully loaded incomes", { count: parsedIncomes.length });
-          } catch (error) {
-            logger.warn("Invalid stored incomes, will initialize defaults", error);
+          } else {
             shouldInitialize = true;
           }
-        } else {
+        } catch (error) {
+          logger.warn("Invalid stored incomes, will initialize defaults", { error });
           shouldInitialize = true;
         }
 
-        if (storedBills) {
-          try {
-            const parsedBills = JSON.parse(storedBills);
+        try {
+          const billsData = localStorage.getItem("budgetBills");
+          if (billsData) {
+            const parsedBills = JSON.parse(billsData);
             parsedBills.forEach(isValidBill);
-            setBills(parsedBills);
+            storedBills = parsedBills;
             logger.info("Successfully loaded bills", { count: parsedBills.length });
-          } catch (error) {
-            logger.warn("Invalid stored bills, will initialize defaults", error);
+          } else {
             shouldInitialize = true;
           }
-        } else {
+        } catch (error) {
+          logger.warn("Invalid stored bills, will initialize defaults", { error });
           shouldInitialize = true;
         }
 
         if (shouldInitialize) {
           await initializeDefaultData();
+        } else {
+          setIncomes(storedIncomes);
+          setBills(storedBills);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to load data";
-        logger.error("Error loading data:", error);
+        logger.error("Error loading data:", { error });
         setError(new Error(errorMessage));
+        // Attempt to initialize with defaults if loading fails
+        await initializeDefaultData();
       } finally {
         setIsLoading(false);
       }
@@ -246,9 +198,54 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     <DataContext.Provider value={{
       incomes,
       bills,
-      saveIncomes,
-      saveBills,
-      resetData,
+      saveIncomes: async (newIncomes) => {
+        try {
+          setError(null);
+          if (!Array.isArray(newIncomes)) {
+            throw new Error("Income data must be an array");
+          }
+          newIncomes.forEach(isValidIncome);
+          setIncomes(newIncomes);
+          localStorage.setItem("budgetIncomes", JSON.stringify(newIncomes));
+          logger.info("Successfully saved incomes", { count: newIncomes.length });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to save incomes";
+          logger.error("Error in saveIncomes:", { error });
+          setError(new Error(errorMessage));
+          throw error;
+        }
+      },
+      saveBills: async (newBills) => {
+        try {
+          setError(null);
+          if (!Array.isArray(newBills)) {
+            throw new Error("Bill data must be an array");
+          }
+          newBills.forEach(isValidBill);
+          setBills(newBills);
+          localStorage.setItem("budgetBills", JSON.stringify(newBills));
+          logger.info("Successfully saved bills", { count: newBills.length });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to save bills";
+          logger.error("Error in saveBills:", { error });
+          setError(new Error(errorMessage));
+          throw error;
+        }
+      },
+      resetData: async () => {
+        try {
+          setError(null);
+          localStorage.removeItem("budgetIncomes");
+          localStorage.removeItem("budgetBills");
+          logger.info("Successfully cleared data");
+          await initializeDefaultData();
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to reset data";
+          logger.error("Error in resetData:", { error });
+          setError(new Error(errorMessage));
+          throw error;
+        }
+      },
       isLoading,
       error
     }}>
