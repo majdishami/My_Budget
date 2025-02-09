@@ -132,20 +132,27 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/categories', async (req, res) => {
     try {
       // Check if database is accessible
+      console.log('Attempting to fetch categories from database...');
       const dbCheck = await db.query.categories.findFirst();
+      console.log('Initial DB check result:', dbCheck);
+
       if (!dbCheck) {
-        // If no categories exist, return empty array instead of error
+        console.log('No categories found in initial check, returning empty array');
         return res.json([]);
       }
 
+      console.log('Fetching all categories...');
       const userCategories = await db.query.categories.findMany({
         orderBy: (categories, { asc }) => [asc(categories.name)],
       });
+      console.log('Found categories:', userCategories);
 
       if (!userCategories) {
+        console.log('No categories found in full query, returning empty array');
         return res.json([]);
       }
 
+      console.log('Successfully returning categories:', userCategories.length);
       res.json(userCategories);
     } catch (error) {
       console.error('Error fetching categories:', error);

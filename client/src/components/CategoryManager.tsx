@@ -60,7 +60,11 @@ export function CategoryManager() {
     queryKey: ['/api/categories'],
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    onSuccess: (data) => {
+      console.log('Categories loaded successfully:', data);
+    },
     onError: (error) => {
+      console.error('Error loading categories:', error);
       toast({
         title: "Error loading categories",
         description: "Failed to load categories. Please try again later.",
