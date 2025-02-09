@@ -310,22 +310,21 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 </DialogTitle>
               </div>
               <div className="flex gap-2 items-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (previousReport) {
-                      setSelectedValue(previousReport.value);
-                      setDate(previousReport.date);
-                      setPreviousReport(null);
-                    } else {
-                      setSelectedValue("all");
+                {showReport && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
                       setShowReport(false);
-                    }
-                  }}
-                >
-                  {previousReport ? 'Back to Report' : 'Back to Selection'}
-                </Button>
+                      setSelectedValue("all");
+                      setDate(undefined);
+                      setPreviousReport(null);
+
+                    }}
+                  >
+                    Back to Selection
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
