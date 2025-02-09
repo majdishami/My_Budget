@@ -11,7 +11,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load environment variables from .env file
-const result = config({ path: resolve(__dirname, '../.env') });
+const envPath = resolve(__dirname, '../.env');
+console.log('Looking for .env file at:', envPath);
+
+const result = config({ path: envPath });
 
 if (result.error) {
   console.error('Error loading .env file:', result.error);
@@ -22,6 +25,12 @@ if (result.error) {
 function validateEnvVariables() {
   const required = ['DATABASE_URL', 'PGDATABASE', 'PGUSER', 'PGPASSWORD', 'PGHOST', 'PGPORT'];
   const missing = required.filter(key => !process.env[key]);
+
+  // Debug log all environment variables
+  console.log('Current environment variables:');
+  required.forEach(key => {
+    console.log(`${key}: ${process.env[key] ? 'exists' : 'missing'}`);
+  });
 
   if (missing.length > 0) {
     throw new Error(
@@ -45,7 +54,8 @@ const pool = new Pool({
   password: process.env.PGPASSWORD,
   database: process.env.PGDATABASE,
   ssl: {
-    rejectUnauthorized: false // Required for self-signed certificates
+    rejectUnauthorized: false, // Required for Neon and similar hosted PostgreSQL services
+    sslmode: 'require'
   },
   max: 20,
   idleTimeoutMillis: 30000,
