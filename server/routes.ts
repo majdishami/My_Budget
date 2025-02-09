@@ -120,22 +120,25 @@ export function registerRoutes(app: Express): Server {
     });
   });
 
-  // Protected route example
-  app.get('/api/auth/check', requireAuth, (req, res) => {
-    res.json({ authenticated: true });
+  // Test route for auth status
+  app.get('/api/auth/status', (req, res) => {
+    res.json({
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user ? { id: (req.user as any).id } : null
+    });
   });
 
   // Category Routes
   app.get('/api/categories', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized. Please log in.' });
+    }
+
     try {
-      const userCategories = req.isAuthenticated()
-        ? await db.query.categories.findMany({
-            where: eq(categories.user_id, (req.user as any).id),
-            orderBy: (categories, { asc }) => [asc(categories.name)],
-          })
-        : await db.query.categories.findMany({
-            orderBy: (categories, { asc }) => [asc(categories.name)],
-          });
+      const userCategories = await db.query.categories.findMany({
+        where: eq(categories.user_id, (req.user as any).id),
+        orderBy: (categories, { asc }) => [asc(categories.name)],
+      });
 
       res.json(userCategories);
     } catch (error) {
@@ -144,7 +147,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post('/api/categories', requireAuth, async (req, res) => {
+  app.post('/api/categories', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized. Please log in.' });
+    }
+
     try {
       const categoryData = await insertCategorySchema.parseAsync({
         ...req.body,

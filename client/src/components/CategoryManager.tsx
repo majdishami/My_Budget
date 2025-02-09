@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useNavigate } from "wouter";
 
 // Enhanced TypeScript interfaces
 interface Category {
@@ -39,6 +40,7 @@ interface DialogState {
 }
 
 export function CategoryManager() {
+  const navigate = useNavigate();
   // Centralized dialog state management
   const [dialogState, setDialogState] = useState<DialogState>({
     add: false,
@@ -49,15 +51,31 @@ export function CategoryManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Check authentication status
+  const { data: authStatus, isLoading: isCheckingAuth } = useQuery({
+    queryKey: ['/api/auth/status'],
+    onError: () => {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in to manage categories.",
+        variant: "destructive",
+      });
+      navigate("/login");
+    },
+  });
+
   // Enhanced error handling and loading states
   const { data: categories = [], isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
+    enabled: !!authStatus?.isAuthenticated,
     onError: (error) => {
-      toast({
-        title: "Error loading categories",
-        description: error instanceof Error ? error.message : "Failed to load categories",
-        variant: "destructive",
-      });
+      if (error instanceof Error) {
+        toast({
+          title: "Error loading categories",
+          description: error.message || "Failed to load categories",
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -128,8 +146,8 @@ export function CategoryManager() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/categories/${id}`, { 
-        method: 'DELETE' 
+      const response = await fetch(`/api/categories/${id}`, {
+        method: 'DELETE'
       });
 
       if (!response.ok) {
@@ -182,6 +200,14 @@ export function CategoryManager() {
   };
 
   // Loading and error states
+  if (isCheckingAuth) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   if (isLoadingCategories) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -206,7 +232,7 @@ export function CategoryManager() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Categories</h2>
-        <Button 
+        <Button
           onClick={() => setDialogState(prev => ({ ...prev, add: true }))}
           disabled={createMutation.isPending}
         >
@@ -271,8 +297,8 @@ export function CategoryManager() {
         initialData={dialogState.edit || undefined}
       />
 
-      <AlertDialog 
-        open={dialogState.delete !== null} 
+      <AlertDialog
+        open={dialogState.delete !== null}
         onOpenChange={(open) => {
           if (!open) handleCloseDialogs();
         }}
@@ -287,7 +313,7 @@ export function CategoryManager() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmDelete}
               disabled={deleteMutation.isPending}
             >

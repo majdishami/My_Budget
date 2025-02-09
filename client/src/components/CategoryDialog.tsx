@@ -60,7 +60,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4" autoComplete="off">
             <FormField
               control={form.control}
               name="name"
@@ -68,7 +68,12 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter category name" {...field} />
+                    <Input 
+                      placeholder="Enter category name" 
+                      {...field} 
+                      autoComplete="off"
+                      spellCheck="false"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -115,7 +120,12 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                 <FormItem>
                   <FormLabel>Icon (optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter icon name" {...field} />
+                    <Input 
+                      placeholder="Enter icon name" 
+                      {...field} 
+                      autoComplete="off"
+                      spellCheck="false"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
