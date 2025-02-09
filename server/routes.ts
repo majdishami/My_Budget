@@ -126,6 +126,18 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Category Routes
+  app.get('/api/categories', async (_req, res) => {
+    try {
+      const allCategories = await db.query.categories.findMany({
+        orderBy: (categories, { asc }) => [asc(categories.name)],
+      });
+      res.json(allCategories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      res.status(500).json({ message: 'Server error fetching categories' });
+    }
+  });
+
   app.post('/api/categories', requireAuth, async (req, res) => {
     try {
       const categoryData = await insertCategorySchema.parseAsync({
