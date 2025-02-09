@@ -11,18 +11,21 @@ app.use(express.urlencoded({ extended: false }));
 // Enable trust proxy for secure cookies when behind Replit's proxy
 app.enable('trust proxy');
 
-// Configure CORS for Replit's environment
+// Enhanced CORS configuration for both Replit and local development
 app.use((req, res, next) => {
-  // Allow the current Replit domain and localhost for development
   const origin = req.headers.origin;
+  // Allow Replit domains, localhost, and local development ports
   if (origin && (
     origin.endsWith('.replit.dev') || 
-    origin === 'http://localhost:5000'
+    origin === 'http://localhost:5000' ||
+    origin === 'http://localhost:3000' ||
+    origin.startsWith('http://localhost:') ||
+    origin.startsWith('http://127.0.0.1:')
   )) {
     res.header('Access-Control-Allow-Origin', origin);
   }
 
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
 
@@ -32,7 +35,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Request logging middleware with detailed information
+// Enhanced request logging middleware with detailed information
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -44,8 +47,11 @@ app.use((req, res, next) => {
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
-  // Log request details
-  log(`Incoming ${req.method} ${path} from ${req.ip}`);
+  // Enhanced request logging
+  log(`[${req.method}] ${path} from ${req.ip}`);
+  if (Object.keys(req.query).length > 0) {
+    log(`Query params: ${JSON.stringify(req.query)}`);
+  }
   if (Object.keys(req.headers).length > 0) {
     log(`Headers: ${JSON.stringify(req.headers)}`);
   }
@@ -67,7 +73,7 @@ app.use((req, res, next) => {
 (async () => {
   const server = registerRoutes(app);
 
-  // Global error handler with detailed logging
+  // Enhanced global error handler with detailed logging
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -85,11 +91,14 @@ app.use((req, res, next) => {
   }
 
   // Use port 5000 as specified in .replit port forwarding
-  const PORT = 5000;
+  // and bind to 0.0.0.0 to allow external access
+  const PORT = process.env.PORT || 5000;
+  const HOST = '0.0.0.0';
 
-  server.listen(PORT, "0.0.0.0", () => {
-    log(`Server is running at http://0.0.0.0:${PORT}`);
+  server.listen(PORT, HOST, () => {
+    log(`Server is running at http://${HOST}:${PORT}`);
     log(`Server environment: ${app.get("env")}`);
     log(`Trust proxy enabled: ${app.get('trust proxy')}`);
+    log(`CORS and API endpoints are configured for local development`);
   });
 })();
