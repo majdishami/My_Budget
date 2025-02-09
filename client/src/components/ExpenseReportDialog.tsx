@@ -46,6 +46,7 @@ interface Transaction {
   amount: number;
   occurred: boolean;
   category: string;
+  color?: string; // Added color property
 }
 
 interface Bill {
@@ -59,6 +60,13 @@ interface Bill {
 interface Category {
   id: number;
   name: string;
+  color: string;
+}
+
+interface CategoryTotal {
+  category: string;
+  amount: number;
+  occurred: boolean;
   color: string;
 }
 
@@ -129,11 +137,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     // Filter based on selection
     if (selectedValue !== "all" && selectedValue !== "all_categories") {
       if (selectedValue.startsWith('expense_')) {
-        // Individual expense selected
         const expenseId = selectedValue.replace('expense_', '');
         filteredBills = bills.filter(bill => bill.id === expenseId);
       } else if (selectedValue.startsWith('category_')) {
-        // Individual category selected
         const category = selectedValue.replace('category_', '');
         filteredBills = bills.filter(bill => {
           const billCategory = categories.find(c => c.id === bill.categoryId)?.name;
@@ -146,23 +152,81 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     const endDate = dayjs(date.to);
     const result: Transaction[] = [];
 
-    // Generate transactions for each bill
-    filteredBills.forEach(bill => {
-      let currentMonth = startDate.startOf('month');
-      while (currentMonth.isSameOrBefore(endDate)) {
-        const transactionDate = currentMonth.date(bill.day);
-        if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
-          result.push({
-            date: transactionDate.format('YYYY-MM-DD'),
-            description: bill.name,
-            amount: bill.amount,
-            occurred: transactionDate.isSameOrBefore(today),
-            category: categories.find(c => c.id === bill.categoryId)?.name || 'Uncategorized'
-          });
+    // For "all_categories", group by category
+    if (selectedValue === "all_categories") {
+      // Create a map to store category totals for each month
+      const categoryTotalsByMonth: Record<string, CategoryTotal[]> = {};
+
+      filteredBills.forEach(bill => {
+        const category = categories.find(c => c.id === bill.categoryId);
+        if (!category) return;
+
+        let currentMonth = startDate.startOf('month');
+        while (currentMonth.isSameOrBefore(endDate)) {
+          const transactionDate = currentMonth.date(bill.day);
+
+          if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
+            const monthKey = transactionDate.format('YYYY-MM');
+
+            if (!categoryTotalsByMonth[monthKey]) {
+              categoryTotalsByMonth[monthKey] = [];
+            }
+
+            // Find existing category total for this month
+            let categoryTotal = categoryTotalsByMonth[monthKey].find(ct => ct.category === category.name);
+
+            if (!categoryTotal) {
+              categoryTotal = {
+                category: category.name,
+                amount: 0,
+                occurred: false,
+                color: category.color
+              };
+              categoryTotalsByMonth[monthKey].push(categoryTotal);
+            }
+
+            categoryTotal.amount += bill.amount;
+            const isOccurred = transactionDate.isSameOrBefore(today);
+            categoryTotal.occurred = categoryTotal.occurred || isOccurred;
+          }
+          currentMonth = currentMonth.add(1, 'month');
         }
-        currentMonth = currentMonth.add(1, 'month');
-      }
-    });
+      });
+
+      // Convert category totals to transactions
+      Object.entries(categoryTotalsByMonth).forEach(([monthKey, categoryTotals]) => {
+        categoryTotals.forEach(ct => {
+          result.push({
+            date: dayjs(monthKey).format('YYYY-MM-DD'),
+            description: ct.category,
+            amount: ct.amount,
+            occurred: ct.occurred,
+            category: ct.category,
+            color: ct.color
+          });
+        });
+      });
+    } else {
+      // Generate regular transactions for other views
+      filteredBills.forEach(bill => {
+        let currentMonth = startDate.startOf('month');
+        while (currentMonth.isSameOrBefore(endDate)) {
+          const transactionDate = currentMonth.date(bill.day);
+          if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
+            const category = categories.find(c => c.id === bill.categoryId);
+            result.push({
+              date: transactionDate.format('YYYY-MM-DD'),
+              description: bill.name,
+              amount: bill.amount,
+              occurred: transactionDate.isSameOrBefore(today),
+              category: category?.name || 'Uncategorized',
+              color: category?.color || '#D3D3D3'
+            });
+          }
+          currentMonth = currentMonth.add(1, 'month');
+        }
+      });
+    }
 
     return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
   }, [showReport, selectedValue, date, bills, categories, today]);
@@ -417,27 +481,72 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Due Date</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                            <TableHead>Status</TableHead>
+                            {selectedValue === "all_categories" ? (
+                              <>
+                                <TableHead>Category</TableHead>
+                                <TableHead className="text-right">Total Amount</TableHead>
+                                <TableHead>Status</TableHead>
+                              </>
+                            ) : (
+                              <>
+                                <TableHead>Due Date</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Category</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead>Status</TableHead>
+                              </>
+                            )}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {monthTransactions
-                            .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                            .sort((a, b) => {
+                              if (selectedValue === "all_categories") {
+                                return a.category.localeCompare(b.category);
+                              }
+                              return dayjs(a.date).diff(dayjs(b.date));
+                            })
                             .map((transaction, index) => (
                               <TableRow key={`${transaction.date}-${index}`}>
-                                <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                                <TableCell>{transaction.description}</TableCell>
-                                <TableCell>{transaction.category}</TableCell>
-                                <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
-                                  {formatCurrency(transaction.amount)}
-                                </TableCell>
-                                <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
-                                  {transaction.occurred ? 'Paid' : 'Pending'}
-                                </TableCell>
+                                {selectedValue === "all_categories" ? (
+                                  <>
+                                    <TableCell>
+                                      <div className="flex items-center gap-2">
+                                        <div
+                                          className="w-3 h-3 rounded-full"
+                                          style={{ backgroundColor: transaction.color }}
+                                        />
+                                        {transaction.category}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                                      {formatCurrency(transaction.amount)}
+                                    </TableCell>
+                                    <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                                      {transaction.occurred ? 'Paid' : 'Pending'}
+                                    </TableCell>
+                                  </>
+                                ) : (
+                                  <>
+                                    <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                                    <TableCell>{transaction.description}</TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-2">
+                                        <div
+                                          className="w-3 h-3 rounded-full"
+                                          style={{ backgroundColor: transaction.color }}
+                                        />
+                                        {transaction.category}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                                      {formatCurrency(transaction.amount)}
+                                    </TableCell>
+                                    <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                                      {transaction.occurred ? 'Paid' : 'Pending'}
+                                    </TableCell>
+                                  </>
+                                )}
                               </TableRow>
                             ))}
                         </TableBody>
