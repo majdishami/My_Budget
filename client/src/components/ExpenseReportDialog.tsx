@@ -642,54 +642,64 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                     <CardTitle>Expenses Summary</CardTitle>
                   </CardHeader>
                   <CardContent>
+                    {/* REPLACEMENT START */}
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Expense</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead className="text-right">Monthly Amount</TableHead>
-                          <TableHead className="text-right">Total Amount</TableHead>
-                          <TableHead className="text-right">Paid Amount</TableHead>
-                          <TableHead className="text-right">Pending Amount</TableHead>
-                          <TableHead className="text-right">Paid Occurrences</TableHead>
-                          <TableHead className="text-right">Pending Occurrences</TableHead>
+                          <TableHead className="w-[180px]">Expense</TableHead>
+                          <TableHead className="w-[140px]">Category</TableHead>
+                          <TableHead className="text-right w-[100px]">Monthly</TableHead>
+                          <TableHead className="text-right w-[120px]">
+                            <div>Total Amount</div>
+                            <div className="text-xs font-normal">Paid / Pending</div>
+                          </TableHead>
+                          <TableHead className="text-right w-[100px]">
+                            <div>Occurrences</div>
+                            <div className="text-xs font-normal">Paid / Pending</div>
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody>
+                      <TableBody className="text-sm">
                         {groupedExpenses.map((expense) => (
                           <TableRow key={expense.description}>
-                            <TableCell>{expense.description}</TableCell>
+                            <TableCell className="font-medium">{expense.description}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <div
-                                  className="w-3 h-3 rounded-full"
+                                  className="w-2 h-2 rounded-full"
                                   style={{ backgroundColor: expense.color }}
                                 />
-                                {expense.category}
+                                <span className="truncate">{expense.category}</span>
                               </div>
                             </TableCell>
                             <TableCell className="text-right">
                               {formatCurrency(expense.totalAmount / expense.transactions.length)}
                             </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(expense.totalAmount)}
+                            <TableCell>
+                              <div className="text-right font-medium">
+                                {formatCurrency(expense.totalAmount)}
+                              </div>
+                              <div className="text-right text-xs">
+                                <span className="text-red-600">{formatCurrency(expense.occurredAmount)}</span>
+                                {" / "}
+                                <span className="text-red-300">{formatCurrency(expense.pendingAmount)}</span>
+                              </div>
                             </TableCell>
-                            <TableCell className="text-right text-red-600">
-                              {formatCurrency(expense.occurredAmount)}
-                            </TableCell>
-                            <TableCell className="text-right text-red-300">
-                              {formatCurrency(expense.pendingAmount)}
-                            </TableCell>
-                            <TableCell className="text-right text-red-600">
-                              {expense.occurredCount}
-                            </TableCell>
-                            <TableCell className="text-right text-red-300">
-                              {expense.pendingCount}
+                            <TableCell>
+                              <div className="text-right font-medium">
+                                {expense.occurredCount + expense.pendingCount}
+                              </div>
+                              <div className="text-right text-xs">
+                                <span className="text-red-600">{expense.occurredCount}</span>
+                                {" / "}
+                                <span className="text-red-300">{expense.pendingCount}</span>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
+                    {/* REPLACEMENT END */}
                   </CardContent>
                 </Card>
               )}
