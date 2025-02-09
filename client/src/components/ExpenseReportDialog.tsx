@@ -68,6 +68,7 @@ interface CategoryTotal {
   amount: number;
   occurred: boolean;
   color: string;
+  count: number; // Added count field
 }
 
 interface ExpenseReportDialogProps {
@@ -197,7 +198,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 category: categoryName,
                 amount: 0,
                 occurred: false,
-                color: categoryColor
+                color: categoryColor,
+                count: 0 // Initialize count
               };
               categoryTotalsByMonth[monthKey].push(categoryTotal);
             }
@@ -205,6 +207,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             categoryTotal.amount += bill.amount;
             const isOccurred = transactionDate.isSameOrBefore(today);
             categoryTotal.occurred = categoryTotal.occurred || isOccurred;
+            categoryTotal.count++; // Increment count
           }
           currentMonth = currentMonth.add(1, 'month');
         }
@@ -332,7 +335,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         category: string; 
         total: number; 
         occurred: number; 
-        pending: number; 
+        pending: number;
+        count: number; // Added count field
         color: string;
       }> = {};
 
@@ -343,6 +347,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             total: 0,
             occurred: 0,
             pending: 0,
+            count: 0,
             color: t.color || '#D3D3D3'
           };
         }
@@ -352,6 +357,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         } else {
           totals[t.category].pending += t.amount;
         }
+        totals[t.category].count++; // Increment count for each transaction
       });
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
@@ -589,6 +595,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           <TableHead className="text-right">Total</TableHead>
                           <TableHead className="text-right">Paid</TableHead>
                           <TableHead className="text-right">Pending</TableHead>
+                          <TableHead className="text-right">Occurrences</TableHead> {/* Added Occurrences column */}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -611,6 +618,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             </TableCell>
                             <TableCell className="text-right text-red-300">
                               {formatCurrency(ct.pending)}
+                            </TableCell>
+                            <TableCell className="text-right"> {/* Added count cell */}
+                              {ct.count}
                             </TableCell>
                           </TableRow>
                         ))}
