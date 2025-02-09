@@ -42,6 +42,7 @@ interface Transaction {
   description: string;
   amount: number;
   occurred: boolean;
+  category?: string; // Added category field
 }
 
 interface Bill {
@@ -49,6 +50,7 @@ interface Bill {
   name: string;
   amount: number;
   day: number;
+  category?: string; // Added category field
 }
 
 interface ExpenseReportDialogProps {
@@ -59,14 +61,23 @@ interface ExpenseReportDialogProps {
 
 export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: ExpenseReportDialogProps) {
   const [selectedBillId, setSelectedBillId] = useState<string | undefined>();
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
   const today = useMemo(() => dayjs(), []); // Memoize today's date
 
+  // Get unique categories from bills
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set(bills.map(bill => bill.category || 'Uncategorized'));
+    return ['all', ...Array.from(uniqueCategories)];
+  }, [bills]);
+
+  // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
       setSelectedBillId(undefined);
+      setSelectedCategory("all");
       setDate(undefined);
       setShowReport(false);
       setDateError(null);
@@ -75,7 +86,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
   // Memoize transactions calculation
   const transactions = useMemo(() => {
-    if (!showReport || !selectedBillId || !date?.from || !date?.to) return [];
+    if (!showReport || (!selectedBillId && selectedCategory === "all") || !date?.from || !date?.to) return [];
 
     // Validate date range
     if (dayjs(date.to).isBefore(date.from)) {
@@ -88,34 +99,48 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     }
 
     setDateError(null);
-    const selectedBill = bills.find(bill => bill.id === selectedBillId);
-    if (!selectedBill) return [];
+    let filteredBills = bills;
+
+    // Filter by specific bill if selected
+    if (selectedBillId) {
+      filteredBills = bills.filter(bill => bill.id === selectedBillId);
+    }
+    // Filter by category if not "all" and no specific bill selected
+    else if (selectedCategory !== "all") {
+      filteredBills = bills.filter(bill => (bill.category || 'Uncategorized') === selectedCategory);
+    }
 
     const startDate = dayjs(date.from);
     const endDate = dayjs(date.to);
     const result: Transaction[] = [];
 
-    let currentMonth = startDate.startOf('month');
-    while (currentMonth.isSameOrBefore(endDate)) {
-      const transactionDate = currentMonth.date(selectedBill.day);
-      if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
-        result.push({
-          date: transactionDate.format('YYYY-MM-DD'),
-          description: selectedBill.name,
-          amount: selectedBill.amount,
-          occurred: transactionDate.isSameOrBefore(today)
-        });
+    filteredBills.forEach(bill => {
+      let currentMonth = startDate.startOf('month');
+      while (currentMonth.isSameOrBefore(endDate)) {
+        const transactionDate = currentMonth.date(bill.day);
+        if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
+          result.push({
+            date: transactionDate.format('YYYY-MM-DD'),
+            description: bill.name,
+            amount: bill.amount,
+            occurred: transactionDate.isSameOrBefore(today),
+            category: bill.category || 'Uncategorized'
+          });
+        }
+        currentMonth = currentMonth.add(1, 'month');
       }
-      currentMonth = currentMonth.add(1, 'month');
-    }
+    });
 
     return result;
-  }, [showReport, selectedBillId, date, bills, today]);
+  }, [showReport, selectedBillId, selectedCategory, date, bills, today]);
 
-  // Memoize summary calculations
+  // Memoize summary calculations - moved inside component
   const summary = useMemo(() => {
-    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
-    const occurredAmount = transactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0);
+    const totalAmount = transactions.reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+    const occurredAmount = transactions
+      .filter((t: Transaction) => t.occurred)
+      .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+
     return {
       totalAmount,
       occurredAmount,
@@ -123,7 +148,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [transactions]);
 
-  if (!selectedBillId || !showReport) {
+  if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent
@@ -132,7 +157,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         >
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
-              {selectedBillId ? 'Select Date Range' : 'Select Expense'}
+              {selectedBillId ? 'Select Date Range' : 'Filter Expenses'}
             </DialogTitle>
             <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
               <X className="h-4 w-4" />
@@ -145,20 +170,59 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           </div>
 
           <div className="flex flex-col space-y-4 py-4">
-            {!selectedBillId ? (
-              <Select onValueChange={(value) => setSelectedBillId(value)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose an expense" />
-                </SelectTrigger>
-                <SelectContent>
-                  {bills.map((bill) => (
-                    <SelectItem key={bill.id} value={bill.id}>
-                      {bill.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Filter By</label>
+                <Select
+                  value={selectedBillId ? "bill" : "category"}
+                  onValueChange={(value) => {
+                    if (value === "bill") {
+                      setSelectedCategory("all");
+                    } else {
+                      setSelectedBillId(undefined);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose filter type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bill">Specific Bill</SelectItem>
+                    <SelectItem value="category">Category</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {!selectedBillId ? (
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category === 'all' ? 'All Categories' : category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Select onValueChange={(value) => setSelectedBillId(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a bill" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bills.map((bill) => (
+                      <SelectItem key={bill.id} value={bill.id}>
+                        {bill.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {(selectedBillId || selectedCategory !== "all") && (
               <>
                 <div className="border rounded-lg p-4 bg-background">
                   <Calendar
@@ -191,11 +255,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
               </>
             )}
           </div>
+
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => {
                 setSelectedBillId(undefined);
+                setSelectedCategory("all");
                 setDate(undefined);
                 setDateError(null);
                 onOpenChange(false);
@@ -203,7 +269,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             >
               Cancel
             </Button>
-            {selectedBillId && (
+            {(selectedBillId || selectedCategory !== "all") && (
               <Button
                 onClick={() => setShowReport(true)}
                 disabled={!date?.from || !date?.to || !!dateError}
@@ -217,14 +283,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     );
   }
 
-  const selectedBill = bills.find(b => b.id === selectedBillId)!;
+  const selectedBill = selectedBillId ? bills.find(b => b.id === selectedBillId) : undefined;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-labelledby="expense-report-title">
         <DialogHeader>
           <DialogTitle id="expense-report-title" className="text-xl">
-            Expense Report: {selectedBill.name}
+            {selectedBill ? selectedBill.name : `${selectedCategory === 'all' ? 'All' : selectedCategory} Expenses`}
             <div className="text-sm font-normal text-muted-foreground mt-1">
               {date?.from ? `${dayjs(date?.from).format('MMM D, YYYY')} - ${dayjs(date?.to).format('MMM D, YYYY')}` : ''}
             </div>
@@ -289,6 +355,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                     <TableRow>
                       <TableHead>Due Date</TableHead>
                       <TableHead>Description</TableHead>
+                      <TableHead>Category</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -300,6 +367,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                         <TableRow key={index}>
                           <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                           <TableCell>{transaction.description}</TableCell>
+                          <TableCell>{transaction.category}</TableCell>
                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
                             {formatCurrency(transaction.amount)}
                           </TableCell>
