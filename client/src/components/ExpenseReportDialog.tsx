@@ -330,13 +330,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     if (!transactions.length) return [];
 
     if (selectedValue === "all_categories") {
-      // Existing category totals logic
+      // Category totals logic
       const totals: Record<string, { 
         category: string; 
         total: number; 
         occurred: number; 
         pending: number;
-        count: number; // Added count field
+        count: number;
         color: string;
       }> = {};
 
@@ -362,7 +362,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
     } else if (selectedValue === "all") {
-      // New expense totals logic
+      // Expense totals logic
       const totals: Record<string, { 
         description: string;
         category: string;
@@ -595,7 +595,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           <TableHead className="text-right">Total</TableHead>
                           <TableHead className="text-right">Paid</TableHead>
                           <TableHead className="text-right">Pending</TableHead>
-                          <TableHead className="text-right">Occurrences</TableHead> {/* Added Occurrences column */}
+                          <TableHead className="text-right">Occurrences</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -619,7 +619,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableCell className="text-right text-red-300">
                               {formatCurrency(ct.pending)}
                             </TableCell>
-                            <TableCell className="text-right"> {/* Added count cell */}
+                            <TableCell className="text-right">
                               {ct.count}
                             </TableCell>
                           </TableRow>
