@@ -9,17 +9,13 @@ import { join } from 'path';
 const envPath = join(process.cwd(), '.env');
 config({ path: envPath });
 
-// Create pool configuration using individual environment variables
+// Create pool configuration
 const poolConfig = {
-  host: process.env.PGHOST || 'localhost',
-  port: parseInt(process.env.PGPORT || '5432'),
-  database: process.env.PGDATABASE || 'budget_tracker',
-  user: process.env.PGUSER || 'postgres',
-  password: process.env.PGPASSWORD,
+  connectionString: process.env.DATABASE_URL,
   // Only enable SSL in production
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
-  } : false
+  } : undefined
 };
 
 // Initialize pool with configuration
@@ -43,7 +39,7 @@ async function testConnection(retries = 3) {
       try {
         // Basic connectivity test
         await client.query('SELECT NOW()');
-        console.log('Database connection successful');
+        console.log('Database connection established successfully');
 
         // Schema verification
         const tables = await client.query(`
@@ -53,7 +49,6 @@ async function testConnection(retries = 3) {
         `);
 
         console.log('Available tables:', tables.rows.map(r => r.tablename));
-
         return true;
       } finally {
         client.release();
