@@ -23,7 +23,7 @@ export const categories = pgTable("categories", {
   name: text("name").notNull(),
   color: text("color").notNull(),
   icon: text("icon"),
-  user_id: integer("user_id").references(() => users.id), // Make optional by removing .notNull()
+  user_id: integer("user_id").references(() => users.id),
   created_at: timestamp("created_at").defaultNow(),
 });
 
