@@ -24,7 +24,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, X } from "lucide-react";
-import { Categories } from "@/pages/Categories"; // Add this import
+import CategoriesPage from "@/pages/Categories"; // Fixed import
 
 // Types for dialog management
 type DialogType = 'monthly-to-date' | 'monthly' | 'date-range' | 'expense' | 'income' | 'annual';
@@ -143,14 +143,14 @@ function Router() {
   return (
     <ErrorBoundary>
       {error && (
-        <Alert 
+        <Alert
           variant={error.severity === 'error' ? "destructive" : "default"}
           className="fixed top-4 right-4 w-auto z-50 animate-in fade-in slide-in-from-top-2"
           role="alert"
         >
           <AlertDescription className="flex items-center gap-2">
             {error.message}
-            <button 
+            <button
               onClick={() => setError(null)}
               className="p-1 hover:bg-accent rounded"
               aria-label="Dismiss error"
@@ -163,7 +163,7 @@ function Router() {
 
       <Switch>
         <Route path="/" component={Budget} />
-        <Route path="/categories" component={Categories} /> {/* Added route for Categories */}
+        <Route path="/categories" component={CategoriesPage} /> {/* Updated import */}
         <Route path="/reports/:type">
           {() => null}
         </Route>
@@ -172,7 +172,7 @@ function Router() {
             <div className="text-center">
               <h1 className="text-4xl font-bold mb-4">404</h1>
               <p className="mb-4">Page not found</p>
-              <button 
+              <button
                 onClick={() => setLocation('/')}
                 className="text-primary hover:underline"
               >
