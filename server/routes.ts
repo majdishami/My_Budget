@@ -145,7 +145,9 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/categories', async (req, res) => {
     try {
       const categoryData = await insertCategorySchema.parseAsync({
-        ...req.body,
+        name: req.body.name,
+        color: req.body.color,
+        icon: req.body.icon,
       });
 
       const [newCategory] = await db.insert(categories)

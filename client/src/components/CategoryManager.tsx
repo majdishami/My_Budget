@@ -61,7 +61,11 @@ export function CategoryManager() {
       const response = await fetch('/api/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCategory),
+        body: JSON.stringify({
+          name: newCategory.name,
+          color: newCategory.color,
+          icon: newCategory.icon
+        }),
       });
 
       if (!response.ok) {
