@@ -270,37 +270,73 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     setPreviousReport(null);
   };
 
-  // Update the categoryTotals calculation to work for both modes
-  const categoryTotals = useMemo(() => {
-    if (!transactions.length || (selectedValue !== "all_categories" && selectedValue !== "all")) return [];
+  // Calculate expense/category totals depending on mode
+  const itemTotals = useMemo(() => {
+    if (!transactions.length) return [];
 
-    const totals: Record<string, { 
-      category: string; 
-      total: number; 
-      occurred: number; 
-      pending: number; 
-      color: string;
-    }> = {};
+    if (selectedValue === "all_categories") {
+      // Existing category totals logic
+      const totals: Record<string, { 
+        category: string; 
+        total: number; 
+        occurred: number; 
+        pending: number; 
+        color: string;
+      }> = {};
 
-    transactions.forEach(t => {
-      if (!totals[t.category]) {
-        totals[t.category] = {
-          category: t.category,
-          total: 0,
-          occurred: 0,
-          pending: 0,
-          color: t.color || '#D3D3D3'
-        };
-      }
-      totals[t.category].total += t.amount;
-      if (t.occurred) {
-        totals[t.category].occurred += t.amount;
-      } else {
-        totals[t.category].pending += t.amount;
-      }
-    });
+      transactions.forEach(t => {
+        if (!totals[t.category]) {
+          totals[t.category] = {
+            category: t.category,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            color: t.color || '#D3D3D3'
+          };
+        }
+        totals[t.category].total += t.amount;
+        if (t.occurred) {
+          totals[t.category].occurred += t.amount;
+        } else {
+          totals[t.category].pending += t.amount;
+        }
+      });
 
-    return Object.values(totals).sort((a, b) => b.total - a.total);
+      return Object.values(totals).sort((a, b) => b.total - a.total);
+    } else if (selectedValue === "all") {
+      // New expense totals logic
+      const totals: Record<string, { 
+        description: string;
+        category: string;
+        total: number; 
+        occurred: number; 
+        pending: number; 
+        color: string;
+      }> = {};
+
+      transactions.forEach(t => {
+        if (!totals[t.description]) {
+          totals[t.description] = {
+            description: t.description,
+            category: t.category,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            color: t.color || '#D3D3D3'
+          };
+        }
+        totals[t.description].total += t.amount;
+        if (t.occurred) {
+          totals[t.description].occurred += t.amount;
+        } else {
+          totals[t.description].pending += t.amount;
+        }
+      });
+
+      return Object.values(totals).sort((a, b) => b.total - a.total);
+    }
+
+    return [];
   }, [transactions, selectedValue]);
 
 
@@ -487,8 +523,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 </Card>
               </div>
 
-              {/* Category Summary Section */}
-              {(selectedValue === "all_categories" || selectedValue === "all") && categoryTotals.length > 0 && (
+              {/* Category/Expense Summary Section */}
+              {selectedValue === "all_categories" && itemTotals.length > 0 && (
                 <Card>
                   <CardHeader className="py-4">
                     <CardTitle className="text-lg font-medium">Category Summary</CardTitle>
@@ -504,7 +540,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {categoryTotals.map((ct) => (
+                        {itemTotals.map((ct: any) => (
                           <TableRow key={ct.category}>
                             <TableCell>
                               <div className="flex items-center gap-2">
@@ -523,6 +559,52 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             </TableCell>
                             <TableCell className="text-right text-red-300">
                               {formatCurrency(ct.pending)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+
+              {selectedValue === "all" && itemTotals.length > 0 && (
+                <Card>
+                  <CardHeader className="py-4">
+                    <CardTitle className="text-lg font-medium">Expense Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Expense</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                          <TableHead className="text-right">Paid</TableHead>
+                          <TableHead className="text-right">Pending</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {itemTotals.map((item: any) => (
+                          <TableRow key={item.description}>
+                            <TableCell>{item.description}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: item.color }}
+                                />
+                                {item.category}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrency(item.total)}
+                            </TableCell>
+                            <TableCell className="text-right text-red-600">
+                              {formatCurrency(item.occurred)}
+                            </TableCell>
+                            <TableCell className="text-right text-red-300">
+                              {formatCurrency(item.pending)}
                             </TableCell>
                           </TableRow>
                         ))}
