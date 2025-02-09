@@ -41,14 +41,27 @@ async function testConnection(retries = 3) {
         await client.query('SELECT NOW()');
         console.log('Database connection established successfully');
 
-        // Schema verification
+        // More specific schema verification
         const tables = await client.query(`
-          SELECT tablename 
-          FROM pg_catalog.pg_tables 
-          WHERE schemaname = 'public'
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_type = 'BASE TABLE'
+          ORDER BY table_name;
         `);
 
-        console.log('Available tables:', tables.rows.map(r => r.tablename));
+        const tableNames = tables.rows.map(r => r.table_name);
+        console.log('Available tables:', tableNames);
+
+        // Verify categories table exists and has correct structure
+        if (!tableNames.includes('categories')) {
+          throw new Error('Categories table not found in schema');
+        }
+
+        // Test query to categories table
+        const categoryTest = await client.query('SELECT COUNT(*) FROM categories');
+        console.log(`Categories table accessible, contains ${categoryTest.rows[0].count} rows`);
+
         return true;
       } finally {
         client.release();
