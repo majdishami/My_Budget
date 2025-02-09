@@ -66,9 +66,11 @@ interface Category {
 interface CategoryTotal {
   category: string;
   amount: number;
-  occurred: boolean;
+  occurred: number;
   color: string;
-  count: number; // Added count field
+  occurredCount: number;
+  pendingCount: number;
+  pending: number;
 }
 
 interface ExpenseReportDialogProps {
@@ -284,13 +286,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     if (!transactions.length) return [];
 
     if (selectedValue === "all_categories") {
-      // Category totals logic
+      // Category totals logic with occurrence tracking
       const totals: Record<string, { 
-        category: string; 
-        total: number; 
-        occurred: number; 
+        category: string;
+        total: number;
+        occurred: number;
         pending: number;
-        count: number;
+        occurredCount: number;
+        pendingCount: number;
         color: string;
       }> = {};
 
@@ -301,17 +304,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             total: 0,
             occurred: 0,
             pending: 0,
-            count: 0,
+            occurredCount: 0,
+            pendingCount: 0,
             color: t.color || '#D3D3D3'
           };
         }
         totals[t.category].total += t.amount;
         if (t.occurred) {
           totals[t.category].occurred += t.amount;
+          totals[t.category].occurredCount++;
         } else {
           totals[t.category].pending += t.amount;
+          totals[t.category].pendingCount++;
         }
-        totals[t.category].count++; // Increment count for each transaction
       });
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
@@ -323,7 +328,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         total: number; 
         occurred: number; 
         pending: number;
-        occurrences: number;
+        occurredCount: number;
+        pendingCount: number;
         color: string;
       }> = {};
 
@@ -335,17 +341,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             total: 0,
             occurred: 0,
             pending: 0,
-            occurrences: 0,
+            occurredCount: 0,
+            pendingCount: 0,
             color: t.color || '#D3D3D3'
           };
         }
         totals[t.description].total += t.amount;
         if (t.occurred) {
           totals[t.description].occurred += t.amount;
+          totals[t.description].occurredCount++;
         } else {
           totals[t.description].pending += t.amount;
+          totals[t.description].pendingCount++;
         }
-        totals[t.description].occurrences++;
       });
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
@@ -357,7 +365,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         total: number; 
         occurred: number; 
         pending: number;
-        occurrences: number;
+        occurredCount: number;
+        pendingCount: number;
         color: string;
       }> = {};
 
@@ -369,17 +378,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             total: 0,
             occurred: 0,
             pending: 0,
-            occurrences: 0,
+            occurredCount: 0,
+            pendingCount: 0,
             color: t.color || '#D3D3D3'
           };
         }
         totals[t.description].total += t.amount;
         if (t.occurred) {
           totals[t.description].occurred += t.amount;
+          totals[t.description].occurredCount++;
         } else {
           totals[t.description].pending += t.amount;
+          totals[t.description].pendingCount++;
         }
-        totals[t.description].occurrences++;
       });
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
@@ -586,7 +597,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           <TableHead className="text-right">Total</TableHead>
                           <TableHead className="text-right">Paid</TableHead>
                           <TableHead className="text-right">Pending</TableHead>
-                          {/*Removed Occurrences Column*/}
+                          <TableHead className="text-right">Paid Occurrences</TableHead>
+                          <TableHead className="text-right">Pending Occurrences</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -610,7 +622,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableCell className="text-right text-red-300">
                               {formatCurrency(ct.pending)}
                             </TableCell>
-                            {/*Removed Occurrences Cell*/}
+                            <TableCell className="text-right text-red-600">
+                              {ct.occurredCount}
+                            </TableCell>
+                            <TableCell className="text-right text-red-300">
+                              {ct.pendingCount}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -692,7 +709,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           <TableHead className="text-right">Total Amount</TableHead>
                           <TableHead className="text-right">Paid Amount</TableHead>
                           <TableHead className="text-right">Pending Amount</TableHead>
-                          <TableHead className="text-right">Occurrences</TableHead>
+                          <TableHead className="text-right">Paid Occurrences</TableHead>
+                          <TableHead className="text-right">Pending Occurrences</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -709,7 +727,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                               </div>
                             </TableCell>
                             <TableCell className="text-right">
-                              {formatCurrency(item.total / item.occurrences)}
+                              {formatCurrency(item.total / (item.occurredCount + item.pendingCount))}
                             </TableCell>
                             <TableCell className="text-right font-medium">
                               {formatCurrency(item.total)}
@@ -720,8 +738,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableCell className="text-right text-red-300">
                               {formatCurrency(item.pending)}
                             </TableCell>
-                            <TableCell className="text-right">
-                              {item.occurrences}
+                            <TableCell className="text-right text-red-600">
+                              {item.occurredCount}
+                            </TableCell>
+                            <TableCell className="text-right text-red-300">
+                              {item.pendingCount}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -775,7 +796,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                     <TableHead>Category</TableHead>
                                     <TableHead className="text-right">Amount</TableHead>
                                     <TableHead>Status</TableHead>
-                                    {/*Removed Occurrences Column*/}
                                   </>
                                 )}
                               </TableRow>
@@ -827,7 +847,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                         <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
                                           {transaction.occurred ? 'Paid' : 'Pending'}
                                         </TableCell>
-                                        {/*Removed Occurrences Cell*/}
                                       </>
                                     )}
                                   </TableRow>
