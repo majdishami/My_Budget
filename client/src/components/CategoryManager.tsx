@@ -97,7 +97,11 @@ export function CategoryManager() {
       const response = await fetch(`/api/categories/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          name: data.name,
+          color: data.color,
+          icon: data.icon || undefined
+        }),
       });
 
       if (!response.ok) {

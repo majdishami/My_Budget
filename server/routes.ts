@@ -176,8 +176,14 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Category not found' });
       }
 
+      const categoryData = await insertCategorySchema.partial().parseAsync({
+        name: req.body.name,
+        color: req.body.color,
+        icon: req.body.icon || undefined,
+      });
+
       const [updatedCategory] = await db.update(categories)
-        .set(req.body)
+        .set(categoryData)
         .where(eq(categories.id, categoryId))
         .returning();
 
