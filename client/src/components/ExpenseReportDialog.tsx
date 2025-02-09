@@ -62,7 +62,6 @@ interface ExpenseReportDialogProps {
 }
 
 export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: ExpenseReportDialogProps) {
-  // State for selected expense/category and filter type
   const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
@@ -82,8 +81,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   // Group bills by category and prepare dropdown options
   const dropdownOptions = useMemo(() => {
     const categorizedBills = bills.reduce((acc, bill) => {
-      // Ensure bill has a category, defaulting to 'Uncategorized' if not present
-      const category = bill.category || 'Uncategorized';
+      const category = bill.category;
       if (!acc[category]) {
         acc[category] = [];
       }
@@ -115,14 +113,15 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     let filteredBills = bills;
 
     // Filter based on selection
-    if (selectedValue !== "all") {
+    if (selectedValue !== "all" && selectedValue !== "all_categories") {
       if (selectedValue.startsWith('expense_')) {
         // Individual expense selected
         const expenseId = selectedValue.replace('expense_', '');
         filteredBills = bills.filter(bill => bill.id === expenseId);
-      } else {
-        // Category selected
-        filteredBills = bills.filter(bill => bill.category === selectedValue);
+      } else if (selectedValue.startsWith('category_')) {
+        // Individual category selected
+        const category = selectedValue.replace('category_', '');
+        filteredBills = bills.filter(bill => bill.category === category);
       }
     }
 
@@ -141,7 +140,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             description: bill.name,
             amount: bill.amount,
             occurred: transactionDate.isSameOrBefore(today),
-            category: bill.category 
+            category: bill.category
           });
         }
         currentMonth = currentMonth.add(1, 'month');
@@ -199,28 +198,38 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
           <div className="flex flex-col space-y-4 py-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Select Expense or Category</label>
+              <label className="text-sm font-medium mb-2 block">Select View Option</label>
               <Select value={selectedValue} onValueChange={setSelectedValue}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select an option" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Expenses</SelectItem>
-                  {dropdownOptions.categories.map((category) => (
-                    <SelectGroup key={category}>
-                      <SelectLabel>{category}</SelectLabel>
-                      {/* Category option */}
-                      <SelectItem value={category}>
-                        View All {category} Expenses
+                  {/* Combined Views */}
+                  <SelectGroup>
+                    <SelectLabel>Combined Views</SelectLabel>
+                    <SelectItem value="all">All Expenses Combined</SelectItem>
+                    <SelectItem value="all_categories">All Categories Combined</SelectItem>
+                  </SelectGroup>
+
+                  {/* Individual Categories */}
+                  <SelectGroup>
+                    <SelectLabel>Individual Categories</SelectLabel>
+                    {dropdownOptions.categories.map((category) => (
+                      <SelectItem key={`category_${category}`} value={`category_${category}`}>
+                        {category}
                       </SelectItem>
-                      {/* Individual expenses in this category */}
-                      {dropdownOptions.categorizedBills[category].map((bill) => (
-                        <SelectItem key={bill.id} value={`expense_${bill.id}`}>
-                          {bill.name} ({formatCurrency(bill.amount)})
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))}
+                    ))}
+                  </SelectGroup>
+
+                  {/* Individual Expenses */}
+                  <SelectGroup>
+                    <SelectLabel>Individual Expenses</SelectLabel>
+                    {bills.map((bill) => (
+                      <SelectItem key={`expense_${bill.id}`} value={`expense_${bill.id}`}>
+                        {bill.name} ({formatCurrency(bill.amount)})
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
@@ -279,10 +288,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         <DialogHeader>
           <DialogTitle className="text-xl">
             {selectedValue === "all"
-              ? "All Expenses"
-              : selectedValue.startsWith('expense_')
-                ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name || "Expense Report"
-                : `${selectedValue} Expenses`
+              ? "All Expenses Combined"
+              : selectedValue === "all_categories"
+                ? "All Categories Combined"
+                : selectedValue.startsWith('expense_')
+                  ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name || "Expense Report"
+                  : selectedValue.startsWith('category_')
+                    ? `${selectedValue.replace('category_', '')} Category`
+                    : "Expense Report"
             }
             <div className="text-sm font-normal text-muted-foreground mt-1">
               {date?.from && date?.to && `${dayjs(date?.from).format('MMM D, YYYY')} - ${dayjs(date?.to).format('MMM D, YYYY')}`}
@@ -401,16 +414,18 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           </>
         )}
 
-        <DialogFooter className="flex justify-end gap-2 mt-4">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSelectedValue("all");
-              setShowReport(false);
-            }}
-          >
-            Back
-          </Button>
+        <DialogFooter className="flex justify-between gap-2 mt-4">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectedValue("all");
+                setShowReport(false);
+              }}
+            >
+              Back to Selection
+            </Button>
+          </div>
           <Button onClick={() => onOpenChange(false)}>
             Close
           </Button>
