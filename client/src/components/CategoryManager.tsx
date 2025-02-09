@@ -44,14 +44,14 @@ export function CategoryManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Move dialog state up before any conditional returns
+  // State management
   const [dialogState, setDialogState] = useState<DialogState>({
     add: false,
     edit: null,
     delete: null,
   });
 
-  // Enhanced error handling and loading states with retry
+  // Enhanced query with better error handling and logging
   const {
     data: categories = [],
     isLoading: isLoadingCategories,
@@ -60,18 +60,49 @@ export function CategoryManager() {
   } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     queryFn: async () => {
+      console.log('Initiating categories fetch...');
       try {
-        const result = await apiRequest('/api/categories');
-        console.log('Categories fetched:', result);
-        return result;
+        const response = await apiRequest('/api/categories');
+        console.log('Categories fetch successful:', response);
+        return response;
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('Categories fetch failed:', error);
         throw error;
       }
     },
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
+  // Error component for better error visualization
+  if (categoriesError) {
+    return (
+      <div className="p-4">
+        <Card className="border-red-200 bg-red-50">
+          <div className="p-4">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-8 w-8 text-red-600" />
+              <div className="text-red-800">
+                <h3 className="font-semibold">Failed to load categories</h3>
+                <p className="text-sm text-red-600">
+                  {categoriesError instanceof Error 
+                    ? categoriesError.message 
+                    : 'An unexpected error occurred while loading categories'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
+                className="mt-2"
+              >
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   // Define mutations
   const createMutation = useMutation({
@@ -193,30 +224,6 @@ export function CategoryManager() {
     );
   }
 
-  if (categoriesError) {
-    return (
-      <div className="p-4">
-        <Card className="border-red-200 bg-red-50">
-          <div className="p-4">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle className="h-8 w-8 text-red-600" />
-              <div className="text-red-800">
-                <h3 className="font-semibold">Failed to load categories</h3>
-                <p className="text-sm">Please try again later</p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => refetch()}
-                className="mt-2"
-              >
-                Retry
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">

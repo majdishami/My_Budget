@@ -137,27 +137,33 @@ export function registerRoutes(app: Express): Server {
         ip: req.ip,
         protocol: req.protocol,
         host: req.get('host'),
-        originalUrl: req.originalUrl
+        originalUrl: req.originalUrl,
+        method: req.method
       });
 
-      // Check if database is accessible
-      console.log('Attempting to fetch categories from database...');
+      // Check database connection first
+      try {
+        await db.query.categories.findFirst();
+        console.log('Database connection verified');
+      } catch (dbError) {
+        console.error('Database connection error:', dbError);
+        return res.status(500).json({ 
+          message: 'Database connection error',
+          details: process.env.NODE_ENV === 'development' ? (dbError as Error).message : undefined
+        });
+      }
+
+      // Fetch categories with enhanced error handling
+      console.log('Attempting to fetch categories...');
       const userCategories = await db.query.categories.findMany({
         orderBy: (categories, { asc }) => [asc(categories.name)],
       });
 
-      console.log('Found categories:', userCategories);
+      console.log('Categories query completed, found:', userCategories?.length ?? 0, 'categories');
 
-      if (!userCategories) {
-        console.log('No categories found, returning empty array');
-        return res.json([]);
-      }
-
-      console.log('Successfully returning categories:', userCategories.length);
-      res.json(userCategories);
+      return res.json(userCategories || []);
     } catch (error) {
-      console.error('Error fetching categories:', error);
-      // Enhanced error logging
+      console.error('Error in /api/categories:', error);
       if (error instanceof Error) {
         console.error('Error details:', {
           name: error.name,
@@ -165,8 +171,8 @@ export function registerRoutes(app: Express): Server {
           stack: error.stack,
         });
       }
-      res.status(500).json({ 
-        message: 'Error fetching categories',
+      return res.status(500).json({ 
+        message: 'Failed to load categories. Please try again later.',
         details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
       });
     }
