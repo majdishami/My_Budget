@@ -115,7 +115,22 @@ export const Budget = () => {
 
   const getBillsForDay = (day: number) => {
     if (day <= 0 || day > daysInMonth) return [];
-    return bills.filter(bill => bill.day === day);
+
+    const currentDate = dayjs()
+      .year(selectedYear)
+      .month(selectedMonth)
+      .date(day);
+
+    return bills.filter(bill => {
+      if (bill.isOneTime && bill.date) {
+        // For one-time bills, check if the date matches exactly
+        const billDate = dayjs(bill.date);
+        return billDate.isSame(currentDate, 'day');
+      } else {
+        // For recurring bills, check if the day matches
+        return bill.day === day;
+      }
+    });
   };
 
   const firstDayOfMonth = useMemo(() => {
@@ -308,7 +323,6 @@ export const Budget = () => {
     }
   };
 
-
   const handleAddIncome = () => {
     handleCloseDialogs();
     setShowAddIncomeDialog(true);
@@ -422,11 +436,17 @@ export const Budget = () => {
     setSelectedDay(1); // Reset to first day of new year
   };
 
-  const handleConfirmBillEdit = (updatedBill: Bill) => {
-    const newBills = bills.map(bill =>
-      bill.id === updatedBill.id ? updatedBill : bill
-    );
-    saveBills(newBills);
+  const handleConfirmBillEdit = (updatedBill: Bill, isSpecificDate?: boolean) => {
+    if (isSpecificDate) {
+      // Add the one-time expense while keeping the original recurring expense
+      saveBills([...bills, updatedBill]);
+    } else {
+      // Update the recurring expense
+      const newBills = bills.map(bill =>
+        bill.id === updatedBill.id ? updatedBill : bill
+      );
+      saveBills(newBills);
+    }
     setShowEditDialog(false);
     setEditingBill(null);
   };

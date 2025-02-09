@@ -33,6 +33,8 @@ export interface Income {
  * @property categoryId - Optional ID of the associated category
  * @property reminderEnabled - Optional flag for reminder settings
  * @property reminderDays - Optional days before due date for reminder
+ * @property isOneTime - Optional flag indicating if this is a one-time expense
+ * @property date - Optional specific date for one-time expenses
  */
 export interface Bill {
   id: string;
@@ -43,6 +45,8 @@ export interface Bill {
   categoryId?: number;
   reminderEnabled?: boolean;
   reminderDays?: number;
+  isOneTime?: boolean;
+  date?: string;
 }
 
 /**
