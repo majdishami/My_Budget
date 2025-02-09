@@ -1,0 +1,76 @@
+The error message you're encountering indicates that the PostgreSQL database named "majdishami" does not exist. This is why your application is unable to connect to the database. Here's how you can resolve this issue:
+
+### Steps to Fix the Issue:
+
+1. **Check if the Database Exists:**
+   - Connect to your PostgreSQL server using a tool like `psql` or a GUI like pgAdmin.
+   - Run the following SQL command to list all databases:
+     ```sql
+     \l
+     ```
+   - Look for a database named "majdishami" in the list. If it doesn't exist, you'll need to create it.
+
+2. **Create the Database:**
+   - If the database doesn't exist, you can create it using the following SQL command:
+     ```sql
+     CREATE DATABASE majdishami;
+     ```
+   - After creating the database, you can verify its creation by listing the databases again using `\l`.
+
+3. **Check Database Connection Configuration:**
+   - Ensure that the database connection configuration in your `.env` file or configuration file is correct. It should look something like this:
+     ```plaintext
+     DB_HOST=localhost
+     DB_PORT=5432
+     DB_NAME=majdishami
+     DB_USER=your_username
+     DB_PASSWORD=your_password
+     ```
+   - Make sure the `DB_NAME` matches the name of the database you just created.
+
+4. **Test the Connection:**
+   - After creating the database and ensuring the configuration is correct, restart your application and try connecting again.
+
+5. **Check User Permissions:**
+   - Ensure that the PostgreSQL user you're using to connect has the necessary permissions to access the "majdishami" database. You can grant permissions using the following SQL command:
+     ```sql
+     GRANT ALL PRIVILEGES ON DATABASE majdishami TO your_username;
+     ```
+
+6. **Check PostgreSQL Service:**
+   - Ensure that the PostgreSQL service is running. You can start it using the following command if it's not running:
+     ```bash
+     sudo service postgresql start
+     ```
+
+### Example of Creating a Database and User:
+
+1. **Connect to PostgreSQL:**
+   ```bash
+   sudo -u postgres psql
+   ```
+
+2. **Create the Database:**
+   ```sql
+   CREATE DATABASE majdishami;
+   ```
+
+3. **Create a User (if needed):**
+   ```sql
+   CREATE USER your_username WITH PASSWORD 'your_password';
+   ```
+
+4. **Grant Permissions:**
+   ```sql
+   GRANT ALL PRIVILEGES ON DATABASE majdishami TO your_username;
+   ```
+
+5. **Exit PostgreSQL:**
+   ```sql
+   \q
+   ```
+
+### Restart Your Application:
+After completing these steps, restart your application and it should be able to connect to the "majdishami" database without any issues.
+
+If you continue to face issues, double-check the database name, user credentials, and ensure that PostgreSQL is running correctly.
