@@ -148,6 +148,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [transactions]);
 
+  const handleApplyFilter = () => {
+    if (!selectedBillId && selectedCategory === "all") return;
+    if (!date?.from || !date?.to) return;
+    setShowReport(true);
+  };
+
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -256,7 +262,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => {
@@ -271,10 +277,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             </Button>
             {(selectedBillId || selectedCategory !== "all") && (
               <Button
-                onClick={() => setShowReport(true)}
+                onClick={handleApplyFilter}
                 disabled={!date?.from || !date?.to || !!dateError}
               >
-                Generate Report
+                Apply Filter
               </Button>
             )}
           </DialogFooter>
