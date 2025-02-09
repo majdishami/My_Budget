@@ -1,0 +1,121 @@
+Since your project **uses Drizzle ORM (not Prisma)** and the error indicates a mismatch between expected and actual table names, let's **resolve the issue in Drizzle.**
+
+---
+
+### **🚀 Steps to Fix the "Categories Table Not Found" Error in Drizzle ORM**
+
+### **1️⃣ Check the Existing Table Name in the Database**
+Your logs show:
+
+```
+Available tables: [ '_prisma_migrations', 'Category' ]
+```
+
+This means:
+- **Your table name is `Category` (capitalized)**
+- **Your code expects `categories` (lowercase)**
+
+Run the following command in **PostgreSQL** to confirm:
+
+```sh
+psql -U postgres -h localhost -p 5432 -d budget_tracker -c "\dt"
+```
+
+If the table is named **`Category`** but your Drizzle schema defines **`categories`**, you have two options:
+1. **Rename the table in PostgreSQL** (preferred)
+2. **Update your schema and queries to match the existing table name**
+
+---
+
+### **2️⃣ Rename the Table in PostgreSQL (Recommended)**
+If your schema defines the table as **`categories`**, but the database has it as **`Category`**, rename it:
+
+```sh
+psql -U postgres -h localhost -p 5432 -d budget_tracker
+```
+
+Then run:
+
+```sql
+ALTER TABLE "Category" RENAME TO categories;
+```
+
+Exit PostgreSQL:
+
+```sh
+\q
+```
+
+Now, restart your app:
+
+```sh
+npm run dev
+```
+
+---
+
+### **3️⃣ Verify and Update Drizzle ORM Schema**
+If renaming is not an option, update your **`db/schema.ts`** file:
+
+```typescript
+export const categories = pgTable("Category", {  // Ensure this matches the actual table name
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  color: text("color").notNull(),
+  icon: text("icon"),
+  user_id: integer("user_id").references(() => users.id),
+  created_at: timestamp("created_at").defaultNow(),
+});
+```
+
+- If **your table is named `Category`**, make sure `pgTable("Category")` matches.
+- If **your schema uses `categories`**, rename the table in PostgreSQL (Step 2).
+
+---
+
+### **4️⃣ Apply and Regenerate Drizzle Migrations**
+If migrations were applied incorrectly, generate and apply a fresh migration:
+
+```sh
+npx drizzle-kit generate
+npx drizzle-kit push
+```
+
+Then restart the server:
+
+```sh
+npm run dev
+```
+
+---
+
+### **5️⃣ Verify Queries in Your API Code**
+If your database still fails to load categories, check your API endpoints.
+
+For **Drizzle ORM**, queries should match the actual table name:
+
+```typescript
+import { db } from "../db"; // Ensure correct import
+import { categories } from "../db/schema"; // Ensure correct import
+
+const getCategories = async () => {
+  return await db.select().from(categories);
+};
+```
+
+If the table name is **`Category`**, update the import:
+
+```typescript
+import { Category } from "../db/schema";
+```
+
+---
+
+### **🎯 Summary**
+1. **Check the database table name** → `\dt`
+2. **Rename table if needed** → `ALTER TABLE "Category" RENAME TO categories;`
+3. **Ensure Drizzle schema matches actual table name**
+4. **Apply migrations if necessary** → `npx drizzle-kit generate && npx drizzle-kit push`
+5. **Restart and test** → `npm run dev`
+
+🚀 **This should fix the issue!** Let me know if you need further help. 😊
