@@ -270,6 +270,40 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     setPreviousReport(null);
   };
 
+  // Calculate category totals for summary section
+  const categoryTotals = useMemo(() => {
+    if (!transactions.length || selectedValue !== "all_categories") return [];
+
+    const totals: Record<string, { 
+      category: string; 
+      total: number; 
+      occurred: number; 
+      pending: number; 
+      color: string;
+    }> = {};
+
+    transactions.forEach(t => {
+      if (!totals[t.category]) {
+        totals[t.category] = {
+          category: t.category,
+          total: 0,
+          occurred: 0,
+          pending: 0,
+          color: t.color || '#D3D3D3'
+        };
+      }
+      totals[t.category].total += t.amount;
+      if (t.occurred) {
+        totals[t.category].occurred += t.amount;
+      } else {
+        totals[t.category].pending += t.amount;
+      }
+    });
+
+    return Object.values(totals).sort((a, b) => b.total - a.total);
+  }, [transactions, selectedValue]);
+
+
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -416,39 +450,87 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           </Alert>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <Card>
-                <CardHeader className="py-4">
-                  <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
-                    {formatCurrency(summary.totalAmount)}
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid gap-4 mb-4">
+              {/* Main Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="py-4">
+                    <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-600">
+                      {formatCurrency(summary.totalAmount)}
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader className="py-4">
-                  <CardTitle className="text-sm font-medium">Paid to Date</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
-                    {formatCurrency(summary.occurredAmount)}
-                  </div>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader className="py-4">
+                    <CardTitle className="text-sm font-medium">Paid to Date</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-600">
+                      {formatCurrency(summary.occurredAmount)}
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader className="py-4">
-                  <CardTitle className="text-sm font-medium">Remaining</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-300">
-                    {formatCurrency(summary.pendingAmount)}
-                  </div>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader className="py-4">
+                    <CardTitle className="text-sm font-medium">Remaining</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-300">
+                      {formatCurrency(summary.pendingAmount)}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Category Summary Section */}
+              {selectedValue === "all_categories" && categoryTotals.length > 0 && (
+                <Card>
+                  <CardHeader className="py-4">
+                    <CardTitle className="text-lg font-medium">Category Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Category</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                          <TableHead className="text-right">Paid</TableHead>
+                          <TableHead className="text-right">Pending</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {categoryTotals.map((ct) => (
+                          <TableRow key={ct.category}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: ct.color }}
+                                />
+                                {ct.category}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrency(ct.total)}
+                            </TableCell>
+                            <TableCell className="text-right text-red-600">
+                              {formatCurrency(ct.occurred)}
+                            </TableCell>
+                            <TableCell className="text-right text-red-300">
+                              {formatCurrency(ct.pending)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             <div className="space-y-4">
