@@ -102,11 +102,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     // Validate date range
     if (dayjs(date.to).isBefore(date.from)) {
-      setDateError("End date cannot be before start date");
       setDate({
         from: date.from,
         to: date.from
       });
+      setDateError("End date cannot be before start date");
       return [];
     }
 
@@ -129,6 +129,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     const endDate = dayjs(date.to);
     const result: Transaction[] = [];
 
+    // Generate transactions for each bill
     filteredBills.forEach(bill => {
       let currentMonth = startDate.startOf('month');
       while (currentMonth.isSameOrBefore(endDate)) {
@@ -139,7 +140,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             description: bill.name,
             amount: bill.amount,
             occurred: transactionDate.isSameOrBefore(today),
-            category: bill.category || 'Uncategorized'
+            category: bill.category || 'Uncategorized'  // Ensure we pass the category from the bill
           });
         }
         currentMonth = currentMonth.add(1, 'month');
