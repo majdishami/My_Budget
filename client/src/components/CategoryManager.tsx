@@ -129,22 +129,14 @@ export function CategoryManager() {
   // Mutation with proper error handling and loading states
   const createMutation = useMutation({
     mutationFn: async (newCategory: CategoryFormData) => {
-      const response = await fetch('/api/categories', {
+      return apiRequest('/api/categories', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newCategory.name,
           color: newCategory.color,
           icon: newCategory.icon
         }),
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create category');
-      }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
@@ -165,22 +157,14 @@ export function CategoryManager() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...data }: Category) => {
-      const response = await fetch(`/api/categories/${id}`, {
+      return apiRequest(`/api/categories/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: data.name.trim(),
           color: data.color.trim(),
           icon: data.icon?.trim() || null
         }),
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update category');
-      }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
@@ -201,14 +185,9 @@ export function CategoryManager() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/categories/${id}`, {
+      return apiRequest(`/api/categories/${id}`, {
         method: 'DELETE',
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to delete category');
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });

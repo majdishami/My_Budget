@@ -2,11 +2,7 @@ import { QueryClient } from '@tanstack/react-query';
 
 // Determine the API base URL based on the environment
 const getBaseUrl = () => {
-  // In development, explicitly set the API URL to port 5000
-  if (import.meta.env.DEV) {
-    return 'http://localhost:5000';
-  }
-  // In production, use the same origin
+  // In development, use the same origin since Vite handles proxying
   return '';
 };
 
@@ -26,20 +22,25 @@ export const apiRequest = async (
 ): Promise<any> => {
   const baseUrl = getBaseUrl();
   const url = `${baseUrl}${endpoint}`;
-  
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    credentials: 'include', // Important for cookies/sessions
-  });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-    throw new Error(error.message || 'Failed to fetch data');
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      credentials: 'include', // Important for cookies/sessions
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'An error occurred' }));
+      throw new Error(error.message || 'Failed to fetch data');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('API Request failed:', error);
+    throw error;
   }
-
-  return response.json();
 };
