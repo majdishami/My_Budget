@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { createServer } from "http";
 
 const app = express();
 
@@ -42,7 +43,6 @@ app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
 
-  // Log request details
   log(`[${req.method}] ${path} from ${req.ip}`);
   if (Object.keys(req.query).length > 0) {
     log(`Query params: ${JSON.stringify(req.query)}`);
@@ -79,15 +79,46 @@ app.use((req, res, next) => {
 
     // Use different ports for Replit vs local development
     const isReplit = process.env.REPL_ID !== undefined;
-    const PORT = parseInt(process.env.PORT || (isReplit ? '5000' : '5001'));
+    let PORT = parseInt(process.env.PORT || (isReplit ? '5000' : '5001'));
     const HOST = '0.0.0.0';
 
-    server.listen(PORT, HOST, () => {
-      console.log(`Server is running at http://${HOST}:${PORT}`);
-      console.log(`Server environment: ${app.get("env")}`);
-      console.log(`Trust proxy enabled: ${app.get('trust proxy')}`);
-      console.log(`CORS and API endpoints are configured for ${isReplit ? 'Replit' : 'local'} development`);
-    });
+    // Handle cleanup and port conflicts
+    function startServer(retryPort = false) {
+      if (retryPort) {
+        PORT += 1;
+      }
+
+      const httpServer = createServer(app);
+
+      httpServer.on('error', (error: NodeJS.ErrnoException) => {
+        if (error.code === 'EADDRINUSE') {
+          console.log(`Port ${PORT} is in use, trying ${PORT + 1}`);
+          httpServer.close();
+          startServer(true);
+        } else {
+          console.error('Server error:', error);
+          process.exit(1);
+        }
+      });
+
+      httpServer.listen(PORT, HOST, () => {
+        console.log(`Server is running at http://${HOST}:${PORT}`);
+        console.log(`Server environment: ${app.get("env")}`);
+        console.log(`Trust proxy enabled: ${app.get('trust proxy')}`);
+        console.log(`CORS and API endpoints are configured for ${isReplit ? 'Replit' : 'local'} development`);
+      });
+
+      // Handle graceful shutdown
+      process.on('SIGTERM', () => {
+        console.log('SIGTERM signal received: closing HTTP server');
+        httpServer.close(() => {
+          console.log('HTTP server closed');
+          process.exit(0);
+        });
+      });
+    }
+
+    startServer();
 
   } catch (error) {
     console.error('Fatal error during server initialization:', error);

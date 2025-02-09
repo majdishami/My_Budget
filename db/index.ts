@@ -19,12 +19,13 @@ console.log('Database connection parameters:', {
   // Don't log password for security
 });
 
-// Initialize pool with explicit parameters and SSL
+// Initialize pool with environment-specific configuration
+const isProduction = process.env.NODE_ENV === 'production';
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false // Required for Neon PostgreSQL
-  },
+  ssl: isProduction ? {
+    rejectUnauthorized: false // Required for Neon PostgreSQL in production
+  } : false, // Disable SSL for local development
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
