@@ -66,6 +66,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
+  const [previousReport, setPreviousReport] = useState<{value: string, date: DateRange | undefined} | null>(null);
   const today = useMemo(() => dayjs(), []);
 
   // Reset state when dialog closes
@@ -75,6 +76,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       setDate(undefined);
       setShowReport(false);
       setDateError(null);
+      setPreviousReport(null);
     }
   }, [isOpen]);
 
@@ -271,7 +273,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
               Cancel
             </Button>
             <Button
-              onClick={() => setShowReport(true)}
+              onClick={() => {
+                setShowReport(true);
+                setPreviousReport({value: selectedValue, date: date});
+              }}
               disabled={!date?.from || !date?.to || !!dateError}
             >
               Generate Report
@@ -419,11 +424,17 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             <Button
               variant="outline"
               onClick={() => {
-                setSelectedValue("all");
-                setShowReport(false);
+                if (previousReport) {
+                  setSelectedValue(previousReport.value);
+                  setDate(previousReport.date);
+                  setPreviousReport(null);
+                } else {
+                  setSelectedValue("all");
+                  setShowReport(false);
+                }
               }}
             >
-              Back to Selection
+              {previousReport ? 'Back to Report' : 'Back to Selection'}
             </Button>
           </div>
           <Button onClick={() => onOpenChange(false)}>
