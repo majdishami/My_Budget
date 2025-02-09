@@ -12,6 +12,20 @@ import { Bill } from "@/types";
 import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface Category {
+  id: number;
+  name: string;
+  color: string;
+}
 
 interface AddExpenseDialogProps {
   isOpen: boolean;
@@ -28,9 +42,15 @@ export function AddExpenseDialog({
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [day, setDay] = useState('1');
+  const [categoryId, setCategoryId] = useState<string>('');
   const [showReminderDialog, setShowReminderDialog] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDays, setReminderDays] = useState(7);
+
+  // Fetch categories
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
 
   // Validation state
   const [errors, setErrors] = useState<{
@@ -38,6 +58,7 @@ export function AddExpenseDialog({
     amount?: string;
     day?: string;
     reminderDays?: string;
+    category?: string;
   }>({});
 
   // Reset form on close
@@ -51,6 +72,7 @@ export function AddExpenseDialog({
     setName('');
     setAmount('');
     setDay('1');
+    setCategoryId('');
     setReminderEnabled(false);
     setReminderDays(7);
     setErrors({});
@@ -73,6 +95,10 @@ export function AddExpenseDialog({
       newErrors.day = 'Please enter a valid day between 1 and 31';
     }
 
+    if (!categoryId) {
+      newErrors.category = 'Please select a category';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -84,6 +110,7 @@ export function AddExpenseDialog({
       name,
       amount: parseFloat(amount),
       day: parseInt(day),
+      categoryId: parseInt(categoryId),
       reminderEnabled,
       reminderDays
     });
@@ -109,6 +136,7 @@ export function AddExpenseDialog({
     name,
     amount: parseFloat(amount || '0'),
     day: parseInt(day),
+    categoryId: parseInt(categoryId),
     reminderEnabled,
     reminderDays
   };
@@ -169,6 +197,48 @@ export function AddExpenseDialog({
               )}
             </div>
             <div className="grid gap-2">
+              <label htmlFor="expense-category" className="text-sm font-medium">
+                Category
+              </label>
+              <Select
+                value={categoryId}
+                onValueChange={(value) => {
+                  setCategoryId(value);
+                  setErrors(prev => ({ ...prev, category: undefined }));
+                }}
+              >
+                <SelectTrigger
+                  id="expense-category"
+                  aria-invalid={!!errors.category}
+                  aria-describedby={errors.category ? "category-error" : undefined}
+                >
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem
+                      key={category.id}
+                      value={category.id.toString()}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        {category.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.category && (
+                <Alert variant="destructive" className="py-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription id="category-error">{errors.category}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+            <div className="grid gap-2">
               <label htmlFor="expense-day" className="text-sm font-medium">
                 Day of Month
               </label>
@@ -205,11 +275,11 @@ export function AddExpenseDialog({
                 : 'Set payment reminder'}
             </Button>
             {errors.reminderDays && (
-                <Alert variant="destructive" className="py-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{errors.reminderDays}</AlertDescription>
-                </Alert>
-              )}
+              <Alert variant="destructive" className="py-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{errors.reminderDays}</AlertDescription>
+              </Alert>
+            )}
           </div>
           <DialogFooter>
             <Button
