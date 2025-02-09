@@ -16,12 +16,13 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Income } from "@/types";
 import dayjs from "dayjs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'twice-monthly';
 
@@ -36,64 +37,142 @@ export function AddIncomeDialog({
   onOpenChange,
   onConfirm,
 }: AddIncomeDialogProps) {
+  // Form state
   const [source, setSource] = useState('');
   const [amount, setAmount] = useState('');
   const [occurrenceType, setOccurrenceType] = useState<OccurrenceType>('once');
   const [date, setDate] = useState<Date | undefined>(new Date());
 
-  const handleConfirm = () => {
-    if (!date) return;
+  // Validation state
+  const [errors, setErrors] = useState<{
+    source?: string;
+    amount?: string;
+    date?: string;
+  }>({});
 
-    onConfirm({
-      source,
-      amount: parseFloat(amount),
-      date: dayjs(date).toISOString(),
-      occurrenceType
-    });
-    
-    // Reset form
+  // Reset form on dialog close
+  useEffect(() => {
+    if (!isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
+  const resetForm = () => {
     setSource('');
     setAmount('');
     setOccurrenceType('once');
     setDate(new Date());
+    setErrors({});
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: typeof errors = {};
+
+    if (!source.trim()) {
+      newErrors.source = 'Income source is required';
+    }
+
+    const parsedAmount = parseFloat(amount);
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+      newErrors.amount = 'Please enter a valid amount greater than 0';
+    }
+
+    if (!date) {
+      newErrors.date = 'Please select a valid date';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleConfirm = () => {
+    if (!validateForm()) return;
+
+    const parsedAmount = parseFloat(amount);
+    if (!date || isNaN(parsedAmount)) return;
+
+    onConfirm({
+      source,
+      amount: parsedAmount,
+      date: dayjs(date).toISOString(),
+      occurrenceType
+    });
+
+    resetForm();
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      resetForm();
+    }
+    onOpenChange(open);
   };
 
   const minSelectableDate = new Date();
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Income</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <label htmlFor="source">Source</label>
+            <label htmlFor="income-source" className="text-sm font-medium">
+              Source
+            </label>
             <Input
-              id="source"
+              id="income-source"
               value={source}
-              onChange={(e) => setSource(e.target.value)}
+              onChange={(e) => {
+                setSource(e.target.value);
+                setErrors(prev => ({ ...prev, source: undefined }));
+              }}
               placeholder="Enter income source"
+              aria-invalid={!!errors.source}
+              aria-describedby={errors.source ? "source-error" : undefined}
             />
+            {errors.source && (
+              <Alert variant="destructive" className="py-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription id="source-error">{errors.source}</AlertDescription>
+              </Alert>
+            )}
           </div>
           <div className="grid gap-2">
-            <label htmlFor="amount">Amount</label>
+            <label htmlFor="income-amount" className="text-sm font-medium">
+              Amount
+            </label>
             <Input
-              id="amount"
+              id="income-amount"
               type="number"
               step="0.01"
+              min="0"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setErrors(prev => ({ ...prev, amount: undefined }));
+              }}
               placeholder="Enter amount"
+              aria-invalid={!!errors.amount}
+              aria-describedby={errors.amount ? "amount-error" : undefined}
             />
+            {errors.amount && (
+              <Alert variant="destructive" className="py-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription id="amount-error">{errors.amount}</AlertDescription>
+              </Alert>
+            )}
           </div>
           <div className="grid gap-2">
-            <label>Occurrence</label>
+            <label htmlFor="income-occurrence" className="text-sm font-medium">
+              Occurrence
+            </label>
             <Select
               value={occurrenceType}
               onValueChange={(value: OccurrenceType) => setOccurrenceType(value)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="income-occurrence">
                 <SelectValue placeholder="Select occurrence type" />
               </SelectTrigger>
               <SelectContent>
@@ -105,7 +184,7 @@ export function AddIncomeDialog({
             </Select>
           </div>
           <div className="grid gap-2">
-            <label>Start Date</label>
+            <label className="text-sm font-medium">Start Date</label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -114,6 +193,8 @@ export function AddIncomeDialog({
                     "justify-start text-left font-normal",
                     !date && "text-muted-foreground"
                   )}
+                  aria-invalid={!!errors.date}
+                  aria-describedby={errors.date ? "date-error" : undefined}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {date ? format(date, "PPP") : <span>Pick a date</span>}
@@ -123,16 +204,31 @@ export function AddIncomeDialog({
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={(newDate) => {
+                    setDate(newDate);
+                    setErrors(prev => ({ ...prev, date: undefined }));
+                  }}
                   disabled={(date) => date < minSelectableDate}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
+            {errors.date && (
+              <Alert variant="destructive" className="py-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription id="date-error">{errors.date}</AlertDescription>
+              </Alert>
+            )}
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              resetForm();
+              onOpenChange(false);
+            }}
+          >
             Cancel
           </Button>
           <Button onClick={handleConfirm}>Add Income</Button>

@@ -37,6 +37,7 @@ export function AddExpenseDialog({
     name?: string;
     amount?: string;
     day?: string;
+    reminderDays?: string;
   }>({});
 
   // Reset form on close
@@ -199,8 +200,8 @@ export function AddExpenseDialog({
               aria-label={reminderEnabled ? `Edit reminder: ${reminderDays} days before due date` : 'Set payment reminder'}
             >
               <Bell className="mr-2 h-4 w-4" />
-              {reminderEnabled 
-                ? `Payment reminder: ${reminderDays} days before due date` 
+              {reminderEnabled
+                ? `Payment reminder: ${reminderDays} days before due date`
                 : 'Set payment reminder'}
             </Button>
             {errors.reminderDays && (
@@ -211,8 +212,8 @@ export function AddExpenseDialog({
               )}
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 resetForm();
                 onOpenChange(false);
