@@ -31,6 +31,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { v4 as uuidv4 } from 'uuid';
 
 interface Category {
   id: number;
@@ -42,7 +43,7 @@ interface EditExpenseDialogProps {
   bill: Bill | null;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (updatedBill: Bill) => void;
+  onConfirm: (updatedBill: Bill, isSpecificDate?: boolean) => void;
 }
 
 export function EditExpenseDialog({
@@ -123,25 +124,33 @@ export function EditExpenseDialog({
   const handleConfirm = () => {
     if (!bill || !validateForm()) return;
 
-    const updatedBill = {
-      ...bill,
-      name,
-      amount: parseFloat(amount),
-      categoryId: parseInt(categoryId),
-      reminderEnabled,
-      reminderDays
-    };
-
     if (dateType === 'monthly') {
-      updatedBill.day = parseInt(day);
-      // Keep existing month/year for monthly recurring bills
+      // Regular monthly update
+      onConfirm({
+        ...bill,
+        name,
+        amount: parseFloat(amount),
+        day: parseInt(day),
+        categoryId: parseInt(categoryId),
+        reminderEnabled,
+        reminderDays
+      });
     } else if (specificDate) {
-      // For specific date, update the complete date
-      updatedBill.date = dayjs(specificDate).toISOString();
-      updatedBill.day = dayjs(specificDate).date();
+      // Create a new one-time expense for the specific date
+      // while keeping the original recurring expense unchanged
+      const specificBill: Bill = {
+        id: uuidv4(), // Generate a new ID for the specific occurrence
+        name,
+        amount: parseFloat(amount),
+        day: dayjs(specificDate).date(),
+        date: dayjs(specificDate).toISOString(),
+        categoryId: parseInt(categoryId),
+        reminderEnabled,
+        reminderDays,
+        isOneTime: true // Mark this as a one-time expense
+      };
+      onConfirm(specificBill, true);
     }
-
-    onConfirm(updatedBill);
   };
 
   const handleReminderSave = (enabled: boolean, days: number) => {
@@ -257,11 +266,11 @@ export function EditExpenseDialog({
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="monthly" id="monthly" />
-                  <label htmlFor="monthly" className="text-sm">Same day every month</label>
+                  <label htmlFor="monthly" className="text-sm">Update recurring monthly expense</label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="specific" id="specific" />
-                  <label htmlFor="specific" className="text-sm">Specific date</label>
+                  <label htmlFor="specific" className="text-sm">Update specific occurrence only</label>
                 </div>
               </RadioGroup>
 
