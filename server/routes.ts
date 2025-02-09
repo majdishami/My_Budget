@@ -131,6 +131,15 @@ export function registerRoutes(app: Express): Server {
   // Category Routes
   app.get('/api/categories', async (req, res) => {
     try {
+      // Enhanced logging for debugging
+      console.log('Categories API called:', {
+        headers: req.headers,
+        ip: req.ip,
+        protocol: req.protocol,
+        host: req.get('host'),
+        originalUrl: req.originalUrl
+      });
+
       // Check if database is accessible
       console.log('Attempting to fetch categories from database...');
       const dbCheck = await db.query.categories.findFirst();
@@ -156,6 +165,14 @@ export function registerRoutes(app: Express): Server {
       res.json(userCategories);
     } catch (error) {
       console.error('Error fetching categories:', error);
+      // Enhanced error logging
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        });
+      }
       res.status(500).json({ 
         message: 'Error fetching categories',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined

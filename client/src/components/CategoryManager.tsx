@@ -63,8 +63,15 @@ export function CategoryManager() {
     onSuccess: (data) => {
       console.log('Categories loaded successfully:', data);
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error('Error loading categories:', error);
+      // Log more details about the error
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+        });
+      }
       toast({
         title: "Error loading categories",
         description: "Failed to load categories. Please try again later.",
