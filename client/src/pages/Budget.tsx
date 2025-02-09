@@ -441,10 +441,19 @@ export const Budget = () => {
       // Add the one-time expense while keeping the original recurring expense
       saveBills([...bills, updatedBill]);
     } else {
-      // Update the recurring expense
-      const newBills = bills.map(bill =>
-        bill.id === updatedBill.id ? updatedBill : bill
-      );
+      // For recurring expenses, update the base expense
+      const newBills = bills.map(bill => {
+        // Only update the recurring expense with matching ID
+        // Preserve any one-time modifications
+        if (bill.id === updatedBill.id && !bill.isOneTime) {
+          return {
+            ...updatedBill,
+            date: undefined, // Clear any date for recurring expenses
+            isOneTime: false // Ensure it's marked as recurring
+          };
+        }
+        return bill;
+      });
       saveBills(newBills);
     }
     setShowEditDialog(false);
