@@ -689,6 +689,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                       .filter(t => t.occurred)
                       .reduce((sum, t) => sum + t.amount, 0);
 
+                    // Calculate occurrences per expense in this month
+                    const expenseOccurrences = monthTransactions.reduce((acc, t) => {
+                      acc[t.description] = (acc[t.description] || 0) + 1;
+                      return acc;
+                    }, {} as Record<string, number>);
+
                     return (
                       <Card key={monthKey}>
                         <CardHeader className="py-4">
@@ -724,6 +730,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                     <TableHead>Category</TableHead>
                                     <TableHead className="text-right">Amount</TableHead>
                                     <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Occurrences</TableHead>
                                   </>
                                 )}
                               </TableRow>
@@ -774,6 +781,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                         </TableCell>
                                         <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
                                           {transaction.occurred ? 'Paid' : 'Pending'}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          {expenseOccurrences[transaction.description]}
                                         </TableCell>
                                       </>
                                     )}
