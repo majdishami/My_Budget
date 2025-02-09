@@ -233,20 +233,17 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         const categoryName = category ? category.name : 'Uncategorized';
         const categoryColor = category?.color || '#D3D3D3';
 
-        let currentMonth = startDate.startOf('month');
-        while (currentMonth.isSameOrBefore(endDate)) {
-          const transactionDate = currentMonth.date(bill.day);
-          if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
-            result.push({
-              date: transactionDate.format('YYYY-MM-DD'),
-              description: bill.name,
-              amount: bill.amount,
-              occurred: transactionDate.isSameOrBefore(today),
-              category: categoryName,
-              color: categoryColor
-            });
-          }
-          currentMonth = currentMonth.add(1, 'month');
+        const transactionDate = dayjs(startDate).date(bill.day); //Fixed to use only start date for total count.
+
+        if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
+          result.push({
+            date: transactionDate.format('YYYY-MM-DD'),
+            description: bill.name,
+            amount: bill.amount,
+            occurred: transactionDate.isSameOrBefore(today),
+            category: categoryName,
+            color: categoryColor
+          });
         }
       });
     }
@@ -389,6 +386,40 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         } else {
           totals[t.description].pending += t.amount;
         }
+      });
+
+      return Object.values(totals).sort((a, b) => b.total - a.total);
+    } else if (selectedValue.startsWith('category_') || selectedValue.startsWith('expense_')) {
+      // Individual category/expense totals logic
+      const totals: Record<string, { 
+        description: string;
+        category: string;
+        total: number; 
+        occurred: number; 
+        pending: number;
+        occurrences: number;
+        color: string;
+      }> = {};
+
+      transactions.forEach(t => {
+        if (!totals[t.description]) {
+          totals[t.description] = {
+            description: t.description,
+            category: t.category,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            occurrences: 0,
+            color: t.color || '#D3D3D3'
+          };
+        }
+        totals[t.description].total += t.amount;
+        if (t.occurred) {
+          totals[t.description].occurred += t.amount;
+        } else {
+          totals[t.description].pending += t.amount;
+        }
+        totals[t.description].occurrences++;
       });
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
@@ -595,7 +626,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           <TableHead className="text-right">Total</TableHead>
                           <TableHead className="text-right">Paid</TableHead>
                           <TableHead className="text-right">Pending</TableHead>
-                          <TableHead className="text-right">Occurrences</TableHead>
+                          {/*Removed Occurrences Column*/}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -619,9 +650,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableCell className="text-right text-red-300">
                               {formatCurrency(ct.pending)}
                             </TableCell>
-                            <TableCell className="text-right">
-                              {ct.count}
-                            </TableCell>
+                            {/*Removed Occurrences Cell*/}
                           </TableRow>
                         ))}
                       </TableBody>
@@ -680,6 +709,60 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 </Card>
               )}
 
+              {selectedValue !== "all" && selectedValue !== "all_categories" && itemTotals.length > 0 && (
+                <Card className="mb-4">
+                  <CardHeader>
+                    <CardTitle>Expense Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Expense</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead className="text-right">Monthly Amount</TableHead>
+                          <TableHead className="text-right">Total Amount</TableHead>
+                          <TableHead className="text-right">Paid Amount</TableHead>
+                          <TableHead className="text-right">Pending Amount</TableHead>
+                          <TableHead className="text-right">Occurrences</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {itemTotals.map((item: any) => (
+                          <TableRow key={item.description}>
+                            <TableCell>{item.description}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: item.color }}
+                                />
+                                {item.category}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(item.total / item.occurrences)}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrency(item.total)}
+                            </TableCell>
+                            <TableCell className="text-right text-red-600">
+                              {formatCurrency(item.occurred)}
+                            </TableCell>
+                            <TableCell className="text-right text-red-300">
+                              {formatCurrency(item.pending)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {item.occurrences}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+
               {selectedValue !== "all" && (
                 <div className="space-y-4">
                   {sortedMonths.map(monthKey => {
@@ -688,12 +771,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                     const monthlyPaid = monthTransactions
                       .filter(t => t.occurred)
                       .reduce((sum, t) => sum + t.amount, 0);
-
-                    // Calculate occurrences per expense in this month
-                    const expenseOccurrences = monthTransactions.reduce((acc, t) => {
-                      acc[t.description] = (acc[t.description] || 0) + 1;
-                      return acc;
-                    }, {} as Record<string, number>);
 
                     return (
                       <Card key={monthKey}>
@@ -730,7 +807,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                     <TableHead>Category</TableHead>
                                     <TableHead className="text-right">Amount</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Occurrences</TableHead>
+                                    {/*Removed Occurrences Column*/}
                                   </>
                                 )}
                               </TableRow>
@@ -782,9 +859,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                         <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
                                           {transaction.occurred ? 'Paid' : 'Pending'}
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                          {expenseOccurrences[transaction.description]}
-                                        </TableCell>
+                                        {/*Removed Occurrences Cell*/}
                                       </>
                                     )}
                                   </TableRow>
