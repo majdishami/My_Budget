@@ -163,6 +163,24 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [transactions]);
 
+  // Group transactions by month
+  const groupedTransactions = useMemo(() => {
+    return transactions.reduce((groups: Record<string, Transaction[]>, transaction) => {
+      const monthKey = dayjs(transaction.date).format('YYYY-MM');
+      if (!groups[monthKey]) {
+        groups[monthKey] = [];
+      }
+      groups[monthKey].push(transaction);
+      return groups;
+    }, {});
+  }, [transactions]);
+
+  // Get sorted month keys
+  const sortedMonths = useMemo(() =>
+    Object.keys(groupedTransactions).sort((a, b) => dayjs(a).diff(dayjs(b))),
+    [groupedTransactions]
+  );
+
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -253,17 +271,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     );
   }
 
-  // Get the title based on selection
-  const getReportTitle = () => {
-    if (selectedValue === "all") return "All Expenses";
-    if (selectedValue.startsWith('expense_')) {
-      const expenseId = selectedValue.replace('expense_', '');
-      const bill = bills.find(b => b.id === expenseId);
-      return bill ? bill.name : "Expense Report";
-    }
-    return `${selectedValue} Expenses`;
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -324,45 +331,72 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
               </Card>
             </div>
 
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Transactions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Due Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((transaction, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell>{transaction.category}</TableCell>
-                        <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                        <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
-                          {transaction.occurred ? 'Paid' : 'Pending'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <div className="space-y-4">
+              {sortedMonths.map(monthKey => {
+                const monthTransactions = groupedTransactions[monthKey];
+                const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+                const monthlyPaid = monthTransactions
+                  .filter(t => t.occurred)
+                  .reduce((sum, t) => sum + t.amount, 0);
+
+                return (
+                  <Card key={monthKey}>
+                    <CardHeader className="py-4">
+                      <CardTitle className="text-lg font-medium">
+                        {dayjs(monthKey).format('MMMM YYYY')}
+                      </CardTitle>
+                      <div className="text-sm space-y-1">
+                        <div className="text-red-600">
+                          Monthly Total: {formatCurrency(monthlyTotal)}
+                        </div>
+                        <div className="text-red-600">
+                          Paid to Date: {formatCurrency(monthlyPaid)}
+                        </div>
+                        <div className="text-red-300">
+                          Remaining: {formatCurrency(monthlyTotal - monthlyPaid)}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {monthTransactions
+                            .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                            .map((transaction, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                                <TableCell>{transaction.description}</TableCell>
+                                <TableCell>{transaction.category}</TableCell>
+                                <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                                  {formatCurrency(transaction.amount)}
+                                </TableCell>
+                                <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                                  {transaction.occurred ? 'Paid' : 'Pending'}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </>
         )}
 
         <DialogFooter className="flex justify-end gap-2 mt-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => {
               setSelectedValue("all");
               setShowReport(false);
