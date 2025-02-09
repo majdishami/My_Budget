@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Circle, Plus, Edit, Trash, Loader2 } from "lucide-react";
 import { CategoryDialog } from "./CategoryDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -23,8 +23,7 @@ interface Category {
   name: string;
   color: string;
   icon?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  created_at?: string;
 }
 
 interface CategoryFormData {
@@ -39,8 +38,16 @@ interface DialogState {
   delete: Category | null;
 }
 
+interface AuthStatus {
+  isAuthenticated: boolean;
+  user: { id: number } | null;
+}
+
 export function CategoryManager() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   // Centralized dialog state management
   const [dialogState, setDialogState] = useState<DialogState>({
     add: false,
@@ -48,12 +55,10 @@ export function CategoryManager() {
     delete: null,
   });
 
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
   // Check authentication status
-  const { data: authStatus, isLoading: isCheckingAuth } = useQuery({
+  const { data: authStatus, isLoading: isCheckingAuth } = useQuery<AuthStatus>({
     queryKey: ['/api/auth/status'],
+    retry: false,
     onError: () => {
       toast({
         title: "Authentication Error",
@@ -68,15 +73,7 @@ export function CategoryManager() {
   const { data: categories = [], isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     enabled: !!authStatus?.isAuthenticated,
-    onError: (error) => {
-      if (error instanceof Error) {
-        toast({
-          title: "Error loading categories",
-          description: error.message || "Failed to load categories",
-          variant: "destructive",
-        });
-      }
-    },
+    retry: false,
   });
 
   // Mutation with proper error handling and loading states
@@ -147,7 +144,7 @@ export function CategoryManager() {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/categories/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       if (!response.ok) {
@@ -200,7 +197,7 @@ export function CategoryManager() {
   };
 
   // Loading and error states
-  if (isCheckingAuth) {
+  if (isCheckingAuth || isLoadingCategories) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -208,10 +205,14 @@ export function CategoryManager() {
     );
   }
 
-  if (isLoadingCategories) {
+  if (!authStatus?.isAuthenticated) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="p-4">
+        <Card className="border-yellow-200 bg-yellow-50">
+          <div className="p-4 text-yellow-800">
+            Please log in to manage categories.
+          </div>
+        </Card>
       </div>
     );
   }
@@ -220,9 +221,9 @@ export function CategoryManager() {
     return (
       <div className="p-4">
         <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4 text-red-800">
+          <div className="p-4 text-red-800">
             Failed to load categories. Please try again later.
-          </CardContent>
+          </div>
         </Card>
       </div>
     );
@@ -248,8 +249,8 @@ export function CategoryManager() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {categories.map((category) => (
           <Card key={category.id}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-medium flex items-center justify-between">
+            <div className="p-4">
+              <div className="text-base font-medium flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Circle className="h-4 w-4" fill={category.color} stroke="none" />
                   {category.name}
@@ -282,8 +283,8 @@ export function CategoryManager() {
                     )}
                   </Button>
                 </div>
-              </CardTitle>
-            </CardHeader>
+              </div>
+            </div>
           </Card>
         ))}
       </div>
