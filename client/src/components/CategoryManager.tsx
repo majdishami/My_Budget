@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 
 // Enhanced TypeScript interfaces
 interface Category {
@@ -40,7 +40,7 @@ interface DialogState {
 }
 
 export function CategoryManager() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   // Centralized dialog state management
   const [dialogState, setDialogState] = useState<DialogState>({
     add: false,
@@ -60,7 +60,7 @@ export function CategoryManager() {
         description: "Please log in to manage categories.",
         variant: "destructive",
       });
-      navigate("/login");
+      setLocation("/login");
     },
   });
 
