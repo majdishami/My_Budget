@@ -1,0 +1,41 @@
+MacBook-Air-3:My Budget App majdishami$ npm run dev
+
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+Initializing database connection...
+Testing database connection...
+Fatal database configuration error: TypeError: Invalid URL
+    at new URL (node:internal/url:818:25)
+    at Object.parse (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:841:225)
+    at parse (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:848:1)
+    at new ConnectionParameters (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:869:23)
+    at new Client (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:1226:35)
+    at new NeonClient (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:1570:121)
+    at Cn.newClient (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:1378:74)
+    at Cn.connect (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:1378:23)
+    at <anonymous> (/Users/majdishami/My developed Apps/My Budget App/db/index.ts:32:8)
+    at ModuleJob.run (node:internal/modules/esm/module_job:271:25) {
+  code: 'ERR_INVALID_URL',
+  input: 'your_database_connection_string_here'
+}
+node:internal/modules/run_main:122
+    triggerUncaughtException(
+    ^
+
+TypeError: Invalid URL
+    at new URL (node:internal/url:818:25)
+    at Object.parse (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:841:225)
+    at parse (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:848:1)
+    at new ConnectionParameters (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:869:23)
+    at new Client (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:1226:35)
+    at new NeonClient (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:1570:121)
+    at Cn.newClient (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:1378:74)
+    at Cn.connect (file:///Users/majdishami/My%20developed%20Apps/My%20Budget%20App/node_modules/@neondatabase/serverless/index.mjs:1378:23)
+    at <anonymous> (/Users/majdishami/My developed Apps/My Budget App/db/index.ts:32:8)
+    at ModuleJob.run (node:internal/modules/esm/module_job:271:25) {
+  code: 'ERR_INVALID_URL',
+  input: 'your_database_connection_string_here'
+}
+
+Node.js v22.13.1
