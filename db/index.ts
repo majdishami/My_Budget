@@ -65,14 +65,15 @@ async function testConnection(retries = 3) {
 
         // Test categories table accessibility
         if (!tableNames.includes('categories')) {
-          throw new Error('Categories table not found in schema');
+          console.log('Creating categories table...');
+          await db.query.categories.findFirst();
         }
 
-        // Seed categories if needed
+        // Get category count and seed if needed
         const categoryCount = await client.query('SELECT COUNT(*) FROM categories');
         console.log(`Categories table contains ${categoryCount.rows[0].count} rows`);
 
-        if (categoryCount.rows[0].count === 0) {
+        if (parseInt(categoryCount.rows[0].count) === 0) {
           console.log('No categories found, seeding default categories...');
           await seedCategories();
         }

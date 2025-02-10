@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { users, insertUserSchema, categories, insertCategorySchema } from "@db/schema";
+import { categories } from "@db/schema";
 import { eq } from "drizzle-orm";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
@@ -131,7 +131,6 @@ export function registerRoutes(app: Express): Server {
   // Category Routes
   app.get('/api/categories', async (req, res) => {
     try {
-      // Enhanced logging for debugging
       console.log('Categories API called:', {
         headers: req.headers,
         ip: req.ip,
@@ -160,6 +159,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       console.log('Categories query completed, found:', userCategories?.length ?? 0, 'categories');
+      console.log('Categories data:', JSON.stringify(userCategories, null, 2));
 
       return res.json(userCategories || []);
     } catch (error) {
