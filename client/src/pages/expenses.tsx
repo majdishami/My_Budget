@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
+
+  // Get bills data from local storage
+  const bills = JSON.parse(localStorage.getItem("bills") || "[]");
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
@@ -19,6 +23,7 @@ export default function ExpenseReport() {
       <ExpenseReportDialog
         isOpen={isDialogOpen}
         onOpenChange={handleOpenChange}
+        bills={bills}
       />
     </div>
   );
