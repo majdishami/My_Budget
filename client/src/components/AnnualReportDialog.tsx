@@ -155,62 +155,61 @@ export default function AnnualReportDialog({
       };
     }
 
-    // Calculate Majdi's salary occurrences (bi-monthly)
-    const majdiMonthlyAmount = incomes.find(income => income.source === "Majdi's Salary")?.amount || 0;
-    const majdiPerPaycheck = majdiMonthlyAmount / 2;
+    // Process income for both Majdi and Ruba
+    incomes.forEach(income => {
+      if (income.source === "Majdi's Salary") {
+        // Bi-monthly payments (1st and 15th)
+        const perPaycheck = income.amount / 2;
+        for (let month = 0; month < 12; month++) {
+          const monthKey = dayjs().month(month).format('MMMM');
+          const firstPayday = dayjs(`${year}-${month + 1}-01`);
+          const fifteenthPayday = dayjs(`${year}-${month + 1}-15`);
 
-    for (let month = 0; month < 12; month++) {
-      const monthKey = dayjs().month(month).format('MMMM');
-      const firstPayday = dayjs(`${year}-${month + 1}-01`);
-      const fifteenthPayday = dayjs(`${year}-${month + 1}-15`);
-
-      // First paycheck of the month
-      if (firstPayday.isBefore(today) || firstPayday.isSame(today, 'day')) {
-        summary.majdiTotal.occurred += majdiPerPaycheck;
-        summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
-      } else {
-        summary.majdiTotal.pending += majdiPerPaycheck;
-        summary.monthlyBreakdown[monthKey].income.pending += majdiPerPaycheck;
-      }
-
-      // Second paycheck of the month
-      if (fifteenthPayday.isBefore(today) || fifteenthPayday.isSame(today, 'day')) {
-        summary.majdiTotal.occurred += majdiPerPaycheck;
-        summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
-      } else {
-        summary.majdiTotal.pending += majdiPerPaycheck;
-        summary.monthlyBreakdown[monthKey].income.pending += majdiPerPaycheck;
-      }
-    }
-
-    // Calculate Ruba's bi-weekly payments for the entire year
-    const rubaSalary = incomes.find(income => income.source === "Ruba's Salary");
-    if (rubaSalary) {
-      const startDate = dayjs('2025-01-10');
-      const yearEnd = dayjs(`${year}-12-31`);
-      let paymentDate = startDate.clone();
-
-      while (paymentDate.isBefore(yearEnd) || paymentDate.isSame(yearEnd, 'day')) {
-        if (paymentDate.year() === year) {
-          const monthKey = paymentDate.format('MMMM');
-          if (paymentDate.isBefore(today) || paymentDate.isSame(today, 'day')) {
-            summary.rubaTotal.occurred += rubaSalary.amount;
-            summary.monthlyBreakdown[monthKey].income.occurred += rubaSalary.amount;
+          // First paycheck
+          if (firstPayday.isBefore(today) || firstPayday.isSame(today, 'day')) {
+            summary.majdiTotal.occurred += perPaycheck;
+            summary.monthlyBreakdown[monthKey].income.occurred += perPaycheck;
           } else {
-            summary.rubaTotal.pending += rubaSalary.amount;
-            summary.monthlyBreakdown[monthKey].income.pending += rubaSalary.amount;
+            summary.majdiTotal.pending += perPaycheck;
+            summary.monthlyBreakdown[monthKey].income.pending += perPaycheck;
+          }
+
+          // Second paycheck
+          if (fifteenthPayday.isBefore(today) || fifteenthPayday.isSame(today, 'day')) {
+            summary.majdiTotal.occurred += perPaycheck;
+            summary.monthlyBreakdown[monthKey].income.occurred += perPaycheck;
+          } else {
+            summary.majdiTotal.pending += perPaycheck;
+            summary.monthlyBreakdown[monthKey].income.pending += perPaycheck;
           }
         }
-        // Move to next bi-weekly payment date
-        paymentDate = paymentDate.add(14, 'days');
+      } else if (income.source === "Ruba's Salary") {
+        // Bi-weekly payments starting from Jan 10, 2025
+        let paymentDate = dayjs('2025-01-10');
+        const yearEnd = dayjs(`${year}-12-31`);
+
+        while (paymentDate.isBefore(yearEnd) || paymentDate.isSame(yearEnd, 'day')) {
+          if (paymentDate.year() === year) {
+            const monthKey = paymentDate.format('MMMM');
+
+            if (paymentDate.isBefore(today) || paymentDate.isSame(today, 'day')) {
+              summary.rubaTotal.occurred += income.amount;
+              summary.monthlyBreakdown[monthKey].income.occurred += income.amount;
+            } else {
+              summary.rubaTotal.pending += income.amount;
+              summary.monthlyBreakdown[monthKey].income.pending += income.amount;
+            }
+          }
+          paymentDate = paymentDate.add(14, 'days');
+        }
       }
-    }
+    });
 
     // Calculate total income
     summary.totalIncome.occurred = summary.majdiTotal.occurred + summary.rubaTotal.occurred;
     summary.totalIncome.pending = summary.majdiTotal.pending + summary.rubaTotal.pending;
 
-    // Calculate expenses by category and monthly breakdown
+    // Process expenses
     bills.forEach(bill => {
       const monthlyAmount = bill.amount;
       summary.expensesByCategory[bill.name] = { occurred: 0, pending: 0 };
