@@ -3,12 +3,9 @@ import { QueryClient } from '@tanstack/react-query';
 // Determine the API base URL based on the environment
 const getBaseUrl = () => {
   if (process.env.NODE_ENV === 'development') {
-    const protocol = window.location.protocol;
-    const hostname = window.location.hostname;
-    const port = '5000'; // Always use port 5000 for API in development
-    return `${protocol}//${hostname}:${port}`;
+    return 'http://localhost:5000'; // Always use port 5000 for API in development
   }
-  return window.location.origin; // Use the same origin in production
+  return ''; // Use relative URLs in production
 };
 
 export const queryClient = new QueryClient({
@@ -83,27 +80,10 @@ export const apiRequest = async (
       throw new Error(errorMessage);
     }
 
-    if (data === null || data === undefined) {
-      console.error('[API Error] Response was empty');
-      throw new Error('Empty response from server');
-    }
-
-    if (Array.isArray(data)) {
-      console.log('[API Success] Received array of length:', data.length);
-    } else {
-      console.log('[API Success] Received object:', data);
-    }
-
     return data;
   } catch (error) {
     console.error('[API Error] Request failed:', error);
     if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Request timed out');
-      }
-      if (!navigator.onLine) {
-        throw new Error('Lost internet connection');
-      }
       throw error;
     }
     throw new Error('Failed to make API request');
