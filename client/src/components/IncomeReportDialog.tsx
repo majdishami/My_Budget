@@ -58,7 +58,6 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
     pending: 0
   });
 
-
   // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
@@ -88,36 +87,9 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
       };
 
       incomes.forEach(income => {
-        if (income.source === "Majdi's Salary") {
-          // Calculate bi-monthly salary (1st and 15th of each month)
-          let currentDate = startDate.clone().startOf('month');
+        const incomeDate = dayjs(income.date);
 
-          while (currentDate.isSameOrBefore(endDate)) {
-            // First paycheck of the month (1st)
-            const firstPayday = currentDate.clone().date(1);
-            if (firstPayday.isBetween(startDate, endDate, 'day', '[]')) {
-              mockTransactions.push({
-                date: firstPayday.format('YYYY-MM-DD'),
-                description: `${income.source} (1st)`,
-                amount: income.amount, // Use the full amount (already bi-monthly)
-                occurred: hasDateOccurred(firstPayday)
-              });
-            }
-
-            // Second paycheck of the month (15th)
-            const fifteenthPayday = currentDate.clone().date(15);
-            if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]')) {
-              mockTransactions.push({
-                date: fifteenthPayday.format('YYYY-MM-DD'),
-                description: `${income.source} (15th)`,
-                amount: income.amount, // Use the full amount (already bi-monthly)
-                occurred: hasDateOccurred(fifteenthPayday)
-              });
-            }
-
-            currentDate = currentDate.add(1, 'month');
-          }
-        } else if (income.source === "Ruba's Salary") {
+        if (income.source === "Ruba's Salary") {
           // Start from January 10, 2025, for bi-weekly payments
           let payDate = dayjs('2025-01-10');
 
@@ -128,7 +100,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
 
           // Generate bi-weekly payments within the date range
           while (payDate.isSameOrBefore(endDate)) {
-            if (payDate.isBetween(startDate, endDate, 'day', '[]')) {
+            if (payDate.day() === 5) { // Only on Fridays
               mockTransactions.push({
                 date: payDate.format('YYYY-MM-DD'),
                 description: income.source,
@@ -137,6 +109,20 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               });
             }
             payDate = payDate.add(14, 'day');
+          }
+        } else {
+          // For Majdi's salary and any other income, use the actual dates from the income entries
+          const adjustedDate = dayjs(income.date)
+            .year(incomeDate.year())
+            .month(incomeDate.month());
+
+          if (adjustedDate.isBetween(startDate, endDate, 'day', '[]')) {
+            mockTransactions.push({
+              date: adjustedDate.format('YYYY-MM-DD'),
+              description: income.source,
+              amount: income.amount,
+              occurred: hasDateOccurred(adjustedDate)
+            });
           }
         }
       });
