@@ -47,16 +47,13 @@ interface IncomeReportDialogProps {
 }
 
 export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: IncomeReportDialogProps) {
-  // Move today constant inside component and memoize it
-  const today = useMemo(() => dayjs('2025-02-08'), []); // Fixed date for consistent behavior
+  const today = useMemo(() => dayjs('2025-02-10'), []); // Fixed current date
   const [date, setDate] = useState<DateRange | undefined>({
     from: today.toDate(),
     to: undefined
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showReport, setShowReport] = useState(false);
-
-  // Add state for summary totals
   const [summaryTotals, setSummaryTotals] = useState({
     occurred: 0,
     pending: 0
@@ -77,48 +74,42 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
 
   // Generate transactions when date range is selected
   useEffect(() => {
-    if (!showReport || !date?.from || !date?.to) return;
+    if (!showReport || !date?.from || !date?.to || !incomes?.length) return;
 
     const startDate = dayjs(date.from);
     const endDate = dayjs(date.to);
 
-    // Memoize the transaction generation logic to prevent unnecessary recalculations
     const generateTransactions = () => {
       const mockTransactions: Transaction[] = [];
 
       // Helper function to check if a date has occurred
       const hasDateOccurred = (checkDate: dayjs.Dayjs) => {
-        return checkDate.isBefore(today) || 
-              (checkDate.isSame(today, 'day') && 
-               checkDate.isSame(today, 'month') && 
-               checkDate.isSame(today, 'year'));
+        return checkDate.isBefore(today) || checkDate.isSame(today, 'day');
       };
 
-      // Generate transactions based on provided incomes
       incomes.forEach(income => {
         if (income.source === "Majdi's Salary") {
-          // Calculate monthly occurrences within the date range
-          let currentDate = startDate.startOf('month');
+          let currentDate = startDate.clone().startOf('month');
 
           while (currentDate.isSameOrBefore(endDate)) {
-            const firstPayday = currentDate.date(1);
-            const fifteenthPayday = currentDate.date(15);
-
-            // Only add transactions that fall within the date range
+            // First paycheck of the month (1st)
+            const firstPayday = currentDate.clone().date(1);
             if (firstPayday.isBetween(startDate, endDate, 'day', '[]')) {
               mockTransactions.push({
                 date: firstPayday.format('YYYY-MM-DD'),
-                description: income.source,
-                amount: income.amount / 2, // Split monthly amount
+                description: `${income.source} (1st)`,
+                amount: income.amount / 2,
                 occurred: hasDateOccurred(firstPayday)
               });
             }
 
+            // Second paycheck of the month (15th)
+            const fifteenthPayday = currentDate.clone().date(15);
             if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]')) {
               mockTransactions.push({
                 date: fifteenthPayday.format('YYYY-MM-DD'),
-                description: income.source,
-                amount: income.amount / 2, // Split monthly amount
+                description: `${income.source} (15th)`,
+                amount: income.amount / 2,
                 occurred: hasDateOccurred(fifteenthPayday)
               });
             }
@@ -126,26 +117,29 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
             currentDate = currentDate.add(1, 'month');
           }
         } else if (income.source === "Ruba's Salary") {
-          // Find the first bi-weekly payment date that's not before the start date
-          let payDate = dayjs('2025-01-10'); // Initial bi-weekly payment date
+          // Start from January 10, 2025, and calculate bi-weekly payments
+          let payDate = dayjs('2025-01-10');
+
+          // Find the first payment date within or before the range
           while (payDate.isBefore(startDate)) {
             payDate = payDate.add(14, 'day');
           }
 
-          // Add bi-weekly occurrences within range
+          // Generate bi-weekly payments within the date range
           while (payDate.isSameOrBefore(endDate)) {
-            mockTransactions.push({
-              date: payDate.format('YYYY-MM-DD'),
-              description: income.source,
-              amount: income.amount,
-              occurred: hasDateOccurred(payDate)
-            });
+            if (payDate.isBetween(startDate, endDate, 'day', '[]')) {
+              mockTransactions.push({
+                date: payDate.format('YYYY-MM-DD'),
+                description: income.source,
+                amount: income.amount,
+                occurred: hasDateOccurred(payDate)
+              });
+            }
             payDate = payDate.add(14, 'day');
           }
         }
       });
 
-      // Sort transactions by date
       return mockTransactions.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
     };
 
