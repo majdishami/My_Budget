@@ -1,13 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 
-// Determine the API base URL based on the environment
-const getBaseUrl = () => {
-  if (process.env.NODE_ENV === 'development') {
-    return 'http://localhost:5000'; // Always use port 5000 for API in development
-  }
-  return ''; // Use relative URLs in production
-};
-
+// Default fetcher for the Query Client
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -26,9 +19,6 @@ export const apiRequest = async (
   endpoint: string,
   options: RequestInit = {}
 ): Promise<any> => {
-  const baseUrl = getBaseUrl();
-  const url = `${baseUrl}${endpoint}`;
-
   try {
     // Check network connectivity
     if (!navigator.onLine) {
@@ -36,12 +26,12 @@ export const apiRequest = async (
       throw new Error('No internet connection');
     }
 
-    console.log(`[API Request] ${options.method || 'GET'} ${url}`);
+    console.log(`[API Request] ${options.method || 'GET'} ${endpoint}`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    const response = await fetch(url, {
+    const response = await fetch(endpoint, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -49,8 +39,7 @@ export const apiRequest = async (
         ...options.headers,
       },
       signal: controller.signal,
-      credentials: 'include', // Include credentials for cross-origin requests
-      mode: 'cors', // Explicitly set CORS mode
+      mode: 'cors',
     });
 
     clearTimeout(timeoutId);

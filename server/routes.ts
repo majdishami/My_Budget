@@ -139,17 +139,12 @@ export function registerRoutes(app: Express): Server {
     } : undefined
   });
 
-  // Categories Routes - with enhanced error handling
+  // Categories Routes with simplified implementation
   app.get('/api/categories', async (req, res) => {
-    // Set CORS headers
-    const origin = process.env.NODE_ENV === 'development'
-      ? 'http://localhost:5173'  // Vite dev server port
-      : req.headers.origin || '*';
-
-    res.header('Access-Control-Allow-Origin', origin);
+    // Set CORS headers for all environments
+    res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Content-Type', 'application/json');
 
     // Handle preflight request
@@ -163,10 +158,9 @@ export function registerRoutes(app: Express): Server {
       console.log('[Categories API] Database connection established');
 
       const result = await client.query('SELECT * FROM categories ORDER BY id');
-      const categoriesData = result.rows;
-      console.log('[Categories API] Found categories:', categoriesData.length);
+      console.log('[Categories API] Found categories:', result.rows.length);
 
-      return res.json(categoriesData);
+      return res.json(result.rows);
     } catch (error) {
       console.error('[Categories API] Error:', error);
       const errorMessage = error instanceof Error
