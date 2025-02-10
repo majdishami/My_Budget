@@ -10,10 +10,6 @@
 /**
  * 💰 Income Interface
  * Represents a single income entry in the system
- * @property id - Unique identifier for the income entry
- * @property source - Source/name of the income (e.g., "Salary", "Freelance")
- * @property amount - Monetary value of the income
- * @property date - ISO string representing when the income is received
  */
 export interface Income {
   id: string;
@@ -25,26 +21,20 @@ export interface Income {
 /**
  * 💳 Bill Interface
  * Represents a recurring bill or expense
- * @property id - Unique identifier for the bill
- * @property name - Descriptive name of the bill
- * @property amount - Amount due for the bill
- * @property day - Day of month when the bill is due (1-31)
- * @property dueDate - ISO string representing when the bill is due
- * @property category - Category of the expense (e.g., "Utilities", "Housing")
- * @property categoryId - Optional ID of the associated category
- * @property reminderEnabled - Optional flag for reminder settings
- * @property reminderDays - Optional days before due date for reminder
- * @property isOneTime - Optional flag indicating if this is a one-time expense
- * @property date - Optional specific date for one-time expenses
  */
 export interface Bill {
-  id: string;
+  id: number;
   name: string;
   amount: number;
   day: number;
-  dueDate: string;
+  category_id: number;
+  user_id: number;
+  created_at: string;
+  // UI-specific properties
+  dueDate?: string;
   category?: string;
-  categoryId?: number;
+  category_name?: string;
+  category_color?: string;
   reminderEnabled?: boolean;
   reminderDays?: number;
   isOneTime?: boolean;
@@ -54,11 +44,6 @@ export interface Bill {
 /**
  * 🔔 BillReminder Interface
  * Represents a specific reminder instance for a bill
- * @property billId - References the associated bill
- * @property billName - Name of the bill (for display purposes)
- * @property dueDate - The actual date when payment is due
- * @property amount - Amount to be paid
- * @property reminderDate - Date when the reminder should be triggered
  */
 export interface BillReminder {
   billId: string;
