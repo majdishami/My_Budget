@@ -99,6 +99,20 @@ router.post('/api/sync/restore', async (req, res) => {
       await uploadedFile.mv(tempPath);
       console.log('File moved successfully');
 
+      // Verify that the moved file exists and is readable
+      if (!fs.existsSync(tempPath)) {
+        throw new Error('Failed to move uploaded file to temporary location');
+      }
+
+      // Try to read and parse the file to verify it's valid JSON
+      try {
+        const fileContent = fs.readFileSync(tempPath, 'utf-8');
+        JSON.parse(fileContent); // This will throw if not valid JSON
+        console.log('Verified file is valid JSON');
+      } catch (parseError) {
+        throw new Error('Invalid JSON format in backup file');
+      }
+
       // Restore the database from the backup
       console.log('Starting database restore...');
       const result = await restoreDatabaseBackup(tempPath);
