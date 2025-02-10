@@ -58,12 +58,12 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes: prop
     pending: 0
   });
 
-  // Default incomes if none provided
+  // Default incomes if none provided - Using correct bi-monthly amount for Majdi
   const defaultIncomes = [
     {
       id: '1',
       source: "Majdi's Salary",
-      amount: 9478,
+      amount: 4739, // Correct bi-monthly amount
       date: '2025-01-01',
     },
     {
@@ -111,7 +111,6 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes: prop
         if (income.source === "Majdi's Salary") {
           // Calculate bi-monthly salary (1st and 15th of each month)
           let currentDate = startDate.clone().startOf('month');
-          const amount = income.amount / 2; // Split monthly amount
 
           while (currentDate.isSameOrBefore(endDate)) {
             // First paycheck of the month (1st)
@@ -120,7 +119,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes: prop
               mockTransactions.push({
                 date: firstPayday.format('YYYY-MM-DD'),
                 description: `${income.source} (1st)`,
-                amount,
+                amount: income.amount, // Use the full amount (already bi-monthly)
                 occurred: hasDateOccurred(firstPayday)
               });
             }
@@ -131,7 +130,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes: prop
               mockTransactions.push({
                 date: fifteenthPayday.format('YYYY-MM-DD'),
                 description: `${income.source} (15th)`,
-                amount,
+                amount: income.amount, // Use the full amount (already bi-monthly)
                 occurred: hasDateOccurred(fifteenthPayday)
               });
             }
