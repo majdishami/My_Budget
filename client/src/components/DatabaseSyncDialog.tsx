@@ -1,20 +1,19 @@
 import { useState } from "react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog";
+} from "@/components/ui/dialog";
 import { Loader2, Download, Upload } from "lucide-react";
-import { useToast } from "../hooks/use-toast";
-import { apiRequest } from "../lib/queryClient";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Alert, AlertDescription } from "./ui/alert";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DatabaseSyncDialogProps {
   isOpen: boolean;
