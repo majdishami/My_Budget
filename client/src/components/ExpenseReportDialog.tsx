@@ -642,7 +642,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                     <CardTitle>Expenses Summary</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {/* REPLACEMENT START */}
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -666,13 +665,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <div
-                                  className="w-2 h-2 rounded-full"
+                                  className="w-3 h-3 rounded-full"
                                   style={{ backgroundColor: expense.color }}
                                 />
-                                <span className="truncate">{expense.category}</span>
+                                <span className="truncate font-medium">{expense.category}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right font-medium">
                               {formatCurrency(expense.totalAmount / expense.transactions.length)}
                             </TableCell>
                             <TableCell>
@@ -680,7 +679,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 {formatCurrency(expense.totalAmount)}
                               </div>
                               <div className="text-right text-xs">
-                                <span className="text-red-600">{formatCurrency(expense.occurredAmount)}</span>
+                                <span className="text-red-600 font-medium">{formatCurrency(expense.occurredAmount)}</span>
                                 {" / "}
                                 <span className="text-red-300">{formatCurrency(expense.pendingAmount)}</span>
                               </div>
@@ -690,7 +689,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 {expense.occurredCount + expense.pendingCount}
                               </div>
                               <div className="text-right text-xs">
-                                <span className="text-red-600">{expense.occurredCount}</span>
+                                <span className="text-red-600 font-medium">{expense.occurredCount}</span>
                                 {" / "}
                                 <span className="text-red-300">{expense.pendingCount}</span>
                               </div>
@@ -699,7 +698,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                         ))}
                       </TableBody>
                     </Table>
-                    {/* REPLACEMENT END */}
                   </CardContent>
                 </Card>
               )}
