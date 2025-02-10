@@ -63,6 +63,8 @@ export async function restoreDatabaseBackup(backupFile: string) {
   // Start a transaction for the entire restore process
   const transaction = db.transaction(async (tx) => {
     try {
+      console.log('Starting restore process with file:', backupFile);
+
       // Verify backup file exists
       if (!fs.existsSync(backupFile)) {
         throw new Error('Backup file not found');
@@ -76,7 +78,9 @@ export async function restoreDatabaseBackup(backupFile: string) {
       // Read and parse backup file
       let backupData: Record<string, any[]>;
       try {
+        console.log('Reading backup file...');
         const backupContent = fs.readFileSync(backupFile, 'utf-8');
+        console.log('Parsing JSON content...');
         backupData = JSON.parse(backupContent);
         console.log('Successfully parsed backup file');
       } catch (parseError) {
