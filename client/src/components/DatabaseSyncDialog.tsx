@@ -96,7 +96,11 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
 
       // Close the dialog after successful restore
       onOpenChange(false);
+
+      // Reload the page to reflect the restored data
+      window.location.reload();
     } catch (error) {
+      console.error('Restore error:', error);
       toast({
         title: "Restore Failed",
         description: error instanceof Error ? error.message : "Failed to restore database",
