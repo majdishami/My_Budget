@@ -68,10 +68,10 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
       return;
     }
 
-    if (!selectedFile.name.toLowerCase().endsWith('.json')) {
+    if (!selectedFile.name.toLowerCase().endsWith('.dump')) {
       toast({
         title: "Invalid File Type",
-        description: "Please select a valid JSON backup file",
+        description: "Please select a valid database dump file (.dump)",
         variant: "destructive",
       });
       return;
@@ -122,10 +122,10 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (!file.name.toLowerCase().endsWith('.json')) {
+      if (!file.name.toLowerCase().endsWith('.dump')) {
         toast({
           title: "Invalid File Type",
-          description: "Please select a valid JSON backup file",
+          description: "Please select a valid database dump file (.dump)",
           variant: "destructive",
         });
         event.target.value = ''; // Reset the input
@@ -180,7 +180,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
             <Alert>
               <AlertDescription>
                 Restore your database from a previously generated backup file.
-                Only .json backup files are supported. This will replace all current data with the data from the backup.
+                Only .dump backup files are supported. This will replace all current data with the data from the backup.
               </AlertDescription>
             </Alert>
             <div className="space-y-4">
@@ -190,7 +190,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
                   <Input 
                     id="backup-file"
                     type="file"
-                    accept=".json"
+                    accept=".dump"
                     onChange={handleFileChange}
                     className="cursor-pointer"
                     disabled={isRestoreLoading}

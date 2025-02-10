@@ -34,9 +34,10 @@ router.get('/api/sync/download/:filename', (req, res) => {
     const { filename } = req.params;
     const filePath = path.join(process.cwd(), 'tmp', filename);
 
-    if (!fs.existsSync(filePath)) {
-      console.error('Backup file not found:', filePath);
-      return res.status(404).json({ error: 'Backup file not found' });
+    // Validate that the file exists and has the correct extension
+    if (!fs.existsSync(filePath) || !filename.toLowerCase().endsWith('.dump')) {
+      console.error('Invalid or missing backup file:', filePath);
+      return res.status(404).json({ error: 'Invalid or missing backup file' });
     }
 
     res.download(filePath, filename, (err) => {
@@ -73,6 +74,12 @@ router.post('/api/sync/restore', async (req, res) => {
 
     const uploadedFile = req.files.backup as UploadedFile;
     console.log('Received file for restore:', uploadedFile.name);
+
+    // Validate file extension
+    if (!uploadedFile.name.toLowerCase().endsWith('.dump')) {
+      console.error('Invalid file type:', uploadedFile.name);
+      return res.status(400).json({ error: 'Invalid file type. Only .dump files are supported.' });
+    }
 
     // Create tmp directory if it doesn't exist
     const backupPath = path.join(process.cwd(), 'tmp');
