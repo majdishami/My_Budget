@@ -39,20 +39,30 @@ export const apiRequest = async (
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    credentials: 'include',
   });
 
   try {
+    // Check network connectivity
+    if (!navigator.onLine) {
+      throw new Error('No internet connection');
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-      credentials: 'include', // Important for cookies/sessions
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     console.log(`[API Response] Status: ${response.status}`);
+    console.log('[API Response] Headers:', Object.fromEntries(response.headers.entries()));
 
     // Get the response text first for debugging
     const responseText = await response.text();
@@ -84,6 +94,10 @@ export const apiRequest = async (
   } catch (error) {
     console.error('[API Error] Request failed:', error);
     if (error instanceof Error) {
+      // Handle specific error types
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out');
+      }
       throw error;
     }
     throw new Error('Failed to make API request');

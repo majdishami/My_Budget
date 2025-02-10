@@ -131,8 +131,14 @@ export function registerRoutes(app: Express): Server {
 
   // Category Routes
   app.get('/api/categories', async (req, res) => {
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+
     try {
       console.log('[Categories API] Request received');
+      console.log('[Categories API] Headers:', req.headers);
 
       // First try to get all categories using Drizzle
       const userCategories = await db.select().from(categories);
@@ -147,19 +153,20 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Log success
+      // Set appropriate content type
+      res.header('Content-Type', 'application/json');
+
+      // Log success and send response
       console.log('[Categories API] Successfully fetched categories:', {
         count: userCategories.length,
         firstCategory: userCategories[0]
       });
 
-      // Return successful response
       return res.json(userCategories);
     } catch (error) {
       console.error('[Categories API] Error:', error);
       console.error('[Categories API] Stack:', error instanceof Error ? error.stack : 'No stack trace');
 
-      // Attempt to get more detailed error information
       if (error instanceof Error) {
         console.error('[Categories API] Error name:', error.name);
         console.error('[Categories API] Error message:', error.message);
