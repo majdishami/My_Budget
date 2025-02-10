@@ -28,7 +28,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-
 dayjs.extend(isBetween);
 
 export function Budget() {
@@ -41,22 +40,22 @@ export function Budget() {
   const [editingTransaction, setEditingTransaction] = useState<Income | Bill | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
-  const handleAddIncome = (income: Omit<Income, "id">) => {
-    addIncome({ ...income, id: generateId() });
-  }
+  const handleAddIncome = () => {
+    addIncome({ source: "", amount: 0, date: dayjs().toISOString() });
+  };
 
-  const handleAddBill = (bill: Omit<Bill, "id">) => {
-    addBill({ ...bill, id: generateId() });
-  }
+  const handleAddBill = () => {
+    addBill({ name: "", amount: 0, day: dayjs().date(), dueDate: dayjs().toISOString() });
+  };
 
-  const handleDeleteTransaction = (transaction: Income | Bill) => {
+  const handleDeleteTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
     setShowDeleteConfirmation(true);
     setEditingTransaction(transaction);
-  }
+  };
 
-  const handleEditTransaction = (transaction: Income | Bill) => {
+  const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
     editTransaction(transaction);
-  }
+  };
 
   const handleConfirmDelete = () => {
     if (editingTransaction) {
