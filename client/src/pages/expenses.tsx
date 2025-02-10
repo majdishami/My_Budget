@@ -7,8 +7,10 @@ export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
 
-  // Get bills data from local storage
-  const bills = JSON.parse(localStorage.getItem("bills") || "[]");
+  // Get bills data and categories from the API
+  const { data: bills = [] } = useQuery({
+    queryKey: ['/api/bills'],
+  });
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);

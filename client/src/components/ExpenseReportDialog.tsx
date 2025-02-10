@@ -138,7 +138,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [bills, categories]);
 
-  // Modify the transactions generation logic to properly map categories
+  // Modified section of transactions generation
   const transactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
@@ -175,7 +175,17 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     // Generate transactions for each bill with proper category mapping
     filteredBills.forEach(bill => {
+      // Log the bill and its category information for debugging
+      console.log('Processing bill:', bill);
+      console.log('Bill categoryId:', bill.categoryId);
+      console.log('Available categories:', categories);
+
       const category = categories.find(c => c.id === bill.categoryId);
+      console.log('Found category:', category);
+
+      if (!category) {
+        console.warn(`No category found for bill ${bill.name} with categoryId ${bill.categoryId}`);
+      }
 
       // If category exists, use its properties, otherwise use defaults
       const categoryProps = category 
