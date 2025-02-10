@@ -68,21 +68,14 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
       return;
     }
 
-    if (!selectedFile.name.toLowerCase().endsWith('.dump')) {
-      toast({
-        title: "Invalid File Type",
-        description: "Please select a valid database dump file (.dump)",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setIsRestoreLoading(true);
       setOperationStatus('Uploading backup file...');
 
       const formData = new FormData();
       formData.append('backup', selectedFile);
+
+      console.log('Uploading file:', selectedFile.name);
 
       const response = await fetch('/api/sync/restore', {
         method: 'POST',
@@ -122,17 +115,8 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (!file.name.toLowerCase().endsWith('.dump')) {
-        toast({
-          title: "Invalid File Type",
-          description: "Please select a valid database dump file (.dump)",
-          variant: "destructive",
-        });
-        event.target.value = ''; // Reset the input
-        setSelectedFile(null);
-      } else {
-        setSelectedFile(file);
-      }
+      console.log('Selected file:', file.name, file.type);
+      setSelectedFile(file);
     }
   };
 
@@ -187,7 +171,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
               <div className="grid w-full max-w-sm items-center gap-1.5">
                 <Label htmlFor="backup-file">Select Backup File</Label>
                 <div className="flex flex-col gap-2">
-                  <Input 
+                  <Input
                     id="backup-file"
                     type="file"
                     accept=".dump"
@@ -210,8 +194,8 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
                 </div>
               )}
               <div className="flex justify-end">
-                <Button 
-                  onClick={handleRestore} 
+                <Button
+                  onClick={handleRestore}
                   disabled={isRestoreLoading || !selectedFile}
                 >
                   {isRestoreLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

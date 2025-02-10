@@ -67,19 +67,23 @@ router.get('/api/sync/download/:filename', (req, res) => {
 
 router.post('/api/sync/restore', async (req, res) => {
   try {
+    console.log('Received restore request', {
+      files: req.files ? Object.keys(req.files) : 'no files',
+      contentType: req.get('Content-Type')
+    });
+
     if (!req.files || !req.files.backup) {
       console.error('No file uploaded for restore');
       return res.status(400).json({ error: 'No backup file provided' });
     }
 
     const uploadedFile = req.files.backup as UploadedFile;
-    console.log('Received file for restore:', uploadedFile.name);
-
-    // Validate file extension
-    if (!uploadedFile.name.toLowerCase().endsWith('.dump')) {
-      console.error('Invalid file type:', uploadedFile.name);
-      return res.status(400).json({ error: 'Invalid file type. Only .dump files are supported.' });
-    }
+    console.log('Processing uploaded file:', {
+      name: uploadedFile.name,
+      size: uploadedFile.size,
+      mimetype: uploadedFile.mimetype,
+      tempFilePath: uploadedFile.tempFilePath
+    });
 
     // Create tmp directory if it doesn't exist
     const backupPath = path.join(process.cwd(), 'tmp');
@@ -88,21 +92,24 @@ router.post('/api/sync/restore', async (req, res) => {
     }
 
     const tempPath = path.join(backupPath, uploadedFile.name);
-    console.log('Saving uploaded file to:', tempPath);
+    console.log('Moving file to:', tempPath);
 
     try {
-      // Save the uploaded file temporarily
+      // Move the uploaded file
       await uploadedFile.mv(tempPath);
-      console.log('File saved successfully');
+      console.log('File moved successfully');
 
       // Restore the database from the backup
+      console.log('Starting database restore...');
       const result = await restoreDatabaseBackup(tempPath);
-      console.log('Restore result:', result);
+      console.log('Restore completed with result:', result);
 
       // Clean up the temporary file
       fs.unlinkSync(tempPath);
+      console.log('Temporary file cleaned up');
 
       if (!result.success) {
+        console.error('Restore failed:', result.error);
         return res.status(500).json({ 
           error: result.error || 'Failed to restore backup' 
         });
