@@ -131,35 +131,36 @@ export function registerRoutes(app: Express): Server {
   // Category Routes
   app.get('/api/categories', async (req, res) => {
     try {
-      console.log('Categories API called');
+      console.log('GET /api/categories endpoint called');
 
       // Verify database connection first
       try {
+        console.log('Testing database connection...');
         const testQuery = await db.query.categories.findFirst();
-        console.log('Database connection test successful:', testQuery !== undefined);
+        console.log('Database connection test result:', testQuery);
 
-        // Fetch all categories
+        console.log('Fetching all categories...');
         const userCategories = await db.query.categories.findMany({
           orderBy: (categories, { asc }) => [asc(categories.name)],
         });
 
-        console.log(`Successfully fetched ${userCategories?.length ?? 0} categories`);
+        console.log('Categories fetched:', JSON.stringify(userCategories, null, 2));
 
-        // Send response with categories
-        return res.json(userCategories || []);
+        // Even if no categories found, return empty array with 200 status
+        res.json(userCategories || []);
 
       } catch (dbError) {
         console.error('Database error in categories endpoint:', dbError);
-        return res.status(500).json({
+        res.status(500).json({
           message: 'Database error occurred',
-          error: process.env.NODE_ENV === 'development' ? (dbError as Error).message : 'Internal server error'
+          error: process.env.NODE_ENV === 'development' ? String(dbError) : 'Internal server error'
         });
       }
     } catch (error) {
       console.error('Unexpected error in categories endpoint:', error);
-      return res.status(500).json({
+      res.status(500).json({
         message: 'Failed to load categories',
-        error: process.env.NODE_ENV === 'development' ? (error as Error).message : 'Internal server error'
+        error: process.env.NODE_ENV === 'development' ? String(error) : 'Internal server error'
       });
     }
   });
