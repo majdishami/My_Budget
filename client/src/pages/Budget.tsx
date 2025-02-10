@@ -94,26 +94,77 @@ export function Budget() {
   };
 
   const getIncomeForDay = (day: number) => {
-    return incomes.filter(income => dayjs(income.date).date() === day && dayjs(income.date).month() === selectedMonth && dayjs(income.date).year() === selectedYear);
+    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
+    return incomes.filter(income => {
+      const incomeDate = dayjs(income.date);
+      return incomeDate.date() === day && 
+             incomeDate.month() === selectedMonth && 
+             incomeDate.year() === selectedYear;
+    });
   }
 
   const getBillsForDay = (day: number) => {
-    return bills.filter(bill => dayjs(bill.dueDate).date() === day && dayjs(bill.dueDate).month() === selectedMonth && dayjs(bill.dueDate).year() === selectedYear);
+    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
+    return bills.filter(bill => {
+      if (bill.isOneTime) {
+        // For one-time bills, check exact date match
+        const billDate = dayjs(bill.date);
+        return billDate.date() === day && 
+               billDate.month() === selectedMonth && 
+               billDate.year() === selectedYear;
+      } else {
+        // For recurring bills, check if the day matches
+        const billDueDate = dayjs(bill.dueDate)
+          .year(selectedYear)
+          .month(selectedMonth)
+          .date(bill.day);
+        return billDueDate.date() === day;
+      }
+    });
   }
 
   const calculateTotalsUpToDay = (day: number) => {
     let totalIncome = 0;
     let totalBills = 0;
+
+    // Calculate target date
+    const targetDate = dayjs()
+      .year(selectedYear)
+      .month(selectedMonth)
+      .date(day);
+
+    // Calculate income
     incomes.forEach(income => {
-      if (dayjs(income.date).isBefore(dayjs().year(selectedYear).month(selectedMonth).date(day)) || dayjs(income.date).isSame(dayjs().year(selectedYear).month(selectedMonth).date(day)) ) {
-        totalIncome += income.amount;
+      const incomeDate = dayjs(income.date);
+      if (incomeDate.isSame(targetDate, 'month') && incomeDate.isSame(targetDate, 'year')) {
+        if (incomeDate.date() <= day) {
+          totalIncome += income.amount;
+        }
       }
     });
+
+    // Calculate bills
     bills.forEach(bill => {
-      if (dayjs(bill.dueDate).isBefore(dayjs().year(selectedYear).month(selectedMonth).date(day)) || dayjs(bill.dueDate).isSame(dayjs().year(selectedYear).month(selectedMonth).date(day)) ) {
-        totalBills += bill.amount;
+      if (bill.isOneTime) {
+        // For one-time bills
+        const billDate = dayjs(bill.date);
+        if (billDate.isSame(targetDate, 'month') && billDate.isSame(targetDate, 'year')) {
+          if (billDate.date() <= day) {
+            totalBills += bill.amount;
+          }
+        }
+      } else {
+        // For recurring bills
+        const billDueDate = dayjs(bill.dueDate)
+          .year(selectedYear)
+          .month(selectedMonth)
+          .date(bill.day);
+        if (billDueDate.date() <= day) {
+          totalBills += bill.amount;
+        }
       }
     });
+
     return { totalIncome, totalBills };
   };
 
