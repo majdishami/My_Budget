@@ -52,13 +52,13 @@ interface Transaction {
 interface Bill {
   id: number;
   name: string;
-  amount: number | string; 
+  amount: number | string;
   day: number;
   category_id: number;
   user_id: number;
   created_at: string;
-  category_name?: string; // Added category_name
-  category_color?: string; // Added category_color
+  category_name?: string;
+  category_color?: string;
 }
 
 interface Category {
@@ -146,7 +146,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     if (!showReport || !date?.from || !date?.to) return [];
 
     console.log('Generating transactions with:', {
-      bills,
+      bills: bills.length,
       dateRange: { from: date.from, to: date.to }
     });
 
@@ -157,6 +157,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         to: date.from
       });
       setDateError("End date cannot be before start date");
+      return [];
+    }
+
+    if (!bills.length) {
+      console.log('No bills available');
       return [];
     }
 
@@ -182,17 +187,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     // Generate transactions for each bill
     filteredBills.forEach(bill => {
-      // Ensure amount is a number
       const billAmount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
       if (isNaN(billAmount)) {
         console.error('Invalid amount for bill:', bill);
         return;
       }
-
-      console.log('Processing bill:', {
-        bill,
-        amount: billAmount
-      });
 
       // Generate all occurrences within the date range
       let currentDate = startDate.clone().startOf('month').date(bill.day);
@@ -217,8 +216,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         currentDate = currentDate.add(1, 'month');
       }
     });
-
-    console.log('Generated transactions:', result);
 
     return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
   }, [showReport, selectedValue, date, bills, today]);
@@ -554,11 +551,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           </div>
         </DialogHeader>
 
-        {transactions.length === 0 ? (
+        {transactions.length === 0 && showReport ? (
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              No transactions found for the selected date range.
+              {bills.length === 0 
+                ? "No bills have been added yet. Please add some bills to generate a report."
+                : "No transactions found for the selected date range and filters."}
             </AlertDescription>
           </Alert>
         ) : (
