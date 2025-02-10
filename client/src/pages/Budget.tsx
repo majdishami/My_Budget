@@ -6,25 +6,16 @@
  * income and expenses in a calendar view.
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { Income, Bill } from "@/types";
-import { cn, generateId } from "@/lib/utils";
+import { cn, generateId, formatCurrency } from "@/lib/utils";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { Card } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Menu, X, RefreshCw } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -36,25 +27,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatCurrency } from "@/lib/utils";
+
 
 dayjs.extend(isBetween);
 
-type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'twice-monthly';
-
-const Budget = () => {
+export function Budget() {
   const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction, resetData } = useData();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(dayjs().date());
   const [selectedMonth, setSelectedMonth] = useState(dayjs().month());
   const [selectedYear, setSelectedYear] = useState(dayjs().year());
   const [showDailySummary, setShowDailySummary] = useState(false);
-  const [isAddingIncome, setIsAddingIncome] = useState(false);
-  const [isAddingBill, setIsAddingBill] = useState(false);
-  const [isEditingTransaction, setIsEditingTransaction] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Income | Bill | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [isResettingData, setIsResettingData] = useState(false);
 
   const handleAddIncome = (income: Omit<Income, "id">) => {
     addIncome({ ...income, id: generateId() });
@@ -70,14 +55,7 @@ const Budget = () => {
   }
 
   const handleEditTransaction = (transaction: Income | Bill) => {
-    setIsEditingTransaction(true);
-    setEditingTransaction(transaction);
-  }
-
-
-  const handleReset = () => {
-    setIsResettingData(true);
-    resetData();
+    editTransaction(transaction);
   }
 
   const handleConfirmDelete = () => {
@@ -106,7 +84,6 @@ const Budget = () => {
   const isCurrentDay = (day: number) => {
     return day === today.date() && selectedMonth === today.month() && selectedYear === today.year();
   };
-
 
   const getIncomeForDay = (day: number) => {
     return incomes.filter(income => dayjs(income.date).date() === day && dayjs(income.date).month() === selectedMonth && dayjs(income.date).year() === selectedYear);
@@ -139,7 +116,6 @@ const Budget = () => {
     }
   };
 
-
   return (
     <div className="min-h-screen flex bg-background">
       {/* Mobile Menu Toggle Button */}
@@ -156,14 +132,14 @@ const Budget = () => {
         )}
       </Button>
 
-      {/* 📱 Sidebar Navigation - Now collapsible on mobile */}
+      {/* 📱 Sidebar Navigation */}
       <aside
         className={cn(
           "w-64 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto transition-transform duration-200 ease-in-out lg:translate-x-0 z-30",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="pt-12 lg:pt-0"> {/* Reduced padding for mobile */}
+        <div className="pt-12 lg:pt-0">
           <LeftSidebar
             incomes={incomes}
             bills={bills}
@@ -171,7 +147,7 @@ const Budget = () => {
             onDeleteTransaction={handleDeleteTransaction}
             onAddIncome={handleAddIncome}
             onAddBill={handleAddBill}
-            onReset={handleReset}
+            onReset={resetData}
           />
         </div>
       </aside>
@@ -184,9 +160,8 @@ const Budget = () => {
         />
       )}
 
-      {/* 📊 Main Content Area */}
+      {/* Main Content Area */}
       <main className="w-full lg:pl-64 flex flex-col min-h-screen">
-        {/* 🗓️ Calendar Grid - Mobile optimized */}
         <div className="flex-1 p-2 lg:p-4 overflow-y-auto">
           <Card className="w-full">
             <div className="w-full overflow-hidden">
@@ -259,40 +234,32 @@ const Budget = () => {
                               )}
                             </div>
                             <div className="space-y-0.5 text-[10px] lg:text-xs overflow-y-auto max-h-[calc(100%-2rem)]">
-                              {dayIncomes.length > 0 && (
-                                <div className="space-y-0.5">
-                                  {dayIncomes.map((income, index) => (
-                                    <div
-                                      key={income.id}
-                                      className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1 py-0.5 touch-manipulation"
-                                    >
-                                      <span className="truncate max-w-[60%]">
-                                        {index + 1}. {income.source}
-                                      </span>
-                                      <span className="font-medium shrink-0">
-                                        {formatCurrency(income.amount)}
-                                      </span>
-                                    </div>
-                                  ))}
+                              {dayIncomes.map((income, index) => (
+                                <div
+                                  key={income.id}
+                                  className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1 py-0.5 touch-manipulation"
+                                >
+                                  <span className="truncate max-w-[60%]">
+                                    {index + 1}. {income.source}
+                                  </span>
+                                  <span className="font-medium shrink-0">
+                                    {formatCurrency(income.amount)}
+                                  </span>
                                 </div>
-                              )}
-                              {dayBills.length > 0 && (
-                                <div className="space-y-0.5">
-                                  {dayBills.map((bill, index) => (
-                                    <div
-                                      key={bill.id}
-                                      className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1 py-0.5 touch-manipulation"
-                                    >
-                                      <span className="truncate max-w-[60%]">
-                                        {index + 1}. {bill.name}
-                                      </span>
-                                      <span className="font-medium shrink-0">
-                                        {formatCurrency(bill.amount)}
-                                      </span>
-                                    </div>
-                                  ))}
+                              ))}
+                              {dayBills.map((bill, index) => (
+                                <div
+                                  key={bill.id}
+                                  className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1 py-0.5 touch-manipulation"
+                                >
+                                  <span className="truncate max-w-[60%]">
+                                    {index + 1}. {bill.name}
+                                  </span>
+                                  <span className="font-medium shrink-0">
+                                    {formatCurrency(bill.amount)}
+                                  </span>
                                 </div>
-                              )}
+                              ))}
                             </div>
                           </td>
                         );
@@ -306,7 +273,7 @@ const Budget = () => {
         </div>
       </main>
 
-      {/* 💬 Dialogs for Daily Summary, Income/Expense Editing, and Deletion */}
+      {/* Dialogs */}
       <DailySummaryDialog
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
@@ -319,21 +286,19 @@ const Budget = () => {
         totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
       />
       <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
-        </AlertDialogHeader>
         <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+          </AlertDialogHeader>
           <AlertDialogDescription>
             Are you sure you want to delete this transaction? This action cannot be undone.
           </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={handleCancelDelete}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
-        </AlertDialogFooter>
       </AlertDialog>
     </div>
   );
-};
-
-export default Budget;
+}
