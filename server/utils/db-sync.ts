@@ -1,10 +1,7 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { db } from '@db';
 import path from 'path';
 import fs from 'fs';
-import { db } from '@db';
-
-const execAsync = promisify(exec);
+import { sql } from 'drizzle-orm';
 
 export async function generateDatabaseBackup() {
   try {
@@ -17,11 +14,27 @@ export async function generateDatabaseBackup() {
       fs.mkdirSync(backupPath, { recursive: true });
     }
 
-    // Generate backup using pg_dump
-    const dumpCommand = `PGPASSWORD=${process.env.PGPASSWORD} pg_dump -h ${process.env.PGHOST} -U ${process.env.PGUSER} -d ${process.env.PGDATABASE} -F c -f ${backupFile}`;
-    
-    await execAsync(dumpCommand);
-    
+    // Get all table names in the database
+    const tableNames = await db.execute(sql`
+      SELECT tablename 
+      FROM pg_tables 
+      WHERE schemaname = 'public'
+    `);
+
+    // Create a backup object with table data
+    const backup: Record<string, any> = {};
+
+    // For each table, get all rows
+    for (const { tablename } of tableNames) {
+      const rows = await db.execute(sql`
+        SELECT * FROM ${sql.identifier(tablename)}
+      `);
+      backup[tablename] = rows;
+    }
+
+    // Write the backup to a file
+    fs.writeFileSync(backupFile, JSON.stringify(backup, null, 2));
+
     return {
       success: true,
       filePath: backupFile,
