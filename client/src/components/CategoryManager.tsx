@@ -44,35 +44,55 @@ export function CategoryManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // State management - keep all useState hooks at the top
+  // State management
   const [dialogState, setDialogState] = useState<DialogState>({
     add: false,
     edit: null,
     delete: null,
   });
 
-  // Categories query
+  // Categories query with enhanced error handling
   const {
     data: categories = [],
     isLoading: isLoadingCategories,
     error: categoriesError,
-    refetch
-  } = useQuery<Category[]>({
+    refetch,
+    isError
+  } = useQuery({
     queryKey: ['/api/categories'],
     queryFn: async () => {
-      console.log('Initiating categories fetch...');
+      console.log('Fetching categories...');
       try {
         const response = await apiRequest('/api/categories');
-        console.log('Categories fetch successful:', response);
+        console.log('Categories fetch response:', response);
         return response;
       } catch (error) {
-        console.error('Categories fetch failed:', error);
+        console.error('Error fetching categories:', error);
         throw error;
       }
     },
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
+  // Event handlers
+  const handleCloseDialogs = () => {
+    setDialogState({ add: false, edit: null, delete: null });
+  };
+
+  const handleEdit = (category: Category) => {
+    setDialogState(prev => ({ ...prev, edit: category }));
+  };
+
+  const handleDelete = (category: Category) => {
+    setDialogState(prev => ({ ...prev, delete: category }));
+  };
+
+  const handleSubmit = (data: CategoryFormData) => {
+    if (dialogState.edit) {
+      updateMutation.mutate({ ...data, id: dialogState.edit.id });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
 
   // Mutations
   const createMutation = useMutation({
@@ -85,14 +105,14 @@ export function CategoryManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({
-        title: "Category created",
-        description: "The category has been created successfully.",
+        title: "Success",
+        description: "Category created successfully",
       });
       handleCloseDialogs();
     },
     onError: (error) => {
       toast({
-        title: "Error creating category",
+        title: "Error",
         description: error instanceof Error ? error.message : "Failed to create category",
         variant: "destructive",
       });
@@ -103,24 +123,20 @@ export function CategoryManager() {
     mutationFn: async ({ id, ...data }: Category) => {
       return apiRequest(`/api/categories/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          name: data.name.trim(),
-          color: data.color.trim(),
-          icon: data.icon || null
-        }),
+        body: JSON.stringify(data),
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({
-        title: "Category updated",
-        description: "The category has been updated successfully.",
+        title: "Success",
+        description: "Category updated successfully",
       });
       handleCloseDialogs();
     },
     onError: (error) => {
       toast({
-        title: "Error updating category",
+        title: "Error",
         description: error instanceof Error ? error.message : "Failed to update category",
         variant: "destructive",
       });
@@ -136,40 +152,19 @@ export function CategoryManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({
-        title: "Category deleted",
-        description: "The category has been deleted successfully.",
+        title: "Success",
+        description: "Category deleted successfully",
       });
       handleCloseDialogs();
     },
     onError: (error) => {
       toast({
-        title: "Error deleting category",
+        title: "Error",
         description: error instanceof Error ? error.message : "Failed to delete category",
         variant: "destructive",
       });
     },
   });
-
-  // Event handlers
-  const handleSubmit = (data: CategoryFormData) => {
-    if (dialogState.edit) {
-      updateMutation.mutate({ ...data, id: dialogState.edit.id });
-    } else {
-      createMutation.mutate(data);
-    }
-  };
-
-  const handleEdit = (category: Category) => {
-    setDialogState(prev => ({ ...prev, edit: category }));
-  };
-
-  const handleDelete = (category: Category) => {
-    setDialogState(prev => ({ ...prev, delete: category }));
-  };
-
-  const handleCloseDialogs = () => {
-    setDialogState({ add: false, edit: null, delete: null });
-  };
 
   const confirmDelete = () => {
     if (dialogState.delete) {
@@ -177,91 +172,50 @@ export function CategoryManager() {
     }
   };
 
-  // Render content based on state
-  let content;
+  // Loading state
   if (isLoadingCategories) {
-    content = (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="p-4">
-            <div className="w-full h-6 bg-gray-200 animate-pulse rounded" />
-          </Card>
-        ))}
-      </div>
-    );
-  } else if (categoriesError) {
-    content = (
-      <Card className="border-red-200 bg-red-50">
-        <div className="p-4">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <AlertCircle className="h-8 w-8 text-red-600" />
-            <div className="text-red-800">
-              <h3 className="font-semibold">Failed to load categories</h3>
-              <p className="text-sm text-red-600">
-                {categoriesError instanceof Error 
-                  ? categoriesError.message 
-                  : 'An unexpected error occurred while loading categories'}
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => refetch()}
-              className="mt-2"
-            >
-              Try Again
-            </Button>
-          </div>
-        </div>
-      </Card>
-    );
-  } else {
-    content = (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {categories.map((category) => (
-          <Card key={category.id}>
-            <div className="p-4">
-              <div className="text-base font-medium flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Circle className="h-4 w-4" fill={category.color} stroke="none" />
-                  {category.name}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(category)}
-                    disabled={updateMutation.isPending}
-                    aria-label={`Edit ${category.name}`}
-                  >
-                    {updateMutation.isPending && updateMutation.variables?.id === category.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Edit className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(category)}
-                    disabled={deleteMutation.isPending}
-                    aria-label={`Delete ${category.name}`}
-                  >
-                    {deleteMutation.isPending && dialogState.delete?.id === category.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash className="h-4 w-4" />
-                    )}
-                  </Button>
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Categories</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="p-4">
+              <div className="animate-pulse flex space-x-4">
+                <div className="rounded-full bg-slate-200 h-10 w-10"></div>
+                <div className="flex-1 space-y-6 py-1">
+                  <div className="h-2 bg-slate-200 rounded"></div>
                 </div>
               </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
-  // Main render
+  // Error state
+  if (isError) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Categories</h2>
+        <Card className="p-6 border-red-200 bg-red-50">
+          <div className="flex flex-col items-center gap-4">
+            <AlertCircle className="h-10 w-10 text-red-600" />
+            <div className="text-center">
+              <h3 className="font-semibold text-red-900">Failed to load categories</h3>
+              <p className="text-sm text-red-600 mt-1">
+                {categoriesError instanceof Error ? categoriesError.message : 'An unexpected error occurred'}
+              </p>
+            </div>
+            <Button onClick={() => refetch()} variant="outline" className="mt-2">
+              Try Again
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -279,46 +233,57 @@ export function CategoryManager() {
         </Button>
       </div>
 
-      {content}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {categories.map((category) => (
+          <Card key={category.id} className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Circle className="h-4 w-4" fill={category.color} stroke="none" />
+                <span className="font-medium">{category.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(category)}
+                  disabled={updateMutation.isPending}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(category)}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
 
       <CategoryDialog
-        isOpen={dialogState.add || dialogState.edit !== null}
+        open={dialogState.add || !!dialogState.edit}
         onOpenChange={(open) => {
           if (!open) handleCloseDialogs();
         }}
         onSubmit={handleSubmit}
-        initialData={dialogState.edit || undefined}
+        defaultValues={dialogState.edit}
       />
 
-      <AlertDialog
-        open={dialogState.delete !== null}
-        onOpenChange={(open) => {
-          if (!open) handleCloseDialogs();
-        }}
-      >
+      <AlertDialog open={!!dialogState.delete}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Category</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this category?
-              This action cannot be undone.
+              Are you sure you want to delete this category? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
-            </AlertDialogAction>
+            <AlertDialogCancel onClick={handleCloseDialogs}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
