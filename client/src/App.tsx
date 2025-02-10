@@ -16,6 +16,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, X } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import CategoriesPage from "@/pages/Categories";
 import NotFound from "@/pages/not-found";
 import MonthlyToDateReport from "@/pages/monthly-to-date";
@@ -24,14 +25,11 @@ import AnnualReport from "@/pages/annual";
 import DateRangeReport from "@/pages/date-range";
 import IncomeReport from "@/pages/income";
 import ExpenseReport from "@/pages/expenses";
-import { Card } from "@/components/ui/card";
 
 function Router() {
   const { isLoading, error: dataError } = useData();
-  // Set today to February 10th, 2025
   const today = dayjs('2025-02-10');
 
-  // Current date info for display
   const currentDate = useMemo(() => ({
     day: today.date(),
     weekday: today.format('dddd'),
@@ -39,7 +37,6 @@ function Router() {
     year: today.year()
   }), [today]);
 
-  //State for month and year selection
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedYear, setSelectedYear] = useState(today.year());
 
@@ -52,7 +49,7 @@ function Router() {
 
   const years = useMemo(() => {
     const currentYear = today.year();
-    return Array.from({ length: 5 }, (_, i) => currentYear + i); //Show next 5 years
+    return Array.from({ length: 5 }, (_, i) => currentYear + i);
   }, [today]);
 
   const handleMonthChange = (month: number) => {
@@ -91,20 +88,19 @@ function Router() {
         </Alert>
       )}
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen flex flex-col bg-background">
         <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <Card className="p-4">
-            <div className="flex justify-between items-center">
-              <div className="space-y-2">
-                <h1 className="text-2xl font-bold">
+          <Card className="p-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <h1 className="text-xl font-bold">
                   My Budget
                 </h1>
                 <div className="flex items-center gap-2">
-                  {/* Month selection dropdown */}
                   <select 
                     value={selectedMonth}
                     onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-                    className="p-2 border rounded bg-background min-w-[120px]"
+                    className="p-1 border rounded bg-background text-sm"
                     aria-label="Select month"
                   >
                     {months.map(month => (
@@ -114,11 +110,10 @@ function Router() {
                     ))}
                   </select>
 
-                  {/* Year selection dropdown */}
                   <select
                     value={selectedYear}
                     onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                    className="p-2 border rounded bg-background min-w-[100px]"
+                    className="p-1 border rounded bg-background text-sm"
                     aria-label="Select year"
                   >
                     {years.map(year => (
@@ -126,32 +121,31 @@ function Router() {
                     ))}
                   </select>
 
-                  {/* Current date display */}
-                  <span className="text-primary font-medium">
+                  <span className="text-primary font-medium text-sm">
                     {currentDate.weekday}, {currentDate.day}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-6">
-                <ThemeToggle />
-              </div>
+              <ThemeToggle />
             </div>
           </Card>
         </header>
 
-        <main className="container py-6">
-          <Switch>
-            <Route path="/" component={Budget} />
-            <Route path="/categories" component={CategoriesPage} />
-            <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
-            <Route path="/reports/monthly" component={MonthlyReport} />
-            <Route path="/reports/annual" component={AnnualReport} />
-            <Route path="/reports/date-range" component={DateRangeReport} />
-            <Route path="/reports/income" component={IncomeReport} />
-            <Route path="/reports/expenses" component={ExpenseReport} />
-            <Route component={NotFound} />
-          </Switch>
+        <main className="flex-1 overflow-hidden">
+          <div className="h-full">
+            <Switch>
+              <Route path="/" component={Budget} />
+              <Route path="/categories" component={CategoriesPage} />
+              <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
+              <Route path="/reports/monthly" component={MonthlyReport} />
+              <Route path="/reports/annual" component={AnnualReport} />
+              <Route path="/reports/date-range" component={DateRangeReport} />
+              <Route path="/reports/income" component={IncomeReport} />
+              <Route path="/reports/expenses" component={ExpenseReport} />
+              <Route component={NotFound} />
+            </Switch>
+          </div>
         </main>
       </div>
     </ErrorBoundary>
