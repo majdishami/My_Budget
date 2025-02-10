@@ -93,6 +93,16 @@ export function LeftSidebar({
 
   return (
     <div className="relative">
+      {/* Mobile Menu Toggle - Outside the sliding panel */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="lg:hidden fixed top-4 left-4 z-50 bg-background"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
       <div className={`
         fixed inset-y-0 left-0 z-40 w-64 bg-background border-r transform 
         lg:relative lg:translate-x-0 lg:w-auto
@@ -100,19 +110,7 @@ export function LeftSidebar({
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         overflow-y-auto h-screen lg:h-auto
       `}>
-        <div className="sticky top-0 bg-background p-4 border-b lg:hidden">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full flex justify-between items-center"
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            <span>Menu</span>
-            <Menu className="h-5 w-5" />
-          </Button>
-        </div>
-
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-6 pt-16 lg:pt-4">
           <div className="space-y-2">
             <h2 className="text-lg font-semibold px-2">Expenses</h2>
             <div className="space-y-2">
