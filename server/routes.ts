@@ -266,7 +266,7 @@ export function registerRoutes(app: Express): Server {
         with: {
           category: true
         },
-        orderBy: (bills, { asc }) => [asc(bills.id)]
+        orderBy: (bills, { asc }) => [asc(bills.created_at)]
       });
 
       console.log('[Bills API] Found bills:', billsWithCategories.length);
