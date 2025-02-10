@@ -4,12 +4,10 @@ import { QueryClient } from '@tanstack/react-query';
 const getBaseUrl = () => {
   // In development, determine if we're running on Replit or locally
   if (process.env.NODE_ENV === 'development') {
+    // Always use the current hostname with protocol
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
-    const isReplit = hostname.endsWith('.replit.dev');
-    // Use port 5000 for Replit, 5001 for local development
-    const port = isReplit ? '5000' : '5001';
-    return `${protocol}//${hostname}:${port}`;
+    return `${protocol}//${hostname}:5000`; // Always use port 5000 for API
   }
   return '';
 };
@@ -34,7 +32,15 @@ export const apiRequest = async (
   const url = `${baseUrl}${endpoint}`;
 
   console.log(`[API Request] ${options.method || 'GET'} ${endpoint}`);
-  console.log('[API Request] URL:', url);
+  console.log('[API Request] Full URL:', url);
+  console.log('[API Request] Options:', {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    credentials: 'include',
+  });
 
   try {
     const response = await fetch(url, {
