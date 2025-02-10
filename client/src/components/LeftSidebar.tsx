@@ -14,7 +14,8 @@ import {
   Bell,
   Tags,
   Database,
-  Menu
+  Menu,
+  RefreshCw
 } from "lucide-react";
 import {
   Select,
@@ -91,20 +92,34 @@ export function LeftSidebar({
 
   const monthlyIncomes = getMonthlyIncomeOccurrences();
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
   return (
     <div className="relative">
-      {/* Mobile Menu Toggle - Outside the sliding panel */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden fixed top-4 left-4 z-50 bg-background"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
+      {/* Mobile Controls - Outside the sliding panel */}
+      <div className="lg:hidden fixed top-4 left-4 z-50 flex gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="bg-background"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="bg-background"
+          onClick={handleRefresh}
+        >
+          <RefreshCw className="h-5 w-5" />
+        </Button>
+      </div>
 
       <div className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-background border-r transform 
+        fixed inset-y-0 left-0 z-40 w-[280px] bg-background border-r transform 
         lg:relative lg:translate-x-0 lg:w-auto
         transition-transform duration-200 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
