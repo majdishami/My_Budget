@@ -131,46 +131,35 @@ export function registerRoutes(app: Express): Server {
   // Category Routes
   app.get('/api/categories', async (req, res) => {
     try {
-      console.log('Categories API called:', {
-        headers: req.headers,
-        ip: req.ip,
-        protocol: req.protocol,
-        host: req.get('host'),
-        originalUrl: req.originalUrl,
-        method: req.method
-      });
+      console.log('Categories API called');
 
-      // Check database connection first
+      // Verify database connection first
       try {
-        const result = await db.query.categories.findFirst();
-        console.log('Database connection verified');
+        const testQuery = await db.query.categories.findFirst();
+        console.log('Database connection test successful:', testQuery !== undefined);
 
-        // Fetch categories with enhanced error handling
-        console.log('Attempting to fetch categories...');
+        // Fetch all categories
         const userCategories = await db.query.categories.findMany({
           orderBy: (categories, { asc }) => [asc(categories.name)],
         });
 
-        console.log('Categories query completed, found:', userCategories?.length ?? 0, 'categories');
+        console.log(`Successfully fetched ${userCategories?.length ?? 0} categories`);
 
-        if (!userCategories || userCategories.length === 0) {
-          // If no categories found, return empty array but with 200 status
-          return res.json([]);
-        }
+        // Send response with categories
+        return res.json(userCategories || []);
 
-        return res.json(userCategories);
       } catch (dbError) {
-        console.error('Database error:', dbError);
-        return res.status(500).json({ 
+        console.error('Database error in categories endpoint:', dbError);
+        return res.status(500).json({
           message: 'Database error occurred',
-          details: process.env.NODE_ENV === 'development' ? (dbError as Error).message : undefined
+          error: process.env.NODE_ENV === 'development' ? (dbError as Error).message : 'Internal server error'
         });
       }
     } catch (error) {
-      console.error('Error in /api/categories:', error);
-      return res.status(500).json({ 
-        message: 'Failed to load categories. Please try again later.',
-        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+      console.error('Unexpected error in categories endpoint:', error);
+      return res.status(500).json({
+        message: 'Failed to load categories',
+        error: process.env.NODE_ENV === 'development' ? (error as Error).message : 'Internal server error'
       });
     }
   });
