@@ -33,7 +33,7 @@ interface MonthlyReportDialogProps {
 
 export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyReportDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const REFERENCE_DATE = dayjs('2025-02-08');
+  const REFERENCE_DATE = dayjs('2025-02-10'); // Today's date
 
   useEffect(() => {
     if (!isOpen) return;
@@ -66,7 +66,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
         amount: 2168,
         type: 'income'
       },
-      // Expense transactions
+      // Monthly expenses
       {
         date: '2025-02-01',
         description: 'ATT Phone Bill',
@@ -162,7 +162,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
     setTransactions(allTransactions);
   }, [isOpen]);
 
-  // Split transactions into occurred and pending
+  // Split transactions into occurred and pending based on REFERENCE_DATE
   const occurred = transactions.filter(t => dayjs(t.date).isSameOrBefore(REFERENCE_DATE));
   const pending = transactions.filter(t => dayjs(t.date).isAfter(REFERENCE_DATE));
 
@@ -182,7 +182,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
   const monthlyTotal = {
     income: occurredIncomesTotal + pendingIncomesTotal,
     expenses: occurredExpensesTotal + pendingExpensesTotal,
-    balance: (occurredIncomesTotal + pendingIncomesTotal) - (occurredExpensesTotal + pendingExpensesTotal)
+    balance: occurredBalance + pendingBalance
   };
 
   return (
@@ -197,7 +197,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
             <div className="flex items-center gap-2">
               <div className="text-sm font-normal flex items-center gap-1 bg-muted px-2 py-1 rounded-md">
                 <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                <span>As of February 8, 2025</span>
+                <span>As of February 10, 2025</span>
               </div>
               <DialogClose asChild>
                 <button
@@ -221,7 +221,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(occurredIncomesTotal + pendingIncomesTotal)}
+                  {formatCurrency(monthlyTotal.income)}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
                   <span className="text-green-600">✓ {formatCurrency(occurredIncomesTotal)}</span> occurred +{' '}
@@ -236,7 +236,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
-                  {formatCurrency(occurredExpensesTotal + pendingExpensesTotal)}
+                  {formatCurrency(monthlyTotal.expenses)}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
                   <span className="text-red-600">✓ {formatCurrency(occurredExpensesTotal)}</span> occurred +{' '}
@@ -276,7 +276,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
           <div className="border rounded-lg p-4 bg-green-50/50 dark:bg-green-950/20">
             <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
               <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
-              Occurred Transactions (Through Feb 8)
+              Occurred Transactions (Through Feb 10)
             </h2>
 
             {/* Occurred Income */}
@@ -346,7 +346,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
           <div className="border rounded-lg p-4 bg-yellow-50/50 dark:bg-yellow-950/20">
             <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
               <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full"></span>
-              Pending Transactions (After Feb 8)
+              Pending Transactions (After Feb 10)
             </h2>
 
             {/* Pending Income */}
