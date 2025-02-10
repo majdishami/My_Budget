@@ -63,17 +63,6 @@ function Router() {
     setSelectedYear(year);
   };
 
-  // Sample data - Replace with actual data fetching logic
-  const monthlyTotals = useMemo(() => ({
-    totalIncome: 2500,
-    totalBills: 1200,
-    balance: 1300,
-  }), []);
-
-  const formatCurrency = (amount: number) => {
-    return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-  };
-
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -146,26 +135,6 @@ function Router() {
 
               <div className="flex items-center gap-6">
                 <ThemeToggle />
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Income</p>
-                  <p className="text-lg font-semibold text-green-600">
-                    {formatCurrency(monthlyTotals.totalIncome)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Bills</p>
-                  <p className="text-lg font-semibold text-red-600">
-                    {formatCurrency(monthlyTotals.totalBills)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Net Balance</p>
-                  <p className={`text-lg font-semibold ${
-                    monthlyTotals.balance >= 0 ? "text-green-600" : "text-red-600"
-                  }`}>
-                    {formatCurrency(monthlyTotals.balance)}
-                  </p>
-                </div>
               </div>
             </div>
           </Card>
