@@ -74,12 +74,13 @@ export async function restoreDatabaseBackup(backupFile: string) {
       }
 
       // Read and parse backup file
-      const backupContent = fs.readFileSync(backupFile, 'utf-8');
       let backupData: Record<string, any[]>;
-
       try {
+        const backupContent = fs.readFileSync(backupFile, 'utf-8');
         backupData = JSON.parse(backupContent);
+        console.log('Successfully parsed backup file');
       } catch (parseError) {
+        console.error('Error parsing backup file:', parseError);
         throw new Error(`Invalid JSON format in backup file: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
       }
 
