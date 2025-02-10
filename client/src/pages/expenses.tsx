@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Bill } from "@/components/ExpenseReportDialog";
+import { Bill } from "@/types"; 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,9 +45,6 @@ export default function ExpenseReport() {
       </div>
     );
   }
-
-  // Log bills data for debugging
-  console.log('Bills data:', bills);
 
   return (
     <div className="container mx-auto p-4">
