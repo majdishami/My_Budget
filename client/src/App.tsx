@@ -28,7 +28,7 @@ import { Card } from "@/components/ui/card";
 
 function Router() {
   const { isLoading, error: dataError } = useData();
-  // Set today to February 8th, 2025
+  // Set today to February 10th, 2025
   const today = dayjs('2025-02-10');
 
   // Current date info for display
@@ -55,7 +55,6 @@ function Router() {
     return Array.from({ length: 5 }, (_, i) => currentYear + i); //Show next 5 years
   }, [today]);
 
-
   const handleMonthChange = (month: number) => {
     setSelectedMonth(month);
   };
@@ -63,7 +62,6 @@ function Router() {
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
   };
-
 
   // Sample data - Replace with actual data fetching logic
   const monthlyTotals = useMemo(() => ({
@@ -106,11 +104,11 @@ function Router() {
 
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <Card className="p-4">
             <div className="flex justify-between items-center">
               <div className="space-y-2">
                 <h1 className="text-2xl font-bold">
-                  My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                  My Budget
                 </h1>
                 <div className="flex items-center gap-2">
                   {/* Month selection dropdown */}
@@ -140,7 +138,7 @@ function Router() {
                   </select>
 
                   {/* Current date display */}
-                  <span className="text-muted-foreground">
+                  <span className="text-primary font-medium">
                     {currentDate.weekday}, {currentDate.day}
                   </span>
                 </div>
