@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/card";
 import CategoriesPage from "@/pages/Categories";
 import NotFound from "@/pages/not-found";
 import MonthlyToDateReport from "@/pages/monthly-to-date";
+import { LeftSidebar } from "@/components/LeftSidebar";
 import MonthlyReport from "@/pages/monthly";
 import AnnualReport from "@/pages/annual";
 import DateRangeReport from "@/pages/date-range";
@@ -27,7 +28,7 @@ import IncomeReport from "@/pages/income";
 import ExpenseReport from "@/pages/expenses";
 
 function Router() {
-  const { isLoading, error: dataError } = useData();
+  const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome, addBill, resetData } = useData();
   const today = dayjs('2025-02-10');
 
   const currentDate = useMemo(() => ({
@@ -89,11 +90,19 @@ function Router() {
       )}
 
       <div className="min-h-screen flex bg-background">
-        <aside className="w-40 border-r p-1 bg-muted/30 fixed top-0 bottom-0 left-0 overflow-y-auto z-30">
-          {/* Left sidebar content */}
+        <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 left-0 overflow-y-auto z-30">
+          <LeftSidebar
+            incomes={incomes}
+            bills={bills}
+            onEditTransaction={editTransaction}
+            onDeleteTransaction={deleteTransaction}
+            onAddIncome={addIncome}
+            onAddBill={addBill}
+            onReset={resetData}
+          />
         </aside>
 
-        <div className="flex-1 flex flex-col pl-40">
+        <div className="flex-1 flex flex-col pl-56">
           <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <Card className="p-1">
               <div className="flex items-center justify-between px-4">
