@@ -13,11 +13,12 @@ const getBaseUrl = () => {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 3, // Increase retry attempts
+      retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
-      staleTime: 5000,
-      refetchOnWindowFocus: false,
+      staleTime: 1000, // Reduced stale time to ensure fresh data
+      refetchOnWindowFocus: true,
       refetchOnReconnect: true,
+      refetchOnMount: true,
     },
   },
 });
@@ -30,48 +31,44 @@ export const apiRequest = async (
   const baseUrl = getBaseUrl();
   const url = `${baseUrl}${endpoint}`;
 
-  console.log(`[API Request] ${options.method || 'GET'} ${endpoint}`);
-  console.log('[API Request] Full URL:', url);
-  console.log('[API Request] Options:', {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
   try {
     // Check network connectivity
     if (!navigator.onLine) {
+      console.error('[API Error] No internet connection');
       throw new Error('No internet connection');
     }
 
+    console.log(`[API Request] ${options.method || 'GET'} ${endpoint}`);
+    console.log('[API Request] Full URL:', url);
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
         ...options.headers,
       },
       signal: controller.signal,
+      credentials: 'same-origin',
     });
 
     clearTimeout(timeoutId);
 
-    console.log(`[API Response] Status: ${response.status}`);
-    console.log('[API Response] Headers:', Object.fromEntries(response.headers.entries()));
-
     // Get the response text first for debugging
     const responseText = await response.text();
+    console.log('[API Response] Status:', response.status);
     console.log('[API Response] Raw response:', responseText);
 
     // Try to parse as JSON if possible
     let data;
     try {
       data = responseText ? JSON.parse(responseText) : null;
+      console.log('[API Response] Parsed data:', data);
     } catch (parseError) {
       console.error('[API Error] Failed to parse response as JSON:', parseError);
       console.error('[API Error] Raw response was:', responseText);
@@ -80,7 +77,11 @@ export const apiRequest = async (
 
     if (!response.ok) {
       const errorMessage = data?.message || response.statusText || 'An unknown error occurred';
-      console.error('[API Error]', errorMessage, data);
+      console.error('[API Error] Response not OK:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorMessage
+      });
       throw new Error(errorMessage);
     }
 
@@ -89,12 +90,16 @@ export const apiRequest = async (
       throw new Error('Empty response from server');
     }
 
-    console.log('[API Success] Data:', data);
+    if (Array.isArray(data)) {
+      console.log('[API Success] Received array of length:', data.length);
+    } else {
+      console.log('[API Success] Received object:', data);
+    }
+
     return data;
   } catch (error) {
     console.error('[API Error] Request failed:', error);
     if (error instanceof Error) {
-      // Handle specific error types
       if (error.name === 'AbortError') {
         throw new Error('Request timed out');
       }
