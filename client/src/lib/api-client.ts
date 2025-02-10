@@ -13,10 +13,11 @@ const getBaseUrl = () => {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1, // Reduce retry attempts to quickly identify issues
+      retry: 3, // Increase retry attempts
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
       staleTime: 5000,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
     },
   },
 });
@@ -46,12 +47,13 @@ export const apiRequest = async (
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         ...options.headers,
       },
       signal: controller.signal,
@@ -77,12 +79,12 @@ export const apiRequest = async (
     }
 
     if (!response.ok) {
-      const errorMessage = data?.message || 'An unknown error occurred';
+      const errorMessage = data?.message || response.statusText || 'An unknown error occurred';
       console.error('[API Error]', errorMessage, data);
       throw new Error(errorMessage);
     }
 
-    if (!data) {
+    if (data === null || data === undefined) {
       console.error('[API Error] Response was empty');
       throw new Error('Empty response from server');
     }
@@ -95,6 +97,9 @@ export const apiRequest = async (
       // Handle specific error types
       if (error.name === 'AbortError') {
         throw new Error('Request timed out');
+      }
+      if (!navigator.onLine) {
+        throw new Error('Lost internet connection');
       }
       throw error;
     }
