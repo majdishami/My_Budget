@@ -44,16 +44,42 @@ interface AnnualReportDialogProps {
 }
 
 interface AnnualSummary {
-  majdiTotal: number;
-  rubaTotal: number;
-  totalIncome: number;
-  expensesByCategory: Record<string, number>;
-  totalExpenses: number;
+  majdiTotal: {
+    occurred: number;
+    pending: number;
+  };
+  rubaTotal: {
+    occurred: number;
+    pending: number;
+  };
+  totalIncome: {
+    occurred: number;
+    pending: number;
+  };
+  expensesByCategory: {
+    [key: string]: {
+      occurred: number;
+      pending: number;
+    };
+  };
+  totalExpenses: {
+    occurred: number;
+    pending: number;
+  };
   monthlyBreakdown: {
     [key: string]: {
-      income: number;
-      expenses: number;
-      net: number;
+      income: {
+        occurred: number;
+        pending: number;
+      };
+      expenses: {
+        occurred: number;
+        pending: number;
+      };
+      net: {
+        occurred: number;
+        pending: number;
+      };
     };
   };
 }
@@ -68,7 +94,7 @@ export default function AnnualReportDialog({
   const [year, setSelectedYear] = useState(selectedYear);
   const currentYear = dayjs().year();
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
-  const today = useMemo(() => dayjs('2025-02-08'), []); // Fixed date for consistent behavior
+  const today = useMemo(() => dayjs('2025-02-09'), []);
 
   useEffect(() => {
     if (isOpen) {
@@ -86,77 +112,126 @@ export default function AnnualReportDialog({
 
   const annualSummary = useMemo((): AnnualSummary => {
     const summary = {
-      majdiTotal: 0,
-      rubaTotal: 0,
-      totalIncome: 0,
-      expensesByCategory: {} as Record<string, number>,
-      totalExpenses: 0,
-      monthlyBreakdown: {} as Record<string, { income: number; expenses: number; net: number; }>,
+      majdiTotal: { occurred: 0, pending: 0 },
+      rubaTotal: { occurred: 0, pending: 0 },
+      totalIncome: { occurred: 0, pending: 0 },
+      expensesByCategory: {} as Record<string, { occurred: number; pending: number }>,
+      totalExpenses: { occurred: 0, pending: 0 },
+      monthlyBreakdown: {} as Record<
+        string,
+        {
+          income: { occurred: number; pending: number };
+          expenses: { occurred: number; pending: number };
+          net: { occurred: number; pending: number };
+        }
+      >,
     };
-
-    // Calculate Majdi's annual salary
-    const majdiMonthlyAmount = incomes.find(income => income.source === "Majdi's Salary")?.amount || 0;
-    summary.majdiTotal = majdiMonthlyAmount * 24; // Bi-monthly payments
-
-    // Calculate Ruba's annual salary
-    const rubaSalaryAmount = incomes.find(income => income.source === "Ruba's Salary")?.amount || 0;
-    const startDate = dayjs('2025-01-10');
-    const yearStart = dayjs(year.toString()).startOf('year');
-    const yearEnd = dayjs(year.toString()).endOf('year');
 
     // Initialize monthly breakdown
     for (let month = 0; month < 12; month++) {
       const monthKey = dayjs().month(month).format('MMMM');
       summary.monthlyBreakdown[monthKey] = {
-        income: majdiMonthlyAmount * 2, // Majdi's monthly income
-        expenses: 0,
-        net: 0,
+        income: { occurred: 0, pending: 0 },
+        expenses: { occurred: 0, pending: 0 },
+        net: { occurred: 0, pending: 0 },
       };
     }
 
+    // Calculate Majdi's salary occurrences
+    const majdiMonthlyAmount = incomes.find(income => income.source === "Majdi's Salary")?.amount || 0;
+    const majdiPerPaycheck = majdiMonthlyAmount / 2;
+
+    for (let month = 0; month < 12; month++) {
+      const monthKey = dayjs().month(month).format('MMMM');
+      const firstPayday = dayjs(`${year}-${month + 1}-01`);
+      const fifteenthPayday = dayjs(`${year}-${month + 1}-15`);
+
+      // First paycheck of the month
+      if (firstPayday.isBefore(today) || firstPayday.isSame(today, 'day')) {
+        summary.majdiTotal.occurred += majdiPerPaycheck;
+        summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
+      } else {
+        summary.majdiTotal.pending += majdiPerPaycheck;
+        summary.monthlyBreakdown[monthKey].income.pending += majdiPerPaycheck;
+      }
+
+      // Second paycheck of the month
+      if (fifteenthPayday.isBefore(today) || fifteenthPayday.isSame(today, 'day')) {
+        summary.majdiTotal.occurred += majdiPerPaycheck;
+        summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
+      } else {
+        summary.majdiTotal.pending += majdiPerPaycheck;
+        summary.monthlyBreakdown[monthKey].income.pending += majdiPerPaycheck;
+      }
+    }
+
     // Calculate Ruba's bi-weekly payments
-    let currentDate = startDate.clone();
+    const rubaSalaryAmount = incomes.find(income => income.source === "Ruba's Salary")?.amount || 0;
+    let currentDate = dayjs('2025-01-10'); 
+    const yearStart = dayjs(year.toString()).startOf('year');
+    const yearEnd = dayjs(year.toString()).endOf('year');
+
     while (currentDate.isBefore(yearEnd) || currentDate.isSame(yearEnd, 'day')) {
-      if (currentDate.year() === year && currentDate.day() === 5) {
-        const weeksDiff = currentDate.diff(startDate, 'week');
+      if (currentDate.year() === year && currentDate.day() === 5) { 
+        const weeksDiff = currentDate.diff(dayjs('2025-01-10'), 'week');
         if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
           const monthKey = currentDate.format('MMMM');
-          summary.monthlyBreakdown[monthKey].income += rubaSalaryAmount;
-          summary.rubaTotal += rubaSalaryAmount;
+          if (currentDate.isBefore(today) || currentDate.isSame(today, 'day')) {
+            summary.rubaTotal.occurred += rubaSalaryAmount;
+            summary.monthlyBreakdown[monthKey].income.occurred += rubaSalaryAmount;
+          } else {
+            summary.rubaTotal.pending += rubaSalaryAmount;
+            summary.monthlyBreakdown[monthKey].income.pending += rubaSalaryAmount;
+          }
         }
       }
       currentDate = currentDate.add(1, 'day');
     }
 
     // Calculate total income
-    summary.totalIncome = summary.majdiTotal + summary.rubaTotal;
+    summary.totalIncome.occurred = summary.majdiTotal.occurred + summary.rubaTotal.occurred;
+    summary.totalIncome.pending = summary.majdiTotal.pending + summary.rubaTotal.pending;
 
     // Calculate expenses by category and monthly breakdown
     bills.forEach(bill => {
-      const annualAmount = Math.round(bill.amount * 12);
-      summary.expensesByCategory[bill.name] = annualAmount;
-      summary.totalExpenses += annualAmount;
-
-      // Add monthly expense to breakdown
       const monthlyAmount = bill.amount;
-      Object.keys(summary.monthlyBreakdown).forEach(month => {
-        summary.monthlyBreakdown[month].expenses += monthlyAmount;
-      });
+      summary.expensesByCategory[bill.name] = { occurred: 0, pending: 0 };
+
+      for (let month = 0; month < 12; month++) {
+        const monthKey = dayjs().month(month).format('MMMM');
+        const billDate = dayjs(`${year}-${month + 1}-${dayjs(bill.date).date()}`);
+
+        if (billDate.isBefore(today) || billDate.isSame(today, 'day')) {
+          summary.expensesByCategory[bill.name].occurred += monthlyAmount;
+          summary.monthlyBreakdown[monthKey].expenses.occurred += monthlyAmount;
+        } else {
+          summary.expensesByCategory[bill.name].pending += monthlyAmount;
+          summary.monthlyBreakdown[monthKey].expenses.pending += monthlyAmount;
+        }
+      }
+    });
+
+    // Calculate total expenses
+    Object.values(summary.expensesByCategory).forEach(({ occurred, pending }) => {
+      summary.totalExpenses.occurred += occurred;
+      summary.totalExpenses.pending += pending;
     });
 
     // Calculate monthly net amounts
     Object.keys(summary.monthlyBreakdown).forEach(month => {
-      summary.monthlyBreakdown[month].net = 
-        summary.monthlyBreakdown[month].income - 
-        summary.monthlyBreakdown[month].expenses;
+      summary.monthlyBreakdown[month].net = {
+        occurred: summary.monthlyBreakdown[month].income.occurred - summary.monthlyBreakdown[month].expenses.occurred,
+        pending: summary.monthlyBreakdown[month].income.pending - summary.monthlyBreakdown[month].expenses.pending,
+      };
     });
 
     return summary;
-  }, [incomes, bills, year]);
+  }, [incomes, bills, year, today]);
 
-  const netAnnualBalance = annualSummary.totalIncome - annualSummary.totalExpenses;
-  const monthlyAverageIncome = annualSummary.totalIncome / 12;
-  const monthlyAverageExpenses = annualSummary.totalExpenses / 12;
+  // Calculate total net values including both occurred and pending
+  const totalNetOccurred = annualSummary.totalIncome.occurred - annualSummary.totalExpenses.occurred;
+  const totalNetPending = annualSummary.totalIncome.pending - annualSummary.totalExpenses.pending;
+  const totalNet = totalNetOccurred + totalNetPending;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -201,7 +276,6 @@ export default function AnnualReportDialog({
         </DialogHeader>
 
         <div className="space-y-6 pt-4">
-          {/* Annual Overview Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="bg-muted/50">
               <CardHeader className="py-4">
@@ -209,19 +283,27 @@ export default function AnnualReportDialog({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(annualSummary.totalIncome)}
+                  {formatCurrency(annualSummary.totalIncome.occurred + annualSummary.totalIncome.pending)}
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
-                  Monthly Average: {formatCurrency(monthlyAverageIncome)}
+                  <span className="text-green-600">✓ {formatCurrency(annualSummary.totalIncome.occurred)}</span> occurred
+                  <br />
+                  <span className="text-green-400">⌛ {formatCurrency(annualSummary.totalIncome.pending)}</span> pending
                 </div>
                 <div className="space-y-1 mt-4 text-sm">
                   <div className="flex justify-between">
-                    <span>Majdi's Contribution:</span>
-                    <span className="text-green-600">{formatCurrency(annualSummary.majdiTotal)}</span>
+                    <span>Majdi's Total:</span>
+                    <div className="text-right">
+                      <div className="text-green-600">✓ {formatCurrency(annualSummary.majdiTotal.occurred)}</div>
+                      <div className="text-green-400">⌛ {formatCurrency(annualSummary.majdiTotal.pending)}</div>
+                    </div>
                   </div>
                   <div className="flex justify-between">
-                    <span>Ruba's Contribution:</span>
-                    <span className="text-green-600">{formatCurrency(annualSummary.rubaTotal)}</span>
+                    <span>Ruba's Total:</span>
+                    <div className="text-right">
+                      <div className="text-green-600">✓ {formatCurrency(annualSummary.rubaTotal.occurred)}</div>
+                      <div className="text-green-400">⌛ {formatCurrency(annualSummary.rubaTotal.pending)}</div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -233,10 +315,12 @@ export default function AnnualReportDialog({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
-                  {formatCurrency(annualSummary.totalExpenses)}
+                  {formatCurrency(annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)}
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
-                  Monthly Average: {formatCurrency(monthlyAverageExpenses)}
+                  <span className="text-red-600">✓ {formatCurrency(annualSummary.totalExpenses.occurred)}</span> occurred
+                  <br />
+                  <span className="text-red-400">⌛ {formatCurrency(annualSummary.totalExpenses.pending)}</span> pending
                 </div>
                 <div className="text-sm text-muted-foreground mt-4">
                   {Object.keys(annualSummary.expensesByCategory).length} Expense Categories
@@ -249,20 +333,24 @@ export default function AnnualReportDialog({
                 <CardTitle className="text-sm font-medium">Net Annual Balance</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${netAnnualBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                  {formatCurrency(netAnnualBalance)}
+                <div className={`text-2xl font-bold ${totalNet >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                  {formatCurrency(totalNet)}
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
-                  Monthly Net: {formatCurrency(netAnnualBalance / 12)}
+                  <div className={totalNetOccurred >= 0 ? 'text-blue-600' : 'text-red-600'}>
+                    ✓ {formatCurrency(totalNetOccurred)} occurred
+                  </div>
+                  <div className={totalNetPending >= 0 ? 'text-blue-400' : 'text-red-400'}>
+                    ⌛ {formatCurrency(totalNetPending)} pending
+                  </div>
                 </div>
                 <div className="text-sm text-muted-foreground mt-4">
-                  {netAnnualBalance >= 0 ? 'Surplus' : 'Deficit'} for {year}
+                  {totalNet >= 0 ? 'Surplus' : 'Deficit'} for {year}
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Monthly Breakdown */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-semibold">Monthly Breakdown</CardTitle>
@@ -278,26 +366,38 @@ export default function AnnualReportDialog({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Object.entries(annualSummary.monthlyBreakdown).map(([month, data]) => (
-                    <TableRow key={month}>
-                      <TableCell>{month}</TableCell>
-                      <TableCell className="text-right text-green-600">
-                        {formatCurrency(data.income)}
-                      </TableCell>
-                      <TableCell className="text-right text-red-600">
-                        {formatCurrency(data.expenses)}
-                      </TableCell>
-                      <TableCell className={`text-right ${data.net >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                        {formatCurrency(data.net)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {Object.entries(annualSummary.monthlyBreakdown).map(([month, data]) => {
+                    const totalIncome = data.income.occurred + data.income.pending;
+                    const totalExpenses = data.expenses.occurred + data.expenses.pending;
+                    const netTotal = totalIncome - totalExpenses;
+
+                    return (
+                      <TableRow key={month}>
+                        <TableCell>{month}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="text-green-600">✓ {formatCurrency(data.income.occurred)}</div>
+                          <div className="text-green-400">⌛ {formatCurrency(data.income.pending)}</div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="text-red-600">✓ {formatCurrency(data.expenses.occurred)}</div>
+                          <div className="text-red-400">⌛ {formatCurrency(data.expenses.pending)}</div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className={data.net.occurred >= 0 ? 'text-blue-600' : 'text-red-600'}>
+                            ✓ {formatCurrency(data.net.occurred)}
+                          </div>
+                          <div className={data.net.pending >= 0 ? 'text-blue-400' : 'text-red-400'}>
+                            ⌛ {formatCurrency(data.net.pending)}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
 
-          {/* Expense Categories Breakdown */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-semibold">Expense Categories</CardTitle>
@@ -307,28 +407,32 @@ export default function AnnualReportDialog({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Monthly Amount</TableHead>
+                    <TableHead className="text-right">Monthly Average</TableHead>
                     <TableHead className="text-right">Annual Amount</TableHead>
-                    <TableHead className="text-right">% of Total</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {Object.entries(annualSummary.expensesByCategory)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([category, amount]) => (
-                      <TableRow key={category}>
-                        <TableCell>{category}</TableCell>
-                        <TableCell className="text-right text-red-600">
-                          {formatCurrency(amount / 12)}
-                        </TableCell>
-                        <TableCell className="text-right text-red-600">
-                          {formatCurrency(amount)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {((amount / annualSummary.totalExpenses) * 100).toFixed(1)}%
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    .sort(([, a], [, b]) => (b.occurred + b.pending) - (a.occurred + a.pending))
+                    .map(([category, amounts]) => {
+                      const total = amounts.occurred + amounts.pending;
+                      return (
+                        <TableRow key={category}>
+                          <TableCell>{category}</TableCell>
+                          <TableCell className="text-right text-red-600">
+                            {formatCurrency(total / 12)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="text-red-600">✓ {formatCurrency(amounts.occurred)}</div>
+                            <div className="text-red-400">⌛ {formatCurrency(amounts.pending)}</div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1)}%
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                 </TableBody>
               </Table>
             </CardContent>
