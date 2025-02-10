@@ -10,7 +10,7 @@ import { useState } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { Income, Bill } from "@/types";
-import { cn, generateId, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { Card } from "@/components/ui/card";
 import { useData } from "@/contexts/DataContext";
@@ -93,13 +93,56 @@ export function Budget() {
     return day === today.date() && selectedMonth === today.month() && selectedYear === today.year();
   };
 
+  // Calculate all income occurrences for the current month
+  const getMonthlyIncomeOccurrences = () => {
+    const currentDate = dayjs().year(selectedYear).month(selectedMonth);
+    const startOfMonth = currentDate.startOf('month');
+    const endOfMonth = currentDate.endOf('month');
+    const startDate = dayjs('2025-01-10'); // Ruba's salary start date
+
+    const occurrences: Income[] = [];
+
+    incomes.forEach(income => {
+      if (income.source === "Ruba's Salary") {
+        // Calculate bi-weekly occurrences
+        let checkDate = startDate.clone();
+        while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
+          if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
+            if (checkDate.day() === 5) { // Friday
+              const weeksDiff = checkDate.diff(startDate, 'week');
+              if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+                occurrences.push({
+                  ...income,
+                  date: checkDate.toISOString(),
+                  id: `${income.id}-${checkDate.format('YYYY-MM-DD')}`
+                });
+              }
+            }
+          }
+          checkDate = checkDate.add(1, 'day');
+        }
+      } else {
+        // Regular monthly incomes
+        const incomeDate = dayjs(income.date)
+          .year(selectedYear)
+          .month(selectedMonth);
+        occurrences.push({
+          ...income,
+          date: incomeDate.toISOString()
+        });
+      }
+    });
+
+    return occurrences;
+  };
+
   const getIncomeForDay = (day: number) => {
+    const monthlyIncomes = getMonthlyIncomeOccurrences();
     const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
-    return incomes.filter(income => {
+
+    return monthlyIncomes.filter(income => {
       const incomeDate = dayjs(income.date);
-      return incomeDate.date() === day && 
-             incomeDate.month() === selectedMonth && 
-             incomeDate.year() === selectedYear;
+      return incomeDate.date() === day;
     });
   }
 
@@ -133,13 +176,12 @@ export function Budget() {
       .month(selectedMonth)
       .date(day);
 
-    // Calculate income
-    incomes.forEach(income => {
+    // Calculate income using monthly occurrences
+    const monthlyIncomes = getMonthlyIncomeOccurrences();
+    monthlyIncomes.forEach(income => {
       const incomeDate = dayjs(income.date);
-      if (incomeDate.isSame(targetDate, 'month') && incomeDate.isSame(targetDate, 'year')) {
-        if (incomeDate.date() <= day) {
-          totalIncome += income.amount;
-        }
+      if (incomeDate.date() <= day) {
+        totalIncome += income.amount;
       }
     });
 
