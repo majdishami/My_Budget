@@ -1,4 +1,3 @@
-// External dependencies
 import { useState, useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
@@ -46,7 +45,7 @@ interface IncomeReportDialogProps {
   incomes: Income[];
 }
 
-export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: IncomeReportDialogProps) {
+export default function IncomeReportDialog({ isOpen, onOpenChange, incomes: propIncomes }: IncomeReportDialogProps) {
   const today = useMemo(() => dayjs('2025-02-10'), []); // Fixed current date
   const [date, setDate] = useState<DateRange | undefined>({
     from: today.toDate(),
@@ -58,6 +57,27 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
     occurred: 0,
     pending: 0
   });
+
+  // Default incomes if none provided
+  const defaultIncomes = [
+    {
+      id: '1',
+      source: "Majdi's Salary",
+      amount: 9478,
+      date: '2025-01-01',
+    },
+    {
+      id: '2',
+      source: "Ruba's Salary",
+      amount: 2168,
+      date: '2025-01-10',
+    }
+  ];
+
+  // Use provided incomes or fall back to defaults
+  const incomes = useMemo(() => {
+    return propIncomes.length > 0 ? propIncomes : defaultIncomes;
+  }, [propIncomes]);
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -74,7 +94,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
 
   // Generate transactions when date range is selected
   useEffect(() => {
-    if (!showReport || !date?.from || !date?.to || !incomes?.length) return;
+    if (!showReport || !date?.from || !date?.to) return;
 
     const startDate = dayjs(date.from);
     const endDate = dayjs(date.to);
@@ -89,7 +109,9 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
 
       incomes.forEach(income => {
         if (income.source === "Majdi's Salary") {
+          // Calculate bi-monthly salary (1st and 15th of each month)
           let currentDate = startDate.clone().startOf('month');
+          const amount = income.amount / 2; // Split monthly amount
 
           while (currentDate.isSameOrBefore(endDate)) {
             // First paycheck of the month (1st)
@@ -98,7 +120,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               mockTransactions.push({
                 date: firstPayday.format('YYYY-MM-DD'),
                 description: `${income.source} (1st)`,
-                amount: income.amount / 2,
+                amount,
                 occurred: hasDateOccurred(firstPayday)
               });
             }
@@ -109,7 +131,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               mockTransactions.push({
                 date: fifteenthPayday.format('YYYY-MM-DD'),
                 description: `${income.source} (15th)`,
-                amount: income.amount / 2,
+                amount,
                 occurred: hasDateOccurred(fifteenthPayday)
               });
             }
@@ -117,7 +139,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
             currentDate = currentDate.add(1, 'month');
           }
         } else if (income.source === "Ruba's Salary") {
-          // Start from January 10, 2025, and calculate bi-weekly payments
+          // Start from January 10, 2025, for bi-weekly payments
           let payDate = dayjs('2025-01-10');
 
           // Find the first payment date within or before the range
@@ -240,7 +262,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               <CardTitle className="text-sm font-medium">Pending Income</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-200">{formatCurrency(summaryTotals.pending)}</div>
+              <div className="text-2xl font-bold text-green-400">{formatCurrency(summaryTotals.pending)}</div>
             </CardContent>
           </Card>
         </div>
