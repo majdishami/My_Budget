@@ -18,7 +18,6 @@ import {
 import { useLocation } from "wouter";
 import { apiRequest } from '@/lib/api-client';
 
-// Enhanced TypeScript interfaces
 interface Category {
   id: number;
   name: string;
@@ -51,7 +50,7 @@ export function CategoryManager() {
     delete: null,
   });
 
-  // Categories query with enhanced error handling
+  // Categories query with enhanced error handling and logging
   const {
     data: categories = [],
     isLoading: isLoadingCategories,
@@ -61,13 +60,31 @@ export function CategoryManager() {
   } = useQuery({
     queryKey: ['/api/categories'],
     queryFn: async () => {
-      console.log('Fetching categories...');
       try {
+        console.log('[Categories] Starting fetch...');
         const response = await apiRequest('/api/categories');
-        console.log('Categories fetch response:', response);
+        console.log('[Categories] Fetch successful:', response);
+
+        // Validate response structure
+        if (!Array.isArray(response)) {
+          console.error('[Categories] Invalid response format:', response);
+          throw new Error('Invalid response format from server');
+        }
+
+        // Validate each category object
+        const validCategories = response.every(cat => 
+          typeof cat === 'object' && cat !== null && 
+          'id' in cat && 'name' in cat && 'color' in cat
+        );
+
+        if (!validCategories) {
+          console.error('[Categories] Invalid category data:', response);
+          throw new Error('Invalid category data received');
+        }
+
         return response;
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('[Categories] Fetch failed:', error);
         throw error;
       }
     },
@@ -94,7 +111,51 @@ export function CategoryManager() {
     }
   };
 
-  // Mutations
+  // Loading state with skeleton UI
+  if (isLoadingCategories) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Categories</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="p-4">
+              <div className="animate-pulse flex space-x-4">
+                <div className="rounded-full bg-slate-200 h-10 w-10"></div>
+                <div className="flex-1 space-y-6 py-1">
+                  <div className="h-2 bg-slate-200 rounded"></div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Error state with retry button
+  if (isError) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Categories</h2>
+        <Card className="p-6 border-red-200 bg-red-50">
+          <div className="flex flex-col items-center gap-4">
+            <AlertCircle className="h-10 w-10 text-red-600" />
+            <div className="text-center">
+              <h3 className="font-semibold text-red-900">Failed to load categories</h3>
+              <p className="text-sm text-red-600 mt-1">
+                {categoriesError instanceof Error ? categoriesError.message : 'An unexpected error occurred'}
+              </p>
+            </div>
+            <Button onClick={() => refetch()} variant="outline" className="mt-2">
+              Try Again
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Mutations for category operations
   const createMutation = useMutation({
     mutationFn: async (newCategory: CategoryFormData) => {
       return apiRequest('/api/categories', {
@@ -166,56 +227,7 @@ export function CategoryManager() {
     },
   });
 
-  const confirmDelete = () => {
-    if (dialogState.delete) {
-      deleteMutation.mutate(dialogState.delete.id);
-    }
-  };
-
-  // Loading state
-  if (isLoadingCategories) {
-    return (
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Categories</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="p-4">
-              <div className="animate-pulse flex space-x-4">
-                <div className="rounded-full bg-slate-200 h-10 w-10"></div>
-                <div className="flex-1 space-y-6 py-1">
-                  <div className="h-2 bg-slate-200 rounded"></div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (isError) {
-    return (
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Categories</h2>
-        <Card className="p-6 border-red-200 bg-red-50">
-          <div className="flex flex-col items-center gap-4">
-            <AlertCircle className="h-10 w-10 text-red-600" />
-            <div className="text-center">
-              <h3 className="font-semibold text-red-900">Failed to load categories</h3>
-              <p className="text-sm text-red-600 mt-1">
-                {categoriesError instanceof Error ? categoriesError.message : 'An unexpected error occurred'}
-              </p>
-            </div>
-            <Button onClick={() => refetch()} variant="outline" className="mt-2">
-              Try Again
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
+  // Main render with category list
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -234,7 +246,7 @@ export function CategoryManager() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {categories.map((category) => (
+        {categories.map((category: Category) => (
           <Card key={category.id} className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -265,12 +277,12 @@ export function CategoryManager() {
       </div>
 
       <CategoryDialog
-        open={dialogState.add || !!dialogState.edit}
+        isOpen={dialogState.add || !!dialogState.edit}
         onOpenChange={(open) => {
           if (!open) handleCloseDialogs();
         }}
         onSubmit={handleSubmit}
-        defaultValues={dialogState.edit}
+        initialData={dialogState.edit}
       />
 
       <AlertDialog open={!!dialogState.delete}>
@@ -283,7 +295,9 @@ export function CategoryManager() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCloseDialogs}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={() => dialogState.delete && deleteMutation.mutate(dialogState.delete.id)}>
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
