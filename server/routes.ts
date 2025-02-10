@@ -135,6 +135,7 @@ export function registerRoutes(app: Express): Server {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Content-Type', 'application/json');
 
     try {
       console.log('[Categories API] Request received');
@@ -152,9 +153,6 @@ export function registerRoutes(app: Express): Server {
           error: 'Invalid response format'
         });
       }
-
-      // Set appropriate content type
-      res.header('Content-Type', 'application/json');
 
       // Log success and send response
       console.log('[Categories API] Successfully fetched categories:', {
