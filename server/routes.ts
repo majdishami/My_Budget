@@ -132,28 +132,42 @@ export function registerRoutes(app: Express): Server {
   // Category Routes
   app.get('/api/categories', async (req, res) => {
     try {
-      console.log('GET /api/categories endpoint called');
+      console.log('[Categories API] Request received');
 
       // First try to get all categories using Drizzle
       const userCategories = await db.select().from(categories);
-      console.log('Categories fetched:', userCategories);
+      console.log('[Categories API] Raw query result:', userCategories);
 
       // Validate the response
       if (!userCategories || !Array.isArray(userCategories)) {
-        console.error('Invalid categories response:', userCategories);
+        console.error('[Categories API] Invalid response format:', userCategories);
         return res.status(500).json({
           message: 'Failed to load categories',
           error: 'Invalid response format'
         });
       }
 
+      // Log success
+      console.log('[Categories API] Successfully fetched categories:', {
+        count: userCategories.length,
+        firstCategory: userCategories[0]
+      });
+
       // Return successful response
       return res.json(userCategories);
     } catch (error) {
-      console.error('Error in /api/categories:', error);
+      console.error('[Categories API] Error:', error);
+      console.error('[Categories API] Stack:', error instanceof Error ? error.stack : 'No stack trace');
+
+      // Attempt to get more detailed error information
+      if (error instanceof Error) {
+        console.error('[Categories API] Error name:', error.name);
+        console.error('[Categories API] Error message:', error.message);
+      }
+
       return res.status(500).json({
         message: 'Failed to load categories',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : 'Internal server error'
       });
     }
   });
