@@ -8,6 +8,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
 import crypto from "crypto";
+import { sql } from 'drizzle-orm';
 
 // Hash password using SHA-256
 function hashPassword(password: string): string {
@@ -133,11 +134,21 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log('GET /api/categories endpoint called');
 
-      // Simple direct query to categories table
-      const userCategories = await db.select().from(categories);
+      // Try a raw SQL query first
+      const result = await db.execute(sql`
+        SELECT * FROM categories 
+        ORDER BY name ASC
+      `);
 
-      // Log the result
-      console.log(`Successfully fetched ${userCategories.length} categories`);
+      console.log('Raw query result:', result);
+
+      // If raw query works, try the regular select
+      const userCategories = await db.select().from(categories);
+      console.log('Drizzle query result:', userCategories);
+
+      if (!Array.isArray(userCategories)) {
+        throw new Error('Expected array of categories, got: ' + typeof userCategories);
+      }
 
       // Return the categories
       return res.json(userCategories);
@@ -145,6 +156,7 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       // Log the full error for debugging
       console.error('Error fetching categories:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
 
       // Send appropriate error response
       res.status(500).json({
