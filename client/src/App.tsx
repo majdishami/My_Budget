@@ -111,7 +111,7 @@ function Router() {
                     My Budget
                   </h1>
                   <div className="flex items-center gap-2">
-                    <select 
+                    <select
                       value={selectedMonth}
                       onChange={(e) => handleMonthChange(parseInt(e.target.value))}
                       className="py-1 px-2 border rounded bg-background text-sm min-w-[120px]"
@@ -146,7 +146,7 @@ function Router() {
             </Card>
           </header>
 
-          <main className="flex-1 overflow-hidden mt-4">
+          <main className="flex-1 overflow-hidden mt-6">
             <div className="h-full p-2">
               <Switch>
                 <Route path="/" component={Budget} />
