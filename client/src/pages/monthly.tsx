@@ -3,9 +3,11 @@ import MonthlyReportDialog from "@/components/MonthlyReportDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Income, Bill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
+import { useLocation } from "wouter";
 
 export default function MonthlyReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
+  const [, setLocation] = useLocation();
   const [monthlyData, setMonthlyData] = useState<{
     incomes: Income[];
     bills: Bill[];
@@ -15,6 +17,13 @@ export default function MonthlyReport() {
       net: number;
     };
   } | null>(null);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setLocation("/");
+    }
+  };
 
   return (
     <div className="container mx-auto p-4 space-y-4">
@@ -58,7 +67,7 @@ export default function MonthlyReport() {
 
       <MonthlyReportDialog
         isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        onOpenChange={handleOpenChange}
       />
     </div>
   );
