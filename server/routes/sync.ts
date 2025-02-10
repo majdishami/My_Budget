@@ -85,6 +85,12 @@ router.post('/api/sync/restore', async (req, res) => {
       tempFilePath: uploadedFile.tempFilePath
     });
 
+    // Validate file extension
+    if (!uploadedFile.name.toLowerCase().endsWith('.json')) {
+      console.error('Invalid file extension:', uploadedFile.name);
+      return res.status(400).json({ error: 'Invalid backup file format. Please use a .json backup file' });
+    }
+
     // Create tmp directory if it doesn't exist
     const backupPath = path.join(process.cwd(), 'tmp');
     if (!fs.existsSync(backupPath)) {
@@ -110,6 +116,7 @@ router.post('/api/sync/restore', async (req, res) => {
         JSON.parse(fileContent); // This will throw if not valid JSON
         console.log('Verified file is valid JSON');
       } catch (parseError) {
+        console.error('JSON parse error:', parseError);
         throw new Error('Invalid JSON format in backup file');
       }
 
@@ -123,10 +130,7 @@ router.post('/api/sync/restore', async (req, res) => {
       console.log('Temporary file cleaned up');
 
       if (!result.success) {
-        console.error('Restore failed:', result.error);
-        return res.status(500).json({ 
-          error: result.error || 'Failed to restore backup' 
-        });
+        return res.status(500).json({ error: 'Failed to restore backup' });
       }
 
       res.json({ message: 'Database restored successfully' });
