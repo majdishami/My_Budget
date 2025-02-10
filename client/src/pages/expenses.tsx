@@ -2,13 +2,14 @@ import { useState } from 'react';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { Bill } from "@/components/ExpenseReportDialog";
 
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
 
   // Get bills data and categories from the API
-  const { data: bills = [] } = useQuery({
+  const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
   });
 
