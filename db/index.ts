@@ -4,6 +4,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "./schema";
 import { config } from 'dotenv';
 import { join } from 'path';
+import { seedCategories } from './seed';
 
 // Load environment variables from .env file
 const envPath = join(process.cwd(), '.env');
@@ -62,6 +63,12 @@ async function testConnection(retries = 3) {
         // Get category count
         const categoryCount = await client.query('SELECT COUNT(*) FROM categories');
         console.log(`Categories table contains ${categoryCount.rows[0].count} rows`);
+
+        // If no categories exist, seed the default ones
+        if (parseInt(categoryCount.rows[0].count) === 0) {
+          console.log('No categories found, seeding default categories...');
+          await seedCategories();
+        }
 
         return true;
       } finally {
