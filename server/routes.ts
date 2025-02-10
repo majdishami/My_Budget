@@ -133,32 +133,20 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log('GET /api/categories endpoint called');
 
-      // Verify database connection first
-      try {
-        console.log('Testing database connection...');
-        const testQuery = await db.query.categories.findFirst();
-        console.log('Database connection test result:', testQuery);
+      // Simple direct query to categories table
+      const userCategories = await db.select().from(categories);
 
-        console.log('Fetching all categories...');
-        const userCategories = await db.query.categories.findMany({
-          where: (categories, { isNull }) => isNull(categories.user_id),
-          orderBy: (categories, { asc }) => [asc(categories.name)],
-        });
+      // Log the result
+      console.log(`Successfully fetched ${userCategories.length} categories`);
 
-        console.log('Categories fetched:', JSON.stringify(userCategories, null, 2));
+      // Return the categories
+      return res.json(userCategories);
 
-        // Even if no categories found, return empty array with 200 status
-        res.json(userCategories || []);
-
-      } catch (dbError) {
-        console.error('Database error in categories endpoint:', dbError);
-        res.status(500).json({
-          message: 'Database error occurred',
-          error: process.env.NODE_ENV === 'development' ? String(dbError) : 'Internal server error'
-        });
-      }
     } catch (error) {
-      console.error('Unexpected error in categories endpoint:', error);
+      // Log the full error for debugging
+      console.error('Error fetching categories:', error);
+
+      // Send appropriate error response
       res.status(500).json({
         message: 'Failed to load categories',
         error: process.env.NODE_ENV === 'development' ? String(error) : 'Internal server error'

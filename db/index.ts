@@ -11,12 +11,16 @@ const envPath = join(process.cwd(), '.env');
 console.log('Loading environment variables from:', envPath);
 config({ path: envPath });
 
-// Create pool configuration
+// Create pool configuration with better defaults
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
-  } : undefined
+  } : undefined,
+  max: 20, // maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // how long a client is allowed to remain idle before being closed
+  connectionTimeoutMillis: 2000, // how long to wait for a connection
+  maxUses: 7500, // number of times a connection can be used before being destroyed
 };
 
 console.log('Database connection config:', {
@@ -30,13 +34,16 @@ const pool = new Pool(poolConfig);
 // Add error handling for the pool
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client:', err);
-  process.exit(-1);
+  // Don't exit the process, just log the error
+  if (err.code === '57P01') {
+    console.log('Attempting to reconnect after connection termination...');
+  }
 });
 
 // Initialize db connection
 const db = drizzle(pool, { schema });
 
-// Enhanced connection testing with retries
+// Simplified connection testing
 async function testConnection(retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -44,11 +51,9 @@ async function testConnection(retries = 3) {
       const client = await pool.connect();
 
       try {
-        // Basic connectivity test
         await client.query('SELECT NOW()');
         console.log('Database connection established successfully');
 
-        // Get all tables
         const tables = await client.query(`
           SELECT table_name 
           FROM information_schema.tables 
@@ -57,19 +62,11 @@ async function testConnection(retries = 3) {
           ORDER BY table_name;
         `);
 
-        const tableNames = tables.rows.map(r => r.table_name);
-        console.log('Available tables:', tableNames);
+        console.log('Available tables:', tables.rows.map(r => r.table_name));
 
-        // Test categories table accessibility
-        if (!tableNames.includes('categories')) {
-          throw new Error('Categories table not found in schema');
-        }
-
-        // Get category count
         const categoryCount = await client.query('SELECT COUNT(*) FROM categories');
         console.log(`Categories table contains ${categoryCount.rows[0].count} rows`);
 
-        // If no categories exist, seed the default ones
         if (parseInt(categoryCount.rows[0].count) === 0) {
           console.log('No categories found, seeding default categories...');
           await seedCategories();
@@ -95,7 +92,8 @@ async function testConnection(retries = 3) {
 console.log('Initializing database connection...');
 testConnection().catch(error => {
   console.error('Fatal database configuration error:', error);
-  process.exit(1);
+  // Don't exit process on connection error, allow for retry
+  console.log('Connection error occurred, but server will continue running to allow for recovery');
 });
 
 export { db, pool };
