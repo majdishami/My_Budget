@@ -142,6 +142,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const transactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
+    console.log('Generating transactions with:', {
+      bills,
+      categories,
+      dateRange: { from: date.from, to: date.to }
+    });
+
     // Validate date range
     if (dayjs(date.to).isBefore(date.from)) {
       setDate({
@@ -169,34 +175,20 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
     }
 
+    console.log('Filtered bills:', filteredBills);
+
     const startDate = dayjs(date.from);
     const endDate = dayjs(date.to);
     const result: Transaction[] = [];
 
     // Generate transactions for each bill with proper category mapping
     filteredBills.forEach(bill => {
-      // Log the bill and its category information for debugging
-      console.log('Processing bill:', bill);
-      console.log('Bill categoryId:', bill.categoryId);
-      console.log('Available categories:', categories);
-
       const category = categories.find(c => c.id === bill.categoryId);
-      console.log('Found category:', category);
-
-      if (!category) {
-        console.warn(`No category found for bill ${bill.name} with categoryId ${bill.categoryId}`);
-      }
-
-      // If category exists, use its properties, otherwise use defaults
-      const categoryProps = category 
-        ? { 
-            name: category.name,
-            color: category.color
-          }
-        : {
-            name: 'Uncategorized',
-            color: '#D3D3D3'
-          };
+      console.log('Processing bill:', {
+        bill,
+        foundCategory: category,
+        categoryId: bill.categoryId
+      });
 
       // Generate all occurrences within the date range
       let currentDate = startDate.clone().startOf('month').date(bill.day);
@@ -214,13 +206,15 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             description: bill.name,
             amount: bill.amount,
             occurred: currentDate.isSameOrBefore(today),
-            category: categoryProps.name,
-            color: categoryProps.color
+            category: category?.name || 'Uncategorized',
+            color: category?.color || '#D3D3D3'
           });
         }
         currentDate = currentDate.add(1, 'month');
       }
     });
+
+    console.log('Generated transactions:', result);
 
     return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
   }, [showReport, selectedValue, date, bills, categories, today]);
