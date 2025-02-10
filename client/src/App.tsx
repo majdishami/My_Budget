@@ -27,6 +27,15 @@ import ExpenseReport from "@/pages/expenses";
 
 function Router() {
   const { isLoading, error: dataError } = useData();
+  const today = dayjs();
+
+  // Current date info for display
+  const currentDate = useMemo(() => ({
+    day: today.date(),
+    weekday: today.format('dddd'),
+    month: today.format('MMMM'),
+    year: today.year()
+  }), [today]);
 
   if (isLoading) {
     return (
@@ -56,17 +65,35 @@ function Router() {
         </Alert>
       )}
 
-      <Switch>
-        <Route path="/" component={Budget} />
-        <Route path="/categories" component={CategoriesPage} />
-        <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
-        <Route path="/reports/monthly" component={MonthlyReport} />
-        <Route path="/reports/annual" component={AnnualReport} />
-        <Route path="/reports/date-range" component={DateRangeReport} />
-        <Route path="/reports/income" component={IncomeReport} />
-        <Route path="/reports/expenses" component={ExpenseReport} />
-        <Route component={NotFound} />
-      </Switch>
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container flex items-center justify-between py-3">
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold">
+                {currentDate.month} {currentDate.year}
+              </h1>
+              <div className="text-muted-foreground">
+                {currentDate.weekday}, {currentDate.day}
+              </div>
+            </div>
+            <ThemeToggle />
+          </div>
+        </header>
+
+        <main className="container py-6">
+          <Switch>
+            <Route path="/" component={Budget} />
+            <Route path="/categories" component={CategoriesPage} />
+            <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
+            <Route path="/reports/monthly" component={MonthlyReport} />
+            <Route path="/reports/annual" component={AnnualReport} />
+            <Route path="/reports/date-range" component={DateRangeReport} />
+            <Route path="/reports/income" component={IncomeReport} />
+            <Route path="/reports/expenses" component={ExpenseReport} />
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
     </ErrorBoundary>
   );
 }
