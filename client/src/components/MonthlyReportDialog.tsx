@@ -40,7 +40,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
 
     // Generate all transactions for February
     const allTransactions: Transaction[] = [
-      // Income transactions
+      // Income transactions - Majdi's bi-monthly salary
       {
         date: '2025-02-01',
         description: "Majdi's Salary",
@@ -48,15 +48,16 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
         type: 'income'
       },
       {
-        date: '2025-02-07',
-        description: "Ruba's Salary",
-        amount: 2168,
-        type: 'income'
-      },
-      {
         date: '2025-02-15',
         description: "Majdi's Salary",
         amount: 4739,
+        type: 'income'
+      },
+      // Income transactions - Ruba's bi-weekly salary
+      {
+        date: '2025-02-07',
+        description: "Ruba's Salary",
+        amount: 2168,
         type: 'income'
       },
       {
