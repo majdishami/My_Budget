@@ -1,0 +1,117 @@
+{
+  "users": [],
+  "categories": [
+    {
+      "id": 1,
+      "name": "Rent",
+      "color": "#3B82F6",
+      "icon": "home",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 2,
+      "name": "Groceries",
+      "color": "#10B981",
+      "icon": "shopping-cart",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 3,
+      "name": "Personal Loan",
+      "color": "#6366F1",
+      "icon": "credit-card",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 4,
+      "name": "Car Insurance",
+      "color": "#F59E0B",
+      "icon": "car",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 5,
+      "name": "Maid's Service",
+      "color": "#EC4899",
+      "icon": "home",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 6,
+      "name": "Credit Card Payments",
+      "color": "#8B5CF6",
+      "icon": "credit-card",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 7,
+      "name": "Utilities - Electricity",
+      "color": "#F97316",
+      "icon": "zap",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 8,
+      "name": "Utilities - Gas",
+      "color": "#EF4444",
+      "icon": "flame",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 9,
+      "name": "Utilities - Water",
+      "color": "#3B82F6",
+      "icon": "droplet",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 10,
+      "name": "TV Service",
+      "color": "#8B5CF6",
+      "icon": "tv",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 11,
+      "name": "Internet",
+      "color": "#2563EB",
+      "icon": "wifi",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 12,
+      "name": "Online Services",
+      "color": "#6366F1",
+      "icon": "globe",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 13,
+      "name": "Life Insurance",
+      "color": "#059669",
+      "icon": "heart",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    },
+    {
+      "id": 14,
+      "name": "Others",
+      "color": "#71717A",
+      "icon": "more-horizontal",
+      "user_id": null,
+      "created_at": "2025-02-10 04:06:58.655156"
+    }
+  ]
+}

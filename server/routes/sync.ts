@@ -85,19 +85,15 @@ router.post('/api/sync/restore', async (req, res) => {
       tempFilePath: uploadedFile.tempFilePath
     });
 
-    // Validate file extension
-    if (!uploadedFile.name.toLowerCase().endsWith('.json')) {
-      console.error('Invalid file extension:', uploadedFile.name);
-      return res.status(400).json({ error: 'Invalid backup file format. Please use a .json backup file' });
-    }
-
     // Create tmp directory if it doesn't exist
     const backupPath = path.join(process.cwd(), 'tmp');
     if (!fs.existsSync(backupPath)) {
       fs.mkdirSync(backupPath, { recursive: true });
     }
 
-    const tempPath = path.join(backupPath, uploadedFile.name);
+    // Generate a new filename with .json extension
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const tempPath = path.join(backupPath, `restore_${timestamp}.json`);
     console.log('Moving file to:', tempPath);
 
     try {
@@ -130,7 +126,7 @@ router.post('/api/sync/restore', async (req, res) => {
       console.log('Temporary file cleaned up');
 
       if (!result.success) {
-        return res.status(500).json({ error: 'Failed to restore backup' });
+        return res.status(500).json({ error: result.error || 'Failed to restore backup' });
       }
 
       res.json({ message: 'Database restored successfully' });

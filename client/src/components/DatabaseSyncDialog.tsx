@@ -68,17 +68,6 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
       return;
     }
 
-    // Validate file extension
-    const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase();
-    if (fileExtension !== 'json') {
-      toast({
-        title: "Invalid File Type",
-        description: "Please select a valid JSON backup file",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setIsRestoreLoading(true);
       setOperationStatus('Uploading backup file...');
@@ -126,8 +115,8 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const fileExtension = file.name.split('.').pop()?.toLowerCase();
-      if (fileExtension !== 'json') {
+      // Validate file type
+      if (file.type !== 'application/json') {
         toast({
           title: "Invalid File Type",
           description: "Please select a valid JSON backup file",
@@ -135,6 +124,16 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
         });
         event.target.value = ''; // Reset the input
         setSelectedFile(null);
+        return;
+      }
+
+      // Verify file name ends with .json
+      if (!file.name.toLowerCase().endsWith('.json')) {
+        const newFile = new File([file], `${file.name}.json`, {
+          type: 'application/json',
+        });
+        console.log('Normalized file name:', newFile.name);
+        setSelectedFile(newFile);
       } else {
         console.log('Selected file:', file.name, file.type);
         setSelectedFile(file);
