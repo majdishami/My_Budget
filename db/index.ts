@@ -8,6 +8,7 @@ import { seedCategories } from './seed';
 
 // Load environment variables from .env file
 const envPath = join(process.cwd(), '.env');
+console.log('Loading environment variables from:', envPath);
 config({ path: envPath });
 
 // Create pool configuration
@@ -18,6 +19,14 @@ const poolConfig = {
     rejectUnauthorized: false
   } : undefined
 };
+
+// Log connection parameters (without sensitive info)
+console.log('Database connection parameters:', {
+  host: process.env.PGHOST,
+  port: process.env.PGPORT,
+  database: process.env.PGDATABASE,
+  user: process.env.PGUSER
+});
 
 // Initialize pool with configuration
 const pool = new Pool(poolConfig);
@@ -40,10 +49,7 @@ async function testConnection(retries = 3) {
       try {
         // Basic connectivity test
         await client.query('SELECT NOW()');
-        console.log('Database connection established successfully');
-
-        // Seed default categories
-        await seedCategories();
+        console.log('Basic connectivity test passed');
 
         // Get all tables
         const tables = await client.query(`
@@ -57,7 +63,7 @@ async function testConnection(retries = 3) {
         const tableNames = tables.rows.map(r => r.table_name);
         console.log('Available tables:', tableNames);
 
-        // Test categories table accessibility with case-insensitive check
+        // Test categories table accessibility
         const categoryTest = await client.query('SELECT COUNT(*) FROM categories');
         console.log(`Categories table accessible, contains ${categoryTest.rows[0].count} rows`);
 
