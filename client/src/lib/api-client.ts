@@ -19,6 +19,8 @@ export const queryClient = new QueryClient({
     queries: {
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      staleTime: 5000,
+      refetchOnWindowFocus: false,
     },
   },
 });
@@ -31,12 +33,7 @@ export const apiRequest = async (
   const baseUrl = getBaseUrl();
   const url = `${baseUrl}${endpoint}`;
 
-  console.log('Making API request to:', url);
-  console.log('Request options:', {
-    method: options.method || 'GET',
-    headers: options.headers,
-    credentials: options.credentials,
-  });
+  console.log(`[API Request] ${options.method || 'GET'} ${endpoint}`);
 
   try {
     const response = await fetch(url, {
@@ -48,19 +45,34 @@ export const apiRequest = async (
       credentials: 'include', // Important for cookies/sessions
     });
 
-    console.log('API Response status:', response.status);
+    console.log(`[API Response] Status: ${response.status}`);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-      console.error('API Error:', error);
-      throw new Error(error.message || 'Failed to fetch data');
+    // Get the response text first
+    const responseText = await response.text();
+    console.log('[API Response] Raw response:', responseText);
+
+    // Try to parse as JSON if possible
+    let data;
+    try {
+      data = responseText ? JSON.parse(responseText) : null;
+    } catch (parseError) {
+      console.error('[API Error] Failed to parse response as JSON:', parseError);
+      throw new Error('Invalid JSON response from server');
     }
 
-    const data = await response.json();
-    console.log('API Response data:', data);
+    if (!response.ok) {
+      const errorMessage = data?.message || 'An unknown error occurred';
+      console.error('[API Error]', errorMessage, data);
+      throw new Error(errorMessage);
+    }
+
+    console.log('[API Success] Data:', data);
     return data;
   } catch (error) {
-    console.error('API Request failed:', error);
-    throw error;
+    console.error('[API Error] Request failed:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to make API request');
   }
 };
