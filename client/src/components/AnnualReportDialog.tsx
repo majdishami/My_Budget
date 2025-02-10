@@ -165,31 +165,26 @@ export default function AnnualReportDialog({
       }
     }
 
-    // Calculate Ruba's bi-weekly payments
+    // Calculate Ruba's bi-weekly payments for the entire year
     const rubaSalary = incomes.find(income => income.source === "Ruba's Salary");
-    const rubaSalaryAmount = rubaSalary?.amount || 0;
     if (rubaSalary) {
-      const yearStart = dayjs(`${year}-01-01`);
+      const startDate = dayjs('2025-01-10');
       const yearEnd = dayjs(`${year}-12-31`);
-      let checkDate = dayjs('2025-01-10'); // Ruba's salary start date
+      let paymentDate = startDate.clone();
 
-      while (checkDate.isBefore(yearEnd) || checkDate.isSame(yearEnd, 'day')) {
-        if (checkDate.isAfter(yearStart) || checkDate.isSame(yearStart, 'day')) {
-          if (checkDate.day() === 5) { // Friday
-            const weeksDiff = checkDate.diff(dayjs('2025-01-10'), 'week');
-            if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
-              const monthKey = checkDate.format('MMMM');
-              if (checkDate.isBefore(today) || checkDate.isSame(today, 'day')) {
-                summary.rubaTotal.occurred += rubaSalaryAmount;
-                summary.monthlyBreakdown[monthKey].income.occurred += rubaSalaryAmount;
-              } else {
-                summary.rubaTotal.pending += rubaSalaryAmount;
-                summary.monthlyBreakdown[monthKey].income.pending += rubaSalaryAmount;
-              }
-            }
+      while (paymentDate.isBefore(yearEnd) || paymentDate.isSame(yearEnd, 'day')) {
+        if (paymentDate.year() === year) {
+          const monthKey = paymentDate.format('MMMM');
+          if (paymentDate.isBefore(today) || paymentDate.isSame(today, 'day')) {
+            summary.rubaTotal.occurred += rubaSalary.amount;
+            summary.monthlyBreakdown[monthKey].income.occurred += rubaSalary.amount;
+          } else {
+            summary.rubaTotal.pending += rubaSalary.amount;
+            summary.monthlyBreakdown[monthKey].income.pending += rubaSalary.amount;
           }
         }
-        checkDate = checkDate.add(1, 'day');
+        // Move to next bi-weekly payment date
+        paymentDate = paymentDate.add(14, 'days');
       }
     }
 
