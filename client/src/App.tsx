@@ -96,16 +96,16 @@ function Router() {
         <div className="flex-1 flex flex-col ml-40">
           <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <Card className="p-1">
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-bold">
+              <div className="flex items-center justify-between px-4">
+                <div className="flex items-center gap-6">
+                  <h1 className="text-xl font-bold">
                     My Budget
                   </h1>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     <select 
                       value={selectedMonth}
                       onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-                      className="py-0.5 px-1 border rounded bg-background text-sm"
+                      className="py-1 px-2 border rounded bg-background text-sm min-w-[120px]"
                       aria-label="Select month"
                     >
                       {months.map(month => (
@@ -118,7 +118,7 @@ function Router() {
                     <select
                       value={selectedYear}
                       onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                      className="py-0.5 px-1 border rounded bg-background text-sm"
+                      className="py-1 px-2 border rounded bg-background text-sm min-w-[100px]"
                       aria-label="Select year"
                     >
                       {years.map(year => (
@@ -126,7 +126,7 @@ function Router() {
                       ))}
                     </select>
 
-                    <span className="text-primary font-medium text-sm">
+                    <span className="text-primary font-medium text-sm border-l pl-2 ml-2">
                       {currentDate.weekday}, {currentDate.day}
                     </span>
                   </div>
@@ -138,7 +138,7 @@ function Router() {
           </header>
 
           <main className="flex-1 overflow-hidden">
-            <div className="h-full p-1">
+            <div className="h-full p-2">
               <Switch>
                 <Route path="/" component={Budget} />
                 <Route path="/categories" component={CategoriesPage} />
