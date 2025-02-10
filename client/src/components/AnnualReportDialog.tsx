@@ -137,7 +137,7 @@ export default function AnnualReportDialog({
       };
     }
 
-    // Calculate Majdi's salary occurrences
+    // Calculate Majdi's salary occurrences (bi-monthly)
     const majdiMonthlyAmount = incomes.find(income => income.source === "Majdi's Salary")?.amount || 0;
     const majdiPerPaycheck = majdiMonthlyAmount / 2;
 
@@ -166,26 +166,31 @@ export default function AnnualReportDialog({
     }
 
     // Calculate Ruba's bi-weekly payments
-    const rubaSalaryAmount = incomes.find(income => income.source === "Ruba's Salary")?.amount || 0;
-    let currentPayDate = dayjs('2025-01-10'); // Start from January 10
-    const yearEnd = dayjs(year.toString()).endOf('year');
+    const rubaSalary = incomes.find(income => income.source === "Ruba's Salary");
+    const rubaSalaryAmount = rubaSalary?.amount || 0;
+    if (rubaSalary) {
+      const yearStart = dayjs(`${year}-01-01`);
+      const yearEnd = dayjs(`${year}-12-31`);
+      let checkDate = dayjs('2025-01-10'); // Ruba's salary start date
 
-    // Calculate all bi-weekly payments for the year
-    while (currentPayDate.isBefore(yearEnd) || currentPayDate.isSame(yearEnd, 'day')) {
-      if (currentPayDate.year() === year) {
-        const monthKey = currentPayDate.format('MMMM');
-
-        // Check if payment occurred or is pending based on today's date
-        if (currentPayDate.isBefore(today) || currentPayDate.isSame(today, 'day')) {
-          summary.rubaTotal.occurred += rubaSalaryAmount;
-          summary.monthlyBreakdown[monthKey].income.occurred += rubaSalaryAmount;
-        } else {
-          summary.rubaTotal.pending += rubaSalaryAmount;
-          summary.monthlyBreakdown[monthKey].income.pending += rubaSalaryAmount;
+      while (checkDate.isBefore(yearEnd) || checkDate.isSame(yearEnd, 'day')) {
+        if (checkDate.isAfter(yearStart) || checkDate.isSame(yearStart, 'day')) {
+          if (checkDate.day() === 5) { // Friday
+            const weeksDiff = checkDate.diff(dayjs('2025-01-10'), 'week');
+            if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+              const monthKey = checkDate.format('MMMM');
+              if (checkDate.isBefore(today) || checkDate.isSame(today, 'day')) {
+                summary.rubaTotal.occurred += rubaSalaryAmount;
+                summary.monthlyBreakdown[monthKey].income.occurred += rubaSalaryAmount;
+              } else {
+                summary.rubaTotal.pending += rubaSalaryAmount;
+                summary.monthlyBreakdown[monthKey].income.pending += rubaSalaryAmount;
+              }
+            }
+          }
         }
+        checkDate = checkDate.add(1, 'day');
       }
-      // Move to next payment date (exactly 14 days later)
-      currentPayDate = currentPayDate.add(14, 'day');
     }
 
     // Calculate total income
