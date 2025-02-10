@@ -14,7 +14,6 @@ config({ path: envPath });
 // Create pool configuration
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
-  // Only enable SSL in production
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
   } : undefined
@@ -37,6 +36,7 @@ pool.on('error', (err) => {
   process.exit(-1);
 });
 
+// Initialize db connection
 const db = drizzle(pool, { schema });
 
 // Enhanced connection testing with retries
@@ -49,7 +49,7 @@ async function testConnection(retries = 3) {
       try {
         // Basic connectivity test
         await client.query('SELECT NOW()');
-        console.log('Basic connectivity test passed');
+        console.log('Database connection established successfully');
 
         // Get all tables
         const tables = await client.query(`
@@ -64,8 +64,18 @@ async function testConnection(retries = 3) {
         console.log('Available tables:', tableNames);
 
         // Test categories table accessibility
-        const categoryTest = await client.query('SELECT COUNT(*) FROM categories');
-        console.log(`Categories table accessible, contains ${categoryTest.rows[0].count} rows`);
+        if (!tableNames.includes('categories')) {
+          throw new Error('Categories table not found in schema');
+        }
+
+        // Seed categories if needed
+        const categoryCount = await client.query('SELECT COUNT(*) FROM categories');
+        console.log(`Categories table contains ${categoryCount.rows[0].count} rows`);
+
+        if (categoryCount.rows[0].count === 0) {
+          console.log('No categories found, seeding default categories...');
+          await seedCategories();
+        }
 
         return true;
       } finally {
