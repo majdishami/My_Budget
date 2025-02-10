@@ -5,27 +5,32 @@ const defaultCategories = [
   {
     name: "Housing",
     color: "#2196F3",
-    icon: "home"
+    icon: "home",
+    user_id: null
   },
   {
     name: "Food",
     color: "#4CAF50",
-    icon: "utensils"
+    icon: "utensils",
+    user_id: null
   },
   {
     name: "Transportation",
     color: "#FFC107",
-    icon: "car"
+    icon: "car",
+    user_id: null
   },
   {
     name: "Entertainment",
     color: "#9C27B0",
-    icon: "film"
+    icon: "film",
+    user_id: null
   },
   {
     name: "Shopping",
     color: "#E91E63",
-    icon: "shopping-bag"
+    icon: "shopping-bag",
+    user_id: null
   }
 ];
 
@@ -35,11 +40,12 @@ export async function seedCategories() {
 
     // Check for existing categories with detailed logging
     console.log('Checking for existing categories...');
-    const existingCategories = await db.select().from(categories);
+    const existingCategories = await db.select().from(categories)
+      .where(categories => categories.user_id.isNull());
     console.log(`Found ${existingCategories.length} existing categories`);
 
     if (existingCategories.length === 0) {
-      console.log('No categories found. Seeding default categories:', JSON.stringify(defaultCategories, null, 2));
+      console.log('No default categories found. Seeding default categories:', JSON.stringify(defaultCategories, null, 2));
       try {
         const result = await db.insert(categories).values(defaultCategories).returning();
         console.log('Successfully seeded default categories:', result);
@@ -55,7 +61,7 @@ export async function seedCategories() {
         throw error;
       }
     } else {
-      console.log('Categories already exist, skipping seed');
+      console.log('Default categories already exist, skipping seed');
       return existingCategories;
     }
   } catch (error) {
