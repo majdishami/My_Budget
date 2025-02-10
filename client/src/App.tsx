@@ -146,7 +146,7 @@ function Router() {
             </Card>
           </header>
 
-          <main className="flex-1 overflow-hidden">
+          <main className="flex-1 overflow-hidden mt-4">
             <div className="h-full p-2">
               <Switch>
                 <Route path="/" component={Budget} />
