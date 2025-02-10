@@ -134,34 +134,26 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log('GET /api/categories endpoint called');
 
-      // Try a raw SQL query first
-      const result = await db.execute(sql`
-        SELECT * FROM categories 
-        ORDER BY name ASC
-      `);
-
-      console.log('Raw query result:', result);
-
-      // If raw query works, try the regular select
+      // First try to get all categories using Drizzle
       const userCategories = await db.select().from(categories);
-      console.log('Drizzle query result:', userCategories);
+      console.log('Categories fetched:', userCategories);
 
-      if (!Array.isArray(userCategories)) {
-        throw new Error('Expected array of categories, got: ' + typeof userCategories);
+      // Validate the response
+      if (!userCategories || !Array.isArray(userCategories)) {
+        console.error('Invalid categories response:', userCategories);
+        return res.status(500).json({
+          message: 'Failed to load categories',
+          error: 'Invalid response format'
+        });
       }
 
-      // Return the categories
+      // Return successful response
       return res.json(userCategories);
-
     } catch (error) {
-      // Log the full error for debugging
-      console.error('Error fetching categories:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-
-      // Send appropriate error response
-      res.status(500).json({
+      console.error('Error in /api/categories:', error);
+      return res.status(500).json({
         message: 'Failed to load categories',
-        error: process.env.NODE_ENV === 'development' ? String(error) : 'Internal server error'
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   });
