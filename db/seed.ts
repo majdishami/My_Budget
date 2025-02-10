@@ -1,5 +1,6 @@
 import { db } from "./index";
 import { categories } from "./schema";
+import { eq } from "drizzle-orm";
 
 const defaultCategories = [
   {
@@ -95,7 +96,7 @@ export async function seedCategories() {
     // Check for existing categories with detailed logging
     console.log('Checking for existing categories...');
     const existingCategories = await db.select().from(categories)
-      .where(c => c.user_id === null); // Corrected where clause
+      .where(eq(categories.user_id, null));
     console.log(`Found ${existingCategories.length} existing categories`);
 
     if (existingCategories.length === 0) {
