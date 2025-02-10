@@ -138,7 +138,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [bills, categories]);
 
-  // Generate transactions based on selection
+  // Modify the transactions generation logic to properly map categories
   const transactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
@@ -173,11 +173,20 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     const endDate = dayjs(date.to);
     const result: Transaction[] = [];
 
-    // Generate transactions for each bill
+    // Generate transactions for each bill with proper category mapping
     filteredBills.forEach(bill => {
       const category = categories.find(c => c.id === bill.categoryId);
-      const categoryName = category ? category.name : 'Uncategorized';
-      const categoryColor = category?.color || '#D3D3D3';
+
+      // If category exists, use its properties, otherwise use defaults
+      const categoryProps = category 
+        ? { 
+            name: category.name,
+            color: category.color
+          }
+        : {
+            name: 'Uncategorized',
+            color: '#D3D3D3'
+          };
 
       // Generate all occurrences within the date range
       let currentDate = startDate.clone().startOf('month').date(bill.day);
@@ -195,8 +204,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             description: bill.name,
             amount: bill.amount,
             occurred: currentDate.isSameOrBefore(today),
-            category: categoryName,
-            color: categoryColor
+            category: categoryProps.name,
+            color: categoryProps.color
           });
         }
         currentDate = currentDate.add(1, 'month');
