@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Income, Bill } from "@/types";
 import {
   Plus,
-  RefreshCw,
   FileText,
   Calendar,
   ChartBar,
@@ -13,8 +12,8 @@ import {
   CalendarRange,
   Download,
   Bell,
-  Tags, // Added for Categories icon
-  Database // Added for Sync Database icon
+  Tags,
+  Database
 } from "lucide-react";
 import {
   Select,
@@ -23,16 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { ExportDialog } from "@/components/ExportDialog";
@@ -46,7 +35,6 @@ interface LeftSidebarProps {
   onDeleteTransaction: (type: 'income' | 'bill', data: Income | Bill) => void;
   onAddIncome: () => void;
   onAddBill: () => void;
-  onReset: () => void;
 }
 
 export function LeftSidebar({
@@ -56,10 +44,8 @@ export function LeftSidebar({
   onDeleteTransaction,
   onAddIncome,
   onAddBill,
-  onReset,
 }: LeftSidebarProps) {
   const [, setLocation] = useLocation();
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showRemindersDialog, setShowRemindersDialog] = useState(false);
   const [showDatabaseSyncDialog, setShowDatabaseSyncDialog] = useState(false);
@@ -103,15 +89,6 @@ export function LeftSidebar({
 
   const monthlyIncomes = getMonthlyIncomeOccurrences();
 
-  const handleResetClick = () => {
-    setShowResetConfirm(true);
-  };
-
-  const handleResetConfirm = () => {
-    onReset();
-    setShowResetConfirm(false);
-  };
-
   return (
     <div className="space-y-6">
       {/* Expenses Section */}
@@ -119,7 +96,7 @@ export function LeftSidebar({
         <h2 className="text-lg font-semibold px-2">Expenses</h2>
         <div className="space-y-2">
           <Select onValueChange={(value) => {
-            const bill = bills.find(b => b.id === value);
+            const bill = bills.find(b => b.id === parseInt(value));
             if (bill) onEditTransaction('bill', bill);
           }}>
             <SelectTrigger className="w-full justify-start">
@@ -130,7 +107,7 @@ export function LeftSidebar({
             </SelectTrigger>
             <SelectContent>
               {bills.map((bill) => (
-                <SelectItem key={bill.id} value={bill.id}>
+                <SelectItem key={bill.id} value={bill.id.toString()}>
                   {bill.name}
                 </SelectItem>
               ))}
@@ -148,7 +125,7 @@ export function LeftSidebar({
           </Button>
 
           <Select onValueChange={(value) => {
-            const bill = bills.find(b => b.id === value);
+            const bill = bills.find(b => b.id === parseInt(value));
             if (bill) onDeleteTransaction('bill', bill);
           }}>
             <SelectTrigger className="w-full justify-start">
@@ -159,7 +136,7 @@ export function LeftSidebar({
             </SelectTrigger>
             <SelectContent>
               {bills.map((bill) => (
-                <SelectItem key={bill.id} value={bill.id}>
+                <SelectItem key={bill.id} value={bill.id.toString()}>
                   {bill.name}
                 </SelectItem>
               ))}
@@ -231,7 +208,7 @@ export function LeftSidebar({
         </div>
       </div>
 
-      {/* New Categories Section */}
+      {/* Categories Section */}
       <div className="space-y-2">
         <h2 className="text-lg font-semibold px-2">Categories</h2>
         <div className="space-y-2">
@@ -333,39 +310,6 @@ export function LeftSidebar({
         </div>
       </div>
 
-      {/* Reset Section */}
-      <div className="pt-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start"
-          onClick={handleResetClick}
-        >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Reset to Defaults
-        </Button>
-      </div>
-
-      {/* Reset Confirmation Dialog */}
-      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset to Default Values</AlertDialogTitle>
-            <AlertDialogDescription>
-              All Bills and Incomes will be reset to Jan.01.2025 numbers. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowResetConfirm(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleResetConfirm}>
-              Reset
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {/* Export Dialog */}
       <ExportDialog
         isOpen={showExportDialog}
@@ -374,7 +318,7 @@ export function LeftSidebar({
         bills={bills}
       />
 
-      {/* Add ViewRemindersDialog */}
+      {/* Reminders Dialog */}
       <ViewRemindersDialog
         isOpen={showRemindersDialog}
         onOpenChange={setShowRemindersDialog}
