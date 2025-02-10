@@ -5,9 +5,10 @@ const getBaseUrl = () => {
   if (process.env.NODE_ENV === 'development') {
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
-    return `${protocol}//${hostname}:5000`; // Always use port 5000 for API
+    const port = '5000'; // Always use port 5000 for API in development
+    return `${protocol}//${hostname}:${port}`;
   }
-  return '';
+  return window.location.origin; // Use the same origin in production
 };
 
 export const queryClient = new QueryClient({
@@ -15,7 +16,7 @@ export const queryClient = new QueryClient({
     queries: {
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
-      staleTime: 1000, // Reduced stale time to ensure fresh data
+      staleTime: 1000,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
       refetchOnMount: true,
@@ -38,8 +39,7 @@ export const apiRequest = async (
       throw new Error('No internet connection');
     }
 
-    console.log(`[API Request] ${options.method || 'GET'} ${endpoint}`);
-    console.log('[API Request] Full URL:', url);
+    console.log(`[API Request] ${options.method || 'GET'} ${url}`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -49,12 +49,10 @@ export const apiRequest = async (
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
         ...options.headers,
       },
       signal: controller.signal,
-      credentials: 'same-origin',
+      credentials: 'include', // Include credentials for cross-origin requests
     });
 
     clearTimeout(timeoutId);
