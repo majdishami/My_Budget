@@ -89,7 +89,7 @@ function Router() {
       )}
 
       <div className="min-h-screen flex flex-col bg-background">
-        <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 ml-56">
           <Card className="p-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -132,7 +132,7 @@ function Router() {
           </Card>
         </header>
 
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden ml-56">
           <div className="h-full">
             <Switch>
               <Route path="/" component={Budget} />
