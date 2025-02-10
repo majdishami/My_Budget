@@ -53,8 +53,8 @@ const formatCurrency = (amount: number) => {
 };
 
 const App = () => {
-  // Set today to February 2nd, 2025
-  const today = dayjs('2025-02-02');
+  // Update the today constant at the top of the file
+  const today = dayjs('2025-02-09'); // Set to February 9, 2025
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedDay, setSelectedDay] = useState<number>(today.date());
@@ -472,12 +472,19 @@ const App = () => {
                             )}
                           >
                             <div className="flex justify-between items-start mb-1">
-                              <span className={cn(
-                                "font-medium text-lg",
-                                isCurrentDay(dayNumber) && "text-primary font-bold"
-                              )}>
-                                {dayNumber}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className={cn(
+                                  "font-medium text-lg",
+                                  isCurrentDay(dayNumber) && "text-primary font-bold"
+                                )}>
+                                  {dayNumber}
+                                </span>
+                                {isCurrentDay(dayNumber) && (
+                                  <span className="text-xs font-medium text-primary">
+                                    Today
+                                  </span>
+                                )}
+                              </div>
                               {hasTransactions && (
                                 <div className="flex gap-1">
                                   {dayIncomes.length > 0 && (
