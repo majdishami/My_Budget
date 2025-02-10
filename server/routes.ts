@@ -141,6 +141,7 @@ export function registerRoutes(app: Express): Server {
 
         console.log('Fetching all categories...');
         const userCategories = await db.query.categories.findMany({
+          where: (categories, { isNull }) => isNull(categories.user_id),
           orderBy: (categories, { asc }) => [asc(categories.name)],
         });
 
