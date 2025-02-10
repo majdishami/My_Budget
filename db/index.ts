@@ -19,6 +19,11 @@ const poolConfig = {
   } : undefined
 };
 
+console.log('Database connection config:', {
+  ...poolConfig,
+  connectionString: poolConfig.connectionString ? '[REDACTED]' : undefined
+});
+
 // Initialize pool with configuration
 const pool = new Pool(poolConfig);
 
