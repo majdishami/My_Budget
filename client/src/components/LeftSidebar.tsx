@@ -93,251 +93,248 @@ export function LeftSidebar({
 
   return (
     <div className="relative">
-      {/* Mobile Menu Toggle */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="lg:hidden fixed top-4 left-4 z-50"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Menu className="h-6 w-6" />
-      </Button>
-
-      {/* Sidebar Content */}
       <div className={`
         fixed inset-y-0 left-0 z-40 w-64 bg-background border-r transform 
         lg:relative lg:translate-x-0 lg:w-auto
         transition-transform duration-200 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         overflow-y-auto h-screen lg:h-auto
-        p-4 space-y-6
       `}>
-        {/* Expenses Section */}
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold px-2">Expenses</h2>
+        <div className="sticky top-0 bg-background p-4 border-b lg:hidden">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full flex justify-between items-center"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <span>Menu</span>
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <div className="p-4 space-y-6">
           <div className="space-y-2">
-            <Select onValueChange={(value) => {
-              const bill = bills.find(b => b.id === parseInt(value));
-              if (bill) onEditTransaction('bill', bill);
-            }}>
-              <SelectTrigger className="w-full justify-start">
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Expense
-                </Button>
-              </SelectTrigger>
-              <SelectContent>
-                {bills.map((bill) => (
-                  <SelectItem key={bill.id} value={bill.id.toString()}>
-                    {bill.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <h2 className="text-lg font-semibold px-2">Expenses</h2>
+            <div className="space-y-2">
+              <Select onValueChange={(value) => {
+                const bill = bills.find(b => b.id === parseInt(value));
+                if (bill) onEditTransaction('bill', bill);
+              }}>
+                <SelectTrigger className="w-full justify-start">
+                  <Button variant="ghost" size="sm" className="w-full justify-start">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Expense
+                  </Button>
+                </SelectTrigger>
+                <SelectContent>
+                  {bills.map((bill) => (
+                    <SelectItem key={bill.id} value={bill.id.toString()}>
+                      {bill.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start"
-              onClick={onAddBill}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Expense
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={onAddBill}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Expense
+              </Button>
 
-            <Select onValueChange={(value) => {
-              const bill = bills.find(b => b.id === parseInt(value));
-              if (bill) onDeleteTransaction('bill', bill);
-            }}>
-              <SelectTrigger className="w-full justify-start">
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <Trash className="mr-2 h-4 w-4" />
-                  Delete Expense
+              <Select onValueChange={(value) => {
+                const bill = bills.find(b => b.id === parseInt(value));
+                if (bill) onDeleteTransaction('bill', bill);
+              }}>
+                <SelectTrigger className="w-full justify-start">
+                  <Button variant="ghost" size="sm" className="w-full justify-start">
+                    <Trash className="mr-2 h-4 w-4" />
+                    Delete Expense
+                  </Button>
+                </SelectTrigger>
+                <SelectContent>
+                  {bills.map((bill) => (
+                    <SelectItem key={bill.id} value={bill.id.toString()}>
+                      {bill.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => setShowRemindersDialog(true)}
+              >
+                <Bell className="mr-2 h-4 w-4" />
+                View Reminders
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold px-2">Income</h2>
+            <div className="space-y-2">
+              <Select onValueChange={(value) => {
+                const income = monthlyIncomes.find(i => i.id === value);
+                if (income) onEditTransaction('income', income);
+              }}>
+                <SelectTrigger className="w-full justify-start">
+                  <Button variant="ghost" size="sm" className="w-full justify-start">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Income
+                  </Button>
+                </SelectTrigger>
+                <SelectContent>
+                  {monthlyIncomes.map((income) => (
+                    <SelectItem key={income.id} value={income.id}>
+                      {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={onAddIncome}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Income
+              </Button>
+
+              <Select onValueChange={(value) => {
+                const income = monthlyIncomes.find(i => i.id === value);
+                if (income) onDeleteTransaction('income', income);
+              }}>
+                <SelectTrigger className="w-full justify-start">
+                  <Button variant="ghost" size="sm" className="w-full justify-start">
+                    <Trash className="mr-2 h-4 w-4" />
+                    Delete Income
+                  </Button>
+                </SelectTrigger>
+                <SelectContent>
+                  {monthlyIncomes.map((income) => (
+                    <SelectItem key={income.id} value={income.id}>
+                      {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold px-2">Categories</h2>
+            <div className="space-y-2">
+              <Link href="/categories" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <Tags className="mr-2 h-4 w-4" />
+                  Manage Categories
                 </Button>
-              </SelectTrigger>
-              <SelectContent>
-                {bills.map((bill) => (
-                  <SelectItem key={bill.id} value={bill.id.toString()}>
-                    {bill.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start"
-              onClick={() => setShowRemindersDialog(true)}
-            >
-              <Bell className="mr-2 h-4 w-4" />
-              View Reminders
-            </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold px-2">Reports</h2>
+            <div className="space-y-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => {
+                  setShowExportDialog(true);
+                  setIsOpen(false);
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export Data
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => {
+                  setShowDatabaseSyncDialog(true);
+                  setIsOpen(false);
+                }}
+              >
+                <Database className="mr-2 h-4 w-4" />
+                Sync Database
+              </Button>
+              <Link href="/reports/monthly-to-date" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Monthly up today
+                </Button>
+              </Link>
+              <Link href="/reports/monthly" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <ChartBar className="mr-2 h-4 w-4" />
+                  Monthly Report
+                </Button>
+              </Link>
+              <Link href="/reports/annual" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <CalendarRange className="mr-2 h-4 w-4" />
+                  Annual Report
+                </Button>
+              </Link>
+              <Link href="/reports/date-range" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <FileBarChart className="mr-2 h-4 w-4" />
+                  Date Range Report
+                </Button>
+              </Link>
+              <Link href="/reports/income" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Income Report
+                </Button>
+              </Link>
+              <Link href="/reports/expenses" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Expenses Report
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Income Section */}
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold px-2">Income</h2>
-          <div className="space-y-2">
-            <Select onValueChange={(value) => {
-              const income = monthlyIncomes.find(i => i.id === value);
-              if (income) onEditTransaction('income', income);
-            }}>
-              <SelectTrigger className="w-full justify-start">
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Income
-                </Button>
-              </SelectTrigger>
-              <SelectContent>
-                {monthlyIncomes.map((income) => (
-                  <SelectItem key={income.id} value={income.id}>
-                    {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start"
-              onClick={onAddIncome}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Income
-            </Button>
-
-            <Select onValueChange={(value) => {
-              const income = monthlyIncomes.find(i => i.id === value);
-              if (income) onDeleteTransaction('income', income);
-            }}>
-              <SelectTrigger className="w-full justify-start">
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <Trash className="mr-2 h-4 w-4" />
-                  Delete Income
-                </Button>
-              </SelectTrigger>
-              <SelectContent>
-                {monthlyIncomes.map((income) => (
-                  <SelectItem key={income.id} value={income.id}>
-                    {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Categories Section */}
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold px-2">Categories</h2>
-          <div className="space-y-2">
-            <Link href="/categories" onClick={() => setIsOpen(false)}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-              >
-                <Tags className="mr-2 h-4 w-4" />
-                Manage Categories
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Reports Section */}
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold px-2">Reports</h2>
-          <div className="space-y-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start"
-              onClick={() => {
-                setShowExportDialog(true);
-                setIsOpen(false);
-              }}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export Data
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start"
-              onClick={() => {
-                setShowDatabaseSyncDialog(true);
-                setIsOpen(false);
-              }}
-            >
-              <Database className="mr-2 h-4 w-4" />
-              Sync Database
-            </Button>
-            <Link href="/reports/monthly-to-date" onClick={() => setIsOpen(false)}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                Monthly up today
-              </Button>
-            </Link>
-            <Link href="/reports/monthly" onClick={() => setIsOpen(false)}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-              >
-                <ChartBar className="mr-2 h-4 w-4" />
-                Monthly Report
-              </Button>
-            </Link>
-            <Link href="/reports/annual" onClick={() => setIsOpen(false)}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-              >
-                <CalendarRange className="mr-2 h-4 w-4" />
-                Annual Report
-              </Button>
-            </Link>
-            <Link href="/reports/date-range" onClick={() => setIsOpen(false)}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-              >
-                <FileBarChart className="mr-2 h-4 w-4" />
-                Date Range Report
-              </Button>
-            </Link>
-            <Link href="/reports/income" onClick={() => setIsOpen(false)}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Income Report
-              </Button>
-            </Link>
-            <Link href="/reports/expenses" onClick={() => setIsOpen(false)}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Expenses Report
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Dialogs */}
         <ExportDialog
           isOpen={showExportDialog}
           onOpenChange={setShowExportDialog}
