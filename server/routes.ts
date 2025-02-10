@@ -9,6 +9,8 @@ import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
 import crypto from "crypto";
 import { sql } from 'drizzle-orm';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 // Hash password using SHA-256
 function hashPassword(password: string): string {
@@ -129,7 +131,15 @@ export function registerRoutes(app: Express): Server {
     });
   });
 
-  // Categories Routes - with enhanced CORS and error handling
+  // Initialize a database pool for raw queries
+  const pool = new Pool({ 
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? {
+      rejectUnauthorized: false
+    } : undefined
+  });
+
+  // Categories Routes - with enhanced error handling
   app.get('/api/categories', async (req, res) => {
     // Set CORS headers
     const origin = process.env.NODE_ENV === 'development'
@@ -147,51 +157,32 @@ export function registerRoutes(app: Express): Server {
       return res.status(200).end();
     }
 
+    let client;
     try {
-      console.log('[Categories API] Request received');
+      client = await pool.connect();
+      console.log('[Categories API] Database connection established');
 
-      // Check if table exists first
-      const tableExists = await db.execute(sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public'
-          AND table_name = 'categories'
-        );
-      `);
+      const result = await client.query('SELECT * FROM categories ORDER BY id');
+      const categoriesData = result.rows;
+      console.log('[Categories API] Found categories:', categoriesData.length);
 
-      if (!tableExists.rows[0].exists) {
-        console.error('[Categories API] Table does not exist');
-        return res.status(500).json({
-          message: 'Categories table not found',
-          error: 'Database schema issue'
-        });
-      }
-
-      // Get categories with error handling
-      const userCategories = await db.select().from(categories);
-      console.log('[Categories API] Found categories:', userCategories.length);
-
-      if (!Array.isArray(userCategories)) {
-        console.error('[Categories API] Invalid response format:', userCategories);
-        return res.status(500).json({
-          message: 'Failed to load categories',
-          error: 'Invalid response format'
-        });
-      }
-
-      return res.json(userCategories);
+      return res.json(categoriesData);
     } catch (error) {
       console.error('[Categories API] Error:', error);
-
-      // Detailed error response
       const errorMessage = error instanceof Error
         ? error.message
         : 'Unknown database error';
 
       return res.status(500).json({
         message: 'Failed to load categories',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal server error'
+        error: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? error : undefined
       });
+    } finally {
+      if (client) {
+        client.release();
+        console.log('[Categories API] Database connection released');
+      }
     }
   });
 
@@ -236,12 +227,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       const [updatedCategory] = await db.update(categories)
-        .set({
-          ...categoryData,
-          name: categoryData.name.trim(),
-          color: categoryData.color.trim(),
-          icon: categoryData.icon?.trim()
-        })
+        .set(categoryData)
         .where(eq(categories.id, categoryId))
         .returning();
 

@@ -62,24 +62,14 @@ export function CategoryManager() {
     queryFn: async () => {
       try {
         console.log('[Categories] Starting fetch request...');
-
-        // Log the request URL and headers
-        const baseUrl = process.env.NODE_ENV === 'development' 
-          ? 'http://localhost:5000' 
-          : '';
-        const url = `${baseUrl}/api/categories`;
-        console.log('[Categories] Request URL:', url);
-
         const response = await apiRequest('/api/categories');
-        console.log('[Categories] Raw response:', response);
+        console.log('[Categories] Response received:', response);
 
-        // Validate response structure
         if (!Array.isArray(response)) {
           console.error('[Categories] Invalid response format:', response);
           throw new Error('Invalid response format from server');
         }
 
-        // Validate each category object
         const validCategories = response.every(cat => 
           typeof cat === 'object' && cat !== null && 
           'id' in cat && 'name' in cat && 'color' in cat
@@ -90,19 +80,28 @@ export function CategoryManager() {
           throw new Error('Invalid category data received');
         }
 
-        console.log('[Categories] Successfully processed', response.length, 'categories');
         return response;
       } catch (error) {
-        console.error('[Categories] Fetch error details:', {
+        console.error('[Categories] Error details:', {
           error,
           message: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined
         });
+
+        // Enhance error message based on error type
+        if (error instanceof Error) {
+          if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            throw new Error('Unable to connect to the server. Please check your internet connection.');
+          }
+          if (error.message.includes('JSON')) {
+            throw new Error('Server returned an invalid response. Please try again later.');
+          }
+        }
         throw error;
       }
     },
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    retry: 1, // Only retry once to avoid too many failed attempts
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
   });
 
   // Loading state with skeleton UI
