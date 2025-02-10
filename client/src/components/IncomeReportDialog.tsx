@@ -45,7 +45,7 @@ interface IncomeReportDialogProps {
   incomes: Income[];
 }
 
-export default function IncomeReportDialog({ isOpen, onOpenChange, incomes: propIncomes }: IncomeReportDialogProps) {
+export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: IncomeReportDialogProps) {
   const today = useMemo(() => dayjs('2025-02-10'), []); // Fixed current date
   const [date, setDate] = useState<DateRange | undefined>({
     from: today.toDate(),
@@ -58,26 +58,6 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes: prop
     pending: 0
   });
 
-  // Default incomes if none provided - Using correct bi-monthly amount for Majdi
-  const defaultIncomes = [
-    {
-      id: '1',
-      source: "Majdi's Salary",
-      amount: 4739, // Correct bi-monthly amount
-      date: '2025-01-01',
-    },
-    {
-      id: '2',
-      source: "Ruba's Salary",
-      amount: 2168,
-      date: '2025-01-10',
-    }
-  ];
-
-  // Use provided incomes or fall back to defaults
-  const incomes = useMemo(() => {
-    return propIncomes.length > 0 ? propIncomes : defaultIncomes;
-  }, [propIncomes]);
 
   // Reset state when dialog closes
   useEffect(() => {
