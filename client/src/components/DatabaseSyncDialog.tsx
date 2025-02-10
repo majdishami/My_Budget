@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 
 interface DatabaseSyncDialogProps {
   isOpen: boolean;
@@ -24,11 +25,14 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
   const [isBackupLoading, setIsBackupLoading] = useState(false);
   const [isRestoreLoading, setIsRestoreLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [operationStatus, setOperationStatus] = useState<string>('');
   const { toast } = useToast();
 
   const handleBackup = async () => {
     try {
       setIsBackupLoading(true);
+      setOperationStatus('Generating backup...');
+
       const response = await apiRequest("POST", "/api/sync/backup");
       const data = await response.json();
 
@@ -42,6 +46,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
         description: "Your database backup has been generated and download should start automatically.",
       });
     } catch (error) {
+      console.error('Backup error:', error);
       toast({
         title: "Backup Failed",
         description: error instanceof Error ? error.message : "Failed to backup database",
@@ -49,6 +54,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
       });
     } finally {
       setIsBackupLoading(false);
+      setOperationStatus('');
     }
   };
 
@@ -62,11 +68,10 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
       return;
     }
 
-    const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase();
-    if (!fileExtension || !['json', 'dump'].includes(fileExtension)) {
+    if (!selectedFile.name.toLowerCase().endsWith('.json')) {
       toast({
         title: "Invalid File Type",
-        description: "Please select a valid backup file (.json or .dump)",
+        description: "Please select a valid JSON backup file",
         variant: "destructive",
       });
       return;
@@ -74,6 +79,8 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
 
     try {
       setIsRestoreLoading(true);
+      setOperationStatus('Uploading backup file...');
+
       const formData = new FormData();
       formData.append('backup', selectedFile);
 
@@ -108,6 +115,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
       });
     } finally {
       setIsRestoreLoading(false);
+      setOperationStatus('');
     }
   };
 
@@ -134,12 +142,20 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
                 After downloading, keep this file safe as it contains all your data.
               </AlertDescription>
             </Alert>
-            <div className="flex justify-end">
-              <Button onClick={handleBackup} disabled={isBackupLoading}>
-                {isBackupLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isBackupLoading ? "Generating Backup..." : "Generate Backup"}
-                {!isBackupLoading && <Download className="ml-2 h-4 w-4" />}
-              </Button>
+            <div className="flex flex-col gap-4">
+              {operationStatus && (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">{operationStatus}</p>
+                  <Progress value={isBackupLoading ? undefined : 100} />
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button onClick={handleBackup} disabled={isBackupLoading}>
+                  {isBackupLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isBackupLoading ? "Generating Backup..." : "Generate Backup"}
+                  {!isBackupLoading && <Download className="ml-2 h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </TabsContent>
 
@@ -147,36 +163,45 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
             <Alert>
               <AlertDescription>
                 Restore your database from a previously generated backup file.
-                Supported formats: .json and .dump files. This will replace all current data with the data from the backup.
+                Only .json backup files are supported. This will replace all current data with the data from the backup.
               </AlertDescription>
             </Alert>
-            <div className="grid w-full max-w-sm items-center gap-1.5">
-              <Label htmlFor="backup-file">Select Backup File</Label>
-              <div className="flex flex-col gap-2">
-                <Input 
-                  id="backup-file"
-                  type="file"
-                  accept=".json,.dump"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="cursor-pointer"
-                />
-                {selectedFile && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
-                    <FileIcon className="h-4 w-4" />
-                    <span>{selectedFile.name}</span>
-                  </div>
-                )}
+            <div className="space-y-4">
+              <div className="grid w-full max-w-sm items-center gap-1.5">
+                <Label htmlFor="backup-file">Select Backup File</Label>
+                <div className="flex flex-col gap-2">
+                  <Input 
+                    id="backup-file"
+                    type="file"
+                    accept=".json"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    className="cursor-pointer"
+                    disabled={isRestoreLoading}
+                  />
+                  {selectedFile && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
+                      <FileIcon className="h-4 w-4" />
+                      <span>{selectedFile.name}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="flex justify-end">
-              <Button 
-                onClick={handleRestore} 
-                disabled={isRestoreLoading || !selectedFile}
-              >
-                {isRestoreLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isRestoreLoading ? "Restoring..." : "Restore Backup"}
-                {!isRestoreLoading && <Upload className="ml-2 h-4 w-4" />}
-              </Button>
+              {operationStatus && (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">{operationStatus}</p>
+                  <Progress value={isRestoreLoading ? undefined : 100} />
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button 
+                  onClick={handleRestore} 
+                  disabled={isRestoreLoading || !selectedFile}
+                >
+                  {isRestoreLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isRestoreLoading ? "Restoring..." : "Restore Backup"}
+                  {!isRestoreLoading && <Upload className="ml-2 h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

@@ -2,16 +2,12 @@ import { db } from '@db';
 import path from 'path';
 import fs from 'fs';
 import { sql } from 'drizzle-orm';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
 
 export async function generateDatabaseBackup() {
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = path.join(process.cwd(), 'tmp');
-    const backupFile = path.join(backupPath, `budget_tracker_${timestamp}.dump`);
+    const backupFile = path.join(backupPath, `budget_tracker_${timestamp}.json`);
 
     // Ensure tmp directory exists
     if (!fs.existsSync(backupPath)) {
@@ -36,7 +32,7 @@ export async function generateDatabaseBackup() {
       const tablename = row.tablename;
       try {
         console.log(`Backing up table: ${tablename}`);
-        const query = sql.raw(`SELECT * FROM ${tablename}`);
+        const query = sql.raw(`SELECT * FROM "${tablename}"`);
         const data = await db.execute(query);
         backup[tablename] = Array.isArray(data) ? data : data.rows || [];
       } catch (tableError: any) {
@@ -64,91 +60,90 @@ export async function generateDatabaseBackup() {
 }
 
 export async function restoreDatabaseBackup(backupFile: string) {
-  try {
-    // Verify backup file exists
-    if (!fs.existsSync(backupFile)) {
-      throw new Error('Backup file not found');
-    }
-
-    const fileExtension = path.extname(backupFile).toLowerCase();
-    console.log('Attempting to restore from file:', backupFile);
-    console.log('File extension:', fileExtension);
-
-    if (fileExtension === '.dump') {
-      // Handle PostgreSQL dump file restore
-      try {
-        const { DATABASE_URL } = process.env;
-        if (!DATABASE_URL) {
-          throw new Error('DATABASE_URL environment variable is not set');
-        }
-
-        console.log('Restoring from dump file using pg_restore');
-
-        // Drop all existing tables
-        const dropTablesResult = await db.execute(sql`
-          DO $$ DECLARE
-            r RECORD;
-          BEGIN
-            FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-              EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-            END LOOP;
-          END $$;
-        `);
-        console.log('Dropped existing tables');
-
-        // Use pg_restore to restore the dump file
-        const restoreCommand = `pg_restore --clean --if-exists --no-owner --no-privileges --no-comments -d "${DATABASE_URL}" "${backupFile}"`;
-        console.log('Executing restore command...');
-        const { stdout, stderr } = await execAsync(restoreCommand);
-
-        if (stderr) {
-          console.log('pg_restore stderr:', stderr);
-        }
-        console.log('pg_restore stdout:', stdout);
-
-        return {
-          success: true,
-          message: 'Database restored successfully from dump file'
-        };
-      } catch (error) {
-        console.error('Error during pg_restore:', error);
-        throw new Error(`Failed to restore from dump file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  // Start a transaction for the entire restore process
+  const transaction = db.transaction(async (tx) => {
+    try {
+      // Verify backup file exists
+      if (!fs.existsSync(backupFile)) {
+        throw new Error('Backup file not found');
       }
-    } else if (fileExtension === '.json') {
-      // Handle JSON backup restore
-      const backupData = JSON.parse(fs.readFileSync(backupFile, 'utf-8'));
-      console.log('Reading backup file:', backupFile);
 
-      // Get all table names from the database
-      const result = await db.execute(sql`
+      // Verify it's a JSON file
+      if (!backupFile.toLowerCase().endsWith('.json')) {
+        throw new Error('Invalid backup file format. Please use a .json backup file');
+      }
+
+      // Read and parse backup file
+      const backupContent = fs.readFileSync(backupFile, 'utf-8');
+      let backupData: Record<string, any[]>;
+
+      try {
+        backupData = JSON.parse(backupContent);
+      } catch (parseError) {
+        throw new Error(`Invalid JSON format in backup file: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
+      }
+
+      // Validate backup data structure
+      if (typeof backupData !== 'object' || backupData === null || Object.keys(backupData).length === 0) {
+        throw new Error('Invalid backup file structure: missing table data');
+      }
+
+      // Get existing tables from the database
+      const result = await tx.execute(sql`
         SELECT tablename 
         FROM pg_tables 
         WHERE schemaname = 'public'
       `);
-      const tables = Array.isArray(result) ? result : result.rows || [];
+      const tables = (Array.isArray(result) ? result : result.rows || [])
+        .map(row => row.tablename);
+
+      console.log('Existing tables:', tables);
 
       // Restore each table
-      for (const row of tables) {
-        const tablename = row.tablename;
+      for (const tablename of tables) {
         if (backupData[tablename]) {
           try {
             console.log(`Restoring table: ${tablename}`);
 
             // Clear existing data
-            await db.execute(sql.raw(`TRUNCATE TABLE ${tablename} CASCADE`));
+            await tx.execute(sql.raw(`TRUNCATE TABLE "${tablename}" CASCADE`));
+
+            // Get table columns
+            const columnsResult = await tx.execute(sql`
+              SELECT column_name, data_type
+              FROM information_schema.columns
+              WHERE table_schema = 'public'
+              AND table_name = ${tablename}
+            `);
+
+            const columns = (Array.isArray(columnsResult) ? columnsResult : columnsResult.rows || [])
+              .map(col => col.column_name);
+
+            console.log(`Columns for ${tablename}:`, columns);
 
             // Insert backup data if there are rows to restore
-            if (backupData[tablename].length > 0) {
-              const columns = Object.keys(backupData[tablename][0]).join(', ');
-
+            if (Array.isArray(backupData[tablename]) && backupData[tablename].length > 0) {
               for (const record of backupData[tablename]) {
-                const values = Object.values(record)
-                  .map(val => typeof val === 'string' ? `'${val.replace(/'/g, "''")}'` : val)
+                // Filter record to only include existing columns
+                const filteredRecord: Record<string, any> = {};
+                for (const col of columns) {
+                  if (record.hasOwnProperty(col)) {
+                    filteredRecord[col] = record[col];
+                  }
+                }
+
+                const columnsList = Object.keys(filteredRecord).join('", "');
+                const values = Object.values(filteredRecord)
+                  .map(val => {
+                    if (val === null) return 'NULL';
+                    return typeof val === 'string' ? `'${val.replace(/'/g, "''")}'` : val;
+                  })
                   .join(', ');
 
-                await db.execute(sql.raw(
-                  `INSERT INTO ${tablename} (${columns}) VALUES (${values})`
-                ));
+                const insertQuery = sql.raw(
+                  `INSERT INTO "${tablename}" ("${columnsList}") VALUES (${values})`
+                );
+                await tx.execute(insertQuery);
               }
             }
 
@@ -157,16 +152,23 @@ export async function restoreDatabaseBackup(backupFile: string) {
             console.error(`Error restoring table ${tablename}:`, tableError);
             throw new Error(`Failed to restore table ${tablename}: ${tableError.message}`);
           }
+        } else {
+          console.log(`Skipping table ${tablename}: no data in backup`);
         }
       }
 
       return {
         success: true,
-        message: 'Database restored successfully from JSON'
+        message: 'Database restored successfully'
       };
-    } else {
-      throw new Error('Unsupported file format. Please use .dump or .json files');
+    } catch (error) {
+      console.error('Error in restore transaction:', error);
+      throw error; // Re-throw to trigger rollback
     }
+  });
+
+  try {
+    return await transaction;
   } catch (error) {
     console.error('Error restoring database backup:', error);
     return {
