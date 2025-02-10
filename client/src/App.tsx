@@ -19,6 +19,11 @@ import { Loader2, X } from "lucide-react";
 import CategoriesPage from "@/pages/Categories";
 import NotFound from "@/pages/not-found";
 import MonthlyToDateReport from "@/pages/monthly-to-date";
+import MonthlyReport from "@/pages/monthly";
+import AnnualReport from "@/pages/annual";
+import DateRangeReport from "@/pages/date-range";
+import IncomeReport from "@/pages/income";
+import ExpenseReport from "@/pages/expenses";
 
 function Router() {
   const { isLoading, error: dataError } = useData();
@@ -55,6 +60,11 @@ function Router() {
         <Route path="/" component={Budget} />
         <Route path="/categories" component={CategoriesPage} />
         <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
+        <Route path="/reports/monthly" component={MonthlyReport} />
+        <Route path="/reports/annual" component={AnnualReport} />
+        <Route path="/reports/date-range" component={DateRangeReport} />
+        <Route path="/reports/income" component={IncomeReport} />
+        <Route path="/reports/expenses" component={ExpenseReport} />
         <Route component={NotFound} />
       </Switch>
     </ErrorBoundary>

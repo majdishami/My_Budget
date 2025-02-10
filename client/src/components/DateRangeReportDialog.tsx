@@ -76,6 +76,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
       return transDate.isSame(selectedDay, 'month');
     });
 
+    // Calculate total monthly amounts
     const monthlyIncome = monthTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
@@ -84,6 +85,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
 
+    // Calculate amounts up to selected date
     const incurredIncome = monthTransactions
       .filter(t => t.type === 'income' && dayjs(t.date).isSameOrBefore(selectedDay))
       .reduce((sum, t) => sum + t.amount, 0);
@@ -92,6 +94,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
       .filter(t => t.type === 'expense' && dayjs(t.date).isSameOrBefore(selectedDay))
       .reduce((sum, t) => sum + t.amount, 0);
 
+    // Calculate remaining amounts
     const remainingIncome = monthlyIncome - incurredIncome;
     const remainingExpenses = monthlyExpenses - incurredExpenses;
     const remainingBalance = remainingIncome - remainingExpenses;
@@ -318,13 +321,13 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="text-green-600">
-                  Income: {formatCurrency(summary.occurredIncome)}
+                  Total Occurred Income: {formatCurrency(summary.occurredIncome)}
                 </div>
                 <div className="text-red-600">
-                  Expenses: {formatCurrency(summary.occurredExpenses)}
+                  Total Incurred Expenses: {formatCurrency(summary.occurredExpenses)}
                 </div>
                 <div className={`font-bold ${occurredNet >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  Net: {formatCurrency(occurredNet)}
+                  Net Balance up today: {formatCurrency(occurredNet)}
                 </div>
               </CardContent>
             </Card>
