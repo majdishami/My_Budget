@@ -17,8 +17,8 @@ const getBaseUrl = () => {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 3,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      retry: 1, // Reduce retry attempts to quickly identify issues
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
       staleTime: 5000,
       refetchOnWindowFocus: false,
     },
@@ -34,6 +34,7 @@ export const apiRequest = async (
   const url = `${baseUrl}${endpoint}`;
 
   console.log(`[API Request] ${options.method || 'GET'} ${endpoint}`);
+  console.log('[API Request] URL:', url);
 
   try {
     const response = await fetch(url, {
@@ -47,7 +48,7 @@ export const apiRequest = async (
 
     console.log(`[API Response] Status: ${response.status}`);
 
-    // Get the response text first
+    // Get the response text first for debugging
     const responseText = await response.text();
     console.log('[API Response] Raw response:', responseText);
 
@@ -57,6 +58,7 @@ export const apiRequest = async (
       data = responseText ? JSON.parse(responseText) : null;
     } catch (parseError) {
       console.error('[API Error] Failed to parse response as JSON:', parseError);
+      console.error('[API Error] Raw response was:', responseText);
       throw new Error('Invalid JSON response from server');
     }
 
@@ -64,6 +66,11 @@ export const apiRequest = async (
       const errorMessage = data?.message || 'An unknown error occurred';
       console.error('[API Error]', errorMessage, data);
       throw new Error(errorMessage);
+    }
+
+    if (!data) {
+      console.error('[API Error] Response was empty');
+      throw new Error('Empty response from server');
     }
 
     console.log('[API Success] Data:', data);
