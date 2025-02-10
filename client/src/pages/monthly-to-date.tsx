@@ -67,7 +67,7 @@ export default function MonthlyToDateReport() {
         {
           description: 'ATT Phone Bill',
           amount: 429,
-          date: 1 // Day of month
+          date: 1
         },
         {
           description: "Maid's 1st payment",
@@ -105,6 +105,7 @@ export default function MonthlyToDateReport() {
     }
   }, [today]);
 
+  // Calculate totals for occurred transactions
   const totals = transactions.reduce(
     (acc, transaction) => {
       if (transaction.type === 'income') {
@@ -116,6 +117,19 @@ export default function MonthlyToDateReport() {
     },
     { income: 0, expenses: 0 }
   );
+
+  // Calculate monthly expected totals (including future transactions)
+  const monthlyExpectedTotals = {
+    income: 13814, // Majdi's salary (4739 * 2) + Ruba's salary (2168 * 2)
+    expenses: 4374, // Sum of all monthly expenses
+  };
+
+  // Calculate remaining amounts
+  const remaining = {
+    income: monthlyExpectedTotals.income - totals.income,
+    expenses: monthlyExpectedTotals.expenses - totals.expenses,
+    balance: (monthlyExpectedTotals.income - totals.income) - (monthlyExpectedTotals.expenses - totals.expenses)
+  };
 
   const netBalance = totals.income - totals.expenses;
 
@@ -166,6 +180,51 @@ export default function MonthlyToDateReport() {
             <div className={`text-2xl font-bold ${netBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
               {formatCurrency(netBalance)}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Remaining Amounts Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <Card className="bg-muted/50">
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium">Remaining Income</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-400">
+              {formatCurrency(remaining.income)}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Expected: {formatCurrency(monthlyExpectedTotals.income)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-muted/50">
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium">Remaining Expenses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-400">
+              {formatCurrency(remaining.expenses)}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Expected: {formatCurrency(monthlyExpectedTotals.expenses)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-muted/50">
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium">Remaining Balance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${remaining.balance >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+              {formatCurrency(remaining.balance)}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Future net balance
+            </p>
           </CardContent>
         </Card>
       </div>
