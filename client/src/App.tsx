@@ -89,23 +89,23 @@ function Router() {
       )}
 
       <div className="min-h-screen flex bg-background">
-        <aside className="w-48 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
+        <aside className="w-40 border-r p-1 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
           {/* Left sidebar content */}
         </aside>
 
-        <div className="flex-1 flex flex-col ml-48">
+        <div className="flex-1 flex flex-col ml-40">
           <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <Card className="p-2">
-              <div className="flex items-center justify-between px-2">
-                <div className="flex items-center gap-4">
-                  <h1 className="text-xl font-bold">
+            <Card className="p-1">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg font-bold">
                     My Budget
                   </h1>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <select 
                       value={selectedMonth}
                       onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-                      className="p-1 border rounded bg-background text-sm"
+                      className="py-0.5 px-1 border rounded bg-background text-sm"
                       aria-label="Select month"
                     >
                       {months.map(month => (
@@ -118,7 +118,7 @@ function Router() {
                     <select
                       value={selectedYear}
                       onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                      className="p-1 border rounded bg-background text-sm"
+                      className="py-0.5 px-1 border rounded bg-background text-sm"
                       aria-label="Select year"
                     >
                       {years.map(year => (
@@ -138,7 +138,7 @@ function Router() {
           </header>
 
           <main className="flex-1 overflow-hidden">
-            <div className="h-full">
+            <div className="h-full p-1">
               <Switch>
                 <Route path="/" component={Budget} />
                 <Route path="/categories" component={CategoriesPage} />
