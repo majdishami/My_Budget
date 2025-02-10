@@ -1,18 +1,3 @@
-/**
- * ================================================
- * 📊 Monthly To Date Dialog Component
- * ================================================
- * Displays a detailed breakdown of income and expenses
- * for the current month up to the current date.
- * 
- * Features:
- * 📈 Income tracking
- * 📉 Expense monitoring
- * 💰 Balance calculation
- * 📅 Date-based filtering
- * 📱 Responsive design
- */
-
 import {
   Dialog,
   DialogContent,
@@ -24,7 +9,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import dayjs from 'dayjs';
-import { X } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -33,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { X, Calendar, AlertCircle } from "lucide-react";
 
 interface Transaction {
   date: string;
@@ -52,248 +37,251 @@ export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToD
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');
 
-  // Expected monthly totals for February 2025
-  const expectedMonthlyTotals = {
-    income: 13814, // Total expected income for the month
-    expenses: 11031, // Total expected expenses for the month
-  };
-
   useEffect(() => {
     if (!isOpen) return;
 
     const mockTransactions: Transaction[] = [];
 
-    // Add Majdi's salary occurrences
-    const majdiPayDates = ['01', '15'];
-    majdiPayDates.forEach(day => {
-      const payDate = today.format(`YYYY-MM-${day}`);
-      if (dayjs(payDate).isSame(today, 'day') || dayjs(payDate).isBefore(today)) {
+    // Add Majdi's salary occurrences for February
+    if (dayjs().month() === 1) { // February
+      // February 1st salary
+      if (today.date() >= 1) {
         mockTransactions.push({
-          date: payDate,
+          date: '2025-02-01',
           description: "Majdi's Salary",
-          amount: Math.round(4739),
+          amount: 4739,
           type: 'income'
         });
       }
-    });
 
-    // Calculate Ruba's bi-weekly salary dates
-    const rubaStartDate = dayjs('2025-01-10'); // First pay date
-    let nextPayDate = rubaStartDate;
-
-    while (nextPayDate.isBefore(today) || nextPayDate.isSame(today, 'day')) {
-      if (nextPayDate.month() === today.month() && nextPayDate.date() <= today.date()) {
+      // February 15th salary
+      if (today.date() >= 15) {
         mockTransactions.push({
-          date: nextPayDate.format('YYYY-MM-DD'),
+          date: '2025-02-15',
+          description: "Majdi's Salary",
+          amount: 4739,
+          type: 'income'
+        });
+      }
+
+      // Calculate Ruba's bi-weekly salary
+      // First payment on February 7th
+      if (today.date() >= 7) {
+        mockTransactions.push({
+          date: '2025-02-07',
           description: "Ruba's Salary",
-          amount: Math.round(2168),
+          amount: 2168,
           type: 'income'
         });
       }
-      nextPayDate = nextPayDate.add(14, 'day');
-    }
 
-    // Add Monthly Expenses for February
-    if (today.month() === 1) { // February is month 1 in zero-based months
-      // February 1st expenses
-      mockTransactions.push({
-        date: startOfMonth.format('YYYY-MM-DD'),
-        description: 'ATT Phone Bill',
-        amount: 429,
-        type: 'expense'
-      });
-
-      mockTransactions.push({
-        date: startOfMonth.format('YYYY-MM-DD'),
-        description: "Maid's 1st payment",
-        amount: 120,
-        type: 'expense'
-      });
-
-      mockTransactions.push({
-        date: startOfMonth.format('YYYY-MM-DD'),
-        description: 'Monthly Rent',
-        amount: 3750,
-        type: 'expense'
-      });
-
-      // February 3rd expenses
-      if (today.date() >= 3) {
+      // Second payment on February 21st
+      if (today.date() >= 21) {
         mockTransactions.push({
-          date: today.format('YYYY-MM-DD'),
-          description: 'Sling TV',
-          amount: 75,
-          type: 'expense'
+          date: '2025-02-21',
+          description: "Ruba's Salary",
+          amount: 2168,
+          type: 'income'
         });
       }
+
+      // Add Monthly Expenses for February
+      const monthlyExpenses = [
+        { description: 'ATT Phone Bill', amount: 429, date: 1 },
+        { description: "Maid's 1st payment", amount: 120, date: 1 },
+        { description: 'Monthly Rent', amount: 3750, date: 1 },
+        { description: 'Sling TV', amount: 75, date: 3 },
+        { description: 'Cox Internet', amount: 81, date: 6 },
+        { description: 'Water Bill', amount: 80, date: 7 },
+        { description: 'NV Energy Electrical', amount: 250, date: 7 },
+        { description: 'TransAmerica Life Insurance', amount: 77, date: 9 },
+        { description: 'Credit Card minimum payments', amount: 225, date: 14 },
+        { description: 'Apple/Google/YouTube', amount: 130, date: 14 },
+        { description: 'Expenses & Groceries', amount: 3000, date: 16 },
+        { description: "Maid's 2nd Payment", amount: 120, date: 17 },
+        { description: 'SoFi Personal Loan', amount: 1915, date: 17 },
+        { description: 'Southwest Gas', amount: 75, date: 17 },
+        { description: 'Car Insurance for 3 cars', amount: 704, date: 28 }
+      ];
+
+      monthlyExpenses.forEach(expense => {
+        if (today.date() >= expense.date) {
+          mockTransactions.push({
+            date: `2025-02-${String(expense.date).padStart(2, '0')}`,
+            description: expense.description,
+            amount: expense.amount,
+            type: 'expense'
+          });
+        }
+      });
     }
 
     setTransactions(mockTransactions);
   }, [isOpen, today]);
 
+  // Calculate totals
   const totals = transactions.reduce(
     (acc, transaction) => {
       if (transaction.type === 'income') {
-        acc.income += Math.round(transaction.amount);
+        acc.income += transaction.amount;
       } else {
-        acc.expenses += Math.round(transaction.amount);
+        acc.expenses += transaction.amount;
       }
       return acc;
     },
     { income: 0, expenses: 0 }
   );
 
-  const netBalance = totals.income - totals.expenses;
+  // Expected monthly totals
+  const monthlyExpectedTotals = {
+    income: 13814, // Majdi (4739 * 2) + Ruba (2168 * 2)
+    expenses: 11031 // Sum of all monthly expenses
+  };
 
   // Calculate remaining amounts
-  const remainingIncome = expectedMonthlyTotals.income - totals.income;
-  const remainingExpenses = expectedMonthlyTotals.expenses - totals.expenses;
-  const remainingBalance = remainingIncome - remainingExpenses;
+  const remaining = {
+    income: monthlyExpectedTotals.income - totals.income,
+    expenses: monthlyExpectedTotals.expenses - totals.expenses
+  };
+
+  const netBalance = totals.income - totals.expenses;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">
-            Monthly Report - {today.format('MMMM YYYY')} (Up to {today.format('MMMM D')})
+          <DialogTitle className="text-xl font-bold flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              Monthly Report - {today.format('MMMM YYYY')}
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="text-sm font-normal flex items-center gap-1 bg-muted px-2 py-1 rounded-md">
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                <span>As of {today.format('MMMM D, YYYY')}</span>
+              </div>
+              <DialogClose asChild>
+                <button
+                  className="rounded-sm opacity-70 hover:opacity-100"
+                  aria-label="Close dialog"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </button>
+              </DialogClose>
+            </div>
           </DialogTitle>
-          <DialogClose asChild>
-            <button 
-              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
-              aria-label="Close dialog"
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </button>
-          </DialogClose>
         </DialogHeader>
 
-        <div id="dialog-description" className="sr-only">
-          Monthly financial report showing income, expenses, and net balance for the current month
-        </div>
+        <div className="space-y-8 pt-4">
+          {/* Monthly Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="bg-muted/50">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Total Occurred Income</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(totals.income)}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Remaining: {formatCurrency(remaining.income)}
+                </div>
+              </CardContent>
+            </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(totals.income)}
-              </div>
-            </CardContent>
-          </Card>
+            <Card className="bg-muted/50">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Total Incurred Expenses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(totals.expenses)}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Remaining: {formatCurrency(remaining.expenses)}
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {formatCurrency(totals.expenses)}
-              </div>
-            </CardContent>
-          </Card>
+            <Card className="bg-muted/50">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Net Balance up to date</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${netBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                  {formatCurrency(netBalance)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${netBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                {formatCurrency(netBalance)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Transactions Tables */}
+          <div className="space-y-4">
+            {/* Income Transactions */}
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Income Transactions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions
+                      .filter(t => t.type === 'income')
+                      .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                      .map((transaction, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell className="text-right text-green-600">
+                            {formatCurrency(transaction.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
-        {/* Remaining Till End Of Month Section */}
-        <Card className="mb-6 bg-muted/50">
-          <CardHeader className="py-4">
-            <CardTitle className="text-lg font-semibold">Remaining Till End Of Month</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Remaining Income:</span>
-                <span className="font-medium text-green-600">{formatCurrency(remainingIncome)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Remaining Expenses:</span>
-                <span className="font-medium text-red-600">{formatCurrency(remainingExpenses)}</span>
-              </div>
-              <div className="flex justify-between items-center pt-2 border-t">
-                <span className="text-sm font-medium">Balance of Remaining:</span>
-                <span className={`font-medium ${remainingBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                  {formatCurrency(remainingBalance)}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Income Transactions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions
-                    .filter(t => t.type === 'income')
-                    .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                    .map((transaction, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell className="text-right text-green-600">
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Expense Transactions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions
-                    .filter(t => t.type === 'expense')
-                    .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                    .map((transaction, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell className="text-right text-red-600">
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+            {/* Expense Transactions */}
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Expense Transactions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions
+                      .filter(t => t.type === 'expense')
+                      .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                      .map((transaction, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell className="text-right text-red-600">
+                            {formatCurrency(transaction.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
