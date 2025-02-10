@@ -15,7 +15,7 @@ export async function generateDatabaseBackup() {
     }
 
     // Get all table names in the database
-    const tablesResult = await db.execute<{ tablename: string }>(sql`
+    const result = await db.execute(sql`
       SELECT tablename 
       FROM pg_tables 
       WHERE schemaname = 'public'
@@ -23,16 +23,20 @@ export async function generateDatabaseBackup() {
 
     // Create a backup object with table data
     const backup: Record<string, any> = {};
+    const tables = Array.isArray(result) ? result : result.rows || [];
+
+    console.log('Found tables:', tables);
 
     // For each table, get all rows
-    for (const { tablename } of tablesResult) {
+    for (const row of tables) {
+      const tablename = row.tablename;
       try {
         console.log(`Backing up table: ${tablename}`);
-        const rows = await db.execute(sql`
+        const data = await db.execute(sql`
           SELECT * FROM "${tablename}"
         `);
-        backup[tablename] = rows;
-      } catch (tableError) {
+        backup[tablename] = Array.isArray(data) ? data : data.rows || [];
+      } catch (tableError: any) {
         console.error(`Error backing up table ${tablename}:`, tableError);
         throw new Error(`Failed to backup table ${tablename}: ${tableError.message}`);
       }
