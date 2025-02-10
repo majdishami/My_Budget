@@ -35,9 +35,9 @@ export function CategoryManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // State management - all hooks at the top level
+  // State management
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editCategory, setEditCategory] = useState<Category | null>(null);
+  const [editCategory, setEditCategory] = useState<CategoryFormData | null>(null);
   const [deleteCategory, setDeleteCategory] = useState<Category | null>(null);
 
   // Query hook
@@ -122,7 +122,7 @@ export function CategoryManager() {
   // Event handlers
   const handleSubmit = (data: CategoryFormData) => {
     if (editCategory) {
-      updateMutation.mutate({ ...data, id: editCategory.id });
+      updateMutation.mutate({ ...data, id: (editCategory as Category).id });
     } else {
       createMutation.mutate(data);
     }
@@ -201,7 +201,11 @@ export function CategoryManager() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setEditCategory(category)}
+                  onClick={() => setEditCategory({
+                    name: category.name,
+                    color: category.color,
+                    icon: category.icon
+                  })}
                   disabled={updateMutation.isPending}
                 >
                   <Edit className="h-4 w-4" />
