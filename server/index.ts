@@ -18,11 +18,19 @@ if (!fs.existsSync(tmpDir)) {
 // Basic middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Configure file upload middleware
 app.use(fileUpload({
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
-  createParentPath: true,
+  limits: { 
+    fileSize: 50 * 1024 * 1024 // 50MB max file size
+  },
   useTempFiles: true,
-  tempFileDir: tmpDir
+  tempFileDir: tmpDir,
+  debug: true, // Enable debug mode
+  safeFileNames: true,
+  preserveExtension: true,
+  abortOnLimit: true,
+  uploadTimeout: 30000, // 30 seconds
 }));
 
 // Enable trust proxy for secure cookies when behind Replit's proxy
@@ -58,6 +66,10 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+
+  if (req.files) {
+    console.log('Files received:', Object.keys(req.files));
+  }
 
   log(`[${req.method}] ${path} from ${req.ip}`);
   if (Object.keys(req.query).length > 0) {
