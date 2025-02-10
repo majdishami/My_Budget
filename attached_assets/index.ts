@@ -4,7 +4,6 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "./schema";
 import { config } from 'dotenv';
 import { join } from 'path';
-import { seedCategories } from './seed';
 
 // Load environment variables from .env file
 const envPath = join(process.cwd(), '.env');
@@ -13,7 +12,6 @@ config({ path: envPath });
 // Create pool configuration
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
-  // Only enable SSL in production
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
   } : undefined
@@ -28,6 +26,7 @@ pool.on('error', (err) => {
   process.exit(-1);
 });
 
+// Initialize db connection
 const db = drizzle(pool, { schema });
 
 // Enhanced connection testing with retries
@@ -42,10 +41,7 @@ async function testConnection(retries = 3) {
         await client.query('SELECT NOW()');
         console.log('Database connection established successfully');
 
-        // Seed default categories
-        await seedCategories();
-
-        // Get all tables
+        // More specific schema verification
         const tables = await client.query(`
           SELECT table_name 
           FROM information_schema.tables 
@@ -57,7 +53,12 @@ async function testConnection(retries = 3) {
         const tableNames = tables.rows.map(r => r.table_name);
         console.log('Available tables:', tableNames);
 
-        // Test categories table accessibility with case-insensitive check
+        // Verify categories table exists and has correct structure
+        if (!tableNames.includes('categories')) {
+          throw new Error('Categories table not found in schema');
+        }
+
+        // Test query to categories table
         const categoryTest = await client.query('SELECT COUNT(*) FROM categories');
         console.log(`Categories table accessible, contains ${categoryTest.rows[0].count} rows`);
 
