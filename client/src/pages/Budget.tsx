@@ -34,9 +34,12 @@ dayjs.extend(isBetween);
 export function Budget() {
   const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction, resetData } = useData();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedDay, setSelectedDay] = useState(dayjs().date());
-  const [selectedMonth, setSelectedMonth] = useState(dayjs().month());
-  const [selectedYear, setSelectedYear] = useState(dayjs().year());
+
+  // Set today to February 9, 2025
+  const today = dayjs('2025-02-09');
+  const [selectedDay, setSelectedDay] = useState(today.date());
+  const [selectedMonth, setSelectedMonth] = useState(today.month());
+  const [selectedYear, setSelectedYear] = useState(today.year());
   const [showDailySummary, setShowDailySummary] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Income | Bill | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -77,10 +80,9 @@ export function Budget() {
     setEditingTransaction(null);
   };
 
-  const today = dayjs();
   const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf("month");
   const lastDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).endOf("month");
-  const firstDayIndex = firstDayOfMonth.day();
+  const firstDayIndex = firstDayOfMonth.day(); // Sunday = 0, Monday = 1, etc.
   const totalDaysInMonth = lastDayOfMonth.date();
   const calendarDays = Array.from({ length: 6 * 7 }, (_, index) => {
     const day = index - firstDayIndex + 1;
@@ -122,6 +124,20 @@ export function Budget() {
     }
   };
 
+  const years = Array.from({ length: 21 }, (_, i) => today.year() - 10 + i);
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: i,
+    label: dayjs().month(i).format("MMMM")
+  }));
+
+  const handleMonthChange = (newMonth: number) => {
+    setSelectedMonth(newMonth);
+  };
+
+  const handleYearChange = (newYear: number) => {
+    setSelectedYear(newYear);
+  };
+
   return (
     <div className="min-h-screen flex bg-background">
       {/* Mobile Menu Toggle Button */}
@@ -138,7 +154,7 @@ export function Budget() {
         )}
       </Button>
 
-      {/* 📱 Sidebar Navigation */}
+      {/* Sidebar Navigation */}
       <aside
         className={cn(
           "w-64 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto transition-transform duration-200 ease-in-out lg:translate-x-0 z-30",
@@ -169,12 +185,73 @@ export function Budget() {
       {/* Main Content Area */}
       <main className="w-full lg:pl-64 flex flex-col min-h-screen">
         <div className="flex-1 p-2 lg:p-4 overflow-y-auto">
+          <Card className="w-full mb-4">
+            <div className="p-4">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold mb-2">
+                    Budget Calendar - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                  </h1>
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => handleMonthChange(parseInt(e.target.value))}
+                      className="p-2 border rounded bg-background"
+                    >
+                      {months.map((month) => (
+                        <option key={month.value} value={month.value}>
+                          {month.label}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                      className="p-2 border rounded bg-background"
+                    >
+                      {years.map((year) => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Month Total Income</p>
+                    <p className="text-lg font-semibold text-green-600">
+                      {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalIncome)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Month Total Bills</p>
+                    <p className="text-lg font-semibold text-red-600">
+                      {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalBills)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Month Net Balance</p>
+                    <p className={`text-lg font-semibold ${
+                      calculateTotalsUpToDay(totalDaysInMonth).totalIncome - calculateTotalsUpToDay(totalDaysInMonth).totalBills >= 0
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}>
+                      {formatCurrency(
+                        calculateTotalsUpToDay(totalDaysInMonth).totalIncome -
+                        calculateTotalsUpToDay(totalDaysInMonth).totalBills
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
           <Card className="w-full">
             <div className="w-full overflow-hidden">
               <table className="w-full table-fixed border-collapse text-sm lg:text-base">
                 <thead className="sticky top-0 bg-background z-10">
                   <tr>
-                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
                       <th key={day} className="p-1 lg:p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
                         {day}
                       </th>
@@ -201,29 +278,15 @@ export function Budget() {
                             aria-label={`${dayNumber} ${dayjs().month(selectedMonth).format("MMMM")} ${selectedYear}${isCurrentDay(dayNumber) ? ' (Today)' : ''}`}
                             className={cn(
                               "border p-1 lg:p-2 align-top cursor-pointer transition-colors h-24 lg:h-48 relative touch-manipulation",
-                              "active:bg-accent/70",
                               "hover:bg-accent",
-                              isCurrentDay(dayNumber) && [
-                                "ring-2 ring-primary ring-offset-2",
-                                "border-primary",
-                                "bg-primary/10",
-                                "relative",
-                                "after:content-['Today'] after:absolute after:top-1 after:right-1",
-                                "after:text-[10px] after:font-medium after:text-primary",
-                                "after:px-1 after:py-0.5 after:rounded after:bg-primary/10",
-                                "before:content-[''] before:absolute before:-inset-[2px]",
-                                "before:border-2 before:border-primary before:rounded-sm"
-                              ],
-                              selectedDay === dayNumber && "bg-accent/50",
+                              isCurrentDay(dayNumber) && "ring-2 ring-primary ring-offset-2 border-primary",
+                              selectedDay === dayNumber && "bg-accent/50 font-semibold",
                               hasTransactions && "shadow-sm"
                             )}
                           >
                             <div className="flex justify-between items-start mb-1">
                               <span className={cn(
-                                "font-medium text-base lg:text-lg relative",
-                                "px-1.5 py-0.5 rounded",
-                                "bg-background/95 backdrop-blur-sm", 
-                                selectedDay === dayNumber && "bg-accent-foreground/10",
+                                "font-medium text-base lg:text-lg",
                                 isCurrentDay(dayNumber) && "text-primary font-bold"
                               )}>
                                 {dayNumber}
@@ -239,11 +302,11 @@ export function Budget() {
                                 </div>
                               )}
                             </div>
-                            <div className="space-y-0.5 text-[10px] lg:text-xs overflow-y-auto max-h-[calc(100%-2rem)]">
+                            <div className="space-y-0.5 text-xs">
                               {dayIncomes.map((income, index) => (
                                 <div
                                   key={income.id}
-                                  className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1 py-0.5 touch-manipulation"
+                                  className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1"
                                 >
                                   <span className="truncate max-w-[60%]">
                                     {index + 1}. {income.source}
@@ -256,7 +319,7 @@ export function Budget() {
                               {dayBills.map((bill, index) => (
                                 <div
                                   key={bill.id}
-                                  className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1 py-0.5 touch-manipulation"
+                                  className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
                                 >
                                   <span className="truncate max-w-[60%]">
                                     {index + 1}. {bill.name}
