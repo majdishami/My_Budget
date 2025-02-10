@@ -52,11 +52,13 @@ interface Transaction {
 interface Bill {
   id: number;
   name: string;
-  amount: number | string; // Modified to handle string amounts
+  amount: number | string; 
   day: number;
   category_id: number;
   user_id: number;
   created_at: string;
+  category_name?: string; // Added category_name
+  category_color?: string; // Added category_color
 }
 
 interface Category {
@@ -101,10 +103,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const [previousReport, setPreviousReport] = useState<{value: string, date: DateRange | undefined} | null>(null);
   const today = useMemo(() => dayjs(), []);
 
-  // Fetch categories
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
-  });
+  // Fetch categories (This part is likely unnecessary now)
+  // const { data: categories = [] } = useQuery<Category[]>({
+  //   queryKey: ['/api/categories'],
+  // });
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -120,14 +122,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   // Group bills by category and prepare dropdown options
   const dropdownOptions = useMemo(() => {
     const categorizedBills = bills.reduce<Record<string, (Bill & { categoryColor: string })[]>>((acc, bill) => {
-      const category = categories.find(c => c.id === bill.category_id);
-      const categoryName = category ? category.name : 'Uncategorized';
+      const categoryName = bill.category_name || 'Uncategorized';
       if (!acc[categoryName]) {
         acc[categoryName] = [];
       }
       acc[categoryName].push({
         ...bill,
-        categoryColor: category?.color || '#D3D3D3'
+        categoryColor: bill.category_color || '#D3D3D3'
       });
       return acc;
     }, {});
@@ -138,7 +139,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       ),
       categorizedBills
     };
-  }, [bills, categories]);
+  }, [bills]);
 
   // Modified section of transactions generation
   const transactions = useMemo(() => {
@@ -146,7 +147,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     console.log('Generating transactions with:', {
       bills,
-      categories,
       dateRange: { from: date.from, to: date.to }
     });
 
@@ -170,10 +170,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         filteredBills = bills.filter(bill => bill.id === expenseId);
       } else if (selectedValue.startsWith('category_')) {
         const categoryName = selectedValue.replace('category_', '');
-        filteredBills = bills.filter(bill => {
-          const category = categories.find(c => c.id === bill.category_id);
-          return category?.name === categoryName;
-        });
+        filteredBills = bills.filter(bill => bill.category_name === categoryName);
       }
     }
 
@@ -183,7 +180,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     const endDate = dayjs(date.to);
     const result: Transaction[] = [];
 
-    // Generate transactions for each bill with proper category mapping
+    // Generate transactions for each bill
     filteredBills.forEach(bill => {
       // Ensure amount is a number
       const billAmount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
@@ -192,11 +189,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         return;
       }
 
-      const category = categories.find(c => c.id === bill.category_id);
       console.log('Processing bill:', {
         bill,
-        foundCategory: category,
-        categoryId: bill.category_id,
         amount: billAmount
       });
 
@@ -216,8 +210,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             description: bill.name,
             amount: billAmount,
             occurred: currentDate.isSameOrBefore(today),
-            category: category?.name || 'Uncategorized',
-            color: category?.color || '#D3D3D3'
+            category: bill.category_name || 'Uncategorized',
+            color: bill.category_color || '#D3D3D3'
           });
         }
         currentDate = currentDate.add(1, 'month');
@@ -227,7 +221,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     console.log('Generated transactions:', result);
 
     return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
-  }, [showReport, selectedValue, date, bills, categories, today]);
+  }, [showReport, selectedValue, date, bills, today]);
 
   // Group transactions by expense name for the "all" view
   const groupedExpenses = useMemo(() => {

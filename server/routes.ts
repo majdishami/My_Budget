@@ -259,32 +259,26 @@ export function registerRoutes(app: Express): Server {
 
   // Bills Routes
   app.get('/api/bills', async (req, res) => {
-    // Set CORS headers
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    res.header('Content-Type', 'application/json');
-
-    // Handle preflight request
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-
-    let client;
     try {
-      client = await pool.connect();
-      console.log('[Bills API] Database connection established');
+      console.log('[Bills API] Fetching bills with categories...');
 
-      const result = await client.query(`
-        SELECT b.*, c.name as category_name, c.color as category_color 
-        FROM bills b 
-        LEFT JOIN categories c ON b.category_id = c.id 
-        ORDER BY b.id
-      `);
+      const billsWithCategories = await db.query.bills.findMany({
+        with: {
+          category: true
+        },
+        orderBy: (bills, { asc }) => [asc(bills.id)]
+      });
 
-      console.log('[Bills API] Found bills:', result.rows.length);
+      console.log('[Bills API] Found bills:', billsWithCategories.length);
 
-      return res.json(result.rows);
+      // Transform the data to include category information directly
+      const formattedBills = billsWithCategories.map(bill => ({
+        ...bill,
+        category_name: bill.category?.name || 'Uncategorized',
+        category_color: bill.category?.color || '#D3D3D3'
+      }));
+
+      return res.json(formattedBills);
     } catch (error) {
       console.error('[Bills API] Error:', error);
       const errorMessage = error instanceof Error
@@ -296,11 +290,6 @@ export function registerRoutes(app: Express): Server {
         error: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal server error',
         details: process.env.NODE_ENV === 'development' ? error : undefined
       });
-    } finally {
-      if (client) {
-        client.release();
-        console.log('[Bills API] Database connection released');
-      }
     }
   });
 
