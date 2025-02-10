@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Download, Upload } from "lucide-react";
+import { Loader2, Download, Upload, FileIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
@@ -62,6 +62,16 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
       return;
     }
 
+    const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase();
+    if (!fileExtension || !['json', 'dump'].includes(fileExtension)) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please select a valid backup file (.json or .dump)",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsRestoreLoading(true);
       const formData = new FormData();
@@ -83,6 +93,9 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
 
       // Reset file selection
       setSelectedFile(null);
+
+      // Close the dialog after successful restore
+      onOpenChange(false);
     } catch (error) {
       toast({
         title: "Restore Failed",
@@ -130,17 +143,26 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
             <Alert>
               <AlertDescription>
                 Restore your database from a previously generated backup file.
-                This will replace all current data with the data from the backup.
+                Supported formats: .json and .dump files. This will replace all current data with the data from the backup.
               </AlertDescription>
             </Alert>
             <div className="grid w-full max-w-sm items-center gap-1.5">
-              <Label htmlFor="backup-file">Backup File</Label>
-              <Input 
-                id="backup-file"
-                type="file"
-                accept=".json"
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-              />
+              <Label htmlFor="backup-file">Select Backup File</Label>
+              <div className="flex flex-col gap-2">
+                <Input 
+                  id="backup-file"
+                  type="file"
+                  accept=".json,.dump"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  className="cursor-pointer"
+                />
+                {selectedFile && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
+                    <FileIcon className="h-4 w-4" />
+                    <span>{selectedFile.name}</span>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex justify-end">
               <Button 
