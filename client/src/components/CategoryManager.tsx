@@ -15,7 +15,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useLocation } from "wouter";
 import { apiRequest } from '@/lib/api-client';
 
 interface Category {
@@ -32,31 +31,21 @@ interface CategoryFormData {
   icon?: string | null;
 }
 
-interface DialogState {
-  add: boolean;
-  edit: Category | null;
-  delete: Category | null;
-}
-
 export function CategoryManager() {
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // State management
-  const [dialogState, setDialogState] = useState<DialogState>({
-    add: false,
-    edit: null,
-    delete: null,
-  });
+  // State management - all hooks at the top level
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editCategory, setEditCategory] = useState<Category | null>(null);
+  const [deleteCategory, setDeleteCategory] = useState<Category | null>(null);
 
-  // Categories query with enhanced error handling and detailed logging
+  // Query hook
   const {
     data: categories = [],
-    isLoading: isLoadingCategories,
-    error: categoriesError,
-    refetch,
-    isError
+    isLoading,
+    error: queryError,
+    refetch
   } = useQuery({
     queryKey: ['/api/categories'],
     queryFn: async () => {
@@ -64,48 +53,83 @@ export function CategoryManager() {
         console.log('[Categories] Starting fetch request...');
         const response = await apiRequest('/api/categories');
         console.log('[Categories] Response received:', response);
-
-        if (!Array.isArray(response)) {
-          console.error('[Categories] Invalid response format:', response);
-          throw new Error('Invalid response format from server');
-        }
-
-        const validCategories = response.every(cat => 
-          typeof cat === 'object' && cat !== null && 
-          'id' in cat && 'name' in cat && 'color' in cat
-        );
-
-        if (!validCategories) {
-          console.error('[Categories] Invalid category data:', response);
-          throw new Error('Invalid category data received');
-        }
-
         return response;
       } catch (error) {
-        console.error('[Categories] Error details:', {
-          error,
-          message: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined
-        });
-
-        // Enhance error message based on error type
-        if (error instanceof Error) {
-          if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-            throw new Error('Unable to connect to the server. Please check your internet connection.');
-          }
-          if (error.message.includes('JSON')) {
-            throw new Error('Server returned an invalid response. Please try again later.');
-          }
-        }
+        console.error('[Categories] Error:', error);
         throw error;
       }
-    },
-    retry: 1, // Only retry once to avoid too many failed attempts
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
+    }
   });
 
-  // Loading state with skeleton UI
-  if (isLoadingCategories) {
+  // Mutation hooks
+  const createMutation = useMutation({
+    mutationFn: (data: CategoryFormData) => 
+      apiRequest('/api/categories', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      toast({ title: "Success", description: "Category created successfully" });
+      setIsAddOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (category: Category) => 
+      apiRequest(`/api/categories/${category.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(category),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      toast({ title: "Success", description: "Category updated successfully" });
+      setEditCategory(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => 
+      apiRequest(`/api/categories/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      toast({ title: "Success", description: "Category deleted successfully" });
+      setDeleteCategory(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Event handlers
+  const handleSubmit = (data: CategoryFormData) => {
+    if (editCategory) {
+      updateMutation.mutate({ ...data, id: editCategory.id });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  // Loading state
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Categories</h2>
@@ -125,13 +149,8 @@ export function CategoryManager() {
     );
   }
 
-  // Error state with detailed error information
-  if (isError) {
-    console.error('[Categories] Render error state:', {
-      error: categoriesError,
-      message: categoriesError instanceof Error ? categoriesError.message : 'Unknown error'
-    });
-
+  // Error state
+  if (queryError) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Categories</h2>
@@ -141,13 +160,8 @@ export function CategoryManager() {
             <div className="text-center">
               <h3 className="font-semibold text-red-900">Failed to load categories</h3>
               <p className="text-sm text-red-600 mt-1">
-                {categoriesError instanceof Error ? categoriesError.message : 'An unexpected error occurred'}
+                {queryError instanceof Error ? queryError.message : 'An unexpected error occurred'}
               </p>
-              {process.env.NODE_ENV === 'development' && categoriesError instanceof Error && (
-                <pre className="mt-2 text-xs text-red-500 bg-red-50 p-2 rounded">
-                  {categoriesError.stack}
-                </pre>
-              )}
             </div>
             <Button onClick={() => refetch()} variant="outline" className="mt-2">
               Try Again
@@ -158,109 +172,12 @@ export function CategoryManager() {
     );
   }
 
-  // Event handlers
-  const handleCloseDialogs = () => {
-    setDialogState({ add: false, edit: null, delete: null });
-  };
-
-  const handleEdit = (category: Category) => {
-    setDialogState(prev => ({ ...prev, edit: category }));
-  };
-
-  const handleDelete = (category: Category) => {
-    setDialogState(prev => ({ ...prev, delete: category }));
-  };
-
-  const handleSubmit = (data: CategoryFormData) => {
-    if (dialogState.edit) {
-      updateMutation.mutate({ ...data, id: dialogState.edit.id });
-    } else {
-      createMutation.mutate(data);
-    }
-  };
-
-  // Mutations for category operations
-  const createMutation = useMutation({
-    mutationFn: async (newCategory: CategoryFormData) => {
-      return apiRequest('/api/categories', {
-        method: 'POST',
-        body: JSON.stringify(newCategory),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      toast({
-        title: "Success",
-        description: "Category created successfully",
-      });
-      handleCloseDialogs();
-    },
-    onError: (error) => {
-      console.error('[Categories] Create mutation error:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create category",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: Category) => {
-      return apiRequest(`/api/categories/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      toast({
-        title: "Success",
-        description: "Category updated successfully",
-      });
-      handleCloseDialogs();
-    },
-    onError: (error) => {
-      console.error('[Categories] Update mutation error:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update category",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return apiRequest(`/api/categories/${id}`, {
-        method: 'DELETE',
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      toast({
-        title: "Success",
-        description: "Category deleted successfully",
-      });
-      handleCloseDialogs();
-    },
-    onError: (error) => {
-      console.error('[Categories] Delete mutation error:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete category",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Main render with category list
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Categories</h2>
         <Button
-          onClick={() => setDialogState(prev => ({ ...prev, add: true }))}
+          onClick={() => setIsAddOpen(true)}
           disabled={createMutation.isPending}
         >
           {createMutation.isPending ? (
@@ -284,7 +201,7 @@ export function CategoryManager() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleEdit(category)}
+                  onClick={() => setEditCategory(category)}
                   disabled={updateMutation.isPending}
                 >
                   <Edit className="h-4 w-4" />
@@ -292,7 +209,7 @@ export function CategoryManager() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDelete(category)}
+                  onClick={() => setDeleteCategory(category)}
                   disabled={deleteMutation.isPending}
                 >
                   <Trash className="h-4 w-4" />
@@ -304,15 +221,18 @@ export function CategoryManager() {
       </div>
 
       <CategoryDialog
-        isOpen={dialogState.add || !!dialogState.edit}
+        isOpen={isAddOpen || !!editCategory}
         onOpenChange={(open) => {
-          if (!open) handleCloseDialogs();
+          if (!open) {
+            setIsAddOpen(false);
+            setEditCategory(null);
+          }
         }}
         onSubmit={handleSubmit}
-        initialData={dialogState.edit}
+        initialData={editCategory}
       />
 
-      <AlertDialog open={!!dialogState.delete}>
+      <AlertDialog open={!!deleteCategory}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Category</AlertDialogTitle>
@@ -321,8 +241,8 @@ export function CategoryManager() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCloseDialogs}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => dialogState.delete && deleteMutation.mutate(dialogState.delete.id)}>
+            <AlertDialogCancel onClick={() => setDeleteCategory(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteCategory && deleteMutation.mutate(deleteCategory.id)}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
