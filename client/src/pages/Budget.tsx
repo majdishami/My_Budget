@@ -15,6 +15,7 @@ import { LeftSidebar } from "@/components/LeftSidebar";
 import { Card } from "@/components/ui/card";
 import { useData } from "@/contexts/DataContext";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
+import EditExpenseDialog from "@/components/EditExpenseDialog";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +40,7 @@ export function Budget() {
   const [showDailySummary, setShowDailySummary] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Income | Bill | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showEditExpenseDialog, setShowEditExpenseDialog] = useState(false);
 
   const handleAddIncome = () => {
     addIncome({ source: "", amount: 0, date: dayjs().toISOString() });
@@ -54,7 +56,12 @@ export function Budget() {
   };
 
   const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
-    editTransaction(transaction);
+    if (type === 'bill') {
+      setEditingTransaction(transaction);
+      setShowEditExpenseDialog(true);
+    } else {
+      editTransaction(transaction);
+    }
   };
 
   const handleConfirmDelete = () => {
@@ -284,6 +291,18 @@ export function Budget() {
         totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
         totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
       />
+
+      <EditExpenseDialog
+        isOpen={showEditExpenseDialog}
+        onOpenChange={setShowEditExpenseDialog}
+        expense={editingTransaction as Bill}
+        onUpdate={(updatedBill) => {
+          editTransaction(updatedBill);
+          setShowEditExpenseDialog(false);
+          setEditingTransaction(null);
+        }}
+      />
+
       <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
         <AlertDialogContent>
           <AlertDialogHeader>

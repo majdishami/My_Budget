@@ -40,17 +40,17 @@ interface Category {
 }
 
 interface EditExpenseDialogProps {
-  bill: Bill | null;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (updatedBill: Bill, isSpecificDate?: boolean) => void;
+  expense: Bill | null;
+  onUpdate: (updatedBill: Bill) => void;
 }
 
-export function EditExpenseDialog({
-  bill,
+export default function EditExpenseDialog({
   isOpen,
   onOpenChange,
-  onConfirm,
+  expense,
+  onUpdate,
 }: EditExpenseDialogProps) {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -78,17 +78,17 @@ export function EditExpenseDialog({
   }>({});
 
   useEffect(() => {
-    if (bill) {
-      const billDate = dayjs(bill.date);
-      setName(bill.name);
-      setAmount(bill.amount.toString());
-      setDay(bill.day.toString());
+    if (expense) {
+      const expenseDate = dayjs(expense.date);
+      setName(expense.name);
+      setAmount(expense.amount.toString());
+      setDay(expense.day.toString());
       setDateType('monthly'); // Default to monthly
-      setCategoryId(bill.categoryId?.toString() || '');
-      setReminderEnabled(bill.reminderEnabled || false);
-      setReminderDays(bill.reminderDays || 7);
+      setCategoryId(expense.categoryId?.toString() || '');
+      setReminderEnabled(expense.reminderEnabled || false);
+      setReminderDays(expense.reminderDays || 7);
     }
-  }, [bill]);
+  }, [expense]);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
@@ -122,12 +122,12 @@ export function EditExpenseDialog({
   };
 
   const handleConfirm = () => {
-    if (!bill || !validateForm()) return;
+    if (!expense || !validateForm()) return;
 
     if (dateType === 'monthly') {
       // Regular monthly update
-      onConfirm({
-        ...bill,
+      onUpdate({
+        ...expense,
         name,
         amount: parseFloat(amount),
         day: parseInt(day),
@@ -149,7 +149,7 @@ export function EditExpenseDialog({
         reminderDays,
         isOneTime: true // Mark this as a one-time expense
       };
-      onConfirm(specificBill, true);
+      onUpdate(specificBill);
     }
   };
 
@@ -349,7 +349,7 @@ export function EditExpenseDialog({
         </DialogContent>
       </Dialog>
       <ReminderDialog
-        bill={bill}
+        bill={expense}
         isOpen={showReminderDialog}
         onOpenChange={setShowReminderDialog}
         onSave={handleReminderSave}
