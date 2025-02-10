@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { categories } from "@db/schema";
+import { categories, users, insertUserSchema, insertCategorySchema } from "@db/schema";
 import { eq } from "drizzle-orm";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
@@ -142,35 +142,32 @@ export function registerRoutes(app: Express): Server {
 
       // Check database connection first
       try {
-        await db.query.categories.findFirst();
+        const result = await db.query.categories.findFirst();
         console.log('Database connection verified');
+
+        // Fetch categories with enhanced error handling
+        console.log('Attempting to fetch categories...');
+        const userCategories = await db.query.categories.findMany({
+          orderBy: (categories, { asc }) => [asc(categories.name)],
+        });
+
+        console.log('Categories query completed, found:', userCategories?.length ?? 0, 'categories');
+
+        if (!userCategories || userCategories.length === 0) {
+          // If no categories found, return empty array but with 200 status
+          return res.json([]);
+        }
+
+        return res.json(userCategories);
       } catch (dbError) {
-        console.error('Database connection error:', dbError);
+        console.error('Database error:', dbError);
         return res.status(500).json({ 
-          message: 'Database connection error',
+          message: 'Database error occurred',
           details: process.env.NODE_ENV === 'development' ? (dbError as Error).message : undefined
         });
       }
-
-      // Fetch categories with enhanced error handling
-      console.log('Attempting to fetch categories...');
-      const userCategories = await db.query.categories.findMany({
-        orderBy: (categories, { asc }) => [asc(categories.name)],
-      });
-
-      console.log('Categories query completed, found:', userCategories?.length ?? 0, 'categories');
-      console.log('Categories data:', JSON.stringify(userCategories, null, 2));
-
-      return res.json(userCategories || []);
     } catch (error) {
       console.error('Error in /api/categories:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-        });
-      }
       return res.status(500).json({ 
         message: 'Failed to load categories. Please try again later.',
         details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
