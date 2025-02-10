@@ -32,9 +32,8 @@ export async function generateDatabaseBackup() {
       const tablename = row.tablename;
       try {
         console.log(`Backing up table: ${tablename}`);
-        const data = await db.execute(sql`
-          SELECT * FROM "${tablename}"
-        `);
+        const query = sql.raw(`SELECT * FROM ${tablename}`);
+        const data = await db.execute(query);
         backup[tablename] = Array.isArray(data) ? data : data.rows || [];
       } catch (tableError: any) {
         console.error(`Error backing up table ${tablename}:`, tableError);
