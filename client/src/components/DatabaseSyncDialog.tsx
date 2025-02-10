@@ -119,6 +119,23 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
     }
   };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.name.toLowerCase().endsWith('.json')) {
+        toast({
+          title: "Invalid File Type",
+          description: "Please select a valid JSON backup file",
+          variant: "destructive",
+        });
+        event.target.value = ''; // Reset the input
+        setSelectedFile(null);
+      } else {
+        setSelectedFile(file);
+      }
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -174,7 +191,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
                     id="backup-file"
                     type="file"
                     accept=".json"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    onChange={handleFileChange}
                     className="cursor-pointer"
                     disabled={isRestoreLoading}
                   />
