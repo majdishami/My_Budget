@@ -147,7 +147,7 @@ export default function MonthlyToDateReport() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <Card>
           <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Occurred Income</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
@@ -158,7 +158,7 @@ export default function MonthlyToDateReport() {
 
         <Card>
           <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Incurred Expenses</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
@@ -169,7 +169,7 @@ export default function MonthlyToDateReport() {
 
         <Card>
           <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">Net Balance up to date</CardTitle>
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${netBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
