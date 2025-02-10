@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, X } from "lucide-react";
 import CategoriesPage from "@/pages/Categories";
 import NotFound from "@/pages/not-found";
+import MonthlyToDateReport from "@/pages/monthly-to-date";
 
 function Router() {
   const { isLoading, error: dataError } = useData();
@@ -53,6 +54,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Budget} />
         <Route path="/categories" component={CategoriesPage} />
+        <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
         <Route component={NotFound} />
       </Switch>
     </ErrorBoundary>
