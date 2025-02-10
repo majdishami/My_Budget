@@ -140,7 +140,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
             <Alert>
               <AlertDescription>
                 Generate a backup of your current database that you can import later.
-                After downloading, keep this file safe as it contains all your data.
+                The backup will be downloaded as a JSON file. Keep this file safe as it contains all your data.
               </AlertDescription>
             </Alert>
             <div className="flex flex-col gap-4">
@@ -164,7 +164,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
             <Alert>
               <AlertDescription>
                 Restore your database from a previously generated backup file.
-                Only .dump backup files are supported. This will replace all current data with the data from the backup.
+                Only JSON backup files are supported. This will replace all current data with the data from the backup.
               </AlertDescription>
             </Alert>
             <div className="space-y-4">
@@ -174,7 +174,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
                   <Input
                     id="backup-file"
                     type="file"
-                    accept=".dump"
+                    accept=".json"
                     onChange={handleFileChange}
                     className="cursor-pointer"
                     disabled={isRestoreLoading}

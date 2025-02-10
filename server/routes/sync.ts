@@ -35,7 +35,7 @@ router.get('/api/sync/download/:filename', (req, res) => {
     const filePath = path.join(process.cwd(), 'tmp', filename);
 
     // Validate that the file exists and has the correct extension
-    if (!fs.existsSync(filePath) || !filename.toLowerCase().endsWith('.dump')) {
+    if (!fs.existsSync(filePath) || !filename.toLowerCase().endsWith('.json')) {
       console.error('Invalid or missing backup file:', filePath);
       return res.status(404).json({ error: 'Invalid or missing backup file' });
     }
