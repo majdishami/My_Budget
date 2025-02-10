@@ -119,7 +119,7 @@ export function LeftSidebar({
       </div>
 
       <div className={`
-        fixed inset-y-0 left-0 z-40 w-[280px] bg-background border-r transform 
+        fixed inset-y-0 left-0 z-40 w-[240px] bg-background border-r transform 
         lg:relative lg:translate-x-0 lg:w-auto
         transition-transform duration-200 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
