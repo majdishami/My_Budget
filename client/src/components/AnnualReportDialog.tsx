@@ -89,12 +89,29 @@ export default function AnnualReportDialog({
   onOpenChange,
   selectedYear = dayjs().year(),
 }: AnnualReportDialogProps) {
-  const [incomes, setIncomes] = useState<Income[]>([]);
-  const [bills, setBills] = useState<Bill[]>([]);
   const [year, setSelectedYear] = useState(selectedYear);
   const currentYear = dayjs().year();
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
   const today = useMemo(() => dayjs('2025-02-09'), []);
+
+  // Initialize with default data
+  const defaultIncomes = [
+    {
+      id: '1',
+      source: "Majdi's Salary",
+      amount: 9478,
+      date: '2025-01-01',
+    },
+    {
+      id: '2',
+      source: "Ruba's Salary",
+      amount: 2168,
+      date: '2025-01-10',
+    }
+  ];
+
+  const [incomes, setIncomes] = useState(defaultIncomes);
+  const [bills, setBills] = useState<Bill[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -102,7 +119,8 @@ export default function AnnualReportDialog({
       const storedBills = localStorage.getItem("bills");
 
       if (storedIncomes) {
-        setIncomes(JSON.parse(storedIncomes));
+        const parsedIncomes = JSON.parse(storedIncomes);
+        setIncomes(parsedIncomes.length > 0 ? parsedIncomes : defaultIncomes);
       }
       if (storedBills) {
         setBills(JSON.parse(storedBills));
