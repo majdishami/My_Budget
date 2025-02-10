@@ -6,6 +6,9 @@ export default function IncomeReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
 
+  // Get incomes data from local storage
+  const incomes = JSON.parse(localStorage.getItem("incomes") || "[]");
+
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
@@ -19,6 +22,7 @@ export default function IncomeReport() {
       <IncomeReportDialog
         isOpen={isDialogOpen}
         onOpenChange={handleOpenChange}
+        incomes={incomes}
       />
     </div>
   );
