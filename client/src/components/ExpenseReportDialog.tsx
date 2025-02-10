@@ -52,7 +52,7 @@ interface Transaction {
 interface Bill {
   id: number;
   name: string;
-  amount: number;
+  amount: number | string; // Modified to handle string amounts
   day: number;
   category_id: number;
   user_id: number;
@@ -166,7 +166,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     // Filter based on selection
     if (selectedValue !== "all" && selectedValue !== "all_categories") {
       if (selectedValue.startsWith('expense_')) {
-        const expenseId = parseInt(selectedValue.replace('expense_', ''), 10); //Parse to number
+        const expenseId = parseInt(selectedValue.replace('expense_', ''), 10);
         filteredBills = bills.filter(bill => bill.id === expenseId);
       } else if (selectedValue.startsWith('category_')) {
         const categoryName = selectedValue.replace('category_', '');
@@ -185,11 +185,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     // Generate transactions for each bill with proper category mapping
     filteredBills.forEach(bill => {
+      // Ensure amount is a number
+      const billAmount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
+      if (isNaN(billAmount)) {
+        console.error('Invalid amount for bill:', bill);
+        return;
+      }
+
       const category = categories.find(c => c.id === bill.category_id);
       console.log('Processing bill:', {
         bill,
         foundCategory: category,
-        categoryId: bill.category_id
+        categoryId: bill.category_id,
+        amount: billAmount
       });
 
       // Generate all occurrences within the date range
@@ -206,7 +214,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           result.push({
             date: currentDate.format('YYYY-MM-DD'),
             description: bill.name,
-            amount: bill.amount,
+            amount: billAmount,
             occurred: currentDate.isSameOrBefore(today),
             category: category?.name || 'Uncategorized',
             color: category?.color || '#D3D3D3'
@@ -459,7 +467,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                     <SelectLabel>Individual Expenses</SelectLabel>
                     {bills.map((bill) => (
                       <SelectItem key={`expense_${bill.id}`} value={`expense_${bill.id}`}>
-                        {bill.name} ({formatCurrency(bill.amount)})
+                        {bill.name} ({formatCurrency(typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount)})
                       </SelectItem>
                     ))}
                   </SelectGroup>
