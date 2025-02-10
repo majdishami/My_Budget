@@ -50,11 +50,13 @@ interface Transaction {
 }
 
 interface Bill {
-  id: string;
+  id: number;
   name: string;
   amount: number;
   day: number;
-  categoryId: number;
+  category_id: number;
+  user_id: number;
+  created_at: string;
 }
 
 interface Category {
@@ -118,7 +120,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   // Group bills by category and prepare dropdown options
   const dropdownOptions = useMemo(() => {
     const categorizedBills = bills.reduce<Record<string, (Bill & { categoryColor: string })[]>>((acc, bill) => {
-      const category = categories.find(c => c.id === bill.categoryId);
+      const category = categories.find(c => c.id === bill.category_id);
       const categoryName = category ? category.name : 'Uncategorized';
       if (!acc[categoryName]) {
         acc[categoryName] = [];
@@ -164,12 +166,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     // Filter based on selection
     if (selectedValue !== "all" && selectedValue !== "all_categories") {
       if (selectedValue.startsWith('expense_')) {
-        const expenseId = selectedValue.replace('expense_', '');
+        const expenseId = parseInt(selectedValue.replace('expense_', ''), 10); //Parse to number
         filteredBills = bills.filter(bill => bill.id === expenseId);
       } else if (selectedValue.startsWith('category_')) {
         const categoryName = selectedValue.replace('category_', '');
         filteredBills = bills.filter(bill => {
-          const category = categories.find(c => c.id === bill.categoryId);
+          const category = categories.find(c => c.id === bill.category_id);
           return category?.name === categoryName;
         });
       }
@@ -183,11 +185,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     // Generate transactions for each bill with proper category mapping
     filteredBills.forEach(bill => {
-      const category = categories.find(c => c.id === bill.categoryId);
+      const category = categories.find(c => c.id === bill.category_id);
       console.log('Processing bill:', {
         bill,
         foundCategory: category,
-        categoryId: bill.categoryId
+        categoryId: bill.category_id
       });
 
       // Generate all occurrences within the date range
@@ -528,7 +530,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                   : selectedValue === "all_categories"
                     ? "All Categories Combined"
                     : selectedValue.startsWith('expense_')
-                      ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name || "Expense Report"
+                      ? bills.find(b => b.id === parseInt(selectedValue.replace('expense_', ''), 10))?.name || "Expense Report"
                       : selectedValue.startsWith('category_')
                         ? `${selectedValue.replace('category_', '')} Category`
                         : "Expense Report"

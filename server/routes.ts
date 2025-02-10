@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { categories, users, insertUserSchema, insertCategorySchema } from "@db/schema";
+import { categories, users, bills, insertUserSchema, insertCategorySchema } from "@db/schema";
 import { eq } from "drizzle-orm";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
@@ -256,6 +256,54 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: 'Server error deleting category' });
     }
   });
+
+  // Bills Routes
+  app.get('/api/bills', async (req, res) => {
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Content-Type', 'application/json');
+
+    // Handle preflight request
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+
+    let client;
+    try {
+      client = await pool.connect();
+      console.log('[Bills API] Database connection established');
+
+      const result = await client.query(`
+        SELECT b.*, c.name as category_name, c.color as category_color 
+        FROM bills b 
+        LEFT JOIN categories c ON b.category_id = c.id 
+        ORDER BY b.id
+      `);
+
+      console.log('[Bills API] Found bills:', result.rows.length);
+
+      return res.json(result.rows);
+    } catch (error) {
+      console.error('[Bills API] Error:', error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Unknown database error';
+
+      return res.status(500).json({
+        message: 'Failed to load bills',
+        error: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    } finally {
+      if (client) {
+        client.release();
+        console.log('[Bills API] Database connection released');
+      }
+    }
+  });
+
 
   const httpServer = createServer(app);
   return httpServer;

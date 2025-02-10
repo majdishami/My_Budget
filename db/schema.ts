@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
@@ -20,15 +20,39 @@ export const categories = pgTable("categories", {
   created_at: timestamp("created_at").defaultNow(),
 });
 
+// Bills table
+export const bills = pgTable("bills", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  day: integer("day").notNull(),
+  category_id: integer("category_id").references(() => categories.id),
+  user_id: integer("user_id").references(() => users.id),
+  created_at: timestamp("created_at").defaultNow(),
+});
+
 // Define relationships
 export const userRelations = relations(users, ({ many }) => ({
   categories: many(categories),
+  bills: many(bills),
 }));
 
-export const categoryRelations = relations(categories, ({ one }) => ({
+export const categoryRelations = relations(categories, ({ one, many }) => ({
   user: one(users, {
     fields: [categories.user_id],
     references: [users.id],
+  }),
+  bills: many(bills),
+}));
+
+export const billRelations = relations(bills, ({ one }) => ({
+  user: one(users, {
+    fields: [bills.user_id],
+    references: [users.id],
+  }),
+  category: one(categories, {
+    fields: [bills.category_id],
+    references: [categories.id],
   }),
 }));
 
@@ -36,8 +60,10 @@ export const categoryRelations = relations(categories, ({ one }) => ({
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertCategorySchema = createInsertSchema(categories);
+export const insertBillSchema = createInsertSchema(bills);
 
 // Export types
 export type InsertUser = typeof users.$inferInsert;
 export type SelectUser = typeof users.$inferSelect;
 export type Category = typeof categories.$inferSelect;
+export type Bill = typeof bills.$inferSelect;
