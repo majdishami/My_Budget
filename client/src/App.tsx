@@ -89,12 +89,12 @@ function Router() {
       )}
 
       <div className="min-h-screen flex bg-background">
-        <aside className="w-40 border-r p-1 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
+        <aside className="w-40 border-r p-1 bg-muted/30 fixed top-0 bottom-0 left-0 overflow-y-auto z-30">
           {/* Left sidebar content */}
         </aside>
 
-        <div className="flex-1 flex flex-col ml-40">
-          <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex-1 flex flex-col pl-40">
+          <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <Card className="p-1">
               <div className="flex items-center justify-between px-4">
                 <div className="flex items-center gap-6">
