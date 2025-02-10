@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { generateDatabaseBackup } from '../utils/db-sync';
+import { generateDatabaseBackup, restoreDatabaseBackup } from '../utils/db-sync';
 import path from 'path';
 import fs from 'fs';
 
@@ -58,6 +58,45 @@ router.get('/api/sync/download/:filename', (req, res) => {
         error: error instanceof Error ? error.message : 'Unknown error occurred' 
       });
     }
+  }
+});
+
+router.post('/api/sync/restore', async (req, res) => {
+  try {
+    const uploadedFile = req.files?.backup;
+
+    if (!uploadedFile || Array.isArray(uploadedFile)) {
+      return res.status(400).json({ error: 'No backup file provided' });
+    }
+
+    const backupPath = path.join(process.cwd(), 'tmp');
+    if (!fs.existsSync(backupPath)) {
+      fs.mkdirSync(backupPath, { recursive: true });
+    }
+
+    const tempPath = path.join(backupPath, uploadedFile.name);
+
+    // Save the uploaded file temporarily
+    await uploadedFile.mv(tempPath);
+
+    // Restore the database from the backup
+    const result = await restoreDatabaseBackup(tempPath);
+
+    // Clean up the temporary file
+    fs.unlinkSync(tempPath);
+
+    if (!result.success) {
+      return res.status(500).json({ 
+        error: result.error || 'Failed to restore backup' 
+      });
+    }
+
+    res.json({ message: 'Database restored successfully' });
+  } catch (error) {
+    console.error('Error in restore endpoint:', error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    });
   }
 });
 

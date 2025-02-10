@@ -5,6 +5,7 @@ import { createServer } from "http";
 import syncRouter from "./routes/sync";
 import fs from "fs";
 import path from "path";
+import fileUpload from 'express-fileupload';
 
 const app = express();
 
@@ -17,6 +18,12 @@ if (!fs.existsSync(tmpDir)) {
 // Basic middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(fileUpload({
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
+  createParentPath: true,
+  useTempFiles: true,
+  tempFileDir: tmpDir
+}));
 
 // Enable trust proxy for secure cookies when behind Replit's proxy
 app.enable('trust proxy');

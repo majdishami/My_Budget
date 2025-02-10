@@ -58,3 +58,68 @@ export async function generateDatabaseBackup() {
     };
   }
 }
+
+export async function restoreDatabaseBackup(backupFile: string) {
+  try {
+    // Verify backup file exists
+    if (!fs.existsSync(backupFile)) {
+      throw new Error('Backup file not found');
+    }
+
+    // Read and parse backup file
+    const backupData = JSON.parse(fs.readFileSync(backupFile, 'utf-8'));
+    console.log('Reading backup file:', backupFile);
+
+    // Get all table names from the database
+    const result = await db.execute(sql`
+      SELECT tablename 
+      FROM pg_tables 
+      WHERE schemaname = 'public'
+    `);
+    const tables = Array.isArray(result) ? result : result.rows || [];
+
+    // Restore each table
+    for (const row of tables) {
+      const tablename = row.tablename;
+      if (backupData[tablename]) {
+        try {
+          console.log(`Restoring table: ${tablename}`);
+
+          // Clear existing data
+          await db.execute(sql.raw(`TRUNCATE TABLE ${tablename} CASCADE`));
+
+          // Insert backup data if there are rows to restore
+          if (backupData[tablename].length > 0) {
+            const columns = Object.keys(backupData[tablename][0]).join(', ');
+
+            for (const record of backupData[tablename]) {
+              const values = Object.values(record)
+                .map(val => typeof val === 'string' ? `'${val.replace(/'/g, "''")}'` : val)
+                .join(', ');
+
+              await db.execute(sql.raw(
+                `INSERT INTO ${tablename} (${columns}) VALUES (${values})`
+              ));
+            }
+          }
+
+          console.log(`Restored ${backupData[tablename].length} records to ${tablename}`);
+        } catch (tableError: any) {
+          console.error(`Error restoring table ${tablename}:`, tableError);
+          throw new Error(`Failed to restore table ${tablename}: ${tableError.message}`);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Database restored successfully'
+    };
+  } catch (error) {
+    console.error('Error restoring database backup:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
