@@ -111,14 +111,25 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
             payDate = payDate.add(14, 'day');
           }
         } else {
-          // For Majdi's salary and any other income
-          if (incomeDate.isBetween(startDate, endDate, 'day', '[]')) {
-            mockTransactions.push({
-              date: incomeDate.format('YYYY-MM-DD'),
-              description: income.source,
-              amount: income.amount,
-              occurred: hasDateOccurred(incomeDate)
-            });
+          // For Majdi's salary and other regular incomes
+          // Calculate the actual date for the current month
+          const currentMonthDate = dayjs(income.date)
+            .year(startDate.year())
+            .month(startDate.month());
+
+          // Generate entries for each month in the range
+          let currentDate = currentMonthDate;
+          while (currentDate.isSameOrBefore(endDate)) {
+            if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
+              mockTransactions.push({
+                date: currentDate.format('YYYY-MM-DD'),
+                description: income.source,
+                amount: income.amount,
+                occurred: hasDateOccurred(currentDate)
+              });
+            }
+            // Move to next month with same day
+            currentDate = currentDate.add(1, 'month');
           }
         }
       });
