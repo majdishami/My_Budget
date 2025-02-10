@@ -13,7 +13,8 @@ import {
   CalendarRange,
   Download,
   Bell,
-  Tags // Added for Categories icon
+  Tags, // Added for Categories icon
+  Database // Added for Sync Database icon
 } from "lucide-react";
 import {
   Select,
@@ -36,6 +37,7 @@ import dayjs from "dayjs";
 import { useState } from "react";
 import { ExportDialog } from "@/components/ExportDialog";
 import { ViewRemindersDialog } from "@/components/ViewRemindersDialog";
+import { DatabaseSyncDialog } from "@/components/DatabaseSyncDialog";
 
 interface LeftSidebarProps {
   incomes: Income[];
@@ -60,6 +62,7 @@ export function LeftSidebar({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showRemindersDialog, setShowRemindersDialog] = useState(false);
+  const [showDatabaseSyncDialog, setShowDatabaseSyncDialog] = useState(false);
 
   // Calculate all income occurrences for the current month
   const getMonthlyIncomeOccurrences = () => {
@@ -258,6 +261,15 @@ export function LeftSidebar({
             <Download className="mr-2 h-4 w-4" />
             Export Data
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start"
+            onClick={() => setShowDatabaseSyncDialog(true)}
+          >
+            <Database className="mr-2 h-4 w-4" />
+            Sync Database
+          </Button>
           <Link href="/reports/monthly-to-date">
             <Button
               variant="ghost"
@@ -367,6 +379,12 @@ export function LeftSidebar({
         isOpen={showRemindersDialog}
         onOpenChange={setShowRemindersDialog}
         bills={bills}
+      />
+
+      {/* Database Sync Dialog */}
+      <DatabaseSyncDialog 
+        isOpen={showDatabaseSyncDialog}
+        onOpenChange={setShowDatabaseSyncDialog}
       />
     </div>
   );
