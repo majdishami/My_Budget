@@ -24,10 +24,12 @@ import AnnualReport from "@/pages/annual";
 import DateRangeReport from "@/pages/date-range";
 import IncomeReport from "@/pages/income";
 import ExpenseReport from "@/pages/expenses";
+import { Card } from "@/components/ui/card";
 
 function Router() {
   const { isLoading, error: dataError } = useData();
-  const today = dayjs();
+  // Set today to February 8th, 2025
+  const today = dayjs('2025-02-10');
 
   // Current date info for display
   const currentDate = useMemo(() => ({
@@ -36,6 +38,43 @@ function Router() {
     month: today.format('MMMM'),
     year: today.year()
   }), [today]);
+
+  //State for month and year selection
+  const [selectedMonth, setSelectedMonth] = useState(today.month());
+  const [selectedYear, setSelectedYear] = useState(today.year());
+
+  const months = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => ({
+      value: i,
+      label: dayjs().month(i).format('MMMM'),
+    }));
+  }, []);
+
+  const years = useMemo(() => {
+    const currentYear = today.year();
+    return Array.from({ length: 5 }, (_, i) => currentYear + i); //Show next 5 years
+  }, [today]);
+
+
+  const handleMonthChange = (month: number) => {
+    setSelectedMonth(month);
+  };
+
+  const handleYearChange = (year: number) => {
+    setSelectedYear(year);
+  };
+
+
+  // Sample data - Replace with actual data fetching logic
+  const monthlyTotals = useMemo(() => ({
+    totalIncome: 2500,
+    totalBills: 1200,
+    balance: 1300,
+  }), []);
+
+  const formatCurrency = (amount: number) => {
+    return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  };
 
   if (isLoading) {
     return (
@@ -67,17 +106,71 @@ function Router() {
 
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex items-center justify-between py-3">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold">
-                {currentDate.month} {currentDate.year}
-              </h1>
-              <div className="text-muted-foreground">
-                {currentDate.weekday}, {currentDate.day}
+          <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex justify-between items-center">
+              <div className="space-y-2">
+                <h1 className="text-2xl font-bold">
+                  My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                </h1>
+                <div className="flex items-center gap-2">
+                  {/* Month selection dropdown */}
+                  <select 
+                    value={selectedMonth}
+                    onChange={(e) => handleMonthChange(parseInt(e.target.value))}
+                    className="p-2 border rounded bg-background min-w-[120px]"
+                    aria-label="Select month"
+                  >
+                    {months.map(month => (
+                      <option key={month.value} value={month.value}>
+                        {month.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Year selection dropdown */}
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                    className="p-2 border rounded bg-background min-w-[100px]"
+                    aria-label="Select year"
+                  >
+                    {years.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+
+                  {/* Current date display */}
+                  <span className="text-muted-foreground">
+                    {currentDate.weekday}, {currentDate.day}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <ThemeToggle />
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Income</p>
+                  <p className="text-lg font-semibold text-green-600">
+                    {formatCurrency(monthlyTotals.totalIncome)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Bills</p>
+                  <p className="text-lg font-semibold text-red-600">
+                    {formatCurrency(monthlyTotals.totalBills)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Net Balance</p>
+                  <p className={`text-lg font-semibold ${
+                    monthlyTotals.balance >= 0 ? "text-green-600" : "text-red-600"
+                  }`}>
+                    {formatCurrency(monthlyTotals.balance)}
+                  </p>
+                </div>
               </div>
             </div>
-            <ThemeToggle />
-          </div>
+          </Card>
         </header>
 
         <main className="container py-6">
