@@ -23,7 +23,7 @@ interface Transaction {
 
 export default function MonthlyToDateReport() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const today = dayjs(); // Use current date
+  const today = dayjs('2025-02-10'); // Current date
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');
   const [, setLocation] = useLocation();
@@ -46,23 +46,17 @@ export default function MonthlyToDateReport() {
         }
       });
 
-      // Calculate Ruba's bi-weekly salary dates
-      const rubaStartDate = dayjs('2024-01-10'); // Changed to past date
-      let nextPayDate = rubaStartDate;
-
-      while (nextPayDate.isSameOrBefore(today)) {
-        if (nextPayDate.month() === today.month() && nextPayDate.date() <= today.date()) {
-          mockTransactions.push({
-            date: nextPayDate.format('YYYY-MM-DD'),
-            description: "Ruba's Salary",
-            amount: 2168,
-            type: 'income'
-          });
-        }
-        nextPayDate = nextPayDate.add(14, 'day');
+      // Add Ruba's salary for February 7th
+      if (today.date() >= 7) {
+        mockTransactions.push({
+          date: '2025-02-07',
+          description: "Ruba's Salary",
+          amount: 2168,
+          type: 'income'
+        });
       }
 
-      // Add Monthly Expenses for all months
+      // Add Monthly Expenses for February
       const monthlyExpenses = [
         { description: 'ATT Phone Bill', amount: 429, date: 1 },
         { description: "Maid's 1st payment", amount: 120, date: 1 },
@@ -82,10 +76,9 @@ export default function MonthlyToDateReport() {
       ];
 
       monthlyExpenses.forEach(expense => {
-        const expenseDate = today.date(expense.date);
-        if (expenseDate.isSameOrBefore(today)) {
+        if (today.date() >= expense.date) {
           mockTransactions.push({
-            date: expenseDate.format('YYYY-MM-DD'),
+            date: `2025-02-${String(expense.date).padStart(2, '0')}`,
             description: expense.description,
             amount: expense.amount,
             type: 'expense'
@@ -113,7 +106,7 @@ export default function MonthlyToDateReport() {
     { income: 0, expenses: 0 }
   );
 
-  // Calculate monthly expected totals (including future transactions)
+  // Calculate monthly expected totals
   const monthlyExpectedTotals = {
     income: 13814, // Majdi's salary (4739 * 2) + Ruba's salary (2168 * 2)
     expenses: 11031, // Sum of all monthly expenses calculated from the monthlyExpenses array
