@@ -50,7 +50,7 @@ export function CategoryManager() {
     delete: null,
   });
 
-  // Categories query with enhanced error handling and logging
+  // Categories query with enhanced error handling and detailed logging
   const {
     data: categories = [],
     isLoading: isLoadingCategories,
@@ -61,9 +61,17 @@ export function CategoryManager() {
     queryKey: ['/api/categories'],
     queryFn: async () => {
       try {
-        console.log('[Categories] Starting fetch...');
+        console.log('[Categories] Starting fetch request...');
+
+        // Log the request URL and headers
+        const baseUrl = process.env.NODE_ENV === 'development' 
+          ? 'http://localhost:5000' 
+          : '';
+        const url = `${baseUrl}/api/categories`;
+        console.log('[Categories] Request URL:', url);
+
         const response = await apiRequest('/api/categories');
-        console.log('[Categories] Fetch successful:', response);
+        console.log('[Categories] Raw response:', response);
 
         // Validate response structure
         if (!Array.isArray(response)) {
@@ -82,34 +90,20 @@ export function CategoryManager() {
           throw new Error('Invalid category data received');
         }
 
+        console.log('[Categories] Successfully processed', response.length, 'categories');
         return response;
       } catch (error) {
-        console.error('[Categories] Fetch failed:', error);
+        console.error('[Categories] Fetch error details:', {
+          error,
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        });
         throw error;
       }
     },
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
-
-  // Event handlers
-  const handleCloseDialogs = () => {
-    setDialogState({ add: false, edit: null, delete: null });
-  };
-
-  const handleEdit = (category: Category) => {
-    setDialogState(prev => ({ ...prev, edit: category }));
-  };
-
-  const handleDelete = (category: Category) => {
-    setDialogState(prev => ({ ...prev, delete: category }));
-  };
-
-  const handleSubmit = (data: CategoryFormData) => {
-    if (dialogState.edit) {
-      updateMutation.mutate({ ...data, id: dialogState.edit.id });
-    } else {
-      createMutation.mutate(data);
-    }
-  };
 
   // Loading state with skeleton UI
   if (isLoadingCategories) {
@@ -132,8 +126,13 @@ export function CategoryManager() {
     );
   }
 
-  // Error state with retry button
+  // Error state with detailed error information
   if (isError) {
+    console.error('[Categories] Render error state:', {
+      error: categoriesError,
+      message: categoriesError instanceof Error ? categoriesError.message : 'Unknown error'
+    });
+
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Categories</h2>
@@ -145,6 +144,11 @@ export function CategoryManager() {
               <p className="text-sm text-red-600 mt-1">
                 {categoriesError instanceof Error ? categoriesError.message : 'An unexpected error occurred'}
               </p>
+              {process.env.NODE_ENV === 'development' && categoriesError instanceof Error && (
+                <pre className="mt-2 text-xs text-red-500 bg-red-50 p-2 rounded">
+                  {categoriesError.stack}
+                </pre>
+              )}
             </div>
             <Button onClick={() => refetch()} variant="outline" className="mt-2">
               Try Again
@@ -154,6 +158,27 @@ export function CategoryManager() {
       </div>
     );
   }
+
+  // Event handlers
+  const handleCloseDialogs = () => {
+    setDialogState({ add: false, edit: null, delete: null });
+  };
+
+  const handleEdit = (category: Category) => {
+    setDialogState(prev => ({ ...prev, edit: category }));
+  };
+
+  const handleDelete = (category: Category) => {
+    setDialogState(prev => ({ ...prev, delete: category }));
+  };
+
+  const handleSubmit = (data: CategoryFormData) => {
+    if (dialogState.edit) {
+      updateMutation.mutate({ ...data, id: dialogState.edit.id });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
 
   // Mutations for category operations
   const createMutation = useMutation({
@@ -172,6 +197,7 @@ export function CategoryManager() {
       handleCloseDialogs();
     },
     onError: (error) => {
+      console.error('[Categories] Create mutation error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create category",
@@ -196,6 +222,7 @@ export function CategoryManager() {
       handleCloseDialogs();
     },
     onError: (error) => {
+      console.error('[Categories] Update mutation error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update category",
@@ -219,6 +246,7 @@ export function CategoryManager() {
       handleCloseDialogs();
     },
     onError: (error) => {
+      console.error('[Categories] Delete mutation error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to delete category",

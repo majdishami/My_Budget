@@ -50,6 +50,7 @@ export const apiRequest = async (
       },
       signal: controller.signal,
       credentials: 'include', // Include credentials for cross-origin requests
+      mode: 'cors', // Explicitly set CORS mode
     });
 
     clearTimeout(timeoutId);
@@ -66,7 +67,6 @@ export const apiRequest = async (
       console.log('[API Response] Parsed data:', data);
     } catch (parseError) {
       console.error('[API Error] Failed to parse response as JSON:', parseError);
-      console.error('[API Error] Raw response was:', responseText);
       throw new Error('Invalid JSON response from server');
     }
 

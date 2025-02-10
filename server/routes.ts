@@ -132,21 +132,46 @@ export function registerRoutes(app: Express): Server {
   // Categories Routes - with enhanced CORS and error handling
   app.get('/api/categories', async (req, res) => {
     // Set CORS headers
-    res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'development' ? 'http://localhost:5173' : '*');
+    const origin = process.env.NODE_ENV === 'development'
+      ? 'http://localhost:5173'  // Vite dev server port
+      : req.headers.origin || '*';
+
+    res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Content-Type', 'application/json');
 
+    // Handle preflight request
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+
     try {
       console.log('[Categories API] Request received');
 
-      // First try to get all categories using Drizzle
-      const userCategories = await db.select().from(categories);
-      console.log('[Categories API] Raw query result:', userCategories);
+      // Check if table exists first
+      const tableExists = await db.execute(sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public'
+          AND table_name = 'categories'
+        );
+      `);
 
-      // Validate the response
-      if (!userCategories || !Array.isArray(userCategories)) {
+      if (!tableExists.rows[0].exists) {
+        console.error('[Categories API] Table does not exist');
+        return res.status(500).json({
+          message: 'Categories table not found',
+          error: 'Database schema issue'
+        });
+      }
+
+      // Get categories with error handling
+      const userCategories = await db.select().from(categories);
+      console.log('[Categories API] Found categories:', userCategories.length);
+
+      if (!Array.isArray(userCategories)) {
         console.error('[Categories API] Invalid response format:', userCategories);
         return res.status(500).json({
           message: 'Failed to load categories',
@@ -154,19 +179,18 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Log success and send response
-      console.log('[Categories API] Successfully fetched categories:', {
-        count: userCategories.length,
-        firstCategory: userCategories[0]
-      });
-
       return res.json(userCategories);
     } catch (error) {
       console.error('[Categories API] Error:', error);
 
+      // Detailed error response
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Unknown database error';
+
       return res.status(500).json({
         message: 'Failed to load categories',
-        error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : 'Internal server error'
+        error: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal server error'
       });
     }
   });
