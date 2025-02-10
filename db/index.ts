@@ -4,7 +4,6 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "./schema";
 import { config } from 'dotenv';
 import { join } from 'path';
-import { seedCategories } from './seed';
 
 // Load environment variables from .env file
 const envPath = join(process.cwd(), '.env');
@@ -18,14 +17,6 @@ const poolConfig = {
     rejectUnauthorized: false
   } : undefined
 };
-
-// Log connection parameters (without sensitive info)
-console.log('Database connection parameters:', {
-  host: process.env.PGHOST,
-  port: process.env.PGPORT,
-  database: process.env.PGDATABASE,
-  user: process.env.PGUSER
-});
 
 // Initialize pool with configuration
 const pool = new Pool(poolConfig);
@@ -65,18 +56,12 @@ async function testConnection(retries = 3) {
 
         // Test categories table accessibility
         if (!tableNames.includes('categories')) {
-          console.log('Creating categories table...');
-          await db.query.categories.findFirst();
+          throw new Error('Categories table not found in schema');
         }
 
-        // Get category count and seed if needed
+        // Get category count
         const categoryCount = await client.query('SELECT COUNT(*) FROM categories');
         console.log(`Categories table contains ${categoryCount.rows[0].count} rows`);
-
-        if (parseInt(categoryCount.rows[0].count) === 0) {
-          console.log('No categories found, seeding default categories...');
-          await seedCategories();
-        }
 
         return true;
       } finally {
