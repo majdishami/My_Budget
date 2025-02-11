@@ -36,6 +36,7 @@ import {
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { X } from 'lucide-react';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isBetween);
@@ -454,14 +455,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select an option" />
                 </SelectTrigger>
-                <SelectContent 
-                    position="popper"
-                    align="start"
-                    side="bottom"
-                    sideOffset={4}
-                    className="max-h-[300px] overflow-y-auto"
-                    style={{ zIndex: 50 }}
-                  >
+                <SelectContent>
+                  <ScrollArea className="h-[400px]">
                     {/* Combined Views */}
                     <SelectGroup>
                       <SelectLabel>Combined Views</SelectLabel>
@@ -488,7 +483,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                         </SelectItem>
                       ))}
                     </SelectGroup>
-                  </SelectContent>
+                  </ScrollArea>
+                </SelectContent>
               </Select>
             </div>
 
