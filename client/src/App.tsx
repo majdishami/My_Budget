@@ -15,7 +15,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, X, PlusCircle, BarChart4, Categories } from "lucide-react";
+import { Loader2, X, PlusCircle, BarChart4, FolderTree } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import CategoriesPage from "@/pages/Categories";
 import NotFound from "@/pages/not-found";
@@ -151,7 +151,7 @@ function Router() {
 
                   <Link href="/categories">
                     <Button variant="ghost" size="sm">
-                      <Categories className="h-4 w-4 mr-2" />
+                      <FolderTree className="h-4 w-4 mr-2" />
                       Categories
                     </Button>
                   </Link>
@@ -187,15 +187,15 @@ function Router() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => addIncome()}>
+                  <Button variant="outline" size="sm" onClick={addIncome}>
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Add Income
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => addBill()}>
+                  <Button variant="outline" size="sm" onClick={addBill}>
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Add Expense
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => resetData()}>
+                  <Button variant="ghost" size="sm" onClick={resetData}>
                     Reset Data
                   </Button>
                 </div>
