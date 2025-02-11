@@ -92,7 +92,7 @@ export default function AnnualReportDialog({
   const [year, setSelectedYear] = useState(selectedYear);
   const currentYear = dayjs().year();
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
-  const today = useMemo(() => dayjs('2025-02-09'), []);
+  const today = useMemo(() => dayjs(), []);
 
   // Initialize with default data
   const defaultIncomes = [
@@ -115,15 +115,20 @@ export default function AnnualReportDialog({
 
   useEffect(() => {
     if (isOpen) {
-      const storedIncomes = localStorage.getItem("incomes");
-      const storedBills = localStorage.getItem("bills");
+      try {
+        const storedIncomes = localStorage.getItem("incomes");
+        const storedBills = localStorage.getItem("bills");
 
-      if (storedIncomes) {
-        const parsedIncomes = JSON.parse(storedIncomes);
-        setIncomes(parsedIncomes.length > 0 ? parsedIncomes : defaultIncomes);
-      }
-      if (storedBills) {
-        setBills(JSON.parse(storedBills));
+        if (storedIncomes) {
+          const parsedIncomes = JSON.parse(storedIncomes);
+          setIncomes(parsedIncomes.length > 0 ? parsedIncomes : defaultIncomes);
+        }
+        if (storedBills) {
+          const parsedBills = JSON.parse(storedBills);
+          setBills(Array.isArray(parsedBills) ? parsedBills : []);
+        }
+      } catch (error) {
+        console.error("Failed to load data:", error);
       }
     }
   }, [isOpen]);
@@ -434,22 +439,36 @@ export default function AnnualReportDialog({
                     .sort(([, a], [, b]) => (b.occurred + b.pending) - (a.occurred + a.pending))
                     .map(([category, amounts]) => {
                       const total = amounts.occurred + amounts.pending;
+                      const monthlyAverage = total / 12;
+                      const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
+
                       return (
                         <TableRow key={category}>
-                          <TableCell>{category}</TableCell>
+                          <TableCell className="font-medium">{category}</TableCell>
                           <TableCell className="text-right text-red-600">
-                            {formatCurrency(total / 12)}
+                            {formatCurrency(monthlyAverage)}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="text-red-600">✓ {formatCurrency(amounts.occurred)}</div>
                             <div className="text-red-400">⌛ {formatCurrency(amounts.pending)}</div>
                           </TableCell>
-                          <TableCell className="text-right">
-                            {((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1)}%
+                          <TableCell className="text-right text-muted-foreground">
+                            {percentage}%
                           </TableCell>
                         </TableRow>
                       );
                     })}
+                  <TableRow className="font-bold">
+                    <TableCell>Total</TableCell>
+                    <TableCell className="text-right text-red-600">
+                      {formatCurrency((annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending) / 12)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="text-red-600">✓ {formatCurrency(annualSummary.totalExpenses.occurred)}</div>
+                      <div className="text-red-400">⌛ {formatCurrency(annualSummary.totalExpenses.pending)}</div>
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">100%</TableCell>
+                  </TableRow>
                 </TableBody>
               </Table>
             </CardContent>
