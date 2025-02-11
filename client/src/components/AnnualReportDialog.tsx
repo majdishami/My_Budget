@@ -464,16 +464,13 @@ export default function AnnualReportDialog({
                         const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
                         const bill = bills.find(b => b.name === expenseName);
                         const categoryId = bill?.category_id;
-                        console.log('Bill:', bill?.name, 'Category ID:', categoryId);
-                        console.log('Available categories:', categories);
                         const category = categories?.find(c => c.id === categoryId);
-                        console.log('Found category:', category);
 
                         return (
                           <TableRow key={expenseName}>
                             <TableCell className="font-medium">{expenseName}</TableCell>
                             <TableCell>
-                              {category && (
+                              {category ? (
                                 <div className="flex items-center gap-2">
                                   <div
                                     className="w-3 h-3 rounded-full"
@@ -481,6 +478,8 @@ export default function AnnualReportDialog({
                                   />
                                   {category.name}
                                 </div>
+                              ) : (
+                                <span className="text-muted-foreground">Uncategorized</span>
                               )}
                             </TableCell>
                             <TableCell className="text-right text-red-600">
