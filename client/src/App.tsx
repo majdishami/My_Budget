@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
-import { Switch, Route, Link, useRoute, useLocation } from "wouter";
+import { Switch, Route, Link, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,7 +15,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, X, PlusCircle, BarChart4, FolderTree } from "lucide-react";
+import { Loader2, X, PlusCircle, BarChart4, FolderTree, LayoutDashboard } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import CategoriesPage from "@/pages/Categories";
 import NotFound from "@/pages/not-found";
@@ -34,11 +34,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { clsx } from 'clsx';
+
 
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome, addBill } = useData();
-  const [location, setLocation] = useLocation();
-  const [isHome] = useRoute("/");
+  const [location] = useLocation();
   const today = dayjs('2025-02-11');
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
@@ -156,14 +157,19 @@ function Router() {
               {/* Navigation row */}
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Button
-                    variant={isHome ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setLocation("/")}
-                    className="cursor-pointer"
-                  >
-                    Dashboard
-                  </Button>
+                  <Link href="/">
+                    <Button
+                      variant={location === "/" ? "default" : "ghost"}
+                      size="sm"
+                      className={clsx(
+                        "cursor-pointer",
+                        location === "/" && "bg-primary text-primary-foreground hover:bg-primary/90"
+                      )}
+                    >
+                      <LayoutDashboard className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </Button>
+                  </Link>
 
                   <Link href="/categories">
                     <Button variant="ghost" size="sm">
