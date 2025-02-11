@@ -429,6 +429,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
               Generate Expense Report
+              {date?.from && date?.to && (
+                <div className="text-sm font-normal text-muted-foreground mt-1">
+                  {dayjs(date.from).format('MMM D, YYYY')} - {dayjs(date.to).format('MMM D, YYYY')}
+                </div>
+              )}
             </DialogTitle>
             <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
               <X className="h-4 w-4" />
@@ -500,10 +505,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
               </div>
             )}
 
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm font-medium text-muted-foreground">
               {date?.from ? (
                 <>
-                  {dayjs(date.from).format('MMM D, YYYY')}
+                  Selected Range: {dayjs(date.from).format('MMM D, YYYY')}
                   {date.to ? ` - ${dayjs(date.to).format('MMM D, YYYY')}` : ''}
                 </>
               ) : (
