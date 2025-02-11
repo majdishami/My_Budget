@@ -15,17 +15,24 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, PlusCircle, BarChart4, Categories } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import CategoriesPage from "@/pages/Categories";
 import NotFound from "@/pages/not-found";
 import MonthlyToDateReport from "@/pages/monthly-to-date";
-import { LeftSidebar } from "@/components/LeftSidebar";
 import MonthlyReport from "@/pages/monthly";
 import AnnualReport from "@/pages/annual";
 import DateRangeReport from "@/pages/date-range";
 import IncomeReport from "@/pages/income";
 import ExpenseReport from "@/pages/expenses";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Link } from "wouter";
 
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome, addBill, resetData } = useData();
@@ -89,23 +96,12 @@ function Router() {
         </Alert>
       )}
 
-      <div className="min-h-screen flex bg-background">
-        <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 left-0 overflow-y-auto z-30">
-          <LeftSidebar
-            incomes={incomes}
-            bills={bills}
-            onEditTransaction={editTransaction}
-            onDeleteTransaction={deleteTransaction}
-            onAddIncome={addIncome}
-            onAddBill={addBill}
-            onReset={resetData}
-          />
-        </aside>
-
-        <div className="flex-1 flex flex-col pl-56">
-          <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <Card className="p-1">
-              <div className="flex items-center justify-between px-4">
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <Card className="p-4">
+            <div className="flex flex-col gap-4">
+              {/* Top row with title and controls */}
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
                   <h1 className="text-xl font-bold">
                     My Budget
@@ -143,25 +139,86 @@ function Router() {
 
                 <ThemeToggle />
               </div>
-            </Card>
-          </header>
 
-          <main className="flex-1 overflow-hidden mt-6">
-            <div className="h-full p-2">
-              <Switch>
-                <Route path="/" component={Budget} />
-                <Route path="/categories" component={CategoriesPage} />
-                <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
-                <Route path="/reports/monthly" component={MonthlyReport} />
-                <Route path="/reports/annual" component={AnnualReport} />
-                <Route path="/reports/date-range" component={DateRangeReport} />
-                <Route path="/reports/income" component={IncomeReport} />
-                <Route path="/reports/expenses" component={ExpenseReport} />
-                <Route component={NotFound} />
-              </Switch>
+              {/* Navigation row */}
+              <div className="flex items-center justify-between border-t pt-4">
+                <div className="flex items-center gap-4">
+                  <Link href="/">
+                    <Button variant="ghost" size="sm">
+                      Dashboard
+                    </Button>
+                  </Link>
+
+                  <Link href="/categories">
+                    <Button variant="ghost" size="sm">
+                      <Categories className="h-4 w-4 mr-2" />
+                      Categories
+                    </Button>
+                  </Link>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <BarChart4 className="h-4 w-4 mr-2" />
+                        Reports
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem asChild>
+                        <Link href="/reports/monthly-to-date">Monthly to Date</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/reports/monthly">Monthly Report</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/reports/annual">Annual Report</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/reports/date-range">Date Range</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/reports/income">Income Report</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/reports/expenses">Expense Report</Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => addIncome()}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Income
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => addBill()}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Expense
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => resetData()}>
+                    Reset Data
+                  </Button>
+                </div>
+              </div>
             </div>
-          </main>
-        </div>
+          </Card>
+        </header>
+
+        <main className="flex-1 overflow-hidden mt-6">
+          <div className="h-full p-2">
+            <Switch>
+              <Route path="/" component={Budget} />
+              <Route path="/categories" component={CategoriesPage} />
+              <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
+              <Route path="/reports/monthly" component={MonthlyReport} />
+              <Route path="/reports/annual" component={AnnualReport} />
+              <Route path="/reports/date-range" component={DateRangeReport} />
+              <Route path="/reports/income" component={IncomeReport} />
+              <Route path="/reports/expenses" component={ExpenseReport} />
+              <Route component={NotFound} />
+            </Switch>
+          </div>
+        </main>
       </div>
     </ErrorBoundary>
   );
