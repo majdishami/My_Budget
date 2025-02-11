@@ -13,6 +13,7 @@ import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
+import { generateId } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -110,6 +111,7 @@ export function AddExpenseDialog({
       amount: parseFloat(amount),
       day: parseInt(day),
       category_id: parseInt(categoryId),
+      isOneTime: false,
       reminderEnabled,
       reminderDays,
     };
@@ -132,14 +134,16 @@ export function AddExpenseDialog({
     setErrors(prev => ({ ...prev, reminderDays: undefined }));
   };
 
+  // Create a temporary bill for the reminder dialog with all required fields
   const dummyBill: Bill = {
-    id: `temp_${Date.now().toString()}`,  // Using string timestamp for ID
+    id: generateId(), // Ensure ID is a string
     name,
     amount: parseFloat(amount || '0'),
     day: parseInt(day || '1'),
-    category_id: parseInt(categoryId || '0'),
-    user_id: 0,
+    category_id: parseInt(categoryId || '1'),
+    user_id: 1,
     created_at: new Date().toISOString(),
+    isOneTime: false,
     reminderEnabled,
     reminderDays
   };
