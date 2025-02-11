@@ -422,7 +422,15 @@ export default function AnnualReportDialog({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-semibold">Expense Categories</CardTitle>
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <span>Expense Categories Breakdown</span>
+                <div className="text-sm font-normal text-muted-foreground">
+                  ({Object.keys(annualSummary.expensesByCategory).length} categories)
+                </div>
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Annual breakdown of expenses by category, showing occurred and pending amounts
+              </p>
             </CardHeader>
             <CardContent>
               <Table>
