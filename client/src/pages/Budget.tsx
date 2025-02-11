@@ -379,21 +379,21 @@ export function Budget() {
                         )}
                       >
                         <div className="flex justify-between items-start mb-1">
-                          <div className="flex flex-col">
+                          <div className="flex items-center gap-1">
                             <span className={cn(
                               "font-medium text-base lg:text-lg",
                               isToday && "text-primary font-bold"
                             )}>
                               {dayNumber}
                             </span>
-                            {isToday && (
-                              <span className="text-xs font-medium text-primary">
-                                Today
-                              </span>
-                            )}
                             <span className="text-xs text-muted-foreground">
                               {dayOfWeek}
                             </span>
+                            {isToday && (
+                              <span className="text-xs font-medium text-primary ml-1">
+                                Today
+                              </span>
+                            )}
                           </div>
                           {hasTransactions && (
                             <div className="flex gap-1">
