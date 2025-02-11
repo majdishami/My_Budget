@@ -454,7 +454,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 <SelectTrigger>
                   <SelectValue placeholder="Select an option" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px] overflow-y-auto">
                   {/* Combined Views */}
                   <SelectGroup>
                     <SelectLabel>Combined Views</SelectLabel>
