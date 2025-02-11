@@ -14,6 +14,7 @@ import { Bell, AlertCircle, Calendar as CalendarIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
+import { generateId } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -31,7 +32,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { v4 as uuidv4 } from 'uuid';
 
 interface Category {
   id: number;
@@ -79,14 +79,16 @@ export default function EditExpenseDialog({
 
   useEffect(() => {
     if (expense) {
-      const expenseDate = dayjs(expense.date);
       setName(expense.name);
       setAmount(expense.amount.toString());
       setDay(expense.day.toString());
-      setDateType('monthly'); // Default to monthly
-      setCategoryId(expense.categoryId?.toString() || '');
+      setDateType(expense.isOneTime ? 'specific' : 'monthly');
+      setCategoryId(expense.category_id.toString());
       setReminderEnabled(expense.reminderEnabled || false);
       setReminderDays(expense.reminderDays || 7);
+      if (expense.date) {
+        setSpecificDate(new Date(expense.date));
+      }
     }
   }, [expense]);
 
@@ -124,30 +126,32 @@ export default function EditExpenseDialog({
   const handleConfirm = () => {
     if (!expense || !validateForm()) return;
 
+    const baseUpdates = {
+      name,
+      amount: parseFloat(amount),
+      day: parseInt(day),
+      category_id: parseInt(categoryId),
+      reminderEnabled,
+      reminderDays,
+      user_id: expense.user_id,
+      created_at: expense.created_at
+    };
+
     if (dateType === 'monthly') {
       // Regular monthly update
       onUpdate({
         ...expense,
-        name,
-        amount: parseFloat(amount),
-        day: parseInt(day),
-        categoryId: parseInt(categoryId),
-        reminderEnabled,
-        reminderDays
+        ...baseUpdates,
+        isOneTime: false
       });
     } else if (specificDate) {
-      // Create a new one-time expense for the specific date
-      // while keeping the original recurring expense unchanged
+      // Create a new one-time expense
       const specificBill: Bill = {
-        id: uuidv4(), // Generate a new ID for the specific occurrence
-        name,
-        amount: parseFloat(amount),
+        id: generateId(), // Generate new string ID
+        ...baseUpdates,
         day: dayjs(specificDate).date(),
         date: dayjs(specificDate).toISOString(),
-        categoryId: parseInt(categoryId),
-        reminderEnabled,
-        reminderDays,
-        isOneTime: true // Mark this as a one-time expense
+        isOneTime: true
       };
       onUpdate(specificBill);
     }
