@@ -275,7 +275,8 @@ export function registerRoutes(app: Express): Server {
       const formattedBills = billsWithCategories.map(bill => ({
         ...bill,
         category_name: bill.category?.name || 'Uncategorized',
-        category_color: bill.category?.color || '#D3D3D3'
+        category_color: bill.category?.color || '#D3D3D3',
+        category_icon: bill.category?.icon || null
       }));
 
       return res.json(formattedBills);

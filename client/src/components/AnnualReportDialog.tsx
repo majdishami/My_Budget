@@ -33,10 +33,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X, Calendar, AlertCircle } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 
 // Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
+
+// Dynamic icon component
+const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
+  if (!iconName) return null;
+
+  // Convert icon name to match Lucide naming convention (e.g., "shopping-cart" to "ShoppingCart")
+  const formatIconName = (name: string) => {
+    return name.split('-').map(part => 
+      part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+    ).join('');
+  };
+
+  const IconComponent = (LucideIcons as any)[formatIconName(iconName)];
+  return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
+};
 
 interface AnnualReportDialogProps {
   isOpen: boolean;
@@ -102,6 +118,7 @@ interface Bill {
   isOneTime: boolean;
   category_name: string;
   category_color: string;
+  category?: {icon: string | null}; // Added category field to Bill interface
 }
 
 export default function AnnualReportDialog({
@@ -473,7 +490,7 @@ export default function AnnualReportDialog({
                       const total = amounts.occurred + amounts.pending;
                       const monthlyAverage = total / 12;
                       const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
-                      // Find a bill with this category to get the color
+                      // Find a bill with this category to get the color and icon
                       const categoryBill = bills.find(b => b.category_name === categoryName);
 
                       return (
@@ -484,6 +501,9 @@ export default function AnnualReportDialog({
                                 className="w-3 h-3 rounded-full"
                                 style={{ backgroundColor: categoryBill?.category_color || '#D3D3D3' }}
                               />
+                              {categoryBill?.category?.icon && (
+                                <DynamicIcon iconName={categoryBill?.category?.icon} />
+                              )}
                               {categoryName}
                             </div>
                           </TableCell>
