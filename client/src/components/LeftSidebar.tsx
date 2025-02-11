@@ -102,6 +102,24 @@ export function LeftSidebar({
     return location === path;
   };
 
+  // Handle bill selection for editing
+  const handleBillEdit = (billId: string) => {
+    const bill = bills.find(b => b.id === billId);
+    if (bill) {
+      onEditTransaction('bill', bill);
+      setIsOpen(false);
+    }
+  };
+
+  // Handle bill selection for deletion
+  const handleBillDelete = (billId: string) => {
+    const bill = bills.find(b => b.id === billId);
+    if (bill) {
+      onDeleteTransaction('bill', bill);
+      setIsOpen(false);
+    }
+  };
+
   return (
     <div className="relative">
       {/* Mobile Controls - Outside the sliding panel */}
@@ -154,13 +172,7 @@ export function LeftSidebar({
           <div className="space-y-2">
             <h2 className="text-lg font-semibold px-2">Expenses</h2>
             <div className="space-y-2">
-              <Select onValueChange={(value) => {
-                const bill = bills.find(b => b.id === value);
-                if (bill) {
-                  onEditTransaction('bill', bill);
-                  setIsOpen(false);
-                }
-              }}>
+              <Select onValueChange={handleBillEdit}>
                 <SelectTrigger className="w-full justify-start">
                   <Button variant="ghost" size="sm" className="w-full justify-start">
                     <Edit className="mr-2 h-4 w-4" />
@@ -189,13 +201,7 @@ export function LeftSidebar({
                 Add Expense
               </Button>
 
-              <Select onValueChange={(value) => {
-                const bill = bills.find(b => b.id === value);
-                if (bill) {
-                  onDeleteTransaction('bill', bill);
-                  setIsOpen(false);
-                }
-              }}>
+              <Select onValueChange={handleBillDelete}>
                 <SelectTrigger className="w-full justify-start">
                   <Button variant="ghost" size="sm" className="w-full justify-start">
                     <Trash className="mr-2 h-4 w-4" />
