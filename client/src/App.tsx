@@ -71,9 +71,12 @@ function Router() {
   const handleAddIncome = () => {
     const newIncome = {
       id: `income_${Date.now()}`,
-      source: "",
+      source: "New Income Source",  // Default non-empty value
       amount: 0,
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      category_id: "default",  // Add required field
+      user_id: "default",      // Add required field
+      created_at: new Date().toISOString() // Add required field
     };
     addIncome(newIncome);
   };
@@ -81,12 +84,12 @@ function Router() {
   const handleAddBill = () => {
     const newBill = {
       id: `bill_${Date.now()}`,
-      name: "",
+      name: "New Expense",     // Default non-empty value
       amount: 0,
       day: new Date().getDate(),
-      category: "",
-      description: "",
-      reminderDays: 0
+      category_id: "default",  // Add required field
+      user_id: "default",      // Add required field
+      created_at: new Date().toISOString() // Add required field
     };
     addBill(newBill);
   };
@@ -166,13 +169,11 @@ function Router() {
               {/* Navigation row */}
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setLocation("/")}
-                  >
-                    Dashboard
-                  </Button>
+                  <Link href="/">
+                    <Button variant="ghost" size="sm">
+                      Dashboard
+                    </Button>
+                  </Link>
 
                   <Link href="/categories">
                     <Button variant="ghost" size="sm">
