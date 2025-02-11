@@ -436,7 +436,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[425px] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
               Generate Expense Report
@@ -447,7 +447,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             </DialogClose>
           </DialogHeader>
 
-          <div className="flex flex-col space-y-4 py-4">
+          <div className="flex flex-col space-y-4 py-4 max-h-[60vh] overflow-y-auto">
             <div>
               <label className="text-sm font-medium mb-2 block">Select View Option</label>
               <Select value={selectedValue} onValueChange={setSelectedValue}>
@@ -456,7 +456,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 </SelectTrigger>
                 <SelectContent 
                   position="popper" 
-                  className="max-h-[300px] overflow-y-auto z-50"
+                  className="max-h-[300px] overflow-y-auto"
                   align="start"
                   side="bottom"
                   sideOffset={4}
