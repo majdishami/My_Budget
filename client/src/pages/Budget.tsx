@@ -150,8 +150,8 @@ export function Budget() {
   });
 
   const isCurrentDay = (day: number) => {
-    return day === today.date() && 
-           selectedMonth === today.month() && 
+    return day === today.date() &&
+           selectedMonth === today.month() &&
            selectedYear === today.year();
   };
 
@@ -267,49 +267,47 @@ export function Budget() {
     <div className="w-full">
       <Card className="w-full mb-4">
         <div className="p-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <Select
-                  value={selectedYear.toString()}
-                  onValueChange={(value) => setSelectedYear(parseInt(value))}
-                >
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue placeholder="Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map(({ value, label }) => (
-                      <SelectItem key={value} value={value.toString()}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <Calendar className="h-4 w-4" />
+              <Select
+                value={selectedYear.toString()}
+                onValueChange={(value) => setSelectedYear(parseInt(value))}
+              >
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map(({ value, label }) => (
+                    <SelectItem key={value} value={value.toString()}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-                <Select
-                  value={selectedMonth.toString()}
-                  onValueChange={(value) => setSelectedMonth(parseInt(value))}
-                >
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map(({ value, label }) => (
-                      <SelectItem key={value} value={value.toString()}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <Select
+                value={selectedMonth.toString()}
+                onValueChange={(value) => setSelectedMonth(parseInt(value))}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map(({ value, label }) => (
+                    <SelectItem key={value} value={value.toString()}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-                <div className="text-sm text-muted-foreground">
-                  {currentDate}
-                </div>
+              <div className="text-sm text-muted-foreground">
+                {currentDate}
               </div>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex items-center gap-6">
               <div>
                 <p className="text-sm text-muted-foreground">Month Total Income</p>
                 <p className="text-lg font-semibold text-green-600">
