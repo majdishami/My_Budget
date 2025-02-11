@@ -144,7 +144,7 @@ export function Budget() {
   const lastDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).endOf("month");
   const firstDayIndex = firstDayOfMonth.day();
   const totalDaysInMonth = lastDayOfMonth.date();
-  const calendarDays = Array.from({ length: 6 * 7 }, (_, index) => {
+  const calendarDays = Array.from({ length: 35 }, (_, index) => {
     const day = index - firstDayIndex + 1;
     return day >= 1 && day <= totalDaysInMonth ? day : null;
   });
@@ -302,9 +302,12 @@ export function Budget() {
                 </SelectContent>
               </Select>
 
-              <div className="text-sm text-muted-foreground">
-                {currentDate}
-              </div>
+              {/* Only show current date when viewing current month and year */}
+              {selectedMonth === today.month() && selectedYear === today.year() && (
+                <div className="text-sm text-muted-foreground">
+                  {currentDate}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-6">
@@ -347,7 +350,7 @@ export function Budget() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {Array.from({ length: 6 }, (_, weekIndex) => (
+              {Array.from({ length: 5 }, (_, weekIndex) => (
                 <tr key={weekIndex} className="divide-x">
                   {Array.from({ length: 7 }, (_, dayIndex) => {
                     const dayNumber = calendarDays[weekIndex * 7 + dayIndex];
@@ -360,16 +363,17 @@ export function Budget() {
                     const dayIncomes = getIncomeForDay(dayNumber);
                     const dayBills = getBillsForDay(dayNumber);
                     const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
+                    const isToday = isCurrentDay(dayNumber);
 
                     return (
                       <td
                         key={dayIndex}
                         onClick={() => handleDayClick(dayNumber)}
-                        aria-label={`${dayNumber} ${dayjs().format("MMMM")} ${today.year()}${isCurrentDay(dayNumber) ? ' (Today)' : ''}`}
+                        aria-label={`${dayNumber} ${dayjs().format("MMMM")} ${today.year()}${isToday ? ' (Today)' : ''}`}
                         className={cn(
                           "border p-1 lg:p-2 align-top cursor-pointer transition-colors h-24 lg:h-48 relative touch-manipulation",
                           "hover:bg-accent",
-                          isCurrentDay(dayNumber) && "ring-2 ring-primary ring-offset-2 border-primary",
+                          isToday && "ring-2 ring-primary ring-offset-2 border-primary border-2",
                           selectedDay === dayNumber && "bg-accent/50 font-semibold",
                           hasTransactions && "shadow-sm"
                         )}
@@ -378,10 +382,15 @@ export function Budget() {
                           <div className="flex flex-col">
                             <span className={cn(
                               "font-medium text-base lg:text-lg",
-                              isCurrentDay(dayNumber) && "text-primary font-bold"
+                              isToday && "text-primary font-bold"
                             )}>
                               {dayNumber}
                             </span>
+                            {isToday && (
+                              <span className="text-xs font-medium text-primary">
+                                Today
+                              </span>
+                            )}
                             <span className="text-xs text-muted-foreground">
                               {dayOfWeek}
                             </span>
