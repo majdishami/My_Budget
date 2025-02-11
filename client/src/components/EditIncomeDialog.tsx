@@ -15,14 +15,14 @@ interface EditIncomeDialogProps {
   income: Income | null;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (updatedIncome: Income) => void;
+  onUpdate: (updatedIncome: Income) => void;
 }
 
 export function EditIncomeDialog({
   income,
   isOpen,
   onOpenChange,
-  onConfirm,
+  onUpdate,
 }: EditIncomeDialogProps) {
   const [source, setSource] = useState('');
   const [amount, setAmount] = useState('');
@@ -40,8 +40,8 @@ export function EditIncomeDialog({
   const handleConfirm = () => {
     if (!income) return;
 
-    onConfirm({
-      id: income.id,
+    onUpdate({
+      ...income,
       source,
       amount: parseFloat(amount),
       date: dayjs(date).toISOString()
