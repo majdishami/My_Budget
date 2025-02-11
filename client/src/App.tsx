@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button";
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { EditIncomeDialog } from "@/components/EditIncomeDialog";
-import { EditExpenseDialog } from "@/components/EditExpenseDialog";
+import EditExpenseDialog from "@/components/EditExpenseDialog";
 import { ExportDialog } from "@/components/ExportDialog";
 import { ViewRemindersDialog } from "@/components/ViewRemindersDialog";
 import { DatabaseSyncDialog } from "@/components/DatabaseSyncDialog";
@@ -353,7 +353,11 @@ function Router() {
           isOpen={showEditIncomeDialog}
           onOpenChange={setShowEditIncomeDialog}
           income={selectedTransaction as Income}
-          onSave={editTransaction}
+          onUpdate={(updatedIncome) => {
+            editTransaction(updatedIncome);
+            setShowEditIncomeDialog(false);
+            setSelectedTransaction(null);
+          }}
         />
         <EditExpenseDialog
           isOpen={showEditExpenseDialog}
