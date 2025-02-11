@@ -133,10 +133,10 @@ export function AddExpenseDialog({
   };
 
   const dummyBill: Bill = {
-    id: 0,
+    id: "temp",  // Using string ID
     name,
     amount: parseFloat(amount || '0'),
-    day: parseInt(day),
+    day: parseInt(day || '1'),
     category_id: parseInt(categoryId || '0'),
     user_id: 0,
     created_at: new Date().toISOString(),

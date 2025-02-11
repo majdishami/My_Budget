@@ -155,7 +155,7 @@ export function LeftSidebar({
             <h2 className="text-lg font-semibold px-2">Expenses</h2>
             <div className="space-y-2">
               <Select onValueChange={(value) => {
-                const bill = bills.find(b => b.id === parseInt(value));
+                const bill = bills.find(b => b.id.toString() === value);
                 if (bill) {
                   onEditTransaction('bill', bill);
                   setIsOpen(false);
@@ -190,7 +190,7 @@ export function LeftSidebar({
               </Button>
 
               <Select onValueChange={(value) => {
-                const bill = bills.find(b => b.id === parseInt(value));
+                const bill = bills.find(b => b.id.toString() === value);
                 if (bill) {
                   onDeleteTransaction('bill', bill);
                   setIsOpen(false);
@@ -439,7 +439,7 @@ export function LeftSidebar({
           bills={bills}
         />
 
-        <DatabaseSyncDialog 
+        <DatabaseSyncDialog
           isOpen={showDatabaseSyncDialog}
           onOpenChange={setShowDatabaseSyncDialog}
         />
