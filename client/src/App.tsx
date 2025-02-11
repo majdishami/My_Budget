@@ -15,7 +15,11 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, X, PlusCircle, BarChart4, FolderTree, LayoutDashboard } from "lucide-react";
+import { 
+  Loader2, X, PlusCircle, BarChart4, FolderTree, LayoutDashboard,
+  Download, Database, Calendar, ChartBar, CalendarRange, FileBarChart,
+  FileText, Bell, Edit, Trash, Tags
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import CategoriesPage from "@/pages/Categories";
 import NotFound from "@/pages/not-found";
@@ -28,14 +32,17 @@ import ExpenseReport from "@/pages/expenses";
 import { Button } from "@/components/ui/button";
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
+import { ExportDialog } from "@/components/ExportDialog";
+import { ViewRemindersDialog } from "@/components/ViewRemindersDialog";
+import { DatabaseSyncDialog } from "@/components/DatabaseSyncDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { clsx } from 'clsx';
-
 
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome, addBill } = useData();
@@ -43,6 +50,9 @@ function Router() {
   const today = dayjs('2025-02-11');
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showRemindersDialog, setShowRemindersDialog] = useState(false);
+  const [showDatabaseSyncDialog, setShowDatabaseSyncDialog] = useState(false);
 
   const currentDate = useMemo(() => ({
     day: today.date(),
@@ -72,14 +82,6 @@ function Router() {
 
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
-  };
-
-  const handleAddIncome = () => {
-    setShowAddIncomeDialog(true);
-  };
-
-  const handleAddBill = () => {
-    setShowAddExpenseDialog(true);
   };
 
   if (isLoading) {
@@ -171,13 +173,77 @@ function Router() {
                     </Button>
                   </Link>
 
+                  {/* Expenses Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <FolderTree className="h-4 w-4 mr-2" />
+                        Expenses
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => setShowAddExpenseDialog(true)}>
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Add Expense
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowRemindersDialog(true)}>
+                        <Bell className="h-4 w-4 mr-2" />
+                        View Reminders
+                      </DropdownMenuItem>
+                      {bills.map((bill) => (
+                        <DropdownMenuItem key={bill.id} className="flex justify-between">
+                          <span className="truncate mr-4">{bill.name}</span>
+                          <div className="flex gap-2">
+                            <button onClick={() => editTransaction('bill', bill)}>
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => deleteTransaction('bill', bill)}>
+                              <Trash className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Income Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Income
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Add Income
+                      </DropdownMenuItem>
+                      {incomes.map((income) => (
+                        <DropdownMenuItem key={income.id} className="flex justify-between">
+                          <span className="truncate mr-4">{income.source}</span>
+                          <div className="flex gap-2">
+                            <button onClick={() => editTransaction('income', income)}>
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => deleteTransaction('income', income)}>
+                              <Trash className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Categories Link */}
                   <Link href="/categories">
                     <Button variant="ghost" size="sm">
-                      <FolderTree className="h-4 w-4 mr-2" />
+                      <Tags className="h-4 w-4 mr-2" />
                       Categories
                     </Button>
                   </Link>
 
+                  {/* Reports Dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
@@ -187,36 +253,52 @@ function Router() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem asChild>
-                        <Link href="/reports/monthly-to-date">Monthly to Date</Link>
+                        <Link href="/reports/monthly-to-date">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Monthly to Date
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/reports/monthly">Monthly Report</Link>
+                        <Link href="/reports/monthly">
+                          <ChartBar className="h-4 w-4 mr-2" />
+                          Monthly Report
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/reports/annual">Annual Report</Link>
+                        <Link href="/reports/annual">
+                          <CalendarRange className="h-4 w-4 mr-2" />
+                          Annual Report
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/reports/date-range">Date Range</Link>
+                        <Link href="/reports/date-range">
+                          <FileBarChart className="h-4 w-4 mr-2" />
+                          Date Range
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/reports/income">Income Report</Link>
+                        <Link href="/reports/income">
+                          <FileText className="h-4 w-4 mr-2" />
+                          Income Report
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/reports/expenses">Expense Report</Link>
+                        <Link href="/reports/expenses">
+                          <FileText className="h-4 w-4 mr-2" />
+                          Expense Report
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setShowExportDialog(true)}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Data
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowDatabaseSyncDialog(true)}>
+                        <Database className="h-4 w-4 mr-2" />
+                        Sync Database
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={handleAddIncome}>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Add Income
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleAddBill}>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Add Expense
-                  </Button>
                 </div>
               </div>
             </div>
@@ -249,6 +331,21 @@ function Router() {
           isOpen={showAddExpenseDialog}
           onOpenChange={setShowAddExpenseDialog}
           onConfirm={addBill}
+        />
+        <ExportDialog
+          isOpen={showExportDialog}
+          onOpenChange={setShowExportDialog}
+          incomes={incomes}
+          bills={bills}
+        />
+        <ViewRemindersDialog
+          isOpen={showRemindersDialog}
+          onOpenChange={setShowRemindersDialog}
+          bills={bills}
+        />
+        <DatabaseSyncDialog 
+          isOpen={showDatabaseSyncDialog}
+          onOpenChange={setShowDatabaseSyncDialog}
         />
       </div>
     </ErrorBoundary>
