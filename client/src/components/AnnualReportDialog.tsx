@@ -85,6 +85,12 @@ interface AnnualSummary {
   };
 }
 
+interface Category {
+  id: number;
+  name: string;
+  color: string;
+}
+
 export default function AnnualReportDialog({
   isOpen,
   onOpenChange,
@@ -95,8 +101,8 @@ export default function AnnualReportDialog({
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
   const today = useMemo(() => dayjs(), []);
 
-  // Fetch categories
-  const { data: categories = [] } = useQuery({
+  // Fetch categories with proper typing
+  const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
 
@@ -457,7 +463,7 @@ export default function AnnualReportDialog({
                         const monthlyAverage = total / 12;
                         const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
                         const bill = bills.find(b => b.name === expenseName);
-                        const category = categories.find(c => c.id === bill?.category_id)?.name || 'Uncategorized';
+                        const category = categories?.find(c => c.id === bill?.category_id)?.name || 'Uncategorized';
 
                         return (
                           <TableRow key={expenseName}>
