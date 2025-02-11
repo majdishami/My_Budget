@@ -8,14 +8,22 @@ import { useState } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { Income, Bill } from "@/types";
-import { cn, formatCurrency } from "@/lib/utils";
-import { LeftSidebar } from "@/components/LeftSidebar";
+import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { useData } from "@/contexts/DataContext";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
 import EditExpenseDialog from "@/components/EditExpenseDialog";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,16 +35,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-
 dayjs.extend(isBetween);
 
-const generateId = () => crypto.randomUUID(); //Added function
-
+const generateId = () => crypto.randomUUID();
 
 export function Budget() {
   const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction, resetData } = useData();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(dayjs().date());
+  const [selectedMonth, setSelectedMonth] = useState(dayjs().month());
+  const [selectedYear, setSelectedYear] = useState(dayjs().year());
+  const [selectedWeek, setSelectedWeek] = useState(1);
   const [showDailySummary, setShowDailySummary] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Income | Bill | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -96,8 +105,27 @@ export function Budget() {
     setEditingTransaction(null);
   };
 
-  const firstDayOfMonth = dayjs().startOf("month");
-  const lastDayOfMonth = dayjs().endOf("month");
+  // Generate array of months for the select
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: i,
+    label: dayjs().month(i).format('MMMM')
+  }));
+
+  // Generate array of weeks for the select
+  const getWeeksInMonth = (year: number, month: number) => {
+    const firstDay = dayjs().year(year).month(month).startOf('month');
+    const lastDay = firstDay.endOf('month');
+    const numWeeks = Math.ceil((firstDay.day() + lastDay.date()) / 7);
+    return Array.from({ length: numWeeks }, (_, i) => ({
+      value: i + 1,
+      label: `Week ${i + 1}`
+    }));
+  };
+
+  const weeks = getWeeksInMonth(selectedYear, selectedMonth);
+
+  const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf("month");
+  const lastDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).endOf("month");
   const firstDayIndex = firstDayOfMonth.day();
   const totalDaysInMonth = lastDayOfMonth.date();
   const calendarDays = Array.from({ length: 6 * 7 }, (_, index) => {
@@ -111,7 +139,7 @@ export function Budget() {
 
   // Calculate all income occurrences for the current month
   const getMonthlyIncomeOccurrences = () => {
-    const currentDate = dayjs();
+    const currentDate = dayjs().year(selectedYear).month(selectedMonth);
     const startOfMonth = currentDate.startOf('month');
     const endOfMonth = currentDate.endOf('month');
     const startDate = dayjs('2025-01-10');
@@ -152,21 +180,21 @@ export function Budget() {
 
   const getIncomeForDay = (day: number) => {
     const monthlyIncomes = getMonthlyIncomeOccurrences();
-    const targetDate = dayjs().date(day);
+    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
 
     return monthlyIncomes.filter(income => {
       const incomeDate = dayjs(income.date);
-      return incomeDate.date() === day;
+      return incomeDate.date() === day && incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear;
     });
   }
 
   const getBillsForDay = (day: number) => {
-    const targetDate = dayjs().date(day);
+    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
     return bills.filter(bill => {
       if (bill.isOneTime) {
         // For one-time bills, check exact date match
         const billDate = dayjs(bill.date);
-        return billDate && billDate.date() === day;
+        return billDate && billDate.date() === day && billDate.month() === selectedMonth && billDate.year() === selectedYear;
       } else {
         // For recurring bills, check if the day matches
         return bill.day === day;
@@ -179,13 +207,13 @@ export function Budget() {
     let totalBills = 0;
 
     // Calculate target date
-    const targetDate = dayjs().date(day);
+    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
 
     // Calculate income using monthly occurrences
     const monthlyIncomes = getMonthlyIncomeOccurrences();
     monthlyIncomes.forEach(income => {
       const incomeDate = dayjs(income.date);
-      if (incomeDate.date() <= day) {
+      if (incomeDate.date() <= day && incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear) {
         totalIncome += income.amount;
       }
     });
@@ -196,7 +224,7 @@ export function Budget() {
         // For one-time bills
         const billDate = dayjs(bill.date);
         if (billDate.isSame(targetDate, 'month')) {
-          if (billDate.date() <= day) {
+          if (billDate.date() <= day && billDate.month() === selectedMonth && billDate.year() === selectedYear) {
             totalBills += bill.amount;
           }
         }
@@ -223,6 +251,43 @@ export function Budget() {
       <Card className="w-full mb-4">
         <div className="p-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <Select
+                  value={selectedMonth.toString()}
+                  onValueChange={(value) => setSelectedMonth(parseInt(value))}
+                >
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map(({ value, label }) => (
+                      <SelectItem key={value} value={value.toString()}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={selectedWeek.toString()}
+                  onValueChange={(value) => setSelectedWeek(parseInt(value))}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Select week" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {weeks.map(({ value, label }) => (
+                      <SelectItem key={value} value={value.toString()}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="flex gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Month Total Income</p>
@@ -275,6 +340,8 @@ export function Budget() {
                       return <td key={dayIndex} className="border p-1 lg:p-2 bg-muted/10 h-24 lg:h-48" />;
                     }
 
+                    const currentDate = dayjs().year(selectedYear).month(selectedMonth).date(dayNumber);
+                    const dayOfWeek = currentDate.format('ddd');
                     const dayIncomes = getIncomeForDay(dayNumber);
                     const dayBills = getBillsForDay(dayNumber);
                     const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
@@ -293,12 +360,17 @@ export function Budget() {
                         )}
                       >
                         <div className="flex justify-between items-start mb-1">
-                          <span className={cn(
-                            "font-medium text-base lg:text-lg",
-                            isCurrentDay(dayNumber) && "text-primary font-bold"
-                          )}>
-                            {dayNumber}
-                          </span>
+                          <div className="flex flex-col">
+                            <span className={cn(
+                              "font-medium text-base lg:text-lg",
+                              isCurrentDay(dayNumber) && "text-primary font-bold"
+                            )}>
+                              {dayNumber}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {dayOfWeek}
+                            </span>
+                          </div>
                           {hasTransactions && (
                             <div className="flex gap-1">
                               {dayIncomes.length > 0 && (
@@ -348,13 +420,13 @@ export function Budget() {
         </div>
       </Card>
 
-      {/* Dialogs */}
+      {/* Keep existing dialogs */}
       <DailySummaryDialog
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
         selectedDay={selectedDay}
-        selectedMonth={dayjs().month()}
-        selectedYear={today.year()}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
         dayIncomes={getIncomeForDay(selectedDay)}
         dayBills={getBillsForDay(selectedDay)}
         totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
