@@ -13,7 +13,6 @@ import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
-import dayjs from "dayjs";
 import {
   Select,
   SelectContent,
@@ -46,6 +45,7 @@ export function AddExpenseDialog({
   const [categoryId, setCategoryId] = useState<string>('');
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDays, setReminderDays] = useState(7);
+  const [showReminderDialog, setShowReminderDialog] = useState(false);
 
   // Fetch categories
   const { data: categories = [] } = useQuery<Category[]>({
