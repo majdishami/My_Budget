@@ -456,33 +456,35 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                   <SelectValue placeholder="Select an option" />
                 </SelectTrigger>
                 <SelectContent>
-                  <ScrollArea className="h-[400px]">
-                    {/* Combined Views */}
-                    <SelectGroup>
-                      <SelectLabel>Combined Views</SelectLabel>
-                      <SelectItem value="all">All Expenses Combined</SelectItem>
-                      <SelectItem value="all_categories">All Categories Combined</SelectItem>
-                    </SelectGroup>
+                  <ScrollArea className="h-[300px] w-[350px] rounded-md">
+                    <div className="p-4">
+                      {/* Combined Views */}
+                      <SelectGroup>
+                        <SelectLabel>Combined Views</SelectLabel>
+                        <SelectItem value="all">All Expenses Combined</SelectItem>
+                        <SelectItem value="all_categories">All Categories Combined</SelectItem>
+                      </SelectGroup>
 
-                    {/* Individual Categories */}
-                    <SelectGroup>
-                      <SelectLabel>Individual Categories</SelectLabel>
-                      {dropdownOptions.categories.map((category) => (
-                        <SelectItem key={`category_${category}`} value={`category_${category}`}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
+                      {/* Individual Categories */}
+                      <SelectGroup>
+                        <SelectLabel>Individual Categories</SelectLabel>
+                        {dropdownOptions.categories.map((category) => (
+                          <SelectItem key={`category_${category}`} value={`category_${category}`}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
 
-                    {/* Individual Expenses */}
-                    <SelectGroup>
-                      <SelectLabel>Individual Expenses</SelectLabel>
-                      {bills.map((bill) => (
-                        <SelectItem key={`expense_${bill.id}`} value={`expense_${bill.id}`}>
-                          {bill.name} ({formatCurrency(bill.amount)})
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
+                      {/* Individual Expenses */}
+                      <SelectGroup>
+                        <SelectLabel>Individual Expenses</SelectLabel>
+                        {bills.map((bill) => (
+                          <SelectItem key={`expense_${bill.id}`} value={`expense_${bill.id}`}>
+                            {bill.name} ({formatCurrency(bill.amount)})
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </div>
                   </ScrollArea>
                 </SelectContent>
               </Select>
