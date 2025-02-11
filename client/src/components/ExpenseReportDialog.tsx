@@ -455,39 +455,39 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                   <SelectValue placeholder="Select an option" />
                 </SelectTrigger>
                 <SelectContent 
-                  position="popper" 
-                  className="max-h-[300px] overflow-y-auto"
-                  align="start"
-                  side="bottom"
-                  sideOffset={4}
-                >
-                  {/* Combined Views */}
-                  <SelectGroup>
-                    <SelectLabel>Combined Views</SelectLabel>
-                    <SelectItem value="all">All Expenses Combined</SelectItem>
-                    <SelectItem value="all_categories">All Categories Combined</SelectItem>
-                  </SelectGroup>
+                    position="popper" 
+                    className="max-h-[300px] overflow-y-auto"
+                    align="start"
+                    side="bottom"
+                    sideOffset={4}
+                  >
+                    {/* Combined Views */}
+                    <SelectGroup>
+                      <SelectLabel>Combined Views</SelectLabel>
+                      <SelectItem value="all">All Expenses Combined</SelectItem>
+                      <SelectItem value="all_categories">All Categories Combined</SelectItem>
+                    </SelectGroup>
 
-                  {/* Individual Categories */}
-                  <SelectGroup>
-                    <SelectLabel>Individual Categories</SelectLabel>
-                    {dropdownOptions.categories.map((category) => (
-                      <SelectItem key={`category_${category}`} value={`category_${category}`}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
+                    {/* Individual Categories */}
+                    <SelectGroup>
+                      <SelectLabel>Individual Categories</SelectLabel>
+                      {dropdownOptions.categories.map((category) => (
+                        <SelectItem key={`category_${category}`} value={`category_${category}`}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
 
-                  {/* Individual Expenses */}
-                  <SelectGroup>
-                    <SelectLabel>Individual Expenses</SelectLabel>
-                    {bills.map((bill) => (
-                      <SelectItem key={`expense_${bill.id}`} value={`expense_${bill.id}`}>
-                        {bill.name} ({formatCurrency(bill.amount)})
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
+                    {/* Individual Expenses */}
+                    <SelectGroup>
+                      <SelectLabel>Individual Expenses</SelectLabel>
+                      {bills.map((bill) => (
+                        <SelectItem key={`expense_${bill.id}`} value={`expense_${bill.id}`}>
+                          {bill.name} ({formatCurrency(bill.amount)})
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
               </Select>
             </div>
 
