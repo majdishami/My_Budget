@@ -39,6 +39,15 @@ dayjs.extend(isBetween);
 
 const generateId = () => crypto.randomUUID();
 
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+};
+
 export function Budget() {
   const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction, resetData } = useData();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -52,7 +61,8 @@ export function Budget() {
   const [showEditExpenseDialog, setShowEditExpenseDialog] = useState(false);
 
   // Set today to February 9, 2025
-  const today = dayjs('2025-02-09');
+  const today = dayjs('2025-02-11');
+  const currentDate = today.format('dddd, MMMM D');
 
   const handleAddIncome = () => {
     const newIncome: Income = {
@@ -111,6 +121,12 @@ export function Budget() {
     label: dayjs().month(i).format('MMMM')
   }));
 
+  // Generate array of years (±5 years from current)
+  const years = Array.from({ length: 11 }, (_, i) => ({
+    value: today.year() - 5 + i,
+    label: (today.year() - 5 + i).toString()
+  }));
+
   // Generate array of weeks for the select
   const getWeeksInMonth = (year: number, month: number) => {
     const firstDay = dayjs().year(year).month(month).startOf('month');
@@ -134,10 +150,11 @@ export function Budget() {
   });
 
   const isCurrentDay = (day: number) => {
-    return day === today.date();
+    return day === today.date() && 
+           selectedMonth === today.month() && 
+           selectedYear === today.year();
   };
 
-  // Calculate all income occurrences for the current month
   const getMonthlyIncomeOccurrences = () => {
     const currentDate = dayjs().year(selectedYear).month(selectedMonth);
     const startOfMonth = currentDate.startOf('month');
@@ -255,11 +272,27 @@ export function Budget() {
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 <Select
+                  value={selectedYear.toString()}
+                  onValueChange={(value) => setSelectedYear(parseInt(value))}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map(({ value, label }) => (
+                      <SelectItem key={value} value={value.toString()}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
                   value={selectedMonth.toString()}
                   onValueChange={(value) => setSelectedMonth(parseInt(value))}
                 >
                   <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Select month" />
+                    <SelectValue placeholder="Month" />
                   </SelectTrigger>
                   <SelectContent>
                     {months.map(({ value, label }) => (
@@ -270,21 +303,9 @@ export function Budget() {
                   </SelectContent>
                 </Select>
 
-                <Select
-                  value={selectedWeek.toString()}
-                  onValueChange={(value) => setSelectedWeek(parseInt(value))}
-                >
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Select week" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {weeks.map(({ value, label }) => (
-                      <SelectItem key={value} value={value.toString()}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="text-sm text-muted-foreground">
+                  {currentDate}
+                </div>
               </div>
             </div>
 
@@ -420,7 +441,6 @@ export function Budget() {
         </div>
       </Card>
 
-      {/* Keep existing dialogs */}
       <DailySummaryDialog
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
