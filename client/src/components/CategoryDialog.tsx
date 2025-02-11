@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required").transform(val => val.trim()),
   color: z.string().min(1, "Color is required").transform(val => val.trim()),
-  icon: z.string().nullable().optional().transform(val => val?.trim() || null)
+  icon: z.string().nullable().optional().transform(val => (val?.trim() === '' ? null : val?.trim()))
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -31,7 +31,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
   const defaultFormValues = useMemo(() => ({
     name: initialData?.name || "",
     color: initialData?.color || "#000000",
-    icon: initialData?.icon || ""
+    icon: initialData?.icon || null
   }), [initialData]);
 
   const form = useForm<CategoryFormData>({
@@ -48,11 +48,13 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
 
   const handleSubmit = async (data: CategoryFormData) => {
     try {
-      await onSubmit({
-        name: data.name,
-        color: data.color,
-        icon: data.icon || null
-      });
+      // Ensure icon is properly handled
+      const formattedData = {
+        ...data,
+        icon: data.icon || null // Convert empty string to null
+      };
+
+      await onSubmit(formattedData);
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -79,7 +81,6 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                     <Input 
                       placeholder="Enter category name" 
                       {...field} 
-                      value={field.value || ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -131,6 +132,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       placeholder="Enter icon name" 
                       {...field}
                       value={field.value || ""}
+                      onChange={(e) => field.onChange(e.target.value || null)}
                     />
                   </FormControl>
                   <FormMessage />

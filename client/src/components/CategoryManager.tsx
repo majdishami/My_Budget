@@ -35,12 +35,10 @@ export function CategoryManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // State management
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editCategory, setEditCategory] = useState<CategoryFormData | null>(null);
   const [deleteCategory, setDeleteCategory] = useState<Category | null>(null);
 
-  // Query hook
   const {
     data: categories = [],
     isLoading,
@@ -61,9 +59,8 @@ export function CategoryManager() {
     }
   });
 
-  // Mutation hooks
   const createMutation = useMutation({
-    mutationFn: (data: CategoryFormData) => 
+    mutationFn: (data: CategoryFormData) =>
       apiRequest('/api/categories', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -83,10 +80,14 @@ export function CategoryManager() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (category: Category) => 
-      apiRequest(`/api/categories/${category.id}`, {
+    mutationFn: (data: { id: number } & CategoryFormData) =>
+      apiRequest(`/api/categories/${data.id}`, {
         method: 'PATCH',
-        body: JSON.stringify(category),
+        body: JSON.stringify({
+          name: data.name,
+          color: data.color,
+          icon: data.icon
+        }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
@@ -103,7 +104,7 @@ export function CategoryManager() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => 
+    mutationFn: (id: number) =>
       apiRequest(`/api/categories/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
@@ -119,16 +120,25 @@ export function CategoryManager() {
     },
   });
 
-  // Event handlers
   const handleSubmit = (data: CategoryFormData) => {
     if (editCategory) {
-      updateMutation.mutate({ ...data, id: (editCategory as Category).id });
+      const categoryToUpdate = categories.find(c =>
+        c.name === editCategory.name &&
+        c.color === editCategory.color &&
+        c.icon === editCategory.icon
+      );
+
+      if (categoryToUpdate) {
+        updateMutation.mutate({
+          id: categoryToUpdate.id,
+          ...data
+        });
+      }
     } else {
       createMutation.mutate(data);
     }
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -149,7 +159,6 @@ export function CategoryManager() {
     );
   }
 
-  // Error state
   if (queryError) {
     return (
       <div className="space-y-4">
