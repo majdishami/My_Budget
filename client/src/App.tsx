@@ -37,7 +37,7 @@ import {
 
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome, addBill } = useData();
-  const [location, setLocation] = useLocation();
+  const [, navigate] = useLocation();
   const today = dayjs('2025-02-10');
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
@@ -158,7 +158,7 @@ function Router() {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => setLocation('/')}
+                    onClick={() => navigate("/")}
                   >
                     Dashboard
                   </Button>
@@ -233,14 +233,14 @@ function Router() {
 
         {/* Dialogs */}
         <AddIncomeDialog
-          open={showAddIncomeDialog}
+          isOpen={showAddIncomeDialog}
           onOpenChange={setShowAddIncomeDialog}
-          onAddIncome={addIncome}
+          onConfirm={addIncome}
         />
         <AddExpenseDialog
-          open={showAddExpenseDialog}
+          isOpen={showAddExpenseDialog}
           onOpenChange={setShowAddExpenseDialog}
-          onAddExpense={addBill}
+          onConfirm={addBill}
         />
       </div>
     </ErrorBoundary>
