@@ -91,6 +91,20 @@ interface Category {
   color: string;
 }
 
+interface Bill {
+  id: string;
+  name: string;
+  amount: number;
+  day: number;
+  category_id: number;
+  user_id: number;
+  created_at: string;
+  isOneTime: boolean;
+  category_name?: string;
+  category_color?: string;
+  date?: string;
+}
+
 export default function AnnualReportDialog({
   isOpen,
   onOpenChange,
@@ -101,13 +115,18 @@ export default function AnnualReportDialog({
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
   const today = useMemo(() => dayjs(), []);
 
+  // Fetch bills directly from the API instead of localStorage
+  const { data: bills = [], isLoading: billsLoading } = useQuery<Bill[]>({
+    queryKey: ['/api/bills'],
+    enabled: isOpen,
+  });
+
   // Fetch categories from the API
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
-    enabled: isOpen, // Only fetch when dialog is open
+    enabled: isOpen,
   });
 
-  // Initialize with default data
   const defaultIncomes = [
     {
       id: '1',
@@ -124,21 +143,16 @@ export default function AnnualReportDialog({
   ];
 
   const [incomes, setIncomes] = useState(defaultIncomes);
-  const [bills, setBills] = useState<Bill[]>([]);
+
 
   useEffect(() => {
     if (isOpen) {
       try {
         const storedIncomes = localStorage.getItem("incomes");
-        const storedBills = localStorage.getItem("bills");
 
         if (storedIncomes) {
           const parsedIncomes = JSON.parse(storedIncomes);
           setIncomes(parsedIncomes.length > 0 ? parsedIncomes : defaultIncomes);
-        }
-        if (storedBills) {
-          const parsedBills = JSON.parse(storedBills);
-          setBills(Array.isArray(parsedBills) ? parsedBills : []);
         }
       } catch (error) {
         console.error("Failed to load data:", error);
@@ -227,20 +241,25 @@ export default function AnnualReportDialog({
     summary.totalIncome.occurred = summary.majdiTotal.occurred + summary.rubaTotal.occurred;
     summary.totalIncome.pending = summary.majdiTotal.pending + summary.rubaTotal.pending;
 
-    // Process expenses
+    // Process expenses by category
     bills.forEach(bill => {
+      const categoryName = bill.category_name || 'Uncategorized';
       const monthlyAmount = bill.amount;
-      summary.expensesByCategory[bill.name] = { occurred: 0, pending: 0 };
+
+      // Initialize category if not exists
+      if (!summary.expensesByCategory[categoryName]) {
+        summary.expensesByCategory[categoryName] = { occurred: 0, pending: 0 };
+      }
 
       for (let month = 0; month < 12; month++) {
         const monthKey = dayjs().month(month).format('MMMM');
-        const billDate = dayjs(`${year}-${month + 1}-${dayjs(bill.date).date()}`);
+        const billDate = dayjs(`${year}-${month + 1}-${bill.day}`);
 
         if (billDate.isBefore(today) || billDate.isSame(today, 'day')) {
-          summary.expensesByCategory[bill.name].occurred += monthlyAmount;
+          summary.expensesByCategory[categoryName].occurred += monthlyAmount;
           summary.monthlyBreakdown[monthKey].expenses.occurred += monthlyAmount;
         } else {
-          summary.expensesByCategory[bill.name].pending += monthlyAmount;
+          summary.expensesByCategory[categoryName].pending += monthlyAmount;
           summary.monthlyBreakdown[monthKey].expenses.pending += monthlyAmount;
         }
       }
@@ -473,7 +492,7 @@ export default function AnnualReportDialog({
                               <div className="flex items-center gap-2">
                                 <div
                                   className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: bill.category_color }}
+                                  style={{ backgroundColor: bill?.category_color }}
                                 />
                                 {bill.category_name}
                               </div>

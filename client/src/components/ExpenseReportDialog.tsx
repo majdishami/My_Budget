@@ -51,17 +51,17 @@ interface Transaction {
 }
 
 interface Bill {
-  id: string;  // Explicitly defined as string
+  id: string;  
   name: string;
   amount: number;
   day: number;
   category_id: number;
   user_id: number;
   created_at: string;
-  isOneTime: boolean; // Added from edited snippet
+  isOneTime: boolean; 
   category_name?: string;
   category_color?: string;
-  date?: string; // Added from edited snippet
+  date?: string; 
 }
 
 interface Category {
@@ -106,10 +106,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const [previousReport, setPreviousReport] = useState<{value: string, date: DateRange | undefined} | null>(null);
   const today = useMemo(() => dayjs(), []);
 
-  // Fetch categories (This part is likely unnecessary now)
-  // const { data: categories = [] } = useQuery<Category[]>({
-  //   queryKey: ['/api/categories'],
-  // });
+  // Fetch categories for reference
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+    enabled: isOpen,
+  });
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -148,11 +149,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const transactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
-    console.log('Generating transactions with:', {
-      bills: bills.length,
-      dateRange: { from: date.from, to: date.to }
-    });
-
     // Validate date range
     if (dayjs(date.to).isBefore(date.from)) {
       setDate({
@@ -163,12 +159,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       return [];
     }
 
-    if (!bills.length) {
-      console.log('No bills available');
-      return [];
-    }
-
-    setDateError(null);
     let filteredBills = bills;
 
     // Filter based on selection
@@ -181,8 +171,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         filteredBills = bills.filter(bill => bill.category_name === categoryName);
       }
     }
-
-    console.log('Filtered bills:', filteredBills);
 
     const startDate = dayjs(date.from);
     const endDate = dayjs(date.to);
