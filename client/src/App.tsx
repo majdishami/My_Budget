@@ -155,13 +155,11 @@ function Router() {
               {/* Navigation row */}
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setLocation("/")}
-                  >
-                    Dashboard
-                  </Button>
+                  <Link href="/">
+                    <Button variant="ghost" size="sm" className="cursor-pointer">
+                      Dashboard
+                    </Button>
+                  </Link>
 
                   <Link href="/categories">
                     <Button variant="ghost" size="sm">
