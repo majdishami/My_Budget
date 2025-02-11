@@ -15,7 +15,8 @@ import {
   Tags,
   Database,
   Menu,
-  RefreshCw
+  RefreshCw,
+  LayoutDashboard
 } from "lucide-react";
 import {
   Select,
@@ -29,6 +30,7 @@ import { useState } from "react";
 import { ExportDialog } from "@/components/ExportDialog";
 import { ViewRemindersDialog } from "@/components/ViewRemindersDialog";
 import { DatabaseSyncDialog } from "@/components/DatabaseSyncDialog";
+import { clsx } from "clsx";
 
 interface LeftSidebarProps {
   incomes: Income[];
@@ -47,7 +49,7 @@ export function LeftSidebar({
   onAddIncome,
   onAddBill,
 }: LeftSidebarProps) {
-  const [, setLocation] = useLocation();
+  const [location] = useLocation();
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showRemindersDialog, setShowRemindersDialog] = useState(false);
   const [showDatabaseSyncDialog, setShowDatabaseSyncDialog] = useState(false);
@@ -58,7 +60,7 @@ export function LeftSidebar({
     const currentDate = dayjs();
     const startOfMonth = currentDate.startOf('month');
     const endOfMonth = currentDate.endOf('month');
-    const startDate = dayjs('2025-01-10'); // Ruba's salary start date
+    const startDate = dayjs('2025-01-10');
 
     const occurrences: Income[] = [];
 
@@ -68,7 +70,7 @@ export function LeftSidebar({
         let checkDate = startDate.clone();
         while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
           if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
-            if (checkDate.day() === 5) { // Friday
+            if (checkDate.day() === 5) {
               const weeksDiff = checkDate.diff(startDate, 'week');
               if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
                 occurrences.push({
@@ -96,6 +98,10 @@ export function LeftSidebar({
     window.location.reload();
   };
 
+  const isActiveRoute = (path: string) => {
+    return location === path;
+  };
+
   return (
     <div className="relative">
       {/* Mobile Controls - Outside the sliding panel */}
@@ -118,20 +124,42 @@ export function LeftSidebar({
         </Button>
       </div>
 
-      <div className={`
-        fixed inset-y-0 left-0 z-40 w-[200px] bg-background border-r transform 
-        lg:relative lg:translate-x-0 lg:w-auto
-        transition-transform duration-200 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        overflow-y-auto h-screen lg:h-auto
-      `}>
+      <div className={clsx(
+        "fixed inset-y-0 left-0 z-40 w-[280px] bg-background border-r transform",
+        "lg:relative lg:translate-x-0 lg:w-auto",
+        "transition-transform duration-200 ease-in-out",
+        isOpen ? "translate-x-0" : "-translate-x-full",
+        "overflow-y-auto h-screen lg:h-auto"
+      )}>
         <div className="p-4 space-y-6 pt-16 lg:pt-4">
+          {/* Dashboard Section */}
+          <div className="space-y-2">
+            <Link href="/">
+              <Button
+                variant={isActiveRoute("/") ? "default" : "ghost"}
+                size="sm"
+                className={clsx(
+                  "w-full justify-start",
+                  isActiveRoute("/") && "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
+                onClick={() => setIsOpen(false)}
+              >
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                Dashboard
+              </Button>
+            </Link>
+          </div>
+
+          {/* Expenses Section */}
           <div className="space-y-2">
             <h2 className="text-lg font-semibold px-2">Expenses</h2>
             <div className="space-y-2">
               <Select onValueChange={(value) => {
                 const bill = bills.find(b => b.id === parseInt(value));
-                if (bill) onEditTransaction('bill', bill);
+                if (bill) {
+                  onEditTransaction('bill', bill);
+                  setIsOpen(false);
+                }
               }}>
                 <SelectTrigger className="w-full justify-start">
                   <Button variant="ghost" size="sm" className="w-full justify-start">
@@ -152,7 +180,10 @@ export function LeftSidebar({
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start"
-                onClick={onAddBill}
+                onClick={() => {
+                  onAddBill();
+                  setIsOpen(false);
+                }}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Expense
@@ -160,7 +191,10 @@ export function LeftSidebar({
 
               <Select onValueChange={(value) => {
                 const bill = bills.find(b => b.id === parseInt(value));
-                if (bill) onDeleteTransaction('bill', bill);
+                if (bill) {
+                  onDeleteTransaction('bill', bill);
+                  setIsOpen(false);
+                }
               }}>
                 <SelectTrigger className="w-full justify-start">
                   <Button variant="ghost" size="sm" className="w-full justify-start">
@@ -176,11 +210,15 @@ export function LeftSidebar({
                   ))}
                 </SelectContent>
               </Select>
+
               <Button
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start"
-                onClick={() => setShowRemindersDialog(true)}
+                onClick={() => {
+                  setShowRemindersDialog(true);
+                  setIsOpen(false);
+                }}
               >
                 <Bell className="mr-2 h-4 w-4" />
                 View Reminders
@@ -188,12 +226,16 @@ export function LeftSidebar({
             </div>
           </div>
 
+          {/* Income Section */}
           <div className="space-y-2">
             <h2 className="text-lg font-semibold px-2">Income</h2>
             <div className="space-y-2">
               <Select onValueChange={(value) => {
                 const income = monthlyIncomes.find(i => i.id === value);
-                if (income) onEditTransaction('income', income);
+                if (income) {
+                  onEditTransaction('income', income);
+                  setIsOpen(false);
+                }
               }}>
                 <SelectTrigger className="w-full justify-start">
                   <Button variant="ghost" size="sm" className="w-full justify-start">
@@ -214,7 +256,10 @@ export function LeftSidebar({
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start"
-                onClick={onAddIncome}
+                onClick={() => {
+                  onAddIncome();
+                  setIsOpen(false);
+                }}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Income
@@ -222,7 +267,10 @@ export function LeftSidebar({
 
               <Select onValueChange={(value) => {
                 const income = monthlyIncomes.find(i => i.id === value);
-                if (income) onDeleteTransaction('income', income);
+                if (income) {
+                  onDeleteTransaction('income', income);
+                  setIsOpen(false);
+                }
               }}>
                 <SelectTrigger className="w-full justify-start">
                   <Button variant="ghost" size="sm" className="w-full justify-start">
@@ -241,14 +289,18 @@ export function LeftSidebar({
             </div>
           </div>
 
+          {/* Categories Section */}
           <div className="space-y-2">
             <h2 className="text-lg font-semibold px-2">Categories</h2>
             <div className="space-y-2">
               <Link href="/categories" onClick={() => setIsOpen(false)}>
                 <Button
-                  variant="ghost"
+                  variant={isActiveRoute("/categories") ? "default" : "ghost"}
                   size="sm"
-                  className="w-full justify-start"
+                  className={clsx(
+                    "w-full justify-start",
+                    isActiveRoute("/categories") && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
                 >
                   <Tags className="mr-2 h-4 w-4" />
                   Manage Categories
@@ -257,6 +309,7 @@ export function LeftSidebar({
             </div>
           </div>
 
+          {/* Reports Section */}
           <div className="space-y-2">
             <h2 className="text-lg font-semibold px-2">Reports</h2>
             <div className="space-y-2">
@@ -272,6 +325,7 @@ export function LeftSidebar({
                 <Download className="mr-2 h-4 w-4" />
                 Export Data
               </Button>
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -284,61 +338,85 @@ export function LeftSidebar({
                 <Database className="mr-2 h-4 w-4" />
                 Sync Database
               </Button>
+
               <Link href="/reports/monthly-to-date" onClick={() => setIsOpen(false)}>
                 <Button
-                  variant="ghost"
+                  variant={isActiveRoute("/reports/monthly-to-date") ? "default" : "ghost"}
                   size="sm"
-                  className="w-full justify-start"
+                  className={clsx(
+                    "w-full justify-start",
+                    isActiveRoute("/reports/monthly-to-date") && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
                   Monthly up today
                 </Button>
               </Link>
+
               <Link href="/reports/monthly" onClick={() => setIsOpen(false)}>
                 <Button
-                  variant="ghost"
+                  variant={isActiveRoute("/reports/monthly") ? "default" : "ghost"}
                   size="sm"
-                  className="w-full justify-start"
+                  className={clsx(
+                    "w-full justify-start",
+                    isActiveRoute("/reports/monthly") && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
                 >
                   <ChartBar className="mr-2 h-4 w-4" />
                   Monthly Report
                 </Button>
               </Link>
+
               <Link href="/reports/annual" onClick={() => setIsOpen(false)}>
                 <Button
-                  variant="ghost"
+                  variant={isActiveRoute("/reports/annual") ? "default" : "ghost"}
                   size="sm"
-                  className="w-full justify-start"
+                  className={clsx(
+                    "w-full justify-start",
+                    isActiveRoute("/reports/annual") && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
                 >
                   <CalendarRange className="mr-2 h-4 w-4" />
                   Annual Report
                 </Button>
               </Link>
+
               <Link href="/reports/date-range" onClick={() => setIsOpen(false)}>
                 <Button
-                  variant="ghost"
+                  variant={isActiveRoute("/reports/date-range") ? "default" : "ghost"}
                   size="sm"
-                  className="w-full justify-start"
+                  className={clsx(
+                    "w-full justify-start",
+                    isActiveRoute("/reports/date-range") && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
                 >
                   <FileBarChart className="mr-2 h-4 w-4" />
                   Date Range Report
                 </Button>
               </Link>
+
               <Link href="/reports/income" onClick={() => setIsOpen(false)}>
                 <Button
-                  variant="ghost"
+                  variant={isActiveRoute("/reports/income") ? "default" : "ghost"}
                   size="sm"
-                  className="w-full justify-start"
+                  className={clsx(
+                    "w-full justify-start",
+                    isActiveRoute("/reports/income") && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
                 >
                   <FileText className="mr-2 h-4 w-4" />
                   Income Report
                 </Button>
               </Link>
+
               <Link href="/reports/expenses" onClick={() => setIsOpen(false)}>
                 <Button
-                  variant="ghost"
+                  variant={isActiveRoute("/reports/expenses") ? "default" : "ghost"}
                   size="sm"
-                  className="w-full justify-start"
+                  className={clsx(
+                    "w-full justify-start",
+                    isActiveRoute("/reports/expenses") && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
                 >
                   <FileText className="mr-2 h-4 w-4" />
                   Expenses Report
