@@ -133,7 +133,7 @@ export function AddExpenseDialog({
   };
 
   const dummyBill: Bill = {
-    id: `temp_${Date.now()}`,  // Using timestamp for unique string ID
+    id: `temp_${Date.now().toString()}`,  // Using string timestamp for ID
     name,
     amount: parseFloat(amount || '0'),
     day: parseInt(day || '1'),
