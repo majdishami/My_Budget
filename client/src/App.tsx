@@ -32,9 +32,21 @@ import ExpenseReport from "@/pages/expenses";
 import { Button } from "@/components/ui/button";
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
+import { EditIncomeDialog } from "@/components/EditIncomeDialog";
+import { EditExpenseDialog } from "@/components/EditExpenseDialog";
 import { ExportDialog } from "@/components/ExportDialog";
 import { ViewRemindersDialog } from "@/components/ViewRemindersDialog";
 import { DatabaseSyncDialog } from "@/components/DatabaseSyncDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +55,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { clsx } from 'clsx';
+import { Income, Bill } from "@/types";
 
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome, addBill } = useData();
@@ -53,6 +66,10 @@ function Router() {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showRemindersDialog, setShowRemindersDialog] = useState(false);
   const [showDatabaseSyncDialog, setShowDatabaseSyncDialog] = useState(false);
+  const [showEditIncomeDialog, setShowEditIncomeDialog] = useState(false);
+  const [showEditExpenseDialog, setShowEditExpenseDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Income | Bill | null>(null);
 
   const currentDate = useMemo(() => ({
     day: today.date(),
@@ -61,27 +78,26 @@ function Router() {
     year: today.year()
   }), [today]);
 
-  const [selectedMonth, setSelectedMonth] = useState(today.month());
-  const [selectedYear, setSelectedYear] = useState(today.year());
-
-  const months = useMemo(() => (
-    Array.from({ length: 12 }, (_, i) => ({
-      value: i,
-      label: dayjs().month(i).format('MMMM')
-    }))
-  ), []);
-
-  const years = useMemo(() => {
-    const currentYear = today.year();
-    return Array.from({ length: 5 }, (_, i) => currentYear + i);
-  }, [today]);
-
-  const handleMonthChange = (month: number) => {
-    setSelectedMonth(month);
+  const handleDeleteTransaction = (transaction: Income | Bill) => {
+    setSelectedTransaction(transaction);
+    setShowDeleteDialog(true);
   };
 
-  const handleYearChange = (year: number) => {
-    setSelectedYear(year);
+  const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
+    setSelectedTransaction(transaction);
+    if (type === 'income') {
+      setShowEditIncomeDialog(true);
+    } else {
+      setShowEditExpenseDialog(true);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedTransaction) {
+      deleteTransaction(selectedTransaction);
+    }
+    setShowDeleteDialog(false);
+    setSelectedTransaction(null);
   };
 
   if (isLoading) {
@@ -122,37 +138,7 @@ function Router() {
                   <h1 className="text-xl font-bold">
                     My Budget
                   </h1>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-                      className="py-1 px-2 border rounded bg-background text-sm min-w-[120px]"
-                      aria-label="Select month"
-                    >
-                      {months.map(month => (
-                        <option key={month.value} value={month.value}>
-                          {month.label}
-                        </option>
-                      ))}
-                    </select>
-
-                    <select
-                      value={selectedYear}
-                      onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                      className="py-1 px-2 border rounded bg-background text-sm min-w-[100px]"
-                      aria-label="Select year"
-                    >
-                      {years.map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
-
-                    <span className="text-primary font-medium text-sm border-l pl-2 ml-2">
-                      {currentDate.weekday}, {currentDate.day}
-                    </span>
-                  </div>
                 </div>
-
                 <ThemeToggle />
               </div>
 
@@ -203,14 +189,14 @@ function Router() {
                             <button onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              editTransaction('bill', bill);
+                              handleEditTransaction('bill', bill);
                             }}>
                               <Edit className="h-4 w-4" />
                             </button>
                             <button onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              deleteTransaction('bill', bill);
+                              handleDeleteTransaction(bill);
                             }}>
                               <Trash className="h-4 w-4" />
                             </button>
@@ -243,14 +229,14 @@ function Router() {
                             <button onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              editTransaction('income', income);
+                              handleEditTransaction('income', income);
                             }}>
                               <Edit className="h-4 w-4" />
                             </button>
                             <button onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              deleteTransaction('income', income);
+                              handleDeleteTransaction(income);
                             }}>
                               <Trash className="h-4 w-4" />
                             </button>
@@ -363,6 +349,22 @@ function Router() {
           onOpenChange={setShowAddExpenseDialog}
           onConfirm={addBill}
         />
+        <EditIncomeDialog
+          isOpen={showEditIncomeDialog}
+          onOpenChange={setShowEditIncomeDialog}
+          income={selectedTransaction as Income}
+          onSave={editTransaction}
+        />
+        <EditExpenseDialog
+          isOpen={showEditExpenseDialog}
+          onOpenChange={setShowEditExpenseDialog}
+          expense={selectedTransaction as Bill}
+          onUpdate={(updatedBill) => {
+            editTransaction(updatedBill);
+            setShowEditExpenseDialog(false);
+            setSelectedTransaction(null);
+          }}
+        />
         <ExportDialog
           isOpen={showExportDialog}
           onOpenChange={setShowExportDialog}
@@ -378,6 +380,29 @@ function Router() {
           isOpen={showDatabaseSyncDialog}
           onOpenChange={setShowDatabaseSyncDialog}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this transaction? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setShowDeleteDialog(false);
+                setSelectedTransaction(null);
+              }}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDelete}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </ErrorBoundary>
   );
