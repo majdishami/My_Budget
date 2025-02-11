@@ -50,15 +50,17 @@ interface Transaction {
 }
 
 interface Bill {
-  id: string;  // Changed from number to string
+  id: string;  // Explicitly defined as string
   name: string;
-  amount: number | string;
+  amount: number;
   day: number;
   category_id: number;
   user_id: number;
   created_at: string;
+  isOneTime: boolean; // Added from edited snippet
   category_name?: string;
   category_color?: string;
+  date?: string; // Added from edited snippet
 }
 
 interface Category {
@@ -475,7 +477,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                     <SelectLabel>Individual Expenses</SelectLabel>
                     {bills.map((bill) => (
                       <SelectItem key={`expense_${bill.id}`} value={`expense_${bill.id}`}>
-                        {bill.name} ({formatCurrency(typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount)})
+                        {bill.name} ({formatCurrency(bill.amount)})
                       </SelectItem>
                     ))}
                   </SelectGroup>
