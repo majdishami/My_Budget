@@ -2,13 +2,23 @@ import { useState } from 'react';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Bill } from "@/types"; 
+import { Bill } from "@/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import dayjs from "dayjs";
 
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(dayjs().format('M'));
+  const [selectedYear, setSelectedYear] = useState(dayjs().format('YYYY'));
   const [, setLocation] = useLocation();
 
   // Get bills data and categories from the API
@@ -22,6 +32,19 @@ export default function ExpenseReport() {
       setLocation("/");
     }
   };
+
+  // Generate month options
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: (i + 1).toString(),
+    label: dayjs().month(i).format('MMMM')
+  }));
+
+  // Generate year options (current year ± 5 years)
+  const currentYear = dayjs().year();
+  const years = Array.from({ length: 11 }, (_, i) => ({
+    value: (currentYear - 5 + i).toString(),
+    label: (currentYear - 5 + i).toString()
+  }));
 
   if (isLoading) {
     return (
@@ -46,9 +69,60 @@ export default function ExpenseReport() {
     );
   }
 
+  const currentDate = dayjs();
+
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Expense Report</h1>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Expense Report</h1>
+          <div className="text-sm text-muted-foreground mt-1">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              {currentDate.format('dddd, MMMM D, YYYY')}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-4 mt-4 md:mt-0">
+          <div className="w-32">
+            <Select
+              value={selectedMonth}
+              onValueChange={setSelectedMonth}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Month" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-24">
+            <Select
+              value={selectedYear}
+              onValueChange={setSelectedYear}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
       <ExpenseReportDialog
         isOpen={isDialogOpen}
         onOpenChange={handleOpenChange}

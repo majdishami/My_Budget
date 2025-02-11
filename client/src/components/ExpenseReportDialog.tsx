@@ -50,7 +50,7 @@ interface Transaction {
 }
 
 interface Bill {
-  id: number;
+  id: string;  // Changed from number to string
   name: string;
   amount: number | string;
   day: number;
@@ -171,7 +171,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     // Filter based on selection
     if (selectedValue !== "all" && selectedValue !== "all_categories") {
       if (selectedValue.startsWith('expense_')) {
-        const expenseId = parseInt(selectedValue.replace('expense_', ''), 10);
+        const expenseId = selectedValue.replace('expense_', '');
         filteredBills = bills.filter(bill => bill.id === expenseId);
       } else if (selectedValue.startsWith('category_')) {
         const categoryName = selectedValue.replace('category_', '');
@@ -414,6 +414,23 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   }, [transactions, selectedValue]);
 
 
+  // Update the bill finding logic
+  const getBillById = (id: string) => bills.find(b => b.id === id);
+
+  // Update where we handle the bill ID in the dialog title
+  const getDialogTitle = () => {
+    if (selectedValue === "all") return "All Expenses Combined";
+    if (selectedValue === "all_categories") return "All Categories Combined";
+    if (selectedValue.startsWith('expense_')) {
+      const billId = selectedValue.replace('expense_', '');
+      return getBillById(billId)?.name || "Expense Report";
+    }
+    if (selectedValue.startsWith('category_')) {
+      return `${selectedValue.replace('category_', '')} Category`;
+    }
+    return "Expense Report";
+  };
+
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -524,16 +541,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           <div className="flex justify-between items-start">
             <div>
               <DialogTitle className="text-xl">
-                {selectedValue === "all"
-                  ? "All Expenses Combined"
-                  : selectedValue === "all_categories"
-                    ? "All Categories Combined"
-                    : selectedValue.startsWith('expense_')
-                      ? bills.find(b => b.id === parseInt(selectedValue.replace('expense_', ''), 10))?.name || "Expense Report"
-                      : selectedValue.startsWith('category_')
-                        ? `${selectedValue.replace('category_', '')} Category`
-                        : "Expense Report"
-                }
+                {getDialogTitle()}
                 <div className="text-sm font-normal text-muted-foreground mt-1">
                   {date?.from && date?.to && `${dayjs(date?.from).format('MMM D, YYYY')} - ${dayjs(date?.to).format('MMM D, YYYY')}`}
                 </div>
