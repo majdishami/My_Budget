@@ -463,12 +463,16 @@ export default function AnnualReportDialog({
                         const monthlyAverage = total / 12;
                         const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
                         const bill = bills.find(b => b.name === expenseName);
-                        const category = categories?.find(c => c.id === bill?.category_id)?.name || 'Uncategorized';
+                        const categoryId = bill?.category_id;
+                        console.log('Bill:', bill?.name, 'Category ID:', categoryId);
+                        console.log('Available categories:', categories);
+                        const category = categories?.find(c => c.id === categoryId);
+                        console.log('Found category:', category);
 
                         return (
                           <TableRow key={expenseName}>
                             <TableCell className="font-medium">{expenseName}</TableCell>
-                            <TableCell>{category}</TableCell>
+                            <TableCell>{category?.name || `Uncategorized (ID: ${categoryId || 'none'})`}</TableCell>
                             <TableCell className="text-right text-red-600">
                               {formatCurrency(monthlyAverage)}
                             </TableCell>
