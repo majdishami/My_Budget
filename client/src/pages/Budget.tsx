@@ -26,9 +26,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import crypto from 'crypto';
+
 
 dayjs.extend(isBetween);
+
+const generateId = () => crypto.randomUUID(); //Added function
+
 
 export function Budget() {
   const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction, resetData } = useData();
@@ -44,7 +47,7 @@ export function Budget() {
 
   const handleAddIncome = () => {
     const newIncome: Income = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       source: "",
       amount: 0,
       date: dayjs().toISOString()
@@ -54,15 +57,14 @@ export function Budget() {
 
   const handleAddBill = () => {
     const newBill: Bill = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: "",
       amount: 0,
       day: dayjs().date(),
-      dueDate: dayjs().toISOString(),
-      user_id: 1,
       category_id: 1,
+      user_id: 1,
       created_at: dayjs().toISOString(),
-      isOneTime: false 
+      isOneTime: false
     };
     addBill(newBill);
   };
@@ -96,7 +98,7 @@ export function Budget() {
 
   const firstDayOfMonth = dayjs().startOf("month");
   const lastDayOfMonth = dayjs().endOf("month");
-  const firstDayIndex = firstDayOfMonth.day(); 
+  const firstDayIndex = firstDayOfMonth.day();
   const totalDaysInMonth = lastDayOfMonth.date();
   const calendarDays = Array.from({ length: 6 * 7 }, (_, index) => {
     const day = index - firstDayIndex + 1;
@@ -112,7 +114,7 @@ export function Budget() {
     const currentDate = dayjs();
     const startOfMonth = currentDate.startOf('month');
     const endOfMonth = currentDate.endOf('month');
-    const startDate = dayjs('2025-01-10'); 
+    const startDate = dayjs('2025-01-10');
 
     const occurrences: Income[] = [];
 
@@ -122,7 +124,7 @@ export function Budget() {
         let checkDate = startDate.clone();
         while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
           if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
-            if (checkDate.day() === 5) { 
+            if (checkDate.day() === 5) {
               const weeksDiff = checkDate.diff(startDate, 'week');
               if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
                 occurrences.push({
@@ -164,7 +166,7 @@ export function Budget() {
       if (bill.isOneTime) {
         // For one-time bills, check exact date match
         const billDate = dayjs(bill.date);
-        return billDate.date() === day;
+        return billDate && billDate.date() === day;
       } else {
         // For recurring bills, check if the day matches
         return bill.day === day;
