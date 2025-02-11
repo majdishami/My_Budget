@@ -26,6 +26,8 @@ import DateRangeReport from "@/pages/date-range";
 import IncomeReport from "@/pages/income";
 import ExpenseReport from "@/pages/expenses";
 import { Button } from "@/components/ui/button";
+import { AddIncomeDialog } from "@/components/AddIncomeDialog";
+import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +39,8 @@ function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome, addBill } = useData();
   const [location, setLocation] = useLocation();
   const today = dayjs('2025-02-10');
+  const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
+  const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
 
   const currentDate = useMemo(() => ({
     day: today.date(),
@@ -69,29 +73,11 @@ function Router() {
   };
 
   const handleAddIncome = () => {
-    const newIncome = {
-      id: `income_${Date.now()}`,
-      source: "New Income Source",  // Default non-empty value
-      amount: 0,
-      date: new Date().toISOString(),
-      category_id: "default",  // Add required field
-      user_id: "default",      // Add required field
-      created_at: new Date().toISOString() // Add required field
-    };
-    addIncome(newIncome);
+    setShowAddIncomeDialog(true);
   };
 
   const handleAddBill = () => {
-    const newBill = {
-      id: `bill_${Date.now()}`,
-      name: "New Expense",     // Default non-empty value
-      amount: 0,
-      day: new Date().getDate(),
-      category_id: "default",  // Add required field
-      user_id: "default",      // Add required field
-      created_at: new Date().toISOString() // Add required field
-    };
-    addBill(newBill);
+    setShowAddExpenseDialog(true);
   };
 
   if (isLoading) {
@@ -169,11 +155,13 @@ function Router() {
               {/* Navigation row */}
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Link href="/">
-                    <Button variant="ghost" size="sm">
-                      Dashboard
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setLocation('/')}
+                  >
+                    Dashboard
+                  </Button>
 
                   <Link href="/categories">
                     <Button variant="ghost" size="sm">
@@ -242,6 +230,18 @@ function Router() {
             </Switch>
           </div>
         </main>
+
+        {/* Dialogs */}
+        <AddIncomeDialog
+          open={showAddIncomeDialog}
+          onOpenChange={setShowAddIncomeDialog}
+          onAddIncome={addIncome}
+        />
+        <AddExpenseDialog
+          open={showAddExpenseDialog}
+          onOpenChange={setShowAddExpenseDialog}
+          onAddExpense={addBill}
+        />
       </div>
     </ErrorBoundary>
   );
