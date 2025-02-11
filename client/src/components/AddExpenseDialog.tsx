@@ -31,7 +31,7 @@ interface Category {
 interface AddExpenseDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (newBill: Omit<Bill, 'id'>) => void;
+  onConfirm: (newBill: Omit<Bill, "id">) => void;
 }
 
 export function AddExpenseDialog({
@@ -132,18 +132,16 @@ export function AddExpenseDialog({
   const handleConfirm = () => {
     if (!validateForm()) return;
 
-    onConfirm({
+    const newBill: Omit<Bill, "id"> = {
       name,
       amount: parseFloat(amount),
-      day: parseInt(day),
-      month: parseInt(month),
-      year: parseInt(year),
-      date: dayjs(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`).toISOString(),
       categoryId: parseInt(categoryId),
+      date: dayjs(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`).toISOString(),
       reminderEnabled,
       reminderDays
-    });
+    };
 
+    onConfirm(newBill);
     resetForm();
   };
 
@@ -170,19 +168,6 @@ export function AddExpenseDialog({
     value: (currentYear + i).toString(),
     label: (currentYear + i).toString()
   }));
-
-  const dummyBill: Bill = {
-    id: 'temp',
-    name,
-    amount: parseFloat(amount || '0'),
-    day: parseInt(day),
-    month: parseInt(month),
-    year: parseInt(year),
-    date: dayjs(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`).toISOString(),
-    categoryId: parseInt(categoryId),
-    reminderEnabled,
-    reminderDays
-  };
 
   return (
     <>
@@ -251,7 +236,7 @@ export function AddExpenseDialog({
                 >
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
-                <SelectContent className="max-h-[200px] overflow-y-auto">
+                <SelectContent>
                   {categories.map((category) => (
                     <SelectItem
                       key={category.id}
@@ -395,10 +380,11 @@ export function AddExpenseDialog({
         </DialogContent>
       </Dialog>
       <ReminderDialog
-        bill={dummyBill}
         isOpen={showReminderDialog}
         onOpenChange={setShowReminderDialog}
         onSave={handleReminderSave}
+        defaultEnabled={reminderEnabled}
+        defaultDays={reminderDays}
       />
     </>
   );
