@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, Link, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -32,10 +32,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Link } from "wouter";
 
 function Router() {
-  const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome, addBill, resetData } = useData();
+  const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome, addBill } = useData();
+  const [location, setLocation] = useLocation();
   const today = dayjs('2025-02-10');
 
   const currentDate = useMemo(() => ({
@@ -66,6 +66,29 @@ function Router() {
 
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
+  };
+
+  const handleAddIncome = () => {
+    const newIncome = {
+      id: `income_${Date.now()}`,
+      source: "",
+      amount: 0,
+      date: new Date().toISOString()
+    };
+    addIncome(newIncome);
+  };
+
+  const handleAddBill = () => {
+    const newBill = {
+      id: `bill_${Date.now()}`,
+      name: "",
+      amount: 0,
+      day: new Date().getDate(),
+      category: "",
+      description: "",
+      reminderDays: 0
+    };
+    addBill(newBill);
   };
 
   if (isLoading) {
@@ -143,11 +166,13 @@ function Router() {
               {/* Navigation row */}
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Link href="/">
-                    <Button variant="ghost" size="sm">
-                      Dashboard
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setLocation("/")}
+                  >
+                    Dashboard
+                  </Button>
 
                   <Link href="/categories">
                     <Button variant="ghost" size="sm">
@@ -187,16 +212,13 @@ function Router() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={addIncome}>
+                  <Button variant="outline" size="sm" onClick={handleAddIncome}>
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Add Income
                   </Button>
-                  <Button variant="outline" size="sm" onClick={addBill}>
+                  <Button variant="outline" size="sm" onClick={handleAddBill}>
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Add Expense
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={resetData}>
-                    Reset Data
                   </Button>
                 </div>
               </div>
