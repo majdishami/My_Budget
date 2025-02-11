@@ -69,7 +69,38 @@ function Router() {
   const [showEditIncomeDialog, setShowEditIncomeDialog] = useState(false);
   const [showEditExpenseDialog, setShowEditExpenseDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState<Income | Bill | null>(null);
+  const [selectedIncome, setSelectedIncome] = useState<Income | null>(null);
+  const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+
+  const handleDeleteTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
+    if (type === 'income') {
+      setSelectedIncome(transaction as Income);
+    } else {
+      setSelectedBill(transaction as Bill);
+    }
+    setShowDeleteDialog(true);
+  };
+
+  const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
+    if (type === 'income') {
+      setSelectedIncome(transaction as Income);
+      setShowEditIncomeDialog(true);
+    } else {
+      setSelectedBill(transaction as Bill);
+      setShowEditExpenseDialog(true);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedIncome) {
+      deleteTransaction(selectedIncome);
+      setSelectedIncome(null);
+    } else if (selectedBill) {
+      deleteTransaction(selectedBill);
+      setSelectedBill(null);
+    }
+    setShowDeleteDialog(false);
+  };
 
   const currentDate = useMemo(() => ({
     day: today.date(),
@@ -77,28 +108,6 @@ function Router() {
     month: today.format('MMMM'),
     year: today.year()
   }), [today]);
-
-  const handleDeleteTransaction = (transaction: Income | Bill) => {
-    setSelectedTransaction(transaction);
-    setShowDeleteDialog(true);
-  };
-
-  const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
-    setSelectedTransaction(transaction);
-    if (type === 'income') {
-      setShowEditIncomeDialog(true);
-    } else {
-      setShowEditExpenseDialog(true);
-    }
-  };
-
-  const handleConfirmDelete = () => {
-    if (selectedTransaction) {
-      deleteTransaction(selectedTransaction);
-    }
-    setShowDeleteDialog(false);
-    setSelectedTransaction(null);
-  };
 
   if (isLoading) {
     return (
@@ -168,17 +177,11 @@ function Router() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.preventDefault();
-                        setShowAddExpenseDialog(true);
-                      }}>
+                      <DropdownMenuItem onClick={() => setShowAddExpenseDialog(true)}>
                         <PlusCircle className="h-4 w-4 mr-2" />
                         Add Expense
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.preventDefault();
-                        setShowRemindersDialog(true);
-                      }}>
+                      <DropdownMenuItem onClick={() => setShowRemindersDialog(true)}>
                         <Bell className="h-4 w-4 mr-2" />
                         View Reminders
                       </DropdownMenuItem>
@@ -196,7 +199,7 @@ function Router() {
                             <button onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              handleDeleteTransaction(bill);
+                              handleDeleteTransaction('bill', bill);
                             }}>
                               <Trash className="h-4 w-4" />
                             </button>
@@ -215,10 +218,7 @@ function Router() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.preventDefault();
-                        setShowAddIncomeDialog(true);
-                      }}>
+                      <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
                         <PlusCircle className="h-4 w-4 mr-2" />
                         Add Income
                       </DropdownMenuItem>
@@ -236,7 +236,7 @@ function Router() {
                             <button onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              handleDeleteTransaction(income);
+                              handleDeleteTransaction('income', income);
                             }}>
                               <Trash className="h-4 w-4" />
                             </button>
@@ -300,17 +300,11 @@ function Router() {
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={(e) => {
-                        e.preventDefault();
-                        setShowExportDialog(true);
-                      }}>
+                      <DropdownMenuItem onClick={() => setShowExportDialog(true)}>
                         <Download className="h-4 w-4 mr-2" />
                         Export Data
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.preventDefault();
-                        setShowDatabaseSyncDialog(true);
-                      }}>
+                      <DropdownMenuItem onClick={() => setShowDatabaseSyncDialog(true)}>
                         <Database className="h-4 w-4 mr-2" />
                         Sync Database
                       </DropdownMenuItem>
@@ -352,23 +346,25 @@ function Router() {
         <EditIncomeDialog
           isOpen={showEditIncomeDialog}
           onOpenChange={setShowEditIncomeDialog}
-          income={selectedTransaction as Income}
+          income={selectedIncome}
           onUpdate={(updatedIncome) => {
             editTransaction(updatedIncome);
             setShowEditIncomeDialog(false);
-            setSelectedTransaction(null);
+            setSelectedIncome(null);
           }}
         />
-        <EditExpenseDialog
-          isOpen={showEditExpenseDialog}
-          onOpenChange={setShowEditExpenseDialog}
-          expense={selectedTransaction as Bill}
-          onUpdate={(updatedBill) => {
-            editTransaction(updatedBill);
-            setShowEditExpenseDialog(false);
-            setSelectedTransaction(null);
-          }}
-        />
+        {selectedBill && (
+          <EditExpenseDialog
+            isOpen={showEditExpenseDialog}
+            onOpenChange={setShowEditExpenseDialog}
+            expense={selectedBill}
+            onUpdate={(updatedBill) => {
+              editTransaction(updatedBill);
+              setShowEditExpenseDialog(false);
+              setSelectedBill(null);
+            }}
+          />
+        )}
         <ExportDialog
           isOpen={showExportDialog}
           onOpenChange={setShowExportDialog}
@@ -397,7 +393,8 @@ function Router() {
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => {
                 setShowDeleteDialog(false);
-                setSelectedTransaction(null);
+                setSelectedIncome(null);
+                setSelectedBill(null);
               }}>
                 Cancel
               </AlertDialogCancel>
