@@ -472,7 +472,17 @@ export default function AnnualReportDialog({
                         return (
                           <TableRow key={expenseName}>
                             <TableCell className="font-medium">{expenseName}</TableCell>
-                            <TableCell>{category?.name || `Uncategorized (ID: ${categoryId || 'none'})`}</TableCell>
+                            <TableCell>
+                              {category && (
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: category.color }}
+                                  />
+                                  {category.name}
+                                </div>
+                              )}
+                            </TableCell>
                             <TableCell className="text-right text-red-600">
                               {formatCurrency(monthlyAverage)}
                             </TableCell>
