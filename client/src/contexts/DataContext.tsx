@@ -26,7 +26,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Validate data structure with more specific error messages
   const isValidIncome = (income: any): income is Income => {
     if (typeof income !== 'object' || income === null) {
       throw new Error('Income must be an object');
@@ -59,13 +58,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (typeof bill.amount !== 'number' || isNaN(bill.amount)) {
       throw new Error('Bill amount must be a valid number');
     }
-    if (typeof bill.dueDate !== 'string' || isNaN(new Date(bill.dueDate).getTime())) {
-      throw new Error('Bill dueDate must be a valid date string');
+    if (typeof bill.day !== 'number' || bill.day < 1 || bill.day > 31) {
+      throw new Error('Bill day must be between 1 and 31');
     }
-    if (!bill.isOneTime && (typeof bill.day !== 'number' || bill.day < 1 || bill.day > 31)) {
-      throw new Error('Bill day must be between 1 and 31 for recurring bills');
-    }
-
     return true;
   };
 
@@ -82,21 +77,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       ];
 
       const defaultBills: Bill[] = [
-        { id: generateId(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1, dueDate: today.date(1).toISOString(), categoryId: 8, isOneTime: false },
-        { id: generateId(), name: "Maid's 1st payment", amount: 120, day: 1, dueDate: today.date(1).toISOString(), categoryId: 11, isOneTime: false },
-        { id: generateId(), name: "Monthly Rent", amount: 3750, day: 1, dueDate: today.date(1).toISOString(), categoryId: 1, isOneTime: false },
-        { id: generateId(), name: "Sling TV (CC 9550)", amount: 75, day: 3, dueDate: today.date(3).toISOString(), categoryId: 10, isOneTime: false },
-        { id: generateId(), name: "Cox Internet", amount: 81, day: 6, dueDate: today.date(6).toISOString(), categoryId: 9, isOneTime: false },
-        { id: generateId(), name: "Water Bill", amount: 80, day: 7, dueDate: today.date(7).toISOString(), categoryId: 7, isOneTime: false },
-        { id: generateId(), name: "NV Energy Electrical ($100 winter months)", amount: 250, day: 7, dueDate: today.date(7).toISOString(), categoryId: 5, isOneTime: false },
-        { id: generateId(), name: "TransAmerica Life Insurance", amount: 77, day: 9, dueDate: today.date(9).toISOString(), categoryId: 13, isOneTime: false },
-        { id: generateId(), name: "Credit Card minimum payments", amount: 225, day: 14, dueDate: today.date(14).toISOString(), categoryId: 14, isOneTime: false },
-        { id: generateId(), name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14, dueDate: today.date(14).toISOString(), categoryId: 12, isOneTime: false },
-        { id: generateId(), name: "Expenses & Groceries charged on (CC 2647)", amount: 3000, day: 16, dueDate: today.date(16).toISOString(), categoryId: 4, isOneTime: false },
-        { id: generateId(), name: "Maid's 2nd Payment of the month", amount: 120, day: 17, dueDate: today.date(17).toISOString(), categoryId: 11, isOneTime: false },
-        { id: generateId(), name: "SoFi Personal Loan", amount: 1915, day: 17, dueDate: today.date(17).toISOString(), categoryId: 2, isOneTime: false },
-        { id: generateId(), name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75, day: 17, dueDate: today.date(17).toISOString(), categoryId: 6, isOneTime: false },
-        { id: generateId(), name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704, day: 28, dueDate: today.date(28).toISOString(), categoryId: 3, isOneTime: false }
+        { id: generateId(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1, category_id: 8, isOneTime: false },
+        { id: generateId(), name: "Maid's 1st payment", amount: 120, day: 1, category_id: 11, isOneTime: false },
+        { id: generateId(), name: "Monthly Rent", amount: 3750, day: 1, category_id: 1, isOneTime: false },
+        { id: generateId(), name: "Sling TV (CC 9550)", amount: 75, day: 3, category_id: 10, isOneTime: false },
+        { id: generateId(), name: "Cox Internet", amount: 81, day: 6, category_id: 9, isOneTime: false },
+        { id: generateId(), name: "Water Bill", amount: 80, day: 7, category_id: 7, isOneTime: false },
+        { id: generateId(), name: "NV Energy Electrical ($100 winter months)", amount: 250, day: 7, category_id: 5, isOneTime: false },
+        { id: generateId(), name: "TransAmerica Life Insurance", amount: 77, day: 9, category_id: 13, isOneTime: false },
+        { id: generateId(), name: "Credit Card minimum payments", amount: 225, day: 14, category_id: 14, isOneTime: false },
+        { id: generateId(), name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14, category_id: 12, isOneTime: false },
+        { id: generateId(), name: "Expenses & Groceries charged on (CC 2647)", amount: 3000, day: 16, category_id: 4, isOneTime: false },
+        { id: generateId(), name: "Maid's 2nd Payment of the month", amount: 120, day: 17, category_id: 11, isOneTime: false },
+        { id: generateId(), name: "SoFi Personal Loan", amount: 1915, day: 17, category_id: 2, isOneTime: false },
+        { id: generateId(), name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75, day: 17, category_id: 6, isOneTime: false },
+        { id: generateId(), name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704, day: 28, category_id: 3, isOneTime: false }
       ];
 
       // Validate default data
