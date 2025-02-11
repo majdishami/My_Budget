@@ -455,13 +455,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 </div>
               )}
             </DialogTitle>
-            <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </DialogClose>
-          </DialogHeader>
+            </DialogHeader>
 
-          <div className="flex flex-col space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          <div className="flex flex-col space-y-4 py-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Select View Option</label>
               <Select value={selectedValue} onValueChange={setSelectedValue}>
@@ -515,7 +511,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 }}
                 numberOfMonths={1}
                 defaultMonth={today.toDate()}
-                className="rounded-md"
+                className="rounded-md w-full max-h-[300px]"
               />
             </div>
 
