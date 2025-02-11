@@ -23,13 +23,13 @@ export interface Income {
  * Represents a recurring bill or expense
  */
 export interface Bill {
-  id: string;
+  id: number;  // Keep as number since that's what the database returns
   name: string;
   amount: number;
+  day: number;  // Required for monthly bills
   category_id: number;
   user_id: number;
   created_at: string;
-  date: string;
   // UI-specific properties
   category?: string;
   category_name?: string;
