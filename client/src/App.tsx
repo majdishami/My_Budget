@@ -15,7 +15,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
+import {
   Loader2, X, PlusCircle, BarChart4, FolderTree, LayoutDashboard,
   Download, Database, Calendar, ChartBar, CalendarRange, FileBarChart,
   FileText, Bell, Edit, Trash, Tags
@@ -182,11 +182,17 @@ function Router() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => setShowAddExpenseDialog(true)}>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.preventDefault();
+                        setShowAddExpenseDialog(true);
+                      }}>
                         <PlusCircle className="h-4 w-4 mr-2" />
                         Add Expense
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setShowRemindersDialog(true)}>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.preventDefault();
+                        setShowRemindersDialog(true);
+                      }}>
                         <Bell className="h-4 w-4 mr-2" />
                         View Reminders
                       </DropdownMenuItem>
@@ -194,10 +200,18 @@ function Router() {
                         <DropdownMenuItem key={bill.id} className="flex justify-between">
                           <span className="truncate mr-4">{bill.name}</span>
                           <div className="flex gap-2">
-                            <button onClick={() => editTransaction('bill', bill)}>
+                            <button onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              editTransaction('bill', bill);
+                            }}>
                               <Edit className="h-4 w-4" />
                             </button>
-                            <button onClick={() => deleteTransaction('bill', bill)}>
+                            <button onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              deleteTransaction('bill', bill);
+                            }}>
                               <Trash className="h-4 w-4" />
                             </button>
                           </div>
@@ -215,7 +229,10 @@ function Router() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.preventDefault();
+                        setShowAddIncomeDialog(true);
+                      }}>
                         <PlusCircle className="h-4 w-4 mr-2" />
                         Add Income
                       </DropdownMenuItem>
@@ -223,10 +240,18 @@ function Router() {
                         <DropdownMenuItem key={income.id} className="flex justify-between">
                           <span className="truncate mr-4">{income.source}</span>
                           <div className="flex gap-2">
-                            <button onClick={() => editTransaction('income', income)}>
+                            <button onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              editTransaction('income', income);
+                            }}>
                               <Edit className="h-4 w-4" />
                             </button>
-                            <button onClick={() => deleteTransaction('income', income)}>
+                            <button onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              deleteTransaction('income', income);
+                            }}>
                               <Trash className="h-4 w-4" />
                             </button>
                           </div>
@@ -289,11 +314,17 @@ function Router() {
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setShowExportDialog(true)}>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.preventDefault();
+                        setShowExportDialog(true);
+                      }}>
                         <Download className="h-4 w-4 mr-2" />
                         Export Data
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setShowDatabaseSyncDialog(true)}>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.preventDefault();
+                        setShowDatabaseSyncDialog(true);
+                      }}>
                         <Database className="h-4 w-4 mr-2" />
                         Sync Database
                       </DropdownMenuItem>
@@ -343,7 +374,7 @@ function Router() {
           onOpenChange={setShowRemindersDialog}
           bills={bills}
         />
-        <DatabaseSyncDialog 
+        <DatabaseSyncDialog
           isOpen={showDatabaseSyncDialog}
           onOpenChange={setShowDatabaseSyncDialog}
         />
