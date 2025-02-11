@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import dayjs from "dayjs";
-import { Income, Bill } from "@/types";
+import { Income } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -100,9 +100,8 @@ interface Bill {
   user_id: number;
   created_at: string;
   isOneTime: boolean;
-  category_name?: string;
-  category_color?: string;
-  date?: string;
+  category_name: string;
+  category_color: string;
 }
 
 export default function AnnualReportDialog({
@@ -115,17 +114,12 @@ export default function AnnualReportDialog({
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
   const today = useMemo(() => dayjs(), []);
 
-  // Fetch bills directly from the API instead of localStorage
+  // Fetch bills with categories included
   const { data: bills = [], isLoading: billsLoading } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
   });
 
-  // Fetch categories from the API
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
-    enabled: isOpen,
-  });
 
   const defaultIncomes = [
     {
@@ -492,7 +486,7 @@ export default function AnnualReportDialog({
                               <div className="flex items-center gap-2">
                                 <div
                                   className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: bill?.category_color }}
+                                  style={{ backgroundColor: bill.category_color || '#D3D3D3' }}
                                 />
                                 {bill.category_name}
                               </div>
