@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Calendar, AlertCircle, Download } from "lucide-react";
+import { X, Calendar, AlertCircle } from "lucide-react";
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 
 // Initialize dayjs plugins
@@ -101,9 +101,10 @@ export default function AnnualReportDialog({
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
   const today = useMemo(() => dayjs(), []);
 
-  // Fetch categories with proper typing
+  // Fetch categories from the API
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
+    enabled: isOpen, // Only fetch when dialog is open
   });
 
   // Initialize with default data
@@ -446,68 +447,68 @@ export default function AnnualReportDialog({
             </CardHeader>
             <CardContent>
               <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Expense Name</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Monthly Average</TableHead>
-                      <TableHead className="text-right">Annual Amount</TableHead>
-                      <TableHead className="text-right">% of Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.entries(annualSummary.expensesByCategory)
-                      .sort(([, a], [, b]) => (b.occurred + b.pending) - (a.occurred + a.pending))
-                      .map(([expenseName, amounts]) => {
-                        const total = amounts.occurred + amounts.pending;
-                        const monthlyAverage = total / 12;
-                        const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
-                        const bill = bills.find(b => b.name === expenseName);
-                        const categoryId = bill?.category_id;
-                        const category = categories?.find(c => c.id === categoryId);
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Expense Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">Monthly Average</TableHead>
+                    <TableHead className="text-right">Annual Amount</TableHead>
+                    <TableHead className="text-right">% of Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(annualSummary.expensesByCategory)
+                    .sort(([, a], [, b]) => (b.occurred + b.pending) - (a.occurred + a.pending))
+                    .map(([expenseName, amounts]) => {
+                      const total = amounts.occurred + amounts.pending;
+                      const monthlyAverage = total / 12;
+                      const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
+                      const bill = bills.find(b => b.name === expenseName);
+                      const categoryId = bill?.category_id;
+                      const category = categories?.find(c => c.id === categoryId);
 
-                        return (
-                          <TableRow key={expenseName}>
-                            <TableCell className="font-medium">{expenseName}</TableCell>
-                            <TableCell>
-                              {category ? (
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: category.color }}
-                                  />
-                                  {category.name}
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground">Uncategorized</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right text-red-600">
-                              {formatCurrency(monthlyAverage)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="text-red-600">✓ {formatCurrency(amounts.occurred)}</div>
-                              <div className="text-red-400">⌛ {formatCurrency(amounts.pending)}</div>
-                            </TableCell>
-                            <TableCell className="text-right text-muted-foreground">
-                              {percentage}%
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    <TableRow className="font-bold">
-                      <TableCell>Total</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell className="text-right text-red-600">
-                        {formatCurrency((annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending) / 12)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="text-red-600">✓ {formatCurrency(annualSummary.totalExpenses.occurred)}</div>
-                        <div className="text-red-400">⌛ {formatCurrency(annualSummary.totalExpenses.pending)}</div>
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">100%</TableCell>
-                    </TableRow>
-                  </TableBody>
+                      return (
+                        <TableRow key={expenseName}>
+                          <TableCell className="font-medium">{expenseName}</TableCell>
+                          <TableCell>
+                            {category ? (
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: category.color }}
+                                />
+                                {category.name}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Uncategorized</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right text-red-600">
+                            {formatCurrency(monthlyAverage)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="text-red-600">✓ {formatCurrency(amounts.occurred)}</div>
+                            <div className="text-red-400">⌛ {formatCurrency(amounts.pending)}</div>
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {percentage}%
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  <TableRow className="font-bold">
+                    <TableCell>Total</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell className="text-right text-red-600">
+                      {formatCurrency((annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending) / 12)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="text-red-600">✓ {formatCurrency(annualSummary.totalExpenses.occurred)}</div>
+                      <div className="text-red-400">⌛ {formatCurrency(annualSummary.totalExpenses.pending)}</div>
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">100%</TableCell>
+                  </TableRow>
+                </TableBody>
               </Table>
             </CardContent>
           </Card>
