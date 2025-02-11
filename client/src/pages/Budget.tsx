@@ -52,17 +52,17 @@ export function Budget() {
   const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction, resetData } = useData();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(dayjs().date());
-  const [selectedMonth, setSelectedMonth] = useState(dayjs().month());
-  const [selectedYear, setSelectedYear] = useState(dayjs().year());
+  const [selectedMonth, setSelectedMonth] = useState(dayjs('2025-02-11').month());
+  const [selectedYear, setSelectedYear] = useState(dayjs('2025-02-11').year());
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [showDailySummary, setShowDailySummary] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Income | Bill | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showEditExpenseDialog, setShowEditExpenseDialog] = useState(false);
 
-  // Set today to February 9, 2025
+  // Set today to February 11, 2025
   const today = dayjs('2025-02-11');
-  const currentDate = today.format('dddd, MMMM D');
+  const currentDate = today.format('dddd, D'); // Only show day of week and day of month
 
   const handleAddIncome = () => {
     const newIncome: Income = {
@@ -322,11 +322,7 @@ export function Budget() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Month Net Balance</p>
-                <p className={`text-lg font-semibold ${
-                  calculateTotalsUpToDay(totalDaysInMonth).totalIncome - calculateTotalsUpToDay(totalDaysInMonth).totalBills >= 0
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}>
+                <p className="text-lg font-semibold text-blue-600"> {/* Changed to text-blue-600 */}
                   {formatCurrency(
                     calculateTotalsUpToDay(totalDaysInMonth).totalIncome -
                     calculateTotalsUpToDay(totalDaysInMonth).totalBills
