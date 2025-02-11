@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
-import { Switch, Route, Link, useLocation } from "wouter";
+import { Switch, Route, Link, useLocation, useNavigate } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -155,11 +155,13 @@ function Router() {
               {/* Navigation row */}
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Link href="/">
-                    <Button variant="ghost" size="sm">
-                      Dashboard
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/', { replace: true })}
+                  >
+                    Dashboard
+                  </Button>
 
                   <Link href="/categories">
                     <Button variant="ghost" size="sm">
@@ -216,14 +218,14 @@ function Router() {
         <main className="flex-1 overflow-hidden mt-6">
           <div className="h-full p-2">
             <Switch>
-              <Route 
-                path="/" 
+              <Route
+                path="/"
                 component={() => (
-                  <Budget 
+                  <Budget
                     selectedMonth={selectedMonth}
                     selectedYear={selectedYear}
                   />
-                )} 
+                )}
               />
               <Route path="/categories" component={CategoriesPage} />
               <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
