@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import dayjs from "dayjs";
 import { Income, Bill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -93,6 +94,11 @@ export default function AnnualReportDialog({
   const currentYear = dayjs().year();
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
   const today = useMemo(() => dayjs(), []);
+
+  // Fetch categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ['/api/categories'],
+  });
 
   // Initialize with default data
   const defaultIncomes = [
@@ -451,7 +457,7 @@ export default function AnnualReportDialog({
                         const monthlyAverage = total / 12;
                         const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
                         const bill = bills.find(b => b.name === expenseName);
-                        const category = bill?.category || 'Uncategorized';
+                        const category = categories.find(c => c.id === bill?.category_id)?.name || 'Uncategorized';
 
                         return (
                           <TableRow key={expenseName}>
@@ -483,7 +489,7 @@ export default function AnnualReportDialog({
                       <TableCell className="text-right text-muted-foreground">100%</TableCell>
                     </TableRow>
                   </TableBody>
-                </Table>
+              </Table>
             </CardContent>
           </Card>
         </div>
