@@ -314,7 +314,7 @@ export default function AnnualReportDialog({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="bg-muted/50">
               <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Total Annual Income</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Net Annual Income</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
