@@ -16,10 +16,7 @@ export function formatCurrency(amount: number) {
 
 // Browser-compatible UUID v4 generation that explicitly returns string
 export function generateId(): string {
-  // Ensure we always return a string
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+  const timestamp = Date.now().toString(36);
+  const randomStr = Math.random().toString(36).substring(2, 8);
+  return `${timestamp}-${randomStr}`;
 }

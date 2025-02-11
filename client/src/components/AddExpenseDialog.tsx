@@ -31,7 +31,7 @@ interface Category {
 interface AddExpenseDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (newBill: Omit<Bill, "id" | "user_id" | "created_at">) => void;
+  onConfirm: (newBill: Bill) => void;
 }
 
 export function AddExpenseDialog({
@@ -106,15 +106,25 @@ export function AddExpenseDialog({
   const handleConfirm = () => {
     if (!validateForm()) return;
 
-    const newBill: Omit<Bill, "id" | "user_id" | "created_at"> = {
-      name,
+    // Create new bill with explicitly generated string ID
+    const newBill: Bill = {
+      id: generateId(), // Ensure we have a valid string ID
+      name: name.trim(),
       amount: parseFloat(amount),
       day: parseInt(day),
       category_id: parseInt(categoryId),
+      user_id: 1, // Default user ID
+      created_at: new Date().toISOString(),
       isOneTime: false,
       reminderEnabled,
       reminderDays,
     };
+
+    // Validate ID before submitting
+    if (typeof newBill.id !== 'string' || !newBill.id) {
+      console.error('Invalid bill ID generated');
+      return;
+    }
 
     onConfirm(newBill);
     onOpenChange(false);
@@ -134,9 +144,9 @@ export function AddExpenseDialog({
     setErrors(prev => ({ ...prev, reminderDays: undefined }));
   };
 
-  // Create a temporary bill for the reminder dialog with all required fields
+  // Create a temporary bill for the reminder dialog
   const dummyBill: Bill = {
-    id: generateId(), // Ensure ID is a string
+    id: generateId(),
     name,
     amount: parseFloat(amount || '0'),
     day: parseInt(day || '1'),
@@ -176,6 +186,7 @@ export function AddExpenseDialog({
                 </Alert>
               )}
             </div>
+
             <div className="grid gap-2">
               <label htmlFor="expense-amount" className="text-sm font-medium">Amount</label>
               <Input
@@ -199,6 +210,7 @@ export function AddExpenseDialog({
                 </Alert>
               )}
             </div>
+
             <div className="grid gap-2">
               <label htmlFor="expense-category" className="text-sm font-medium">Category</label>
               <Select
@@ -239,6 +251,7 @@ export function AddExpenseDialog({
                 </Alert>
               )}
             </div>
+
             <div className="grid gap-2">
               <label htmlFor="expense-day" className="text-sm font-medium">Day of Month</label>
               <Input
@@ -262,6 +275,7 @@ export function AddExpenseDialog({
                 </Alert>
               )}
             </div>
+
             <Button
               variant="outline"
               onClick={() => setShowReminderDialog(true)}
