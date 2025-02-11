@@ -178,6 +178,7 @@ export function AddExpenseDialog({
                 placeholder="Enter expense name"
                 aria-invalid={!!errors.name}
                 aria-describedby={errors.name ? "name-error" : undefined}
+                autoComplete="off" // Disable browser autocomplete
               />
               {errors.name && (
                 <Alert variant="destructive" className="py-2">

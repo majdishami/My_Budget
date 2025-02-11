@@ -538,8 +538,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <div className="flex justify-between items-start">
             <div>
               <DialogTitle className="text-xl">
@@ -561,341 +561,343 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           </div>
         </DialogHeader>
 
-        {transactions.length === 0 && showReport ? (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {bills.length === 0 
-                ? "No bills have been added yet. Please add some bills to generate a report."
-                : "No transactions found for the selected date range and filters."}
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <>
-            <div className="grid gap-4 mb-4">
-              {/* Main Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-600">
-                      {formatCurrency(summary.totalAmount)}
-                    </div>
-                  </CardContent>
-                </Card>
+        <div className="flex-1 overflow-y-auto">
+          {transactions.length === 0 && showReport ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {bills.length === 0 
+                  ? "No bills have been added yet. Please add some bills to generate a report."
+                  : "No transactions found for the selected date range and filters."}
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              <div className="grid gap-4 mb-4">
+                {/* Main Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardHeader className="py-4">
+                      <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-red-600">
+                        {formatCurrency(summary.totalAmount)}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Paid to Date</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-600">
-                      {formatCurrency(summary.occurredAmount)}
-                    </div>
-                  </CardContent>
-                </Card>
+                  <Card>
+                    <CardHeader className="py-4">
+                      <CardTitle className="text-sm font-medium">Paid to Date</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-red-600">
+                        {formatCurrency(summary.occurredAmount)}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Remaining</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-300">
-                      {formatCurrency(summary.pendingAmount)}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Category/Expense Summary Section */}
-              {selectedValue === "all_categories" && itemTotals.length > 0 && (
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-lg font-medium">Category Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Category</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                          <TableHead className="text-right">Paid</TableHead>
-                          <TableHead className="text-right">Pending</TableHead>
-                          <TableHead className="text-right">Paid Occurrences</TableHead>
-                          <TableHead className="text-right">Pending Occurrences</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {itemTotals.map((ct: any) => (
-                          <TableRow key={ct.category}>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: ct.color }}
-                                />
-                                {ct.category}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(ct.total)}
-                            </TableCell>
-                            <TableCell className="text-right text-red-600">
-                              {formatCurrency(ct.occurred)}
-                            </TableCell>
-                            <TableCell className="text-right text-red-300">
-                              {formatCurrency(ct.pending)}
-                            </TableCell>
-                            <TableCell className="text-right text-red-600">
-                              {ct.occurredCount}
-                            </TableCell>
-                            <TableCell className="text-right text-red-300">
-                              {ct.pendingCount}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
-
-              {selectedValue === "all" && groupedExpenses.length > 0 && (
-                <Card className="mb-4">
-                  <CardHeader>
-                    <CardTitle>Expenses Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[180px]">Expense</TableHead>
-                          <TableHead className="w-[140px]">Category</TableHead>
-                          <TableHead className="text-right w-[100px]">Monthly</TableHead>
-                          <TableHead className="text-right w-[120px]">
-                            <div>Total Amount</div>
-                            <div className="text-xs font-normal">Paid / Pending</div>
-                          </TableHead>
-                          <TableHead className="text-right w-[100px]">
-                            <div>Occurrences</div>
-                            <div className="text-xs font-normal">Paid / Pending</div>
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody className="text-sm">
-                        {groupedExpenses.map((expense) => (
-                          <TableRow key={expense.description}>
-                            <TableCell className="font-medium">{expense.description}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: expense.color }}
-                                />
-                                <span className="truncate font-medium">{expense.category}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(expense.totalAmount / expense.transactions.length)}
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-right font-medium">
-                                {formatCurrency(expense.totalAmount)}
-                              </div>
-                              <div className="text-right text-xs">
-                                <span className="text-red-600 font-medium">{formatCurrency(expense.occurredAmount)}</span>
-                                {" / "}
-                                <span className="text-red-300">{formatCurrency(expense.pendingAmount)}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-right font-medium">
-                                {expense.occurredCount + expense.pendingCount}
-                              </div>
-                              <div className="text-right text-xs">
-                                <span className="text-red-600 font-medium">{expense.occurredCount}</span>
-                                {" / "}
-                                <span className="text-red-300">{expense.pendingCount}</span>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
-
-              {selectedValue !== "all" && selectedValue !== "all_categories" && itemTotals.length > 0 && (
-                <Card className="mb-4">
-                  <CardHeader>
-                    <CardTitle>Expense Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Expense</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead className="text-right">Monthly Amount</TableHead>
-                          <TableHead className="text-right">Total Amount</TableHead>
-                          <TableHead className="text-right">Paid Amount</TableHead>
-                          <TableHead className="text-right">Pending Amount</TableHead>
-                          <TableHead className="text-right">Paid Occurrences</TableHead>
-                          <TableHead className="text-right">Pending Occurrences</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {itemTotals.map((item: any) => (
-                          <TableRow key={item.description}>
-                            <TableCell>{item.description}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: item.color }}
-                                />
-                                {item.category}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {formatCurrency(item.total / (item.occurredCount + item.pendingCount))}
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(item.total)}
-                            </TableCell>
-                            <TableCell className="text-right text-red-600">
-                              {formatCurrency(item.occurred)}
-                            </TableCell>
-                            <TableCell className="text-right text-red-300">
-                              {formatCurrency(item.pending)}
-                            </TableCell>
-                            <TableCell className="text-right text-red-600">
-                              {item.occurredCount}
-                            </TableCell>
-                            <TableCell className="text-right text-red-300">
-                              {item.pendingCount}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
-
-              {selectedValue !== "all" && (
-                <div className="space-y-4">
-                  {sortedMonths.map(monthKey => {
-                    const monthTransactions = groupedTransactions[monthKey];
-                    const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
-                    const monthlyPaid = monthTransactions
-                      .filter(t => t.occurred)
-                      .reduce((sum, t) => sum + t.amount, 0);
-
-                    return (
-                      <Card key={monthKey}>
-                        <CardHeader className="py-4">
-                          <CardTitle className="text-lg font-medium">
-                            {dayjs(monthKey).format('MMMM YYYY')}
-                          </CardTitle>
-                          <div className="text-sm space-y-1">
-                            <div className="text-red-600">
-                              Monthly Total: {formatCurrency(monthlyTotal)}
-                            </div>
-                            <div className="text-red-600">
-                              Paid to Date: {formatCurrency(monthlyPaid)}
-                            </div>
-                            <div className="text-red-300">
-                              Remaining: {formatCurrency(monthlyTotal - monthlyPaid)}
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                {selectedValue === "all_categories" ? (
-                                  <>
-                                    <TableHead>Category</TableHead>
-                                    <TableHead className="text-right">Total Amount</TableHead>
-                                    <TableHead>Status</TableHead>
-                                  </>
-                                ) : (
-                                  <>
-                                    <TableHead>Due Date</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead>Category</TableHead>
-                                    <TableHead className="text-right">Amount</TableHead>
-                                    <TableHead>Status</TableHead>
-                                  </>
-                                )}
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {monthTransactions
-                                .sort((a, b) => {
-                                  if (selectedValue === "all_categories") {
-                                    return a.category.localeCompare(b.category);
-                                  }
-                                  return dayjs(a.date).diff(dayjs(b.date));
-                                })
-                                .map((transaction, index) => (
-                                  <TableRow key={`${transaction.date}-${index}`}>
-                                    {selectedValue === "all_categories" ? (
-                                      <>
-                                        <TableCell>
-                                          <div className="flex items-center gap-2">
-                                            <div
-                                              className="w-3 h-3 rounded-full"
-                                              style={{ backgroundColor: transaction.color }}
-                                            />
-                                            {transaction.category}
-                                          </div>
-                                        </TableCell>
-                                        <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
-                                          {formatCurrency(transaction.amount)}
-                                        </TableCell>
-                                        <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
-                                          {transaction.occurred ? 'Paid' : 'Pending'}
-                                        </TableCell>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                                        <TableCell>{transaction.description}</TableCell>
-                                        <TableCell>
-                                          <div className="flex items-center gap-2">
-                                            <div
-                                              className="w-3 h-3 rounded-full"
-                                              style={{ backgroundColor: transaction.color }}
-                                            />
-                                            {transaction.category}
-                                          </div>
-                                        </TableCell>
-                                        <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
-                                          {formatCurrency(transaction.amount)}
-                                        </TableCell>
-                                        <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
-                                          {transaction.occurred ? 'Paid' : 'Pending'}
-                                        </TableCell>
-                                      </>
-                                    )}
-                                  </TableRow>
-                                ))}
-                            </TableBody>
-                          </Table>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                  <Card>
+                    <CardHeader className="py-4">
+                      <CardTitle className="text-sm font-medium">Remaining</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-red-300">
+                        {formatCurrency(summary.pendingAmount)}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              )}
-            </div>
-          </>
-        )}
+
+                {/* Category/Expense Summary Section */}
+                {selectedValue === "all_categories" && itemTotals.length > 0 && (
+                  <Card>
+                    <CardHeader className="py-4">
+                      <CardTitle className="text-lg font-medium">Category Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Category</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead className="text-right">Paid</TableHead>
+                            <TableHead className="text-right">Pending</TableHead>
+                            <TableHead className="text-right">Paid Occurrences</TableHead>
+                            <TableHead className="text-right">Pending Occurrences</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {itemTotals.map((ct: any) => (
+                            <TableRow key={ct.category}>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: ct.color }}
+                                  />
+                                  {ct.category}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(ct.total)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-600">
+                                {formatCurrency(ct.occurred)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-300">
+                                {formatCurrency(ct.pending)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-600">
+                                {ct.occurredCount}
+                              </TableCell>
+                              <TableCell className="text-right text-red-300">
+                                {ct.pendingCount}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedValue === "all" && groupedExpenses.length > 0 && (
+                  <Card className="mb-4">
+                    <CardHeader>
+                      <CardTitle>Expenses Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[180px]">Expense</TableHead>
+                            <TableHead className="w-[140px]">Category</TableHead>
+                            <TableHead className="text-right w-[100px]">Monthly</TableHead>
+                            <TableHead className="text-right w-[120px]">
+                              <div>Total Amount</div>
+                              <div className="text-xs font-normal">Paid / Pending</div>
+                            </TableHead>
+                            <TableHead className="text-right w-[100px]">
+                              <div>Occurrences</div>
+                              <div className="text-xs font-normal">Paid / Pending</div>
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="text-sm">
+                          {groupedExpenses.map((expense) => (
+                            <TableRow key={expense.description}>
+                              <TableCell className="font-medium">{expense.description}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: expense.color }}
+                                  />
+                                  <span className="truncate font-medium">{expense.category}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(expense.totalAmount / expense.transactions.length)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-right font-medium">
+                                  {formatCurrency(expense.totalAmount)}
+                                </div>
+                                <div className="text-right text-xs">
+                                  <span className="text-red-600 font-medium">{formatCurrency(expense.occurredAmount)}</span>
+                                  {" / "}
+                                  <span className="text-red-300">{formatCurrency(expense.pendingAmount)}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-right font-medium">
+                                  {expense.occurredCount + expense.pendingCount}
+                                </div>
+                                <div className="text-right text-xs">
+                                  <span className="text-red-600 font-medium">{expense.occurredCount}</span>
+                                  {" / "}
+                                  <span className="text-red-300">{expense.pendingCount}</span>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedValue !== "all" && selectedValue !== "all_categories" && itemTotals.length > 0 && (
+                  <Card className="mb-4">
+                    <CardHeader>
+                      <CardTitle>Expense Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Expense</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead className="text-right">Monthly Amount</TableHead>
+                            <TableHead className="text-right">Total Amount</TableHead>
+                            <TableHead className="text-right">Paid Amount</TableHead>
+                            <TableHead className="text-right">Pending Amount</TableHead>
+                            <TableHead className="text-right">Paid Occurrences</TableHead>
+                            <TableHead className="text-right">Pending Occurrences</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {itemTotals.map((item: any) => (
+                            <TableRow key={item.description}>
+                              <TableCell>{item.description}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: item.color }}
+                                  />
+                                  {item.category}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {formatCurrency(item.total / (item.occurredCount + item.pendingCount))}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(item.total)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-600">
+                                {formatCurrency(item.occurred)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-300">
+                                {formatCurrency(item.pending)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-600">
+                                {item.occurredCount}
+                              </TableCell>
+                              <TableCell className="text-right text-red-300">
+                                {item.pendingCount}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedValue !== "all" && (
+                  <div className="space-y-4">
+                    {sortedMonths.map(monthKey => {
+                      const monthTransactions = groupedTransactions[monthKey];
+                      const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+                      const monthlyPaid = monthTransactions
+                        .filter(t => t.occurred)
+                        .reduce((sum, t) => sum + t.amount, 0);
+
+                      return (
+                        <Card key={monthKey}>
+                          <CardHeader className="py-4">
+                            <CardTitle className="text-lg font-medium">
+                              {dayjs(monthKey).format('MMMM YYYY')}
+                            </CardTitle>
+                            <div className="text-sm space-y-1">
+                              <div className="text-red-600">
+                                Monthly Total: {formatCurrency(monthlyTotal)}
+                              </div>
+                              <div className="text-red-600">
+                                Paid to Date: {formatCurrency(monthlyPaid)}
+                              </div>
+                              <div className="text-red-300">
+                                Remaining: {formatCurrency(monthlyTotal - monthlyPaid)}
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  {selectedValue === "all_categories" ? (
+                                    <>
+                                      <TableHead>Category</TableHead>
+                                      <TableHead className="text-right">Total Amount</TableHead>
+                                      <TableHead>Status</TableHead>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <TableHead>Due Date</TableHead>
+                                      <TableHead>Description</TableHead>
+                                      <TableHead>Category</TableHead>
+                                      <TableHead className="text-right">Amount</TableHead>
+                                      <TableHead>Status</TableHead>
+                                    </>
+                                  )}
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {monthTransactions
+                                  .sort((a, b) => {
+                                    if (selectedValue === "all_categories") {
+                                      return a.category.localeCompare(b.category);
+                                    }
+                                    return dayjs(a.date).diff(dayjs(b.date));
+                                  })
+                                  .map((transaction, index) => (
+                                    <TableRow key={`${transaction.date}-${index}`}>
+                                      {selectedValue === "all_categories" ? (
+                                        <>
+                                          <TableCell>
+                                            <div className="flex items-center gap-2">
+                                              <div
+                                                className="w-3 h-3 rounded-full"
+                                                style={{ backgroundColor: transaction.color }}
+                                              />
+                                              {transaction.category}
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                                            {formatCurrency(transaction.amount)}
+                                          </TableCell>
+                                          <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                                            {transaction.occurred ? 'Paid' : 'Pending'}
+                                          </TableCell>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                                          <TableCell>{transaction.description}</TableCell>
+                                          <TableCell>
+                                            <div className="flex items-center gap-2">
+                                              <div
+                                                className="w-3 h-3 rounded-full"
+                                                style={{ backgroundColor: transaction.color }}
+                                              />
+                                              {transaction.category}
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                                            {formatCurrency(transaction.amount)}
+                                          </TableCell>
+                                          <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                                            {transaction.occurred ? 'Paid' : 'Pending'}
+                                          </TableCell>
+                                        </>
+                                      )}
+                                    </TableRow>
+                                  ))}
+                              </TableBody>
+                            </Table>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
