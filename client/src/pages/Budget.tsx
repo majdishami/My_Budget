@@ -390,7 +390,7 @@ export function Budget() {
                               {dayOfWeek}
                             </span>
                             {isToday && (
-                              <span className="text-xs font-medium text-primary ml-1">
+                              <span className="text-xs font-medium text-primary ml-1 animate-flash px-1 rounded">
                                 Today
                               </span>
                             )}
