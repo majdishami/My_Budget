@@ -39,10 +39,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import * as Icons from 'lucide-react';
 
 // Add DynamicIcon component for rendering category icons
-function DynamicIcon({ name, ...props }: { name: string; [key: string]: any }) {
-  const Icon = (Icons as any)[name] || Icons.HelpCircle;
-  return <Icon {...props} />;
-}
+const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
+  if (!iconName) return null;
+
+  // Convert icon name to match Lucide naming convention (e.g., "shopping-cart" to "ShoppingCart")
+  const formatIconName = (name: string) => {
+    return name.split('-').map(part =>
+      part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+    ).join('');
+  };
+
+  const IconComponent = (Icons as any)[formatIconName(iconName)];
+  return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
+};
 
 interface Transaction {
   date: string;
@@ -51,7 +60,7 @@ interface Transaction {
   occurred: boolean;
   category: string;
   color?: string;
-  icon?: string;
+  icon?: string | null;
 }
 
 interface Category {
@@ -62,17 +71,17 @@ interface Category {
 }
 
 interface Bill {
-  id: string;  
+  id: string;
   name: string;
   amount: number;
   day: number;
   category_id: number;
   user_id: number;
   created_at: string;
-  isOneTime: boolean; 
-  category_name?: string;
-  category_color?: string;
-  date?: string; 
+  isOneTime: boolean;
+  category_name: string;
+  category_color: string;
+  category?: { icon: string | null }; // Added category field with icon
 }
 
 interface CategoryTotal {
@@ -108,7 +117,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
-  const [previousReport, setPreviousReport] = useState<{value: string, date: DateRange | undefined} | null>(null);
+  const [previousReport, setPreviousReport] = useState<{ value: string, date: DateRange | undefined } | null>(null);
   const today = useMemo(() => dayjs(), []);
 
   // Fetch categories for reference
@@ -143,7 +152,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     }, {});
 
     return {
-      categories: Object.keys(categorizedBills).sort((a, b) => 
+      categories: Object.keys(categorizedBills).sort((a, b) =>
         a === 'Uncategorized' ? 1 : b === 'Uncategorized' ? -1 : a.localeCompare(b)
       ),
       categorizedBills
@@ -213,11 +222,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
     });
 
-    return result.map(transaction => ({
-      ...transaction,
-      icon: categories.find(c => c.name === transaction.category)?.icon || 'Circle'
-    })).sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
-  }, [showReport, selectedValue, date, bills, today, categories]);
+    return result.map(transaction => {
+      const categoryBill = bills.find(b => b.category_name === transaction.category);
+      return {
+        ...transaction,
+        icon: categoryBill?.category?.icon || null
+      };
+    }).sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
+  }, [showReport, selectedValue, date, bills, today]);
 
   // Group transactions by expense name for the "all" view
   const groupedExpenses = useMemo(() => {
@@ -300,7 +312,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     if (selectedValue === "all_categories") {
       // Category totals logic with occurrence tracking
-      const totals: Record<string, { 
+      const totals: Record<string, {
         category: string;
         total: number;
         occurred: number;
@@ -335,11 +347,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       return Object.values(totals).sort((a, b) => b.total - a.total);
     } else if (selectedValue === "all") {
       // Expense totals logic with occurrences
-      const totals: Record<string, { 
+      const totals: Record<string, {
         description: string;
         category: string;
-        total: number; 
-        occurred: number; 
+        total: number;
+        occurred: number;
         pending: number;
         occurredCount: number;
         pendingCount: number;
@@ -372,11 +384,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       return Object.values(totals).sort((a, b) => b.total - a.total);
     } else if (selectedValue.startsWith('category_') || selectedValue.startsWith('expense_')) {
       // Individual category/expense totals logic with occurrences
-      const totals: Record<string, { 
+      const totals: Record<string, {
         description: string;
         category: string;
-        total: number; 
-        occurred: number; 
+        total: number;
+        occurred: number;
         pending: number;
         occurredCount: number;
         pendingCount: number;
@@ -532,7 +544,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             <Button
               onClick={() => {
                 setShowReport(true);
-                setPreviousReport({value: selectedValue, date: date});
+                setPreviousReport({ value: selectedValue, date: date });
               }}
               disabled={!date?.from || !date?.to || !!dateError}
             >
@@ -545,14 +557,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   }
 
   // Update category display component to show icons
-  function CategoryDisplay({ category, color, icon }: { category: string; color: string; icon?: string }) {
+  function CategoryDisplay({ category, color, icon }: { category: string; color: string; icon?: string | null }) {
     return (
       <div className="flex items-center gap-2">
         <div
           className="w-3 h-3 rounded-full"
           style={{ backgroundColor: color }}
         />
-        <DynamicIcon name={icon || 'Circle'} className="h-4 w-4" />
+        <DynamicIcon iconName={icon} />
         <span>{category}</span>
       </div>
     );
@@ -588,7 +600,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {bills.length === 0 
+                {bills.length === 0
                   ? "No bills have been added yet. Please add some bills to generate a report."
                   : "No transactions found for the selected date range and filters."}
               </AlertDescription>
@@ -654,10 +666,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           {itemTotals.map((ct: any) => (
                             <TableRow key={ct.category}>
                               <TableCell>
-                                <CategoryDisplay 
-                                  category={ct.category} 
+                                <CategoryDisplay
+                                  category={ct.category}
                                   color={ct.color}
-                                  icon={categories.find(c => c.name === ct.category)?.icon || 'Circle'}
+                                  icon={bills.find(b => b.category_name === ct.category)?.category?.icon}
                                 />
                               </TableCell>
                               <TableCell className="text-right font-medium">
@@ -710,7 +722,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableRow key={expense.description}>
                               <TableCell className="font-medium">{expense.description}</TableCell>
                               <TableCell>
-                                <CategoryDisplay category={expense.category} color={expense.color} icon={categories.find(c => c.name === expense.category)?.icon || 'Circle'} />
+                                <CategoryDisplay category={expense.category} color={expense.color} icon={bills.find(b => b.category_name === expense.category)?.category?.icon} />
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {formatCurrency(expense.totalAmount / expense.transactions.length)}
@@ -767,7 +779,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableRow key={item.description}>
                               <TableCell>{item.description}</TableCell>
                               <TableCell>
-                                <CategoryDisplay category={item.category} color={item.color} icon={categories.find(c => c.name === item.category)?.icon || 'Circle'} />
+                                <CategoryDisplay category={item.category} color={item.color} icon={bills.find(b => b.category_name === item.category)?.category?.icon} />
                               </TableCell>
                               <TableCell className="text-right">
                                 {formatCurrency(item.total / (item.occurredCount + item.pendingCount))}
@@ -861,7 +873,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
                                             {formatCurrency(transaction.amount)}
                                           </TableCell>
-                                          <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                                          <TableCell className={`${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
                                             {transaction.occurred ? 'Paid' : 'Pending'}
                                           </TableCell>
                                         </>
@@ -875,7 +887,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
                                             {formatCurrency(transaction.amount)}
                                           </TableCell>
-                                          <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                                          <TableCell className={`${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
                                             {transaction.occurred ? 'Paid' : 'Pending'}
                                           </TableCell>
                                         </>
@@ -890,7 +902,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                     })}
                   </div>
                 )}
-                            </div>
+              </div>
             </>
           )}
         </div>
