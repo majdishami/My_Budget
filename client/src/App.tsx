@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
-import { Switch, Route, Link, useLocation } from "wouter";
+import { Switch, Route, Link, useRoute, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -37,7 +37,8 @@ import {
 
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome, addBill } = useData();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const [isHome] = useRoute("/");
   const today = dayjs('2025-02-11');
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
@@ -155,11 +156,14 @@ function Router() {
               {/* Navigation row */}
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Link href="/">
-                    <Button variant="ghost" size="sm" className="cursor-pointer">
-                      Dashboard
-                    </Button>
-                  </Link>
+                  <Button
+                    variant={isHome ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setLocation("/")}
+                    className="cursor-pointer"
+                  >
+                    Dashboard
+                  </Button>
 
                   <Link href="/categories">
                     <Button variant="ghost" size="sm">
@@ -216,15 +220,7 @@ function Router() {
         <main className="flex-1 overflow-hidden mt-6">
           <div className="h-full p-2">
             <Switch>
-              <Route
-                path="/"
-                component={() => (
-                  <Budget
-                    selectedMonth={selectedMonth}
-                    selectedYear={selectedYear}
-                  />
-                )}
-              />
+              <Route path="/" component={Budget} />
               <Route path="/categories" component={CategoriesPage} />
               <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
               <Route path="/reports/monthly" component={MonthlyReport} />
