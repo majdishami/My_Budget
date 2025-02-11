@@ -155,13 +155,11 @@ function Router() {
               {/* Navigation row */}
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => navigate("/")}
-                  >
-                    Dashboard
-                  </Button>
+                  <Link href="/">
+                    <Button variant="ghost" size="sm">
+                      Dashboard
+                    </Button>
+                  </Link>
 
                   <Link href="/categories">
                     <Button variant="ghost" size="sm">
@@ -218,7 +216,15 @@ function Router() {
         <main className="flex-1 overflow-hidden mt-6">
           <div className="h-full p-2">
             <Switch>
-              <Route path="/" component={Budget} />
+              <Route 
+                path="/" 
+                component={() => (
+                  <Budget 
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                  />
+                )} 
+              />
               <Route path="/categories" component={CategoriesPage} />
               <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
               <Route path="/reports/monthly" component={MonthlyReport} />
