@@ -43,25 +43,25 @@ const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   }).format(amount);
 };
 
 export function Budget() {
   const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction, resetData } = useData();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedDay, setSelectedDay] = useState(dayjs().date());
-  const [selectedMonth, setSelectedMonth] = useState(dayjs('2025-02-11').month());
-  const [selectedYear, setSelectedYear] = useState(dayjs('2025-02-11').year());
+  // Set today to February 11, 2025
+  const today = dayjs('2025-02-11');
+  const [selectedDay, setSelectedDay] = useState(today.date());
+  const [selectedMonth, setSelectedMonth] = useState(today.month());
+  const [selectedYear, setSelectedYear] = useState(today.year());
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [showDailySummary, setShowDailySummary] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Income | Bill | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showEditExpenseDialog, setShowEditExpenseDialog] = useState(false);
 
-  // Set today to February 11, 2025
-  const today = dayjs('2025-02-11');
   const currentDate = today.format('dddd, D'); // Only show day of week and day of month
 
   const handleAddIncome = () => {
