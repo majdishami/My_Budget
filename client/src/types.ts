@@ -23,22 +23,20 @@ export interface Income {
  * Represents a recurring bill or expense
  */
 export interface Bill {
-  id: number;
+  id: string;
   name: string;
   amount: number;
-  day: number;
   category_id: number;
   user_id: number;
   created_at: string;
+  date: string;
   // UI-specific properties
-  dueDate?: string;
   category?: string;
   category_name?: string;
   category_color?: string;
   reminderEnabled?: boolean;
   reminderDays?: number;
   isOneTime?: boolean;
-  date?: string;
 }
 
 /**
