@@ -155,7 +155,7 @@ export function LeftSidebar({
             <h2 className="text-lg font-semibold px-2">Expenses</h2>
             <div className="space-y-2">
               <Select onValueChange={(value) => {
-                const bill = bills.find(b => b.id.toString() === value);
+                const bill = bills.find(b => b.id === value);
                 if (bill) {
                   onEditTransaction('bill', bill);
                   setIsOpen(false);
@@ -169,7 +169,7 @@ export function LeftSidebar({
                 </SelectTrigger>
                 <SelectContent>
                   {bills.map((bill) => (
-                    <SelectItem key={bill.id} value={bill.id.toString()}>
+                    <SelectItem key={bill.id} value={bill.id}>
                       {bill.name}
                     </SelectItem>
                   ))}
@@ -190,7 +190,7 @@ export function LeftSidebar({
               </Button>
 
               <Select onValueChange={(value) => {
-                const bill = bills.find(b => b.id.toString() === value);
+                const bill = bills.find(b => b.id === value);
                 if (bill) {
                   onDeleteTransaction('bill', bill);
                   setIsOpen(false);
@@ -204,7 +204,7 @@ export function LeftSidebar({
                 </SelectTrigger>
                 <SelectContent>
                   {bills.map((bill) => (
-                    <SelectItem key={bill.id} value={bill.id.toString()}>
+                    <SelectItem key={bill.id} value={bill.id}>
                       {bill.name}
                     </SelectItem>
                   ))}
