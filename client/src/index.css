@@ -11,21 +11,3 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
-
-@layer components {
-  .select-content-viewport {
-    @apply max-h-[300px] overflow-y-auto;
-  }
-
-  .select-content {
-    @apply relative;
-  }
-
-  .select-viewport {
-    @apply p-1;
-  }
-
-  .select-group {
-    @apply p-1;
-  }
-}
