@@ -176,7 +176,12 @@ function Router() {
                         Expenses
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent>
+                    <DropdownMenuContent 
+                      align="start"
+                      side="bottom"
+                      sideOffset={4}
+                      className="max-h-[300px] overflow-y-auto w-[200px]"
+                    >
                       <DropdownMenuItem onClick={() => setShowAddExpenseDialog(true)}>
                         <PlusCircle className="h-4 w-4 mr-2" />
                         Add Expense
