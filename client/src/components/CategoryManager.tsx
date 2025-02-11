@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Circle, Plus, Edit, Trash, Loader2, AlertCircle } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { CategoryDialog } from "./CategoryDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -30,6 +31,21 @@ interface CategoryFormData {
   color: string;
   icon?: string | null;
 }
+
+// Dynamic icon component
+const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
+  if (!iconName) return null;
+
+  // Convert icon name to match Lucide naming convention (e.g., "shopping-cart" to "ShoppingCart")
+  const formatIconName = (name: string) => {
+    return name.split('-').map(part => 
+      part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+    ).join('');
+  };
+
+  const IconComponent = (LucideIcons as any)[formatIconName(iconName)];
+  return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
+};
 
 export function CategoryManager() {
   const { toast } = useToast();
@@ -204,6 +220,7 @@ export function CategoryManager() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Circle className="h-4 w-4" fill={category.color} stroke="none" />
+                <DynamicIcon iconName={category.icon} />
                 <span className="font-medium">{category.name}</span>
               </div>
               <div className="flex items-center gap-2">

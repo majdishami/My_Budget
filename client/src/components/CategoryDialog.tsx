@@ -129,12 +129,15 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                   <FormLabel>Icon (optional)</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="Enter icon name" 
+                      placeholder="e.g., shopping-cart, credit-card" 
                       {...field}
                       value={field.value || ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
                     />
                   </FormControl>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Use kebab-case Lucide icon names (e.g., shopping-cart, credit-card, home)
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
