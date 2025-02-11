@@ -120,7 +120,6 @@ export default function AnnualReportDialog({
     enabled: isOpen,
   });
 
-
   const defaultIncomes = [
     {
       id: '1',
@@ -138,12 +137,10 @@ export default function AnnualReportDialog({
 
   const [incomes, setIncomes] = useState(defaultIncomes);
 
-
   useEffect(() => {
     if (isOpen) {
       try {
         const storedIncomes = localStorage.getItem("incomes");
-
         if (storedIncomes) {
           const parsedIncomes = JSON.parse(storedIncomes);
           setIncomes(parsedIncomes.length > 0 ? parsedIncomes : defaultIncomes);
@@ -155,20 +152,13 @@ export default function AnnualReportDialog({
   }, [isOpen]);
 
   const annualSummary = useMemo((): AnnualSummary => {
-    const summary = {
+    const summary: AnnualSummary = {
       majdiTotal: { occurred: 0, pending: 0 },
       rubaTotal: { occurred: 0, pending: 0 },
       totalIncome: { occurred: 0, pending: 0 },
       expensesByCategory: {} as Record<string, { occurred: number; pending: number }>,
       totalExpenses: { occurred: 0, pending: 0 },
-      monthlyBreakdown: {} as Record<
-        string,
-        {
-          income: { occurred: number; pending: number };
-          expenses: { occurred: number; pending: number };
-          net: { occurred: number; pending: number };
-        }
-      >,
+      monthlyBreakdown: {},
     };
 
     // Initialize monthly breakdown
@@ -183,9 +173,11 @@ export default function AnnualReportDialog({
 
     // Process income for both Majdi and Ruba
     incomes.forEach(income => {
+      const incomeAmount = Number(income.amount) || 0;
+
       if (income.source === "Majdi's Salary") {
         // Bi-monthly payments (1st and 15th)
-        const perPaycheck = income.amount / 2;
+        const perPaycheck = incomeAmount / 2;
         for (let month = 0; month < 12; month++) {
           const monthKey = dayjs().month(month).format('MMMM');
           const firstPayday = dayjs(`${year}-${month + 1}-01`);
@@ -219,11 +211,11 @@ export default function AnnualReportDialog({
             const monthKey = paymentDate.format('MMMM');
 
             if (paymentDate.isBefore(today) || paymentDate.isSame(today, 'day')) {
-              summary.rubaTotal.occurred += income.amount;
-              summary.monthlyBreakdown[monthKey].income.occurred += income.amount;
+              summary.rubaTotal.occurred += incomeAmount;
+              summary.monthlyBreakdown[monthKey].income.occurred += incomeAmount;
             } else {
-              summary.rubaTotal.pending += income.amount;
-              summary.monthlyBreakdown[monthKey].income.pending += income.amount;
+              summary.rubaTotal.pending += incomeAmount;
+              summary.monthlyBreakdown[monthKey].income.pending += incomeAmount;
             }
           }
           paymentDate = paymentDate.add(14, 'days');
@@ -237,8 +229,8 @@ export default function AnnualReportDialog({
 
     // Process expenses by category
     bills.forEach(bill => {
+      const billAmount = Number(bill.amount) || 0;
       const categoryName = bill.category_name || 'Uncategorized';
-      const monthlyAmount = bill.amount;
 
       // Initialize category if not exists
       if (!summary.expensesByCategory[categoryName]) {
@@ -250,16 +242,16 @@ export default function AnnualReportDialog({
         const billDate = dayjs(`${year}-${month + 1}-${bill.day}`);
 
         if (billDate.isBefore(today) || billDate.isSame(today, 'day')) {
-          summary.expensesByCategory[categoryName].occurred += monthlyAmount;
-          summary.monthlyBreakdown[monthKey].expenses.occurred += monthlyAmount;
+          summary.expensesByCategory[categoryName].occurred += billAmount;
+          summary.monthlyBreakdown[monthKey].expenses.occurred += billAmount;
         } else {
-          summary.expensesByCategory[categoryName].pending += monthlyAmount;
-          summary.monthlyBreakdown[monthKey].expenses.pending += monthlyAmount;
+          summary.expensesByCategory[categoryName].pending += billAmount;
+          summary.monthlyBreakdown[monthKey].expenses.pending += billAmount;
         }
       }
     });
 
-    // Calculate total expenses
+    // Calculate total expenses and net amounts
     Object.values(summary.expensesByCategory).forEach(({ occurred, pending }) => {
       summary.totalExpenses.occurred += occurred;
       summary.totalExpenses.pending += pending;
@@ -267,9 +259,10 @@ export default function AnnualReportDialog({
 
     // Calculate monthly net amounts
     Object.keys(summary.monthlyBreakdown).forEach(month => {
-      summary.monthlyBreakdown[month].net = {
-        occurred: summary.monthlyBreakdown[month].income.occurred - summary.monthlyBreakdown[month].expenses.occurred,
-        pending: summary.monthlyBreakdown[month].income.pending - summary.monthlyBreakdown[month].expenses.pending,
+      const monthData = summary.monthlyBreakdown[month];
+      monthData.net = {
+        occurred: monthData.income.occurred - monthData.expenses.occurred,
+        pending: monthData.income.pending - monthData.expenses.pending,
       };
     });
 
