@@ -21,7 +21,6 @@ export default function ExpenseReport() {
   const [selectedYear, setSelectedYear] = useState(dayjs().format('YYYY'));
   const [, setLocation] = useLocation();
 
-  // Get bills data and categories from the API
   const { data: bills = [], isLoading, error } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
   });
@@ -72,7 +71,7 @@ export default function ExpenseReport() {
   const currentDate = dayjs();
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 min-h-screen overflow-y-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Expense Report</h1>
@@ -93,7 +92,7 @@ export default function ExpenseReport() {
               <SelectTrigger>
                 <SelectValue placeholder="Month" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px] overflow-y-auto">
                 {months.map(({ value, label }) => (
                   <SelectItem key={value} value={value}>
                     {label}
@@ -111,7 +110,7 @@ export default function ExpenseReport() {
               <SelectTrigger>
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px] overflow-y-auto">
                 {years.map(({ value, label }) => (
                   <SelectItem key={value} value={value}>
                     {label}
