@@ -464,20 +464,18 @@ export default function AnnualReportDialog({
                       const monthlyAverage = total / 12;
                       const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
                       const bill = bills.find(b => b.name === expenseName);
-                      const categoryId = bill?.category_id;
-                      const category = categories?.find(c => c.id === categoryId);
 
                       return (
                         <TableRow key={expenseName}>
                           <TableCell className="font-medium">{expenseName}</TableCell>
                           <TableCell>
-                            {category ? (
+                            {bill?.category_name ? (
                               <div className="flex items-center gap-2">
                                 <div
                                   className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: category.color }}
+                                  style={{ backgroundColor: bill.category_color }}
                                 />
-                                {category.name}
+                                {bill.category_name}
                               </div>
                             ) : (
                               <span className="text-muted-foreground">Uncategorized</span>
