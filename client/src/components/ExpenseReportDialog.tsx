@@ -33,13 +33,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, X } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { X } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import * as Icons from 'lucide-react';
 
-dayjs.extend(isSameOrBefore);
-dayjs.extend(isBetween);
+// Add DynamicIcon component for rendering category icons
+function DynamicIcon({ name, ...props }: { name: string; [key: string]: any }) {
+  const Icon = (Icons as any)[name] || Icons.HelpCircle;
+  return <Icon {...props} />;
+}
 
 interface Transaction {
   date: string;
@@ -48,6 +51,14 @@ interface Transaction {
   occurred: boolean;
   category: string;
   color?: string;
+  icon?: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  color: string;
+  icon?: string;
 }
 
 interface Bill {
@@ -62,12 +73,6 @@ interface Bill {
   category_name?: string;
   category_color?: string;
   date?: string; 
-}
-
-interface Category {
-  id: number;
-  name: string;
-  color: string;
 }
 
 interface CategoryTotal {
@@ -145,7 +150,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [bills]);
 
-  // Modified section of transactions generation
+  // Update the transactions generation to include icon information
   const transactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
@@ -208,8 +213,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
     });
 
-    return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
-  }, [showReport, selectedValue, date, bills, today]);
+    return result.map(transaction => ({
+      ...transaction,
+      icon: categories.find(c => c.name === transaction.category)?.icon || 'Circle'
+    })).sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
+  }, [showReport, selectedValue, date, bills, today, categories]);
 
   // Group transactions by expense name for the "all" view
   const groupedExpenses = useMemo(() => {
@@ -536,6 +544,20 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     );
   }
 
+  // Update category display component to show icons
+  function CategoryDisplay({ category, color, icon }: { category: string; color: string; icon?: string }) {
+    return (
+      <div className="flex items-center gap-2">
+        <div
+          className="w-3 h-3 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+        <DynamicIcon name={icon || 'Circle'} className="h-4 w-4" />
+        <span>{category}</span>
+      </div>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col overflow-hidden">
@@ -632,13 +654,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           {itemTotals.map((ct: any) => (
                             <TableRow key={ct.category}>
                               <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: ct.color }}
-                                  />
-                                  {ct.category}
-                                </div>
+                                <CategoryDisplay 
+                                  category={ct.category} 
+                                  color={ct.color}
+                                  icon={categories.find(c => c.name === ct.category)?.icon || 'Circle'}
+                                />
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {formatCurrency(ct.total)}
@@ -690,13 +710,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableRow key={expense.description}>
                               <TableCell className="font-medium">{expense.description}</TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: expense.color }}
-                                  />
-                                  <span className="truncate font-medium">{expense.category}</span>
-                                </div>
+                                <CategoryDisplay category={expense.category} color={expense.color} icon={categories.find(c => c.name === expense.category)?.icon || 'Circle'} />
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {formatCurrency(expense.totalAmount / expense.transactions.length)}
@@ -753,13 +767,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableRow key={item.description}>
                               <TableCell>{item.description}</TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: item.color }}
-                                  />
-                                  {item.category}
-                                </div>
+                                <CategoryDisplay category={item.category} color={item.color} icon={categories.find(c => c.name === item.category)?.icon || 'Circle'} />
                               </TableCell>
                               <TableCell className="text-right">
                                 {formatCurrency(item.total / (item.occurredCount + item.pendingCount))}
@@ -848,13 +856,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                       {selectedValue === "all_categories" ? (
                                         <>
                                           <TableCell>
-                                            <div className="flex items-center gap-2">
-                                              <div
-                                                className="w-3 h-3 rounded-full"
-                                                style={{ backgroundColor: transaction.color }}
-                                              />
-                                              {transaction.category}
-                                            </div>
+                                            <CategoryDisplay category={transaction.category} color={transaction.color} icon={transaction.icon} />
                                           </TableCell>
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
                                             {formatCurrency(transaction.amount)}
@@ -868,13 +870,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                           <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                                           <TableCell>{transaction.description}</TableCell>
                                           <TableCell>
-                                            <div className="flex items-center gap-2">
-                                              <div
-                                                className="w-3 h-3 rounded-full"
-                                                style={{ backgroundColor: transaction.color }}
-                                              />
-                                              {transaction.category}
-                                            </div>
+                                            <CategoryDisplay category={transaction.category} color={transaction.color} icon={transaction.icon} />
                                           </TableCell>
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
                                             {formatCurrency(transaction.amount)}
@@ -894,7 +890,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                     })}
                   </div>
                 )}
-              </div>
+                            </div>
             </>
           )}
         </div>
