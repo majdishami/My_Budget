@@ -23,7 +23,7 @@ export interface Income {
  * Represents a recurring bill or expense
  */
 export interface Bill {
-  id: string;
+  id: string;  // Explicitly typed as string and required
   name: string;
   amount: number;
   day: number;
@@ -45,7 +45,7 @@ export interface Bill {
  * Represents a specific reminder instance for a bill
  */
 export interface BillReminder {
-  billId: string;
+  billId: string;  // Explicitly typed as string
   billName: string;
   dueDate: string;
   amount: number;

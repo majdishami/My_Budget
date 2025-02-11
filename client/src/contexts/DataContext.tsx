@@ -30,8 +30,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (typeof income !== 'object' || income === null) {
       throw new Error('Income must be an object');
     }
-    if (typeof income.id !== 'string') {
-      throw new Error('Income ID must be a string');
+    if (typeof income.id !== 'string' || !income.id) {
+      throw new Error('Income ID must be a non-empty string');
     }
     if (typeof income.source !== 'string' || income.source.trim() === '') {
       throw new Error('Income source must be a non-empty string');
@@ -49,8 +49,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (typeof bill !== 'object' || bill === null) {
       throw new Error('Bill must be an object');
     }
-    if (typeof bill.id !== 'string') {
-      throw new Error('Bill ID must be a string');
+    if (typeof bill.id !== 'string' || !bill.id) {
+      throw new Error('Bill ID must be a non-empty string');
     }
     if (typeof bill.name !== 'string' || bill.name.trim() === '') {
       throw new Error('Bill name must be a non-empty string');
