@@ -156,7 +156,7 @@ export default function AnnualReportDialog({
       majdiTotal: { occurred: 0, pending: 0 },
       rubaTotal: { occurred: 0, pending: 0 },
       totalIncome: { occurred: 0, pending: 0 },
-      expensesByCategory: {} as Record<string, { occurred: number; pending: number }>,
+      expensesByCategory: {},
       totalExpenses: { occurred: 0, pending: 0 },
       monthlyBreakdown: {},
     };
@@ -230,13 +230,18 @@ export default function AnnualReportDialog({
     // Process expenses by category
     bills.forEach(bill => {
       const billAmount = Number(bill.amount) || 0;
+      // Ensure we're using the category_name from the bill object
       const categoryName = bill.category_name || 'Uncategorized';
 
       // Initialize category if not exists
       if (!summary.expensesByCategory[categoryName]) {
-        summary.expensesByCategory[categoryName] = { occurred: 0, pending: 0 };
+        summary.expensesByCategory[categoryName] = { 
+          occurred: 0, 
+          pending: 0
+        };
       }
 
+      // Calculate expenses for each month
       for (let month = 0; month < 12; month++) {
         const monthKey = dayjs().month(month).format('MMMM');
         const billDate = dayjs(`${year}-${month + 1}-${bill.day}`);
@@ -251,7 +256,7 @@ export default function AnnualReportDialog({
       }
     });
 
-    // Calculate total expenses and net amounts
+    // Calculate total expenses
     Object.values(summary.expensesByCategory).forEach(({ occurred, pending }) => {
       summary.totalExpenses.occurred += occurred;
       summary.totalExpenses.pending += pending;
@@ -455,7 +460,6 @@ export default function AnnualReportDialog({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Expense Name</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-right">Monthly Average</TableHead>
                     <TableHead className="text-right">Annual Amount</TableHead>
@@ -465,27 +469,23 @@ export default function AnnualReportDialog({
                 <TableBody>
                   {Object.entries(annualSummary.expensesByCategory)
                     .sort(([, a], [, b]) => (b.occurred + b.pending) - (a.occurred + a.pending))
-                    .map(([expenseName, amounts]) => {
+                    .map(([categoryName, amounts]) => {
                       const total = amounts.occurred + amounts.pending;
                       const monthlyAverage = total / 12;
                       const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
-                      const bill = bills.find(b => b.name === expenseName);
+                      // Find a bill with this category to get the color
+                      const categoryBill = bills.find(b => b.category_name === categoryName);
 
                       return (
-                        <TableRow key={expenseName}>
-                          <TableCell className="font-medium">{expenseName}</TableCell>
+                        <TableRow key={categoryName}>
                           <TableCell>
-                            {bill?.category_name ? (
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: bill.category_color || '#D3D3D3' }}
-                                />
-                                {bill.category_name}
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">Uncategorized</span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: categoryBill?.category_color || '#D3D3D3' }}
+                              />
+                              {categoryName}
+                            </div>
                           </TableCell>
                           <TableCell className="text-right text-red-600">
                             {formatCurrency(monthlyAverage)}
@@ -502,7 +502,6 @@ export default function AnnualReportDialog({
                     })}
                   <TableRow className="font-bold">
                     <TableCell>Total</TableCell>
-                    <TableCell></TableCell>
                     <TableCell className="text-right text-red-600">
                       {formatCurrency((annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending) / 12)}
                     </TableCell>
