@@ -55,6 +55,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuLabel,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Income, Bill } from "@/types";
 import crypto from 'crypto';
