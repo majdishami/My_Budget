@@ -59,20 +59,20 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
 
   return (
     <Card>
-      <CardContent className="p-4">
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-4 items-center">
+      <CardContent className="p-2 md:p-4">
+        <div className="space-y-3 md:space-y-4">
+          <div className="flex flex-wrap gap-2 md:gap-4 items-center">
             <div className="flex-1">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      'w-full justify-start text-left font-normal',
+                      'w-full justify-start text-left font-normal text-xs md:text-sm',
                       !dateRange && 'text-muted-foreground'
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    <CalendarIcon className="mr-2 h-3 w-3 md:h-4 md:w-4" />
                     {dateRange?.from ? (
                       dateRange.to ? (
                         <>
@@ -103,9 +103,9 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
           </div>
 
           {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+            <Alert variant="destructive" className="py-1.5 md:py-2">
+              <AlertCircle className="h-3 w-3 md:h-4 md:w-4" />
+              <AlertDescription className="text-xs md:text-sm">{error}</AlertDescription>
             </Alert>
           )}
         </div>

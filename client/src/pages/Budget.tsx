@@ -228,12 +228,12 @@ export function Budget() {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col md:flex-row md:items-center justify-between p-4 border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 space-y-4 md:space-y-0">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between p-2 md:p-4 border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 space-y-2 md:space-y-0">
+        <div className="flex items-center gap-1 md:gap-2">
           <select 
             value={selectedMonth}
             onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-            className="p-2 border rounded bg-background min-w-[120px] text-sm md:text-base"
+            className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w-[120px] text-xs md:text-base"
             aria-label="Select month"
           >
             {months.map(month => (
@@ -246,7 +246,7 @@ export function Budget() {
           <select
             value={selectedYear}
             onChange={(e) => handleYearChange(parseInt(e.target.value))}
-            className="p-2 border rounded bg-background min-w-[100px] text-sm md:text-base"
+            className="p-1.5 md:p-2 border rounded bg-background min-w-[80px] md:min-w-[100px] text-xs md:text-base"
             aria-label="Select year"
           >
             {years.map(year => (
@@ -257,28 +257,28 @@ export function Budget() {
           </select>
 
           {selectedMonth === today.month() && selectedYear === today.year() && (
-            <span className="text-xs md:text-sm text-muted-foreground ml-2">
+            <span className="text-[10px] md:text-sm text-muted-foreground ml-1 md:ml-2">
               {today.format('ddd')}, {today.format('D')}
             </span>
           )}
         </div>
 
-        <div className="grid grid-cols-3 md:flex md:items-center gap-2 md:gap-4">
+        <div className="grid grid-cols-3 md:flex md:items-center gap-1 md:gap-4">
           <div>
-            <p className="text-xs md:text-sm text-muted-foreground">Month Income</p>
-            <p className="text-sm md:text-lg font-semibold text-green-600">
+            <p className="text-[10px] md:text-sm text-muted-foreground">Month Income</p>
+            <p className="text-xs md:text-lg font-semibold text-green-600">
               {formatCurrency(monthlyTotals.income)}
             </p>
           </div>
           <div>
-            <p className="text-xs md:text-sm text-muted-foreground">Month Bills</p>
-            <p className="text-sm md:text-lg font-semibold text-red-600">
+            <p className="text-[10px] md:text-sm text-muted-foreground">Month Bills</p>
+            <p className="text-xs md:text-lg font-semibold text-red-600">
               {formatCurrency(monthlyTotals.expenses)}
             </p>
           </div>
           <div>
-            <p className="text-xs md:text-sm text-muted-foreground">Month Net</p>
-            <p className={`text-sm md:text-lg font-semibold ${
+            <p className="text-[10px] md:text-sm text-muted-foreground">Month Net</p>
+            <p className={`text-xs md:text-lg font-semibold ${
               monthlyTotals.net >= 0 ? 'text-blue-600' : 'text-red-600'
             }`}>
               {formatCurrency(monthlyTotals.net)}
@@ -287,13 +287,13 @@ export function Budget() {
         </div>
       </div>
 
-      <Card className="m-2 md:m-4">
+      <Card className="m-1 md:m-4">
         <div className="w-full overflow-hidden">
-          <table className="w-full table-fixed border-collapse text-xs md:text-sm lg:text-base">
+          <table className="w-full table-fixed border-collapse text-[10px] md:text-sm lg:text-base">
             <thead className="sticky top-0 bg-background z-10">
               <tr>
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                  <th key={day} className="p-1 lg:p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
+                  <th key={day} className="p-0.5 lg:p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
                     {day}
                   </th>
                 ))}
@@ -305,7 +305,7 @@ export function Budget() {
                   {Array.from({ length: 7 }, (_, dayIndex) => {
                     const dayNumber = calendarData[weekIndex * 7 + dayIndex];
                     if (dayNumber === null) {
-                      return <td key={dayIndex} className="border p-1 lg:p-2 bg-muted/10 h-16 md:h-24 lg:h-48" />;
+                      return <td key={dayIndex} className="border p-0.5 lg:p-2 bg-muted/10 h-12 md:h-24 lg:h-48" />;
                     }
 
                     const currentDate = dayjs().year(selectedYear).month(selectedMonth).date(dayNumber);
@@ -327,53 +327,53 @@ export function Budget() {
                         }}
                         aria-label={`${dayNumber} ${dayjs().month(selectedMonth).format("MMMM")} ${selectedYear}${isCurrentDay ? ' (Today)' : ''}`}
                         className={cn(
-                          "border p-1 lg:p-2 align-top cursor-pointer transition-colors h-16 md:h-24 lg:h-48 relative touch-manipulation",
-                          "hover:bg-accent",
+                          "border p-0.5 lg:p-2 align-top cursor-pointer transition-colors h-12 md:h-24 lg:h-48 relative touch-manipulation",
+                          "hover:bg-accent active:bg-accent/70",
                           isCurrentDay && "ring-2 ring-primary ring-offset-2",
                           selectedDay === dayNumber && "bg-accent/50",
                           hasTransactions && "shadow-sm"
                         )}
                       >
-                        <div className="flex justify-between items-start mb-0.5 md:mb-1">
-                          <div className="flex items-center gap-0.5 md:gap-1">
+                        <div className="flex justify-between items-start mb-0.5">
+                          <div className="flex items-center gap-0.5">
                             <span className={cn(
-                              "font-medium text-sm md:text-base lg:text-lg",
+                              "font-medium text-xs md:text-base lg:text-lg",
                               isCurrentDay && "text-primary font-bold"
                             )}>
                               {dayNumber}
                             </span>
-                            <span className="hidden md:inline text-xs text-muted-foreground">
+                            <span className="hidden md:inline text-[10px] text-muted-foreground">
                               {dayOfWeek}
                             </span>
                             {isCurrentDay && (
-                              <span className="text-[10px] md:text-xs font-medium text-primary ml-0.5 md:ml-1 animate-pulse px-0.5 md:px-1 rounded">
+                              <span className="text-[8px] md:text-xs font-medium text-primary ml-0.5 animate-pulse px-0.5 rounded">
                                 Today
                               </span>
                             )}
                           </div>
                           {hasTransactions && (
-                            <div className="flex gap-0.5 md:gap-1">
+                            <div className="flex gap-0.5">
                               {dayIncomes.length > 0 && (
-                                <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500" />
+                                <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-green-500" />
                               )}
                               {dayBills.length > 0 && (
-                                <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-red-500" />
+                                <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-red-500" />
                               )}
                             </div>
                           )}
                         </div>
-                        <div className="space-y-0.5 text-[10px] md:text-xs max-h-[calc(100%-1.5rem)] overflow-y-auto">
+                        <div className="space-y-0.5 text-[8px] md:text-xs max-h-[calc(100%-1.5rem)] overflow-y-auto">
                           {dayIncomes.length > 0 && (
                             <div className="space-y-0.5">
                               {dayIncomes.map((income, index) => (
                                 <div 
                                   key={income.id} 
-                                  className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-0.5 md:px-1"
+                                  className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-0.5"
                                 >
-                                  <span className="truncate max-w-[60%]">
+                                  <span className="truncate max-w-[60%] text-[8px] md:text-xs">
                                     {index + 1}. {income.source}
                                   </span>
-                                  <span className="font-medium shrink-0 text-[10px] md:text-xs">
+                                  <span className="font-medium shrink-0 text-[8px] md:text-xs">
                                     {formatCurrency(income.amount)}
                                   </span>
                                 </div>
@@ -385,12 +385,12 @@ export function Budget() {
                               {dayBills.map((bill, index) => (
                                 <div 
                                   key={bill.id} 
-                                  className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-0.5 md:px-1"
+                                  className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-0.5"
                                 >
-                                  <span className="truncate max-w-[60%]">
+                                  <span className="truncate max-w-[60%] text-[8px] md:text-xs">
                                     {index + 1}. {bill.name}
                                   </span>
-                                  <span className="font-medium shrink-0 text-[10px] md:text-xs">
+                                  <span className="font-medium shrink-0 text-[8px] md:text-xs">
                                     {formatCurrency(bill.amount)}
                                   </span>
                                 </div>

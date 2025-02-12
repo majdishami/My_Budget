@@ -44,18 +44,18 @@ const TransactionCard = memo(({
   type: 'income' | 'bill' 
 }) => {
   return (
-    <div className="mb-3 md:mb-4">
-      <h4 className="text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">{title}</h4>
+    <div className="mb-2 md:mb-4">
+      <h4 className="text-xs md:text-sm font-medium text-muted-foreground mb-1 md:mb-2">{title}</h4>
       {items.length > 0 ? (
-        <div className="space-y-1.5 md:space-y-2">
+        <div className="space-y-1 md:space-y-2">
           {items.map((item) => (
             <div 
               key={item.id} 
-              className={`flex justify-between items-center text-xs md:text-sm ${
+              className={`flex justify-between items-center text-[10px] md:text-sm ${
                 type === 'income' 
                   ? 'bg-green-50 dark:bg-green-950/30' 
                   : 'bg-red-50 dark:bg-red-950/30'
-              } p-1.5 md:p-2 rounded`}
+              } p-1 md:p-2 rounded`}
             >
               <span className="truncate max-w-[60%]">
                 {type === 'income' ? (item as Income).source : (item as Bill).name}
@@ -71,7 +71,7 @@ const TransactionCard = memo(({
           ))}
         </div>
       ) : (
-        <p className="text-xs md:text-sm text-muted-foreground">No {type} transactions today</p>
+        <p className="text-[10px] md:text-sm text-muted-foreground">No {type} transactions today</p>
       )}
     </div>
   );
@@ -118,21 +118,21 @@ export default function DailySummaryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-3 md:p-6">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-2 md:p-6">
         <DialogHeader>
-          <DialogTitle className="text-base md:text-xl">
+          <DialogTitle className="text-sm md:text-xl">
             Financial Summary for {currentDate}
           </DialogTitle>
-          <DialogClose className="absolute right-2 md:right-4 top-2 md:top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-            <X className="h-4 w-4" />
+          <DialogClose className="absolute right-1 md:right-4 top-1 md:top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+            <X className="h-3 w-3 md:h-4 md:w-4" />
             <span className="sr-only">Close</span>
           </DialogClose>
         </DialogHeader>
 
-        <div className="space-y-4 md:space-y-6">
+        <div className="space-y-3 md:space-y-6">
           {/* Today's Activity */}
-          <Card className="p-3 md:p-4">
-            <h3 className="text-sm md:text-lg font-semibold mb-3 md:mb-4">Today's Activity</h3>
+          <Card className="p-2 md:p-4">
+            <h3 className="text-xs md:text-lg font-semibold mb-2 md:mb-4">Today's Activity</h3>
 
             {/* Income Details */}
             <TransactionCard 
@@ -149,17 +149,17 @@ export default function DailySummaryDialog({
             />
 
             {/* Daily Summary */}
-            <div className="pt-3 md:pt-4 border-t">
-              <div className="grid grid-cols-2 gap-2 md:gap-4">
-                <div className="text-xs md:text-sm">
+            <div className="pt-2 md:pt-4 border-t">
+              <div className="grid grid-cols-2 gap-1 md:gap-4">
+                <div className="text-[10px] md:text-sm">
                   <p className="text-muted-foreground">Total Day's Income</p>
-                  <p className="text-sm md:text-lg font-semibold text-green-600 dark:text-green-400">
+                  <p className="text-xs md:text-lg font-semibold text-green-600 dark:text-green-400">
                     {formatCurrency(dailyIncome)}
                   </p>
                 </div>
-                <div className="text-xs md:text-sm">
+                <div className="text-[10px] md:text-sm">
                   <p className="text-muted-foreground">Total Day's Expenses</p>
-                  <p className="text-sm md:text-lg font-semibold text-red-600 dark:text-red-400">
+                  <p className="text-xs md:text-lg font-semibold text-red-600 dark:text-red-400">
                     {formatCurrency(dailyBills)}
                   </p>
                 </div>
@@ -168,24 +168,24 @@ export default function DailySummaryDialog({
           </Card>
 
           {/* Running Totals */}
-          <Card className="p-3 md:p-4">
-            <h3 className="text-sm md:text-lg font-semibold mb-3 md:mb-4">Running Totals (Month to Date)</h3>
-            <div className="grid grid-cols-3 gap-2 md:gap-4">
-              <div className="text-xs md:text-sm">
+          <Card className="p-2 md:p-4">
+            <h3 className="text-xs md:text-lg font-semibold mb-2 md:mb-4">Running Totals (Month to Date)</h3>
+            <div className="grid grid-cols-3 gap-1 md:gap-4">
+              <div className="text-[10px] md:text-sm">
                 <p className="text-muted-foreground">Total Income</p>
-                <p className="text-sm md:text-lg font-semibold text-green-600 dark:text-green-400">
+                <p className="text-xs md:text-lg font-semibold text-green-600 dark:text-green-400">
                   {formatCurrency(totalIncomeUpToToday)}
                 </p>
               </div>
-              <div className="text-xs md:text-sm">
+              <div className="text-[10px] md:text-sm">
                 <p className="text-muted-foreground">Total Expenses</p>
-                <p className="text-sm md:text-lg font-semibold text-red-600 dark:text-red-400">
+                <p className="text-xs md:text-lg font-semibold text-red-600 dark:text-red-400">
                   {formatCurrency(totalBillsUpToToday)}
                 </p>
               </div>
-              <div className="text-xs md:text-sm">
+              <div className="text-[10px] md:text-sm">
                 <p className="text-muted-foreground">Net Balance</p>
-                <p className={`text-sm md:text-lg font-semibold ${
+                <p className={`text-xs md:text-lg font-semibold ${
                   totalNet >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }`}>
                   {formatCurrency(totalNet)}
@@ -195,30 +195,30 @@ export default function DailySummaryDialog({
           </Card>
 
           {/* Remaining Till End Of Month */}
-          <Card className="p-3 md:p-4">
-            <h3 className="text-sm md:text-lg font-semibold mb-3 md:mb-4">Remaining Till End Of Month</h3>
-            <div className="grid grid-cols-3 gap-2 md:gap-4">
-              <div className="text-xs md:text-sm">
+          <Card className="p-2 md:p-4">
+            <h3 className="text-xs md:text-lg font-semibold mb-2 md:mb-4">Remaining Till End Of Month</h3>
+            <div className="grid grid-cols-3 gap-1 md:gap-4">
+              <div className="text-[10px] md:text-sm">
                 <p className="text-muted-foreground">Remaining Income</p>
-                <p className="text-sm md:text-lg font-semibold text-green-600 dark:text-green-400">
+                <p className="text-xs md:text-lg font-semibold text-green-600 dark:text-green-400">
                   {formatCurrency(remainingIncome)}
                 </p>
-                <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
+                <p className="text-[8px] md:text-xs text-muted-foreground mt-1">
                   From total {formatCurrency(monthlyTotals.income)}
                 </p>
               </div>
-              <div className="text-xs md:text-sm">
+              <div className="text-[10px] md:text-sm">
                 <p className="text-muted-foreground">Remaining Expenses</p>
-                <p className="text-sm md:text-lg font-semibold text-red-600 dark:text-red-400">
+                <p className="text-xs md:text-lg font-semibold text-red-600 dark:text-red-400">
                   {formatCurrency(remainingExpenses)}
                 </p>
-                <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
+                <p className="text-[8px] md:text-xs text-muted-foreground mt-1">
                   From total {formatCurrency(monthlyTotals.expenses)}
                 </p>
               </div>
-              <div className="text-xs md:text-sm">
+              <div className="text-[10px] md:text-sm">
                 <p className="text-muted-foreground">Balance of Remaining</p>
-                <p className={`text-sm md:text-lg font-semibold ${
+                <p className={`text-xs md:text-lg font-semibold ${
                   remainingBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }`}>
                   {formatCurrency(remainingBalance)}
