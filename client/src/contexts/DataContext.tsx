@@ -27,6 +27,44 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [bills, setBills] = useState<Bill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Batch storage operations
+  const saveToStorage = async (key: string, data: any) => {
+    try {
+      setIsSaving(true);
+      localStorage.setItem(key, JSON.stringify(data));
+      logger.info(`Successfully saved ${key}`, { count: Array.isArray(data) ? data.length : 1 });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to save data";
+      logger.error(`Error saving ${key}:`, { error });
+      throw new Error(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Enhanced data validation
+  const validateData = <T extends Income | Bill>(
+    data: T[],
+    validator: (item: any) => boolean,
+    type: string
+  ): T[] => {
+    try {
+      if (!Array.isArray(data)) {
+        throw new Error(`${type} data must be an array`);
+      }
+      data.forEach((item, index) => {
+        if (!validator(item)) {
+          throw new Error(`Invalid ${type} at index ${index}`);
+        }
+      });
+      return data;
+    } catch (error) {
+      logger.error(`Validation error for ${type}:`, { error });
+      throw error;
+    }
+  };
 
   const isValidIncome = (income: any): income is Income => {
     if (typeof income !== 'object' || income === null) {
@@ -220,59 +258,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const refresh = async () => {
-    try {
-      setIsLoading(true);
-      await loadData();
-      logger.info("Successfully refreshed data");
-    } catch (error) {
-      logger.error("Error refreshing data:", { error });
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Optimized data loading
   const loadData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      let storedIncomes: Income[] = [];
-      let storedBills: Bill[] = [];
-      let shouldInitialize = false;
-
-      try {
-        const incomesData = localStorage.getItem("budgetIncomes");
-        if (incomesData) {
-          const parsedIncomes = JSON.parse(incomesData);
-          parsedIncomes.forEach(isValidIncome);
-          storedIncomes = parsedIncomes;
-          logger.info("Successfully loaded incomes", { count: parsedIncomes.length });
-        } else {
-          shouldInitialize = true;
+      const loadFromStorage = async <T extends Income | Bill>(
+        key: string,
+        validator: (item: any) => boolean,
+        type: string
+      ): Promise<T[]> => {
+        const data = localStorage.getItem(key);
+        if (!data) return [];
+        try {
+          const parsed = JSON.parse(data);
+          return validateData(parsed, validator, type);
+        } catch (error) {
+          logger.warn(`Invalid stored ${type}, initializing defaults`, { error });
+          return [];
         }
-      } catch (error) {
-        logger.warn("Invalid stored incomes, will initialize defaults", { error });
-        shouldInitialize = true;
-      }
+      };
 
-      try {
-        const billsData = localStorage.getItem("budgetBills");
-        if (billsData) {
-          const parsedBills = JSON.parse(billsData);
-          parsedBills.forEach(isValidBill);
-          storedBills = parsedBills;
-          logger.info("Successfully loaded bills", { count: parsedBills.length });
-        } else {
-          shouldInitialize = true;
-        }
-      } catch (error) {
-        logger.warn("Invalid stored bills, will initialize defaults", { error });
-        shouldInitialize = true;
-      }
+      const [storedIncomes, storedBills] = await Promise.all([
+        loadFromStorage<Income>("budgetIncomes", isValidIncome, "income"),
+        loadFromStorage<Bill>("budgetBills", isValidBill, "bill")
+      ]);
 
-      if (shouldInitialize) {
+      if (!storedIncomes.length && !storedBills.length) {
         await initializeDefaultData();
       } else {
         setIncomes(storedIncomes);
@@ -282,15 +295,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
       logger.error("Error loading data:", { error });
       setError(new Error(errorMessage));
-      // Attempt to initialize with defaults if loading fails
       await initializeDefaultData();
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Effect cleanup and initialization
   useEffect(() => {
+    const controller = new AbortController();
     loadData();
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   const addIncomeToData = (income: Income) => {
@@ -301,7 +318,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
       const newIncomes = [...incomes, income];
       setIncomes(newIncomes);
-      localStorage.setItem("budgetIncomes", JSON.stringify(newIncomes));
+      saveToStorage("budgetIncomes", newIncomes);
       logger.info("Successfully added income", { income });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add income";
@@ -319,7 +336,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
       const newBills = [...bills, bill];
       setBills(newBills);
-      localStorage.setItem("budgetBills", JSON.stringify(newBills));
+      saveToStorage("budgetBills", newBills);
       logger.info("Successfully added bill", { bill });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add bill";
@@ -336,13 +353,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       saveIncomes: async (newIncomes) => {
         try {
           setError(null);
-          if (!Array.isArray(newIncomes)) {
-            throw new Error("Income data must be an array");
-          }
-          newIncomes.forEach(isValidIncome);
-          setIncomes(newIncomes);
-          localStorage.setItem("budgetIncomes", JSON.stringify(newIncomes));
-          logger.info("Successfully saved incomes", { count: newIncomes.length });
+          const validatedIncomes = validateData(newIncomes, isValidIncome, "income");
+          setIncomes(validatedIncomes);
+          await saveToStorage("budgetIncomes", validatedIncomes);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Failed to save incomes";
           logger.error("Error in saveIncomes:", { error });
@@ -353,13 +366,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       saveBills: async (newBills) => {
         try {
           setError(null);
-          if (!Array.isArray(newBills)) {
-            throw new Error("Bill data must be an array");
-          }
-          newBills.forEach(isValidBill);
-          setBills(newBills);
-          localStorage.setItem("budgetBills", JSON.stringify(newBills));
-          logger.info("Successfully saved bills", { count: newBills.length });
+          const validatedBills = validateData(newBills, isValidBill, "bill");
+          setBills(validatedBills);
+          await saveToStorage("budgetBills", validatedBills);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Failed to save bills";
           logger.error("Error in saveBills:", { error });
@@ -383,13 +392,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
               newIncomes = incomes.filter(i => i.id !== transaction.id);
             }
             setIncomes(newIncomes);
-            localStorage.setItem("budgetIncomes", JSON.stringify(newIncomes));
+            saveToStorage("budgetIncomes", newIncomes);
             logger.info("Successfully deleted income", { income: transaction });
           } else {
             // It's a bill
             const newBills = bills.filter(b => b.id !== transaction.id);
             setBills(newBills);
-            localStorage.setItem("budgetBills", JSON.stringify(newBills));
+            saveToStorage("budgetBills", newBills);
             logger.info("Successfully deleted bill", { bill: transaction });
           }
         } catch (error) {
@@ -409,7 +418,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             }
             const newIncomes = incomes.map(i => i.id === transaction.id ? transaction : i);
             setIncomes(newIncomes);
-            localStorage.setItem("budgetIncomes", JSON.stringify(newIncomes));
+            saveToStorage("budgetIncomes", newIncomes);
             logger.info("Successfully edited income", { income: transaction });
           } else {
             // It's a bill
@@ -418,7 +427,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             }
             const newBills = bills.map(b => b.id === transaction.id ? transaction : b);
             setBills(newBills);
-            localStorage.setItem("budgetBills", JSON.stringify(newBills));
+            saveToStorage("budgetBills", newBills);
             logger.info("Successfully edited bill", { bill: transaction });
           }
         } catch (error) {
@@ -442,7 +451,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
       },
-      refresh,
+      refresh: loadData,
       addIncomeToData,
       isLoading,
       error
