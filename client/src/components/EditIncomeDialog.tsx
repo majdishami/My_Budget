@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { logger } from "@/lib/logger";
 
 interface EditIncomeDialogProps {
   income: Income | null;
@@ -38,6 +39,7 @@ export function EditIncomeDialog({
   const [occurrenceType, setOccurrenceType] = useState<'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly'>('once');
   const [firstDate, setFirstDate] = useState<number>(1);
   const [secondDate, setSecondDate] = useState<number>(15);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update form values when income changes
   useEffect(() => {
@@ -45,9 +47,19 @@ export function EditIncomeDialog({
       setSource(income.source);
       setAmount(income.amount.toString());
       setDate(dayjs(income.date).format('YYYY-MM-DD'));
-      setOccurrenceType(income.occurrenceType);
-      if (income.firstDate) setFirstDate(income.firstDate);
-      if (income.secondDate) setSecondDate(income.secondDate);
+
+      // Set the correct occurrence type based on the source
+      if (income.source === "Majdi's Salary") {
+        setOccurrenceType('twice-monthly');
+        setFirstDate(1);
+        setSecondDate(15);
+      } else if (income.source === "Ruba's Salary") {
+        setOccurrenceType('biweekly');
+      } else {
+        setOccurrenceType(income.occurrenceType || 'monthly');
+        if (income.firstDate) setFirstDate(income.firstDate);
+        if (income.secondDate) setSecondDate(income.secondDate);
+      }
     }
   }, [income]);
 
@@ -59,23 +71,32 @@ export function EditIncomeDialog({
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!income) return;
 
-    const updatedIncome: Income = {
-      ...income,
-      source,
-      amount: parseFloat(amount),
-      date: dayjs(date).toISOString(),
-      occurrenceType
-    };
+    try {
+      setIsSubmitting(true);
+      const updatedIncome: Income = {
+        ...income,
+        source,
+        amount: parseFloat(amount),
+        date: dayjs(date).toISOString(),
+        occurrenceType
+      };
 
-    if (occurrenceType === 'twice-monthly') {
-      updatedIncome.firstDate = firstDate;
-      updatedIncome.secondDate = secondDate;
+      if (occurrenceType === 'twice-monthly') {
+        updatedIncome.firstDate = firstDate;
+        updatedIncome.secondDate = secondDate;
+      }
+
+      await onUpdate(updatedIncome);
+      onOpenChange(false);
+      logger.info("Successfully updated income", { income: updatedIncome });
+    } catch (error) {
+      logger.error("Error updating income:", { error });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    onUpdate(updatedIncome);
   };
 
   const generateDayOptions = () => {
@@ -103,6 +124,7 @@ export function EditIncomeDialog({
               id="source"
               value={source}
               onChange={(e) => setSource(e.target.value)}
+              readOnly={source === "Majdi's Salary" || source === "Ruba's Salary"}
             />
           </div>
           <div className="grid gap-2">
@@ -120,6 +142,7 @@ export function EditIncomeDialog({
             <Select
               value={occurrenceType}
               onValueChange={handleOccurrenceTypeChange}
+              disabled={source === "Majdi's Salary" || source === "Ruba's Salary"}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select frequency" />
@@ -140,6 +163,7 @@ export function EditIncomeDialog({
                 <Select
                   value={firstDate.toString()}
                   onValueChange={(value) => setFirstDate(parseInt(value))}
+                  disabled={source === "Majdi's Salary"}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select day" />
@@ -154,6 +178,7 @@ export function EditIncomeDialog({
                 <Select
                   value={secondDate.toString()}
                   onValueChange={(value) => setSecondDate(parseInt(value))}
+                  disabled={source === "Majdi's Salary"}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select day" />
@@ -179,10 +204,16 @@ export function EditIncomeDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
-          <Button onClick={handleConfirm}>Save Changes</Button>
+          <Button onClick={handleConfirm} disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : "Save Changes"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
