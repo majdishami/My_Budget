@@ -58,6 +58,11 @@ export function LeftSidebar({
   const [showDatabaseSyncDialog, setShowDatabaseSyncDialog] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
+  // Function to check if current route matches given path
+  const isActiveRoute = (path: string) => {
+    return location === path;
+  };
+
   // Function to format the occurrence type for display
   const formatOccurrenceType = (income: Income) => {
     if (income.source === "Majdi's Salary") return "Twice Monthly";
