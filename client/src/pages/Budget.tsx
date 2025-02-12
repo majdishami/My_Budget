@@ -299,18 +299,12 @@ export function Budget() {
             ))}
           </select>
 
-          <select
-            value={selectedDay}
-            onChange={(e) => setSelectedDay(parseInt(e.target.value))}
-            className="p-2 border rounded bg-background min-w-[80px]"
-            aria-label="Select day"
-          >
-            {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
-              <option key={day} value={day}>
-                {day.toString().padStart(2, '0')}
-              </option>
-            ))}
-          </select>
+          {/* Only show day info for current month */}
+          {selectedMonth === today.month() && selectedYear === today.year() && (
+            <span className="text-sm text-muted-foreground ml-2">
+              {today.format('ddd')}, {today.format('D')}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
@@ -328,7 +322,9 @@ export function Budget() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Month Net Balance</p>
-            <p className="text-lg font-semibold">
+            <p className={`text-lg font-semibold ${
+              2782 >= 0 ? "text-green-600" : "text-red-600"
+            }`}>
               ${formatCurrency(2782)}
             </p>
           </div>
