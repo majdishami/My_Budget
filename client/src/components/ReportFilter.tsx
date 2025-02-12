@@ -6,24 +6,22 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { DateRange } from 'react-day-picker';
 
 interface ReportFilterProps {
   onDateRangeChange: (range: { from: Date; to: Date }) => void;
 }
 
 export function ReportFilter({ onDateRangeChange }: ReportFilterProps) {
-  const [dateRange, setDateRange] = useState<{
-    from: Date;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(),
     to: new Date(),
   });
 
-  const handleDateSelect = (dates: { from: Date; to: Date | undefined }) => {
-    setDateRange(dates);
-    if (dates.from && dates.to) {
-      onDateRangeChange({ from: dates.from, to: dates.to });
+  const handleDateSelect = (range: DateRange | undefined) => {
+    setDateRange(range);
+    if (range?.from && range?.to) {
+      onDateRangeChange({ from: range.from, to: range.to });
     }
   };
 
