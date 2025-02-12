@@ -16,7 +16,7 @@ export interface Income {
   source: string;
   amount: number;
   date: string;
-  occurrenceType: 'once' | 'monthly' | 'biweekly' | 'twice-monthly';
+  occurrenceType: 'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly';
   firstDate?: number;  // Day of month for first occurrence (1-31)
   secondDate?: number; // Day of month for second occurrence (1-31)
 }

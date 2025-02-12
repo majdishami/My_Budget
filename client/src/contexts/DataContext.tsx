@@ -44,8 +44,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (typeof income.date !== 'string' || isNaN(new Date(income.date).getTime())) {
       throw new Error('Income date must be a valid date string');
     }
-    if (typeof income.occurrenceType !== 'string' || !['once', 'monthly', 'biweekly', 'twice-monthly'].includes(income.occurrenceType)) {
-      throw new Error('Income occurrenceType must be one of: once, monthly, biweekly, twice-monthly');
+    if (typeof income.occurrenceType !== 'string' || !['once', 'monthly', 'biweekly', 'twice-monthly', 'weekly'].includes(income.occurrenceType)) {
+      throw new Error('Income occurrenceType must be one of: once, monthly, biweekly, twice-monthly, weekly');
     }
     return true;
   };
@@ -94,6 +94,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     switch (income.occurrenceType) {
       case 'once':
         occurrences.push(income);
+        break;
+      case 'weekly':
+        let weeklyDate = startDate.clone();
+        while (weeklyDate.isSameOrBefore(endDate)) {
+          occurrences.push({
+            ...income,
+            id: `${income.id}-${weeklyDate.format('YYYY-MM-DD')}`,
+            date: weeklyDate.toISOString()
+          });
+          weeklyDate = weeklyDate.add(7, 'days');
+        }
         break;
       case 'monthly':
         let monthlyDate = startDate.clone();

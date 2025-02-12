@@ -35,7 +35,7 @@ export function EditIncomeDialog({
   const [source, setSource] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState('');
-  const [occurrenceType, setOccurrenceType] = useState<'once' | 'monthly' | 'biweekly' | 'twice-monthly'>('once');
+  const [occurrenceType, setOccurrenceType] = useState<'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly'>('once');
   const [firstDate, setFirstDate] = useState<number>(1);
   const [secondDate, setSecondDate] = useState<number>(15);
 
@@ -52,7 +52,7 @@ export function EditIncomeDialog({
   }, [income]);
 
   // Handle occurrence type change
-  const handleOccurrenceTypeChange = (value: 'once' | 'monthly' | 'biweekly' | 'twice-monthly') => {
+  const handleOccurrenceTypeChange = (value: 'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly') => {
     setOccurrenceType(value);
     if (value === 'twice-monthly') {
       const today = dayjs();
@@ -127,6 +127,7 @@ export function EditIncomeDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="once">One time</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
                 <SelectItem value="monthly">Monthly</SelectItem>
                 <SelectItem value="biweekly">Bi-Weekly</SelectItem>
                 <SelectItem value="twice-monthly">Twice a month</SelectItem>
