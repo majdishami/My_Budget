@@ -292,6 +292,8 @@ export function AddExpenseDialog({
           amount: parseFloat(amount || '0'),
           day: parseInt(day || '1'),
           category_id: parseInt(categoryId || '1'),
+          category_name: categories.find(cat => cat.id.toString() === categoryId)?.name || 'Uncategorized',
+          category_color: categories.find(cat => cat.id.toString() === categoryId)?.color || '#D3D3D3',
           user_id: 1,
           created_at: new Date().toISOString(),
           isOneTime: false,

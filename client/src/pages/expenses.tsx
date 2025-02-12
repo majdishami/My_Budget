@@ -125,7 +125,7 @@ export default function ExpenseReport() {
       <ExpenseReportDialog
         isOpen={isDialogOpen}
         onOpenChange={handleOpenChange}
-        bills={bills}
+        bills={bills || []}
       />
     </div>
   );

@@ -558,9 +558,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       <div className="flex items-center gap-2">
         <div
           className="w-3 h-3 rounded-full"
-          style={{ backgroundColor: color }}
+          style={{ backgroundColor: color || '#D3D3D3' }}
         />
-        <DynamicIcon iconName={icon} />
+        {icon && <DynamicIcon iconName={icon} />}
         <span>{category}</span>
       </div>
     );
@@ -784,7 +784,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableRow key={item.description}>
                               <TableCell>{item.description}</TableCell>
                               <TableCell>
-                                <CategoryDisplay category={item.category} color={item.color} icon={bills.find(b => b.category_name === item.category)?.category?.icon} />
+                                <CategoryDisplay 
+                                  category={item.category} 
+                                  color={item.color || '#D3D3D3'}
+                                  icon={bills.find(b => b.category_name === item.category)?.category?.icon || null}
+                                />
                               </TableCell>
                               <TableCell className="text-right">
                                 {formatCurrency(item.total / (item.occurredCount + item.pendingCount))}
