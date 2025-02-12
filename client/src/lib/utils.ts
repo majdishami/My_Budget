@@ -22,11 +22,7 @@ export function generateId(): string {
   return `${timestamp}-${randomStr}`;
 }
 
-// Get current date with test date override capability
+// Get current date dynamically
 export function getCurrentDate() {
-  // For testing: if running in development and test date is set
-  if (import.meta.env.MODE === 'development' && import.meta.env.VITE_TEST_DATE) {
-    return dayjs(import.meta.env.VITE_TEST_DATE);
-  }
-  return dayjs();
+  return dayjs(); // Always return the actual current date
 }
