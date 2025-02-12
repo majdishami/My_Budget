@@ -29,7 +29,6 @@ import AnnualReport from "@/pages/annual";
 import DateRangeReport from "@/pages/date-range";
 import IncomeReport from "@/pages/income";
 import ExpenseReport from "@/pages/expenses";
-//import { Button } from "@/components/ui/button"; // Removed as per intention
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { EditIncomeDialog } from "@/components/EditIncomeDialog";
@@ -161,24 +160,9 @@ function Router() {
 
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Link
-                    href="/"
-                    className={clsx(
-                      "flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer",
-                      location === "/"
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "hover:bg-accent hover:text-accent-foreground",
-                      "transition-colors"
-                    )}
-                    aria-label="Go to Dashboard"
-                  >
-                    <LayoutDashboard className="h-4 w-4 pointer-events-none" aria-hidden="true" />
-                    <span className="pointer-events-none">Dashboard</span>
-                  </Link>
-
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors"> {/* Replaced Button with a button */}
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
                         <FolderTree className="h-4 w-4 mr-2" />
                         Expenses
                       </button>
@@ -223,7 +207,7 @@ function Router() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors"> {/* Replaced Button with a button */}
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
                         <PlusCircle className="h-4 w-4 mr-2" />
                         Income
                       </button>
@@ -258,7 +242,7 @@ function Router() {
                   </DropdownMenu>
 
                   <Link href="/categories">
-                    <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors"> {/* Replaced Button with a button */}
+                    <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
                       <Tags className="h-4 w-4 mr-2" />
                       Categories
                     </button>
@@ -266,7 +250,7 @@ function Router() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors"> {/* Replaced Button with a button */}
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
                         <BarChart4 className="h-4 w-4 mr-2" />
                         Reports
                       </button>
