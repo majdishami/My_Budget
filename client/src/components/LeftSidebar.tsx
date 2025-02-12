@@ -56,7 +56,6 @@ export function LeftSidebar({
   const [showDatabaseSyncDialog, setShowDatabaseSyncDialog] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Calculate all income occurrences for the current month
   const getMonthlyIncomeOccurrences = () => {
     const currentDate = dayjs();
     const startOfMonth = currentDate.startOf('month');
@@ -67,7 +66,6 @@ export function LeftSidebar({
 
     incomes.forEach(income => {
       if (income.source === "Ruba's Salary") {
-        // Calculate bi-weekly occurrences
         let checkDate = startDate.clone();
         while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
           if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
@@ -85,7 +83,6 @@ export function LeftSidebar({
           checkDate = checkDate.add(1, 'day');
         }
       } else {
-        // Regular monthly incomes
         occurrences.push(income);
       }
     });
@@ -150,188 +147,119 @@ export function LeftSidebar({
               </Button>
             </Link>
 
+            {/* Expenses Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add
+                <Button variant="ghost" size="sm" className="w-full justify-start">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Expenses
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-[200px]">
-                <DropdownMenuItem
-                  onClick={() => {
-                    onAddIncome();
-                    setIsOpen(false);
-                  }}
-                >
-                  Add Income
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    onAddBill();
-                    setIsOpen(false);
-                  }}
-                >
+                <DropdownMenuItem onClick={() => {
+                  onAddBill();
+                  setIsOpen(false);
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />
                   Add Expense
                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[200px]">
-                <DropdownMenuLabel>Income</DropdownMenuLabel>
-                {monthlyIncomes.map((income) => (
-                  <DropdownMenuItem
-                    key={income.id}
-                    onClick={() => {
-                      onEditTransaction('income', income);
-                      setIsOpen(false);
-                    }}
-                  >
-                    {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
-                  </DropdownMenuItem>
-                ))}
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel>Expenses</DropdownMenuLabel>
+                <DropdownMenuLabel>Edit Expenses</DropdownMenuLabel>
                 {bills.map((bill) => (
                   <DropdownMenuItem
-                    key={bill.id}
+                    key={`edit-${bill.id}`}
                     onClick={() => {
                       onEditTransaction('bill', bill);
                       setIsOpen(false);
                     }}
                   >
+                    <Edit className="mr-2 h-4 w-4" />
                     {bill.name}
                   </DropdownMenuItem>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                >
-                  <Trash className="mr-2 h-4 w-4" />
-                  Delete
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[200px]">
-                <DropdownMenuLabel>Income</DropdownMenuLabel>
-                {monthlyIncomes.map((income) => (
-                  <DropdownMenuItem
-                    key={income.id}
-                    onClick={() => {
-                      onDeleteTransaction('income', income);
-                      setIsOpen(false);
-                    }}
-                    className="text-red-600"
-                  >
-                    {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
-                  </DropdownMenuItem>
-                ))}
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel>Expenses</DropdownMenuLabel>
+                <DropdownMenuLabel>Delete Expenses</DropdownMenuLabel>
                 {bills.map((bill) => (
                   <DropdownMenuItem
-                    key={bill.id}
+                    key={`delete-${bill.id}`}
                     onClick={() => {
                       onDeleteTransaction('bill', bill);
                       setIsOpen(false);
                     }}
                     className="text-red-600"
                   >
+                    <Trash className="mr-2 h-4 w-4" />
                     {bill.name}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
-          {/* Expenses Section */}
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold px-2">Expenses</h2>
-            <div className="space-y-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() => {
-                  onAddBill();
-                  setIsOpen(false);
-                }}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Expense
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() => {
-                  setShowRemindersDialog(true);
-                  setIsOpen(false);
-                }}
-              >
-                <Bell className="mr-2 h-4 w-4" />
-                View Reminders
-              </Button>
-            </div>
-          </div>
-
-          {/* Income Section */}
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold px-2">Income</h2>
-            <div className="space-y-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() => {
+            {/* Income Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-full justify-start">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Income
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[200px]">
+                <DropdownMenuItem onClick={() => {
                   onAddIncome();
                   setIsOpen(false);
-                }}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Income
-              </Button>
-            </div>
-          </div>
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Income
+                </DropdownMenuItem>
 
-          {/* Categories Section */}
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold px-2">Categories</h2>
-            <div className="space-y-2">
-              <Link href="/categories" onClick={() => setIsOpen(false)}>
-                <Button
-                  variant={isActiveRoute("/categories") ? "default" : "ghost"}
-                  size="sm"
-                  className={clsx(
-                    "w-full justify-start",
-                    isActiveRoute("/categories") && "bg-primary text-primary-foreground hover:bg-primary/90"
-                  )}
-                >
-                  <Tags className="mr-2 h-4 w-4" />
-                  Manage Categories
-                </Button>
-              </Link>
-            </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Edit Income</DropdownMenuLabel>
+                {monthlyIncomes.map((income) => (
+                  <DropdownMenuItem
+                    key={`edit-${income.id}`}
+                    onClick={() => {
+                      onEditTransaction('income', income);
+                      setIsOpen(false);
+                    }}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
+                  </DropdownMenuItem>
+                ))}
+
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Delete Income</DropdownMenuLabel>
+                {monthlyIncomes.map((income) => (
+                  <DropdownMenuItem
+                    key={`delete-${income.id}`}
+                    onClick={() => {
+                      onDeleteTransaction('income', income);
+                      setIsOpen(false);
+                    }}
+                    className="text-red-600"
+                  >
+                    <Trash className="mr-2 h-4 w-4" />
+                    {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Link href="/categories" onClick={() => setIsOpen(false)}>
+              <Button
+                variant={isActiveRoute("/categories") ? "default" : "ghost"}
+                size="sm"
+                className={clsx(
+                  "w-full justify-start",
+                  isActiveRoute("/categories") && "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
+              >
+                <Tags className="mr-2 h-4 w-4" />
+                Categories
+              </Button>
+            </Link>
           </div>
 
           {/* Reports Section */}
@@ -349,6 +277,19 @@ export function LeftSidebar({
               >
                 <Download className="mr-2 h-4 w-4" />
                 Export Data
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => {
+                  setShowRemindersDialog(true);
+                  setIsOpen(false);
+                }}
+              >
+                <Bell className="mr-2 h-4 w-4" />
+                View Reminders
               </Button>
 
               <Button
@@ -417,34 +358,6 @@ export function LeftSidebar({
                 >
                   <FileBarChart className="mr-2 h-4 w-4" />
                   Date Range Report
-                </Button>
-              </Link>
-
-              <Link href="/reports/income" onClick={() => setIsOpen(false)}>
-                <Button
-                  variant={isActiveRoute("/reports/income") ? "default" : "ghost"}
-                  size="sm"
-                  className={clsx(
-                    "w-full justify-start",
-                    isActiveRoute("/reports/income") && "bg-primary text-primary-foreground hover:bg-primary/90"
-                  )}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Income Report
-                </Button>
-              </Link>
-
-              <Link href="/reports/expenses" onClick={() => setIsOpen(false)}>
-                <Button
-                  variant={isActiveRoute("/reports/expenses") ? "default" : "ghost"}
-                  size="sm"
-                  className={clsx(
-                    "w-full justify-start",
-                    isActiveRoute("/reports/expenses") && "bg-primary text-primary-foreground hover:bg-primary/90"
-                  )}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Expenses Report
                 </Button>
               </Link>
             </div>
