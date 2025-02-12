@@ -57,7 +57,8 @@ export function Budget() {
       id: generateId(),
       source: "",
       amount: 0,
-      date: today.toISOString()
+      date: today.toISOString(),
+      occurrenceType: 'once' // Default to once
     };
     addIncome(newIncome);
   };
@@ -155,7 +156,7 @@ export function Budget() {
     const addedDates = new Set<string>();
 
     incomes.forEach(income => {
-      const addIncomeIfNotExists = (date: dayjs.Dayjs, amount: number) => {
+      const addIncomeIfNotExists = (date: dayjs.Dayjs, amount: number, occurrenceType: Income['occurrenceType']) => {
         const dateStr = date.format('YYYY-MM-DD');
         if (!addedDates.has(`${income.source}-${dateStr}`)) {
           addedDates.add(`${income.source}-${dateStr}`);
@@ -163,14 +164,15 @@ export function Budget() {
             id: `${income.id}-${dateStr}`,
             source: income.source,
             amount: amount,
-            date: date.toISOString()
+            date: date.toISOString(),
+            occurrenceType
           });
         }
       };
 
       if (income.source === "Majdi's Salary") {
-        addIncomeIfNotExists(startOfMonth, 4739);
-        addIncomeIfNotExists(startOfMonth.date(15), 4739);
+        addIncomeIfNotExists(startOfMonth, 4739, 'twice-monthly');
+        addIncomeIfNotExists(startOfMonth.date(15), 4739, 'twice-monthly');
       } else if (income.source === "Ruba's Salary") {
         let checkDate = dayjs('2025-01-10');
         while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
@@ -178,7 +180,7 @@ export function Budget() {
               checkDate.day() === 5) {
             const weeksDiff = checkDate.diff(dayjs('2025-01-10'), 'week');
             if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
-              addIncomeIfNotExists(checkDate, income.amount);
+              addIncomeIfNotExists(checkDate, income.amount, 'biweekly');
             }
           }
           checkDate = checkDate.add(1, 'day');
@@ -186,7 +188,7 @@ export function Budget() {
       } else {
         const incomeDate = dayjs(income.date);
         if (incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear) {
-          addIncomeIfNotExists(incomeDate, income.amount);
+          addIncomeIfNotExists(incomeDate, income.amount, income.occurrenceType || 'once');
         }
       }
     });
