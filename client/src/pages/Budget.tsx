@@ -166,11 +166,12 @@ export function Budget() {
       if (income.source === "Majdi's Salary") {
         // Bi-monthly payments (1st and 15th)
         const firstPayday = startOfMonth;
-        const fifteenthPayday = startOfMonth.add(14, 'day');
+        const fifteenthPayday = startOfMonth.date(15);
 
         // Add first payment of the month (1st)
         occurrences.push({
           ...income,
+          amount: income.amount / 2, // Split the monthly amount
           date: firstPayday.toISOString(),
           id: `${income.id}-${firstPayday.format('YYYY-MM-DD')}`
         });
@@ -178,6 +179,7 @@ export function Budget() {
         // Add second payment of the month (15th)
         occurrences.push({
           ...income,
+          amount: income.amount / 2, // Split the monthly amount
           date: fifteenthPayday.toISOString(),
           id: `${income.id}-${fifteenthPayday.format('YYYY-MM-DD')}`
         });
@@ -218,7 +220,9 @@ export function Budget() {
 
     return monthlyIncomes.filter(income => {
       const incomeDate = dayjs(income.date);
-      return incomeDate.date() === day && incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear;
+      return incomeDate.date() === day && 
+             incomeDate.month() === selectedMonth && 
+             incomeDate.year() === selectedYear;
     });
   }
 
