@@ -161,6 +161,45 @@ function Router() {
     )
   }
 
+  const getMonthlyIncomeOccurrences = () => {
+    const currentDate = dayjs();
+    const startOfMonth = currentDate.startOf('month');
+    const endOfMonth = currentDate.endOf('month');
+    const startDate = dayjs('2025-01-10');
+
+    const occurrences: Income[] = [];
+    const addedDates = new Set<string>();
+
+    incomes.forEach(income => {
+      if (income.source === "Ruba's Salary") {
+        let checkDate = startDate.clone();
+        while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
+          if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
+            if (checkDate.day() === 5) {
+              const weeksDiff = checkDate.diff(startDate, 'week');
+              if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+                const dateStr = checkDate.format('YYYY-MM-DD');
+                if (!addedDates.has(`${income.source}-${dateStr}`)) {
+                  addedDates.add(`${income.source}-${dateStr}`);
+                  occurrences.push({
+                    ...income,
+                    date: checkDate.toISOString(),
+                    id: `${income.id}-${checkDate.format('YYYY-MM-DD')}`
+                  });
+                }
+              }
+            }
+          }
+          checkDate = checkDate.add(1, 'day');
+        }
+      } else {
+        occurrences.push(income);
+      }
+    });
+
+    return occurrences;
+  };
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen flex flex-col bg-background">
@@ -275,7 +314,6 @@ function Router() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-4">
-                    {/* Expenses Dropdown */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
@@ -315,7 +353,6 @@ function Router() {
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* Income Dropdown */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
@@ -331,25 +368,25 @@ function Router() {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel>Edit Income</DropdownMenuLabel>
-                        {incomes.map((income) => (
+                        {getMonthlyIncomeOccurrences().map((income) => (
                           <DropdownMenuItem
                             key={`edit-${income.id}`}
                             onClick={() => handleEditTransaction('income', income)}
                           >
                             <Edit className="mr-2 h-4 w-4" />
-                            {income.source}
+                            {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
                           </DropdownMenuItem>
                         ))}
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel>Delete Income</DropdownMenuLabel>
-                        {incomes.map((income) => (
+                        {getMonthlyIncomeOccurrences().map((income) => (
                           <DropdownMenuItem
                             key={`delete-${income.id}`}
                             onClick={() => handleDeleteTransaction('income', income)}
                             className="text-red-600"
                           >
                             <Trash className="mr-2 h-4 w-4" />
-                            {income.source}
+                            {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
                           </DropdownMenuItem>
                         ))}
                       </DropdownMenuContent>
