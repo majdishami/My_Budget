@@ -3,20 +3,11 @@ import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { Income, Bill } from "@/types";
 import { cn } from "@/lib/utils";
-import { LeftSidebar } from "@/components/LeftSidebar";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,8 +20,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 dayjs.extend(isBetween);
-
-type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'weekly';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -59,7 +48,6 @@ export function Budget() {
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   const [deletingIncome, setDeletingIncome] = useState<Income | null>(null);
   const [showDeleteIncomeDialog, setShowDeleteIncomeDialog] = useState(false);
-  const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
   const [showDailySummary, setShowDailySummary] = useState(false);
 
   const closeSummary = () => {
@@ -78,7 +66,7 @@ export function Budget() {
       const sampleIncomes: Income[] = [
         { id: "1", source: "Majdi's Salary", amount: 4739.00, date: today.date(1).toISOString() },
         { id: "2", source: "Majdi's Salary", amount: 4739.00, date: today.date(15).toISOString() },
-        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" } 
+        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" }
       ];
       setIncomes(sampleIncomes);
       localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
@@ -270,7 +258,7 @@ export function Budget() {
 
   const confirmIncomeDelete = () => {
     if (deletingIncome) {
-      const newIncomes = incomes.filter(i => i.source !== deletingIncome.source);
+      const newIncomes = incomes.filter(i => i.id !== deletingIncome.id); // Corrected filtering condition
       setIncomes(newIncomes);
       localStorage.setItem("incomes", JSON.stringify(newIncomes));
       setShowDeleteIncomeDialog(false);
@@ -279,7 +267,6 @@ export function Budget() {
   };
 
   const handleAddIncome = () => {
-    setAddIncomeDate(new Date());
     setShowAddIncomeDialog(true);
   };
 
@@ -315,22 +302,10 @@ export function Budget() {
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
-      <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
-        <LeftSidebar
-          incomes={incomes}
-          bills={bills}
-          onEditTransaction={handleEditTransaction}
-          onDeleteTransaction={handleDeleteTransaction}
-          onAddIncome={handleAddIncome}
-          onAddBill={handleAddBill}
-          onReset={handleReset}
-        />
-      </aside>
-
-      <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
-        <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex justify-between items-center">
+    <div className="min-h-screen flex flex-col bg-background">
+      <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
             <div className="space-y-2">
               <h1 className="text-2xl font-bold">
                 My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
@@ -399,119 +374,159 @@ export function Budget() {
               </div>
             </div>
           </div>
-        </Card>
 
-        <div className="flex-1 overflow-y-auto">
-          <Card className="m-4">
-            <div className="overflow-hidden">
-              <table className="w-full border-collapse">
-                <thead className="sticky top-0 bg-background z-10">
-                  <tr>
-                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
-                      <th key={day} className="p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
-                        {day}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {Array.from({ length: 6 }, (_, weekIndex) => (
-                    <tr key={weekIndex} className="divide-x">
-                      {Array.from({ length: 7 }, (_, dayIndex) => {
-                        const dayNumber = calendarDays[weekIndex * 7 + dayIndex];
-                        if (dayNumber === null) {
-                          return <td key={dayIndex} className="border p-2 bg-muted/10 h-48 w-[14.28%]" />;
-                        }
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleAddIncome}>
+              <Plus className="h-4 w-4 mr-2" /> Add Income
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleEditTransaction('income', incomes[0])}
+            >
+              <Edit className="h-4 w-4 mr-2" /> Edit Income
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleDeleteTransaction('income', incomes[0])}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Delete Income
+            </Button>
 
-                        const dayIncomes = getIncomeForDay(dayNumber);
-                        const dayBills = getBillsForDay(dayNumber);
-                        const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
+            <div className="h-6 w-px bg-border mx-2" />
 
-                        return (
-                          <td
-                            key={dayIndex}
-                            onClick={() => handleDayClick(dayNumber)}
-                            className={cn(
-                              "border p-2 align-top cursor-pointer transition-colors h-48 w-[14.28%]",
-                              "hover:bg-accent",
-                              isCurrentDay(dayNumber) && "ring-2 ring-primary ring-offset-2 border-primary",
-                              selectedDay === dayNumber && "bg-accent/50 font-semibold",
-                              hasTransactions && "shadow-sm"
-                            )}
-                          >
-                            <div className="flex justify-between items-start mb-1">
-                              <div className="flex flex-col">
-                                <span className={cn(
-                                  "font-medium text-lg",
-                                  isCurrentDay(dayNumber) && "text-primary font-bold"
-                                )}>
-                                  {dayNumber}
+            <Button variant="outline" size="sm" onClick={handleAddBill}>
+              <Plus className="h-4 w-4 mr-2" /> Add Bill
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleEditTransaction('bill', bills[0])}
+            >
+              <Edit className="h-4 w-4 mr-2" /> Edit Bill
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleDeleteTransaction('bill', bills[0])}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Delete Bill
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <main className="flex-1 overflow-y-auto">
+        <Card className="m-4">
+          <div className="overflow-hidden">
+            <table className="w-full border-collapse">
+              <thead className="sticky top-0 bg-background z-10">
+                <tr>
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
+                    <th key={day} className="p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
+                      {day}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {Array.from({ length: 6 }, (_, weekIndex) => (
+                  <tr key={weekIndex} className="divide-x">
+                    {Array.from({ length: 7 }, (_, dayIndex) => {
+                      const dayNumber = calendarDays[weekIndex * 7 + dayIndex];
+                      if (dayNumber === null) {
+                        return <td key={dayIndex} className="border p-2 bg-muted/10 h-48 w-[14.28%]" />;
+                      }
+
+                      const dayIncomes = getIncomeForDay(dayNumber);
+                      const dayBills = getBillsForDay(dayNumber);
+                      const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
+
+                      return (
+                        <td
+                          key={dayIndex}
+                          onClick={() => handleDayClick(dayNumber)}
+                          className={cn(
+                            "border p-2 align-top cursor-pointer transition-colors h-48 w-[14.28%]",
+                            "hover:bg-accent",
+                            isCurrentDay(dayNumber) && "ring-2 ring-primary ring-offset-2 border-primary",
+                            selectedDay === dayNumber && "bg-accent/50 font-semibold",
+                            hasTransactions && "shadow-sm"
+                          )}
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <div className="flex flex-col">
+                              <span className={cn(
+                                "font-medium text-lg",
+                                isCurrentDay(dayNumber) && "text-primary font-bold"
+                              )}>
+                                {dayNumber}
+                              </span>
+                              {isCurrentDay(dayNumber) && (
+                                <span className="text-xs font-medium text-primary">
+                                  Today
                                 </span>
-                                {isCurrentDay(dayNumber) && (
-                                  <span className="text-xs font-medium text-primary">
-                                    Today
-                                  </span>
+                              )}
+                            </div>
+                            {hasTransactions && (
+                              <div className="flex gap-1">
+                                {dayIncomes.length > 0 && (
+                                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                                )}
+                                {dayBills.length > 0 && (
+                                  <div className="w-2 h-2 rounded-full bg-red-500" />
                                 )}
                               </div>
-                              {hasTransactions && (
-                                <div className="flex gap-1">
-                                  {dayIncomes.length > 0 && (
-                                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                                  )}
-                                  {dayBills.length > 0 && (
-                                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <div className="space-y-0.5 text-xs">
-                              {dayIncomes.length > 0 && (
-                                <div className="space-y-0.5">
-                                  <p className="font-medium text-green-600 dark:text-green-400">Income</p>
-                                  {dayIncomes.map((income, index) => (
-                                    <div 
-                                      key={income.id} 
-                                      className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1"
-                                    >
-                                      <span className="truncate max-w-[60%]">
-                                        {index + 1}. {income.source}
-                                      </span>
-                                      <span className="font-medium shrink-0">
-                                        {formatCurrency(income.amount)}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              {dayBills.length > 0 && (
-                                <div className="space-y-0.5">
-                                  <p className="font-medium text-red-600 dark:text-red-400">Expenses</p>
-                                  {dayBills.map((bill, index) => (
-                                    <div 
-                                      key={bill.id} 
-                                      className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
-                                    >
-                                      <span className="truncate max-w-[60%]">
-                                        {index + 1}. {bill.name}
-                                      </span>
-                                      <span className="font-medium shrink-0">
-                                        {formatCurrency(bill.amount)}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
+                            )}
+                          </div>
+                          <div className="space-y-0.5 text-xs">
+                            {dayIncomes.length > 0 && (
+                              <div className="space-y-0.5">
+                                <p className="font-medium text-green-600 dark:text-green-400">Income</p>
+                                {dayIncomes.map((income, index) => (
+                                  <div 
+                                    key={income.id} 
+                                    className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1"
+                                  >
+                                    <span className="truncate max-w-[60%]">
+                                      {index + 1}. {income.source}
+                                    </span>
+                                    <span className="font-medium shrink-0">
+                                      {formatCurrency(income.amount)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {dayBills.length > 0 && (
+                              <div className="space-y-0.5">
+                                <p className="font-medium text-red-600 dark:text-red-400">Expenses</p>
+                                {dayBills.map((bill, index) => (
+                                  <div 
+                                    key={bill.id} 
+                                    className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
+                                  >
+                                    <span className="truncate max-w-[60%]">
+                                      {index + 1}. {bill.name}
+                                    </span>
+                                    <span className="font-medium shrink-0">
+                                      {formatCurrency(bill.amount)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       </main>
 
       <DailySummaryDialog
@@ -525,6 +540,34 @@ export function Budget() {
         totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
         totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
       />
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogDescription>
+            Are you sure you want to delete this transaction? This action cannot be undone.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={showDeleteIncomeDialog} onOpenChange={setShowDeleteIncomeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogDescription>
+            Are you sure you want to delete this transaction? This action cannot be undone.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteIncomeDialog(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmIncomeDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
