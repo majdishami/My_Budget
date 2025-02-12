@@ -44,6 +44,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (typeof income.date !== 'string' || isNaN(new Date(income.date).getTime())) {
       throw new Error('Income date must be a valid date string');
     }
+    if (typeof income.occurrenceType !== 'string' || !['once', 'monthly', 'biweekly', 'twice-monthly'].includes(income.occurrenceType)) {
+      throw new Error('Income occurrenceType must be one of: once, monthly, biweekly, twice-monthly');
+    }
     return true;
   };
 
@@ -81,6 +84,67 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
 
+  const generateIncomeOccurrences = (income: Income): Income[] => {
+    const occurrences: Income[] = [];
+    const currentDate = dayjs();
+    const startDate = dayjs(income.date);
+    const endDate = currentDate.endOf('month');
+
+    switch (income.occurrenceType) {
+      case 'once':
+        occurrences.push(income);
+        break;
+      case 'monthly':
+        let monthlyDate = startDate.clone();
+        while (monthlyDate.isSameOrBefore(endDate)) {
+          occurrences.push({
+            ...income,
+            id: `${income.id}-${monthlyDate.format('YYYY-MM-DD')}`,
+            date: monthlyDate.toISOString()
+          });
+          monthlyDate = monthlyDate.add(1, 'month');
+        }
+        break;
+      case 'biweekly':
+        let biweeklyDate = startDate.clone();
+        while (biweeklyDate.isSameOrBefore(endDate)) {
+          occurrences.push({
+            ...income,
+            id: `${income.id}-${biweeklyDate.format('YYYY-MM-DD')}`,
+            date: biweeklyDate.toISOString()
+          });
+          biweeklyDate = biweeklyDate.add(14, 'days');
+        }
+        break;
+      case 'twice-monthly':
+        // First occurrence on the specified date
+        occurrences.push({
+          ...income,
+          id: `${income.id}-1-${startDate.format('YYYY-MM-DD')}`,
+          date: startDate.toISOString()
+        });
+        // Second occurrence 15 days later
+        const secondDate = startDate.add(15, 'days');
+        if (secondDate.isSameOrBefore(endDate)) {
+          occurrences.push({
+            ...income,
+            id: `${income.id}-2-${secondDate.format('YYYY-MM-DD')}`,
+            date: secondDate.toISOString()
+          });
+        }
+        break;
+    }
+    return occurrences;
+  };
+
+  const getMonthlyIncomeOccurrences = () => {
+    const allOccurrences: Income[] = [];
+    incomes.forEach(income => {
+      allOccurrences.push(...generateIncomeOccurrences(income));
+    });
+    return allOccurrences.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
+  };
+
   const initializeDefaultData = async () => {
     try {
       setIsLoading(true);
@@ -88,9 +152,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const today = dayjs();
 
       const defaultIncomes: Income[] = [
-        { id: generateId(), source: "Majdi's Salary", amount: 4739, date: today.date(1).toISOString() },
-        { id: generateId(), source: "Majdi's Salary", amount: 4739, date: today.date(15).toISOString() },
-        { id: generateId(), source: "Ruba's Salary", amount: 2168, date: today.day(5).toISOString() }
+        { id: generateId(), source: "Majdi's Salary", amount: 4739, date: today.date(1).toISOString(), occurrenceType: 'monthly' },
+        { id: generateId(), source: "Ruba's Salary", amount: 2168, date: today.day(5).toISOString(), occurrenceType: 'monthly' }
       ];
 
       const defaultBills: Bill[] = [
@@ -246,7 +309,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <DataContext.Provider value={{
-      incomes,
+      incomes: getMonthlyIncomeOccurrences(),
       bills,
       saveIncomes: async (newIncomes) => {
         try {
