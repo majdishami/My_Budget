@@ -66,12 +66,24 @@ export default function EditExpenseDialog({
   const [reminderDays, setReminderDays] = useState(7);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch categories with proper error handling
-  const { data: categories = [], isError: isCategoriesError, error: categoriesError } = useQuery<Category[], Error>({
+  // Fetch categories with proper error handling and retry logic
+  const { 
+    data: categories = [], 
+    isError: isCategoriesError, 
+    error: categoriesError,
+    isLoading: isCategoriesLoading 
+  } = useQuery<Category[], Error>({
     queryKey: ['/api/categories'],
-    retry: 2,
+    retry: 3,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error loading categories",
+        description: error.message || "Failed to load categories. Please try again.",
+      });
+    }
   });
 
   const [errors, setErrors] = useState<{
@@ -110,37 +122,49 @@ export default function EditExpenseDialog({
   const validateForm = useCallback((): boolean => {
     const newErrors: typeof errors = {};
 
+    // Name validation with better error messages
     if (!name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = 'Please enter an expense name';
     } else if (name.length > 100) {
-      newErrors.name = 'Name must be less than 100 characters';
+      newErrors.name = `Name is too long (${name.length}/100 characters)`;
     }
 
+    // Amount validation with specific error messages
     const amountNum = parseFloat(amount);
-    if (!amount || isNaN(amountNum)) {
-      newErrors.amount = 'Please enter a valid amount';
+    if (!amount) {
+      newErrors.amount = 'Please enter an amount';
+    } else if (isNaN(amountNum)) {
+      newErrors.amount = 'Please enter a valid number';
     } else if (amountNum <= 0) {
       newErrors.amount = 'Amount must be greater than 0';
     } else if (amountNum > 1000000) {
-      newErrors.amount = 'Amount must be less than 1,000,000';
+      newErrors.amount = 'Amount cannot exceed 1,000,000';
     }
 
+    // Date validation with improved error messages
     if (dateType === 'monthly') {
       const dayNum = parseInt(day);
-      if (!day || isNaN(dayNum) || dayNum < 1 || dayNum > 31) {
-        newErrors.day = 'Please enter a valid day between 1 and 31';
+      if (!day) {
+        newErrors.day = 'Please enter a day of the month';
+      } else if (isNaN(dayNum)) {
+        newErrors.day = 'Please enter a valid number';
+      } else if (dayNum < 1 || dayNum > 31) {
+        newErrors.day = 'Day must be between 1 and 31';
       }
     } else if (!specificDate) {
-      newErrors.date = 'Please select a specific date';
+      newErrors.date = 'Please select a specific date for this expense';
     }
 
+    // Category validation
     if (!categoryId) {
-      newErrors.category = 'Please select a category';
+      newErrors.category = 'Please select a category for this expense';
+    } else if (!categories.some(cat => cat.id.toString() === categoryId)) {
+      newErrors.category = 'Selected category is invalid';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [name, amount, dateType, day, specificDate, categoryId]);
+  }, [name, amount, dateType, day, specificDate, categoryId, categories]);
 
   const handleConfirm = async () => {
     if (!expense || !validateForm() || isSubmitting) return;
@@ -168,24 +192,28 @@ export default function EditExpenseDialog({
         created_at: expense.created_at
       };
 
+      let updatedBill: Bill;
+
       if (dateType === 'monthly') {
-        onUpdate({
+        updatedBill = {
           ...expense,
           ...baseUpdates,
           isOneTime: false,
           date: undefined
-        });
+        };
       } else if (specificDate) {
-        const specificBill: Bill = {
-          id: generateId(),
+        updatedBill = {
+          id: expense.id,
           ...baseUpdates,
           day: dayjs(specificDate).date(),
           date: dayjs(specificDate).toISOString(),
           isOneTime: true
         };
-        onUpdate(specificBill);
+      } else {
+        throw new Error('Invalid date configuration');
       }
 
+      onUpdate(updatedBill);
       toast({
         title: "Success",
         description: "Expense updated successfully",
@@ -195,7 +223,7 @@ export default function EditExpenseDialog({
       console.error('Error updating expense:', error);
       setErrors(prev => ({
         ...prev,
-        general: 'Failed to update expense. Please try again.'
+        general: error instanceof Error ? error.message : 'Failed to update expense. Please try again.'
       }));
       toast({
         variant: "destructive",
@@ -330,6 +358,12 @@ export default function EditExpenseDialog({
                 <Alert variant="destructive" className="py-2">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription id="category-error">{errors.category}</AlertDescription>
+                </Alert>
+              )}
+              {isCategoriesLoading && (
+                <Alert variant="info" className="py-2">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2"/>
+                  Loading categories...
                 </Alert>
               )}
               {isCategoriesError && (
