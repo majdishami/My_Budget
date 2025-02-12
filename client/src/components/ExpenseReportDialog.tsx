@@ -53,7 +53,9 @@ const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
   return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
 };
 
+// Update interfaces at the top of the file
 interface Transaction {
+  id: string;
   date: string;
   description: string;
   amount: number;
@@ -61,13 +63,14 @@ interface Transaction {
   category: string;
   color?: string;
   icon?: string | null;
+  type?: 'income' | 'expense';
 }
 
 interface Category {
   id: number;
   name: string;
   color: string;
-  icon?: string;
+  icon?: string | null;
 }
 
 interface Bill {
@@ -81,23 +84,17 @@ interface Bill {
   isOneTime: boolean;
   category_name: string;
   category_color: string;
-  category?: { icon: string | null }; // Added category field with icon
+  category?: { icon: string | null };
 }
 
 interface CategoryTotal {
   category: string;
-  amount: number;
+  total: number;
   occurred: number;
-  color: string;
+  pending: number;
   occurredCount: number;
   pendingCount: number;
-  pending: number;
-}
-
-interface ExpenseReportDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  bills: Bill[];
+  color: string;
 }
 
 interface GroupedExpense {
@@ -112,6 +109,17 @@ interface GroupedExpense {
   pendingCount: number;
 }
 
+interface ExpenseReportDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  bills: Bill[];
+}
+
+interface ExpenseReportDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  bills: Bill[];
+}
 export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: ExpenseReportDialogProps) {
   const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
@@ -210,6 +218,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         // Only add if the occurrence falls within the date range
         if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
           result.push({
+            id: `${bill.id}-${currentDate.format('YYYY-MM-DD')}`, // Added unique ID
             date: currentDate.format('YYYY-MM-DD'),
             description: bill.name,
             amount: billAmount,
