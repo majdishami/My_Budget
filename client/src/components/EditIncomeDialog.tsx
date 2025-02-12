@@ -47,6 +47,19 @@ export function EditIncomeDialog({
     }
   }, [income]);
 
+  // Handle occurrence type change
+  const handleOccurrenceTypeChange = (value: 'once' | 'monthly' | 'biweekly' | 'twice-monthly') => {
+    setOccurrenceType(value);
+    if (value === 'twice-monthly') {
+      // For twice-monthly, always set the date to the 1st of the current/next month
+      const today = dayjs();
+      const firstOfMonth = today.date() < 15 
+        ? today.startOf('month')
+        : today.add(1, 'month').startOf('month');
+      setDate(firstOfMonth.format('YYYY-MM-DD'));
+    }
+  };
+
   const handleConfirm = () => {
     if (!income) return;
 
@@ -88,7 +101,7 @@ export function EditIncomeDialog({
             <Label htmlFor="occurrenceType">Frequency</Label>
             <Select
               value={occurrenceType}
-              onValueChange={(value: 'once' | 'monthly' | 'biweekly' | 'twice-monthly') => setOccurrenceType(value)}
+              onValueChange={handleOccurrenceTypeChange}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select frequency" />
@@ -101,6 +114,12 @@ export function EditIncomeDialog({
               </SelectContent>
             </Select>
           </div>
+          {occurrenceType === 'twice-monthly' && (
+            <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+              This income will occur automatically on the 1st and 15th of every month.
+              No date selection is needed.
+            </div>
+          )}
           {occurrenceType !== 'twice-monthly' && (
             <div className="grid gap-2">
               <Label htmlFor="date">
@@ -112,11 +131,6 @@ export function EditIncomeDialog({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
-            </div>
-          )}
-          {occurrenceType === 'twice-monthly' && (
-            <div className="text-sm text-muted-foreground">
-              This income will occur on the 1st and 15th of every month
             </div>
           )}
         </div>
