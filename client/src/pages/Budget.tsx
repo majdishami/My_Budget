@@ -159,18 +159,35 @@ export function Budget() {
     const currentDate = dayjs().year(selectedYear).month(selectedMonth);
     const startOfMonth = currentDate.startOf('month');
     const endOfMonth = currentDate.endOf('month');
-    const startDate = dayjs('2025-01-10');
 
     const occurrences: Income[] = [];
 
     incomes.forEach(income => {
-      if (income.source === "Ruba's Salary") {
+      if (income.source === "Majdi's Salary") {
+        // Bi-monthly payments (1st and 15th)
+        const firstPayday = startOfMonth;
+        const fifteenthPayday = startOfMonth.add(14, 'day');
+
+        // Add first payment of the month (1st)
+        occurrences.push({
+          ...income,
+          date: firstPayday.toISOString(),
+          id: `${income.id}-${firstPayday.format('YYYY-MM-DD')}`
+        });
+
+        // Add second payment of the month (15th)
+        occurrences.push({
+          ...income,
+          date: fifteenthPayday.toISOString(),
+          id: `${income.id}-${fifteenthPayday.format('YYYY-MM-DD')}`
+        });
+      } else if (income.source === "Ruba's Salary") {
         // Calculate bi-weekly occurrences
-        let checkDate = startDate.clone();
+        let checkDate = dayjs('2025-01-10');
         while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
           if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
-            if (checkDate.day() === 5) {
-              const weeksDiff = checkDate.diff(startDate, 'week');
+            if (checkDate.day() === 5) { // Friday
+              const weeksDiff = checkDate.diff(dayjs('2025-01-10'), 'week');
               if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
                 occurrences.push({
                   ...income,
