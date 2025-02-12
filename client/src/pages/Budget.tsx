@@ -292,6 +292,37 @@ export function Budget() {
   };
 
 
+  const calculateMonthlyTotals = () => {
+    const monthStart = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
+    const monthEnd = monthStart.endOf('month');
+
+    let totalIncome = 0;
+    let totalExpenses = 0;
+
+    // Calculate total income for the month
+    const monthlyIncomes = getMonthlyIncomeOccurrences();
+    monthlyIncomes.forEach(income => {
+      totalIncome += income.amount;
+    });
+
+    // Calculate total expenses for the month
+    bills.forEach(bill => {
+      if (bill.isOneTime) {
+        const billDate = dayjs(bill.date);
+        if (billDate.isBetween(monthStart, monthEnd, 'day', '[]')) {
+          totalExpenses += bill.amount;
+        }
+      } else {
+        totalExpenses += bill.amount;
+      }
+    });
+
+    return {
+      income: totalIncome,
+      expenses: totalExpenses
+    };
+  };
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-between p-4 border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -332,21 +363,21 @@ export function Budget() {
           <div>
             <p className="text-sm text-muted-foreground">Month Total Income</p>
             <p className="text-lg font-semibold text-green-600">
-              {formatCurrency(calculateTotalsUpToDay(daysInMonth).totalIncome)}
+              {formatCurrency(calculateMonthlyTotals().income)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Month Total Bills</p>
             <p className="text-lg font-semibold text-red-600">
-              {formatCurrency(calculateTotalsUpToDay(daysInMonth).totalBills)}
+              {formatCurrency(calculateMonthlyTotals().expenses)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Month Net Balance</p>
             <p className="text-lg font-semibold text-blue-600">
               {formatCurrency(
-                calculateTotalsUpToDay(daysInMonth).totalIncome -
-                calculateTotalsUpToDay(daysInMonth).totalBills
+                calculateMonthlyTotals().income -
+                calculateMonthlyTotals().expenses
               )}
             </p>
           </div>
@@ -478,6 +509,7 @@ export function Budget() {
         dayBills={getBillsForDay(selectedDay)}
         totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
         totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
+        monthlyTotals={calculateMonthlyTotals()}
       />
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

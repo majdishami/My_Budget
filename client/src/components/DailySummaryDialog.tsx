@@ -26,6 +26,10 @@ interface DailySummaryDialogProps {
   dayBills: Bill[];
   totalIncomeUpToToday: number;
   totalBillsUpToToday: number;
+  monthlyTotals: {
+    income: number;
+    expenses: number;
+  };
 }
 
 export default function DailySummaryDialog({
@@ -37,7 +41,8 @@ export default function DailySummaryDialog({
   dayIncomes,
   dayBills,
   totalIncomeUpToToday,
-  totalBillsUpToToday
+  totalBillsUpToToday,
+  monthlyTotals,
 }: DailySummaryDialogProps) {
   const selectedDate = dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
   const currentDate = selectedDate.format('MMMM D, YYYY');
@@ -46,13 +51,9 @@ export default function DailySummaryDialog({
   const dailyBills = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
   const totalNet = totalIncomeUpToToday - totalBillsUpToToday;
 
-  // Get the total income and expenses for the selected month from monthly totals
-  const totalMonthIncome = 13814; // This should come from your data source
-  const totalMonthExpenses = 11031; // This should come from your data source
-
-  // Calculate remaining values
-  const remainingIncome = totalMonthIncome - totalIncomeUpToToday;
-  const remainingExpenses = totalMonthExpenses - totalBillsUpToToday;
+  // Calculate remaining values using the provided monthly totals
+  const remainingIncome = monthlyTotals.income - totalIncomeUpToToday;
+  const remainingExpenses = monthlyTotals.expenses - totalBillsUpToToday;
   const remainingBalance = remainingIncome - remainingExpenses;
 
   if (!isOpen) return null;
@@ -136,24 +137,24 @@ export default function DailySummaryDialog({
             </div>
           </Card>
 
-          {/* 1st of Month Up To Selected Day */}
+          {/* Running Totals */}
           <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-4">1st of Month Up To Selected Day</h3>
+            <h3 className="text-lg font-semibold mb-4">Running Totals (Month to Date)</h3>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-sm">
-                <p className="text-muted-foreground">Incurred Income</p>
+                <p className="text-muted-foreground">Total Income</p>
                 <p className="text-lg font-semibold text-green-600 dark:text-green-400">
                   {formatCurrency(totalIncomeUpToToday)}
                 </p>
               </div>
               <div className="text-sm">
-                <p className="text-muted-foreground">Incurred Expenses</p>
+                <p className="text-muted-foreground">Total Expenses</p>
                 <p className="text-lg font-semibold text-red-600 dark:text-red-400">
                   {formatCurrency(totalBillsUpToToday)}
                 </p>
               </div>
               <div className="text-sm">
-                <p className="text-muted-foreground">Balance</p>
+                <p className="text-muted-foreground">Net Balance</p>
                 <p className={`text-lg font-semibold ${
                   totalNet >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }`}>
@@ -173,7 +174,7 @@ export default function DailySummaryDialog({
                   {formatCurrency(remainingIncome)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  From total {formatCurrency(totalMonthIncome)}
+                  From total {formatCurrency(monthlyTotals.income)}
                 </p>
               </div>
               <div className="text-sm">
@@ -182,7 +183,7 @@ export default function DailySummaryDialog({
                   {formatCurrency(remainingExpenses)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  From total {formatCurrency(totalMonthExpenses)}
+                  From total {formatCurrency(monthlyTotals.expenses)}
                 </p>
               </div>
               <div className="text-sm">
