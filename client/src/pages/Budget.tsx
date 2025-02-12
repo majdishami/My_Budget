@@ -171,7 +171,7 @@ export function Budget() {
         // Add first payment of the month (1st)
         occurrences.push({
           ...income,
-          amount: income.amount / 2, // Split the monthly amount
+          amount: 4739, // Fixed amount for each payment
           date: firstPayday.toISOString(),
           id: `${income.id}-${firstPayday.format('YYYY-MM-DD')}`
         });
@@ -179,7 +179,7 @@ export function Budget() {
         // Add second payment of the month (15th)
         occurrences.push({
           ...income,
-          amount: income.amount / 2, // Split the monthly amount
+          amount: 4739, // Fixed amount for each payment
           date: fifteenthPayday.toISOString(),
           id: `${income.id}-${fifteenthPayday.format('YYYY-MM-DD')}`
         });
