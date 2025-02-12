@@ -166,13 +166,13 @@ function Router() {
                       variant={location === "/" ? "default" : "ghost"}
                       size="sm"
                       className={clsx(
-                        "flex items-center gap-2",
+                        "flex items-center gap-2 cursor-pointer",
                         location === "/" && "bg-primary text-primary-foreground hover:bg-primary/90"
                       )}
                       aria-label="Go to Dashboard"
                     >
-                      <LayoutDashboard className="h-4 w-4 select-none pointer-events-none" aria-hidden="true" />
-                      <span className="select-none pointer-events-none">Dashboard</span>
+                      <LayoutDashboard className="h-4 w-4 select-none pointer-events-none cursor-default" aria-hidden="true" />
+                      <span className="select-none pointer-events-none cursor-default">Dashboard</span>
                     </Button>
                   </Link>
 
