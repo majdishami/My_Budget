@@ -53,7 +53,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
@@ -400,26 +399,37 @@ function Router() {
                               return uniqueIncomes;
                             }
                             return [...uniqueIncomes, income];
-                          }, []).map((income) => (
-                            <DropdownMenuItem
-                              key={`delete-${income.id}`}
-                              onClick={() => handleDeleteTransaction('income', income)}
-                              className="text-red-600"
-                            >
-                              <Trash className="mr-2 h-4 w-4" />
-                              <div className="flex items-center gap-2">
-                                <span>{income.source}</span>
-                                {income.occurrenceType !== 'once' && (
+                          }, []).map((income) => {
+                            // Determine the correct occurrence type label for delete section
+                            let occurrenceTypeLabel = income.occurrenceType;
+                            if (income.source === "Majdi's Salary") {
+                              occurrenceTypeLabel = "twice-monthly";
+                            } else if (income.source === "Ruba's Salary") {
+                              occurrenceTypeLabel = "biweekly";
+                            }
+
+                            return (
+                              <DropdownMenuItem
+                                key={`delete-${income.id}`}
+                                onClick={() => handleDeleteTransaction('income', income)}
+                                className="text-red-600"
+                              >
+                                <Trash className="mr-2 h-4 w-4" />
+                                <div className="flex items-center gap-2">
+                                  <span>{income.source}</span>
                                   <Badge variant="outline" className="ml-2">
-                                    {income.occurrenceType}
+                                    {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
+                                      occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
+                                      occurrenceTypeLabel === 'monthly' ? 'Monthly' :
+                                      occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
                                   </Badge>
-                                )}
-                                <span className="text-muted-foreground text-sm">
-                                  ({dayjs(income.date).format('MMM D')})
-                                </span>
-                              </div>
-                            </DropdownMenuItem>
-                          ))}
+                                  <span className="text-muted-foreground text-sm">
+                                    ({dayjs(income.date).format('MMM D')})
+                                  </span>
+                                </div>
+                              </DropdownMenuItem>
+                            );
+                          })}
                         </DropdownMenuContent>
                       </DropdownMenu>
 
