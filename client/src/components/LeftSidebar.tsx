@@ -58,12 +58,19 @@ export function LeftSidebar({
   const [showDatabaseSyncDialog, setShowDatabaseSyncDialog] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleRefresh = () => {
-    window.location.reload();
-  };
+  // Function to format the occurrence type for display
+  const formatOccurrenceType = (income: Income) => {
+    if (income.source === "Majdi's Salary") return "Twice Monthly";
+    if (income.source === "Ruba's Salary") return "Bi-Weekly";
 
-  const isActiveRoute = (path: string) => {
-    return location === path;
+    const types = {
+      'once': 'One Time',
+      'weekly': 'Weekly',
+      'monthly': 'Monthly',
+      'biweekly': 'Bi-Weekly',
+      'twice-monthly': 'Twice Monthly'
+    };
+    return types[income.occurrenceType || 'monthly'];
   };
 
   return (
@@ -82,7 +89,7 @@ export function LeftSidebar({
           variant="ghost"
           size="icon"
           className="bg-background"
-          onClick={handleRefresh}
+          onClick={() => window.location.reload()}
         >
           <RefreshCw className="h-5 w-5" />
         </Button>
@@ -97,6 +104,56 @@ export function LeftSidebar({
         "overflow-y-auto h-screen lg:h-auto"
       )}>
         <div className="p-4 space-y-6 pt-16 lg:pt-4">
+          {/* Income Section */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Incomes</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onAddIncome}
+                className="h-8 w-8"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-1">
+              {incomes.map((income) => (
+                <div
+                  key={income.id}
+                  className="flex items-center justify-between p-2 hover:bg-accent rounded-lg"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {income.source}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatOccurrenceType(income)} - {formatCurrency(income.amount)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => onEditTransaction('income', income)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => onDeleteTransaction('income', income)}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Main Navigation */}
           <div className="space-y-2">
             <Link href="/">
@@ -280,3 +337,13 @@ export function LeftSidebar({
     </div>
   );
 }
+
+// Helper function to format currency
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+};
