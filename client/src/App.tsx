@@ -164,7 +164,7 @@ function Router() {
                   <Link
                     href="/"
                     className={clsx(
-                      "flex items-center gap-2 px-3 py-2 rounded-md",
+                      "flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer",
                       location === "/"
                         ? "bg-primary text-primary-foreground hover:bg-primary/90"
                         : "hover:bg-accent hover:text-accent-foreground",
