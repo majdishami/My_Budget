@@ -260,79 +260,78 @@ export function Budget() {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col gap-4 p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold">My Budget</h1>
-              <div className="flex items-center gap-2 mt-2">
-                <select 
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                  className="p-2 border rounded bg-background"
-                >
-                  {months.map(month => (
-                    <option key={month.value} value={month.value}>{month.label}</option>
-                  ))}
-                </select>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  className="p-2 border rounded bg-background"
-                >
-                  {years.map(year => (
-                    <option key={year.value} value={year.value}>{year.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleAddIncome}>
-                <Plus className="h-4 w-4 mr-2" /> Add Income
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleEditTransaction('income', incomes[0])}>
-                <Edit className="h-4 w-4 mr-2" /> Edit Income
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleDeleteTransaction('income', incomes[0])}>
-                <Trash2 className="h-4 w-4 mr-2" /> Delete Income
-              </Button>
-
-              <div className="h-6 w-px bg-border mx-2" />
-
-              <Button variant="outline" size="sm" onClick={handleAddBill}>
-                <Plus className="h-4 w-4 mr-2" /> Add Bill
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleEditTransaction('bill', bills[0])}>
-                <Edit className="h-4 w-4 mr-2" /> Edit Bill
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleDeleteTransaction('bill', bills[0])}>
-                <Trash2 className="h-4 w-4 mr-2" /> Delete Bill
-              </Button>
+      <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
+        <div className="flex items-center gap-6">
+          <div>
+            <h1 className="text-2xl font-bold">My Budget</h1>
+            <div className="flex items-center gap-2 mt-2">
+              <select 
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                className="p-2 border rounded bg-background"
+              >
+                {months.map(month => (
+                  <option key={month.value} value={month.value}>{month.label}</option>
+                ))}
+              </select>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                className="p-2 border rounded bg-background"
+              >
+                {years.map(year => (
+                  <option key={year.value} value={year.value}>{year.label}</option>
+                ))}
+              </select>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Month Total Income</p>
-              <p className="text-lg font-semibold text-green-600">
-                {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalIncome)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Month Total Bills</p>
-              <p className="text-lg font-semibold text-red-600">
-                {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalBills)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Month Net Balance</p>
-              <p className="text-lg font-semibold text-blue-600">
-                {formatCurrency(
-                  calculateTotalsUpToDay(totalDaysInMonth).totalIncome -
-                  calculateTotalsUpToDay(totalDaysInMonth).totalBills
-                )}
-              </p>
-            </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleAddIncome}>
+              <Plus className="h-4 w-4 mr-2" /> Add Income
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleEditTransaction('income', incomes[0])}>
+              <Edit className="h-4 w-4 mr-2" /> Edit Income
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleDeleteTransaction('income', incomes[0])}>
+              <Trash2 className="h-4 w-4 mr-2" /> Delete Income
+            </Button>
+
+            <div className="h-6 w-px bg-border mx-2" />
+
+            <Button variant="outline" size="sm" onClick={handleAddBill}>
+              <Plus className="h-4 w-4 mr-2" /> Add Bill
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleEditTransaction('bill', bills[0])}>
+              <Edit className="h-4 w-4 mr-2" /> Edit Bill
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleDeleteTransaction('bill', bills[0])}>
+              <Trash2 className="h-4 w-4 mr-2" /> Delete Bill
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Month Total Income</p>
+            <p className="text-lg font-semibold text-green-600">
+              {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalIncome)}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Month Total Bills</p>
+            <p className="text-lg font-semibold text-red-600">
+              {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalBills)}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Month Net Balance</p>
+            <p className="text-lg font-semibold text-blue-600">
+              {formatCurrency(
+                calculateTotalsUpToDay(totalDaysInMonth).totalIncome -
+                calculateTotalsUpToDay(totalDaysInMonth).totalBills
+              )}
+            </p>
           </div>
         </div>
       </div>
