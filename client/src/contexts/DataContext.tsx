@@ -88,7 +88,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const occurrences: Income[] = [];
     const currentDate = dayjs();
     const startDate = dayjs(income.date);
-    const endDate = currentDate.endOf('month');
+    // Generate occurrences for 12 months into the future
+    const endDate = currentDate.add(12, 'months').endOf('month');
 
     switch (income.occurrenceType) {
       case 'once':
@@ -117,20 +118,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
         break;
       case 'twice-monthly':
-        // First occurrence on the specified date
-        occurrences.push({
-          ...income,
-          id: `${income.id}-1-${startDate.format('YYYY-MM-DD')}`,
-          date: startDate.toISOString()
-        });
-        // Second occurrence 15 days later
-        const secondDate = startDate.add(15, 'days');
-        if (secondDate.isSameOrBefore(endDate)) {
+        // Generate twice-monthly occurrences for each month
+        let currentMonth = startDate.clone();
+        while (currentMonth.isSameOrBefore(endDate)) {
+          // First occurrence on the 1st of the month
           occurrences.push({
             ...income,
-            id: `${income.id}-2-${secondDate.format('YYYY-MM-DD')}`,
-            date: secondDate.toISOString()
+            id: `${income.id}-1-${currentMonth.format('YYYY-MM-DD')}`,
+            date: currentMonth.date(1).toISOString()
           });
+
+          // Second occurrence on the 15th of the month
+          occurrences.push({
+            ...income,
+            id: `${income.id}-2-${currentMonth.format('YYYY-MM-DD')}`,
+            date: currentMonth.date(15).toISOString()
+          });
+
+          currentMonth = currentMonth.add(1, 'month');
         }
         break;
     }
