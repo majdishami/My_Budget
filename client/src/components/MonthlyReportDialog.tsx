@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getCurrentDate } from '@/lib/utils';
 import dayjs from 'dayjs';
 import {
   Table,
@@ -33,126 +33,126 @@ interface MonthlyReportDialogProps {
 
 export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyReportDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const REFERENCE_DATE = dayjs('2025-02-10'); // Today's date
+  const today = getCurrentDate(); // Use the getCurrentDate utility instead of fixed date
 
   useEffect(() => {
     if (!isOpen) return;
 
-    // Generate all transactions for February
+    // Generate all transactions for the current month
     const allTransactions: Transaction[] = [
       // Income transactions - Majdi's bi-monthly salary
       {
-        date: '2025-02-01',
+        date: today.date(1).format('YYYY-MM-DD'),
         description: "Majdi's Salary",
         amount: 4739,
         type: 'income'
       },
       {
-        date: '2025-02-15',
+        date: today.date(15).format('YYYY-MM-DD'),
         description: "Majdi's Salary",
         amount: 4739,
         type: 'income'
       },
       // Income transactions - Ruba's bi-weekly salary
       {
-        date: '2025-02-07',
+        date: today.date(7).format('YYYY-MM-DD'),
         description: "Ruba's Salary",
         amount: 2168,
         type: 'income'
       },
       {
-        date: '2025-02-21',
+        date: today.date(21).format('YYYY-MM-DD'),
         description: "Ruba's Salary",
         amount: 2168,
         type: 'income'
       },
       // Monthly expenses
       {
-        date: '2025-02-01',
+        date: today.date(1).format('YYYY-MM-DD'),
         description: 'ATT Phone Bill',
         amount: 429,
         type: 'expense'
       },
       {
-        date: '2025-02-01',
+        date: today.date(1).format('YYYY-MM-DD'),
         description: "Maid's 1st payment",
         amount: 120,
         type: 'expense'
       },
       {
-        date: '2025-02-01',
+        date: today.date(1).format('YYYY-MM-DD'),
         description: 'Monthly Rent',
         amount: 3750,
         type: 'expense'
       },
       {
-        date: '2025-02-03',
+        date: today.date(3).format('YYYY-MM-DD'),
         description: 'Sling TV',
         amount: 75,
         type: 'expense'
       },
       {
-        date: '2025-02-06',
+        date: today.date(6).format('YYYY-MM-DD'),
         description: 'Cox Internet',
         amount: 81,
         type: 'expense'
       },
       {
-        date: '2025-02-07',
+        date: today.date(7).format('YYYY-MM-DD'),
         description: 'Water Bill',
         amount: 80,
         type: 'expense'
       },
       {
-        date: '2025-02-07',
+        date: today.date(7).format('YYYY-MM-DD'),
         description: 'NV Energy Electrical',
         amount: 250,
         type: 'expense'
       },
       {
-        date: '2025-02-09',
+        date: today.date(9).format('YYYY-MM-DD'),
         description: 'TransAmerica Life Insurance',
         amount: 77,
         type: 'expense'
       },
       {
-        date: '2025-02-14',
+        date: today.date(14).format('YYYY-MM-DD'),
         description: 'Credit Card minimum payments',
         amount: 225,
         type: 'expense'
       },
       {
-        date: '2025-02-14',
+        date: today.date(14).format('YYYY-MM-DD'),
         description: 'Apple/Google/YouTube',
         amount: 130,
         type: 'expense'
       },
       {
-        date: '2025-02-16',
+        date: today.date(16).format('YYYY-MM-DD'),
         description: 'Expenses & Groceries',
         amount: 3000,
         type: 'expense'
       },
       {
-        date: '2025-02-17',
+        date: today.date(17).format('YYYY-MM-DD'),
         description: "Maid's 2nd Payment",
         amount: 120,
         type: 'expense'
       },
       {
-        date: '2025-02-17',
+        date: today.date(17).format('YYYY-MM-DD'),
         description: 'SoFi Personal Loan',
         amount: 1915,
         type: 'expense'
       },
       {
-        date: '2025-02-17',
+        date: today.date(17).format('YYYY-MM-DD'),
         description: 'Southwest Gas',
         amount: 75,
         type: 'expense'
       },
       {
-        date: '2025-02-28',
+        date: today.date(28).format('YYYY-MM-DD'),
         description: 'Car Insurance for 3 cars',
         amount: 704,
         type: 'expense'
@@ -160,11 +160,11 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
     ];
 
     setTransactions(allTransactions);
-  }, [isOpen]);
+  }, [isOpen, today]);
 
-  // Split transactions into occurred and pending based on REFERENCE_DATE
-  const occurred = transactions.filter(t => dayjs(t.date).isSameOrBefore(REFERENCE_DATE));
-  const pending = transactions.filter(t => dayjs(t.date).isAfter(REFERENCE_DATE));
+  // Split transactions into occurred and pending based on today's date
+  const occurred = transactions.filter(t => dayjs(t.date).isSameOrBefore(today));
+  const pending = transactions.filter(t => dayjs(t.date).isAfter(today));
 
   // Calculate summaries
   const occurredIncomes = occurred.filter(t => t.type === 'income');
@@ -191,13 +191,13 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
         <DialogHeader className="border-b pb-4">
           <DialogTitle className="text-xl font-bold flex items-center justify-between">
             <div className="flex items-center gap-2">
-              Monthly Report - February 2025
+              Monthly Report - {today.format('MMMM YYYY')}
               <Calendar className="h-5 w-5 text-muted-foreground" />
             </div>
             <div className="flex items-center gap-2">
               <div className="text-sm font-normal flex items-center gap-1 bg-muted px-2 py-1 rounded-md">
                 <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                <span>As of February 10, 2025</span>
+                <span>As of {today.format('MMMM D, YYYY')}</span>
               </div>
               <DialogClose asChild>
                 <button
@@ -276,7 +276,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
           <div className="border rounded-lg p-4 bg-green-50/50 dark:bg-green-950/20">
             <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
               <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
-              Occurred Transactions (Through Feb 10)
+              Occurred Transactions (Through {today.format('MMM D')})
             </h2>
 
             {/* Occurred Income */}
@@ -346,7 +346,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
           <div className="border rounded-lg p-4 bg-yellow-50/50 dark:bg-yellow-950/20">
             <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
               <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full"></span>
-              Pending Transactions (After Feb 10)
+              Pending Transactions (After {today.format('MMM D')})
             </h2>
 
             {/* Pending Income */}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import MonthlyReportDialog from "@/components/MonthlyReportDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Income, Bill } from "@/types";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getCurrentDate } from "@/lib/utils";
 import { useLocation } from "wouter";
 
 export default function MonthlyReport() {
@@ -18,6 +18,8 @@ export default function MonthlyReport() {
     };
   } | null>(null);
 
+  const today = getCurrentDate();
+
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
@@ -27,7 +29,7 @@ export default function MonthlyReport() {
 
   return (
     <div className="container mx-auto p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Monthly Report - February 2025</h1>
+      <h1 className="text-2xl font-bold">Monthly Report - {today.format('MMMM YYYY')}</h1>
       {monthlyData && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
