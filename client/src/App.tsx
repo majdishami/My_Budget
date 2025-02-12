@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2, X, PlusCircle, BarChart4, Menu,
   Download, Database, Tags, ChevronDown,
-  RotateCw
+  RotateCw, Plus, Edit, Trash, FileText
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -55,6 +55,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { clsx } from 'clsx';
 import { Income, Bill, OccurrenceType } from "@/types";
@@ -274,21 +275,83 @@ function Router() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-4">
+                    {/* Expenses Dropdown */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
-                          <PlusCircle className="h-4 w-4 mr-2" />
-                          Add
+                          <FileText className="h-4 w-4" />
+                          Expenses
                           <ChevronDown className="h-4 w-4" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuItem onClick={() => setShowAddExpenseDialog(true)}>
+                          <Plus className="mr-2 h-4 w-4" />
                           Add Expense
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Edit Expenses</DropdownMenuLabel>
+                        {bills.map((bill) => (
+                          <DropdownMenuItem
+                            key={`edit-${bill.id}`}
+                            onClick={() => handleEditTransaction('bill', bill)}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            {bill.name}
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Delete Expenses</DropdownMenuLabel>
+                        {bills.map((bill) => (
+                          <DropdownMenuItem
+                            key={`delete-${bill.id}`}
+                            onClick={() => handleDeleteTransaction('bill', bill)}
+                            className="text-red-600"
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            {bill.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Income Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
+                          <FileText className="h-4 w-4" />
+                          Income
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
                         <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
+                          <Plus className="mr-2 h-4 w-4" />
                           Add Income
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Edit Income</DropdownMenuLabel>
+                        {incomes.map((income) => (
+                          <DropdownMenuItem
+                            key={`edit-${income.id}`}
+                            onClick={() => handleEditTransaction('income', income)}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            {income.source}
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Delete Income</DropdownMenuLabel>
+                        {incomes.map((income) => (
+                          <DropdownMenuItem
+                            key={`delete-${income.id}`}
+                            onClick={() => handleDeleteTransaction('income', income)}
+                            className="text-red-600"
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            {income.source}
+                          </DropdownMenuItem>
+                        ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
 
@@ -332,9 +395,9 @@ function Router() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    <ThemeToggle />
                   </div>
                 )}
-                <ThemeToggle />
               </div>
             </div>
           </Card>
