@@ -828,23 +828,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                               {dayjs(monthKey).format('MMMM YYYY')}
                             </CardTitle>
                             <div className="text-sm space-y-1">
-                              <div className="flex justify-between items-center">
-                                <span className="text-blue-600">Net Balance up today:</span>
-                                <span className="text-blue-600 font-medium">
-                                  {formatCurrency(monthlyTotal)}
-                                </span>
+                              <div className="flex justify-between items-center text-blue-600">
+                                Net Balance up today: {formatCurrency(monthlyTotal)}
                               </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-blue-600">Net:</span>
-                                <span className="text-blue-600 font-medium">
-                                  {formatCurrency(monthlyPaid)}
-                                </span>
+                              <div className="flex justify-between items-center text-blue-600">
+                                Net: {formatCurrency(monthlyPaid)}
                               </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-blue-600">Monthly Net:</span>
-                                <span className="text-blue-600 font-medium">
-                                  {formatCurrency(monthlyTotal - monthlyPaid)}
-                                </span>
+                              <div className="flex justify-between items-center text-blue-600">
+                                Monthly Net: {formatCurrency(monthlyTotal - monthlyPaid)}
                               </div>
                             </div>
                           </CardHeader>
@@ -910,7 +901,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                   ))}
                               </TableBody>
                             </Table>
-                          </CardContent>
+                          </CardContent>`
                         </Card>
                       );
                     })}
