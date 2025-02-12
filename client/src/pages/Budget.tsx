@@ -83,18 +83,17 @@ export function Budget() {
         }
       };
 
-      if (income.occurrenceType === 'twice-monthly') {
-        if (income.firstDate) {
-          addIncomeIfNotExists(startOfMonth.date(income.firstDate), income.amount / 2, 'twice-monthly');
-        }
-        if (income.secondDate) {
-          addIncomeIfNotExists(startOfMonth.date(income.secondDate), income.amount / 2, 'twice-monthly');
-        }
-      } else if (income.occurrenceType === 'biweekly') {
+      if (income.source === "Majdi's Salary") {
+        // Add first occurrence on the 1st
+        addIncomeIfNotExists(startOfMonth.date(1), 4739, 'twice-monthly');
+        // Add second occurrence on the 15th
+        addIncomeIfNotExists(startOfMonth.date(15), 4739, 'twice-monthly');
+      } else if (income.source === "Ruba's Salary") {
+        // Calculate bi-weekly dates starting from Jan 10, 2025
         let checkDate = dayjs('2025-01-10');
         while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
           if ((checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) && 
-              checkDate.day() === 5) {
+              checkDate.day() === 5) { // Friday
             const weeksDiff = checkDate.diff(dayjs('2025-01-10'), 'week');
             if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
               addIncomeIfNotExists(checkDate, income.amount, 'biweekly');
