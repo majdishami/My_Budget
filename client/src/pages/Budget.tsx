@@ -4,7 +4,7 @@
  * ================================================
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { Income, Bill } from "@/types";
@@ -40,7 +40,7 @@ const formatCurrency = (amount: number) => {
 
 export function Budget() {
   const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction } = useData();
-  const today = getCurrentDate(); // Use the getCurrentDate utility instead of hardcoded date
+  const today = getCurrentDate();
   const [selectedDay, setSelectedDay] = useState(today.date());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedYear, setSelectedYear] = useState(today.year());
@@ -51,32 +51,51 @@ export function Budget() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [deletingBill, setDeletingBill] = useState<Bill | null>(null);
   const [deletingIncome, setDeletingIncome] = useState<Income | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleAddIncome = () => {
-    const newIncome: Income = {
-      id: generateId(),
-      source: "",
-      amount: 0,
-      date: today.toISOString(),
-      occurrenceType: 'once' // Default to once
-    };
-    addIncome(newIncome);
+  // Add useEffect to handle initial data loading state
+  useEffect(() => {
+    if (incomes !== undefined && bills !== undefined) {
+      setIsLoading(false);
+    }
+  }, [incomes, bills]);
+
+  // Enhanced error handling for income and bill operations
+  const handleAddIncome = async () => {
+    try {
+      const newIncome: Income = {
+        id: generateId(),
+        source: "",
+        amount: 0,
+        date: today.toISOString(),
+        occurrenceType: 'once'
+      };
+      await addIncome(newIncome);
+    } catch (error) {
+      console.error('Error adding income:', error);
+      // Handle error appropriately
+    }
   };
 
-  const handleAddBill = () => {
-    const newBill: Bill = {
-      id: generateId(),
-      name: "",
-      amount: 0,
-      day: today.date(),
-      category_id: 1,
-      category_name: "Uncategorized",
-      user_id: 1,
-      created_at: today.toISOString(),
-      isOneTime: false,
-      date: today.toISOString()
-    };
-    addBill(newBill);
+  const handleAddBill = async () => {
+    try {
+      const newBill: Bill = {
+        id: generateId(),
+        name: "",
+        amount: 0,
+        day: today.date(),
+        category_id: 1,
+        category_name: "Uncategorized",
+        user_id: 1,
+        created_at: today.toISOString(),
+        isOneTime: false,
+        date: today.toISOString()
+      };
+      await addBill(newBill);
+    } catch (error) {
+      console.error('Error adding bill:', error);
+      // Handle error appropriately
+    }
   };
 
   const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
