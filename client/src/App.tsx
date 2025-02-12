@@ -322,34 +322,38 @@ function Router() {
                           <ChevronDown className="h-4 w-4" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent>
+                      <DropdownMenuContent className="max-h-[60vh] overflow-y-auto">
                         <DropdownMenuItem onClick={() => setShowAddExpenseDialog(true)}>
                           <Plus className="mr-2 h-4 w-4" />
                           Add Expense
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel>Edit Expenses</DropdownMenuLabel>
-                        {bills.map((bill) => (
-                          <DropdownMenuItem
-                            key={`edit-${bill.id}`}
-                            onClick={() => handleEditTransaction('bill', bill)}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            {bill.name}
-                          </DropdownMenuItem>
-                        ))}
+                        <div className="max-h-[25vh] overflow-y-auto">
+                          {bills.map((bill) => (
+                            <DropdownMenuItem
+                              key={`edit-${bill.id}`}
+                              onClick={() => handleEditTransaction('bill', bill)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              {bill.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel>Delete Expenses</DropdownMenuLabel>
-                        {bills.map((bill) => (
-                          <DropdownMenuItem
-                            key={`delete-${bill.id}`}
-                            onClick={() => handleDeleteTransaction('bill', bill)}
-                            className="text-red-600"
-                          >
-                            <Trash className="mr-2 h-4 w-4" />
-                            {bill.name}
-                          </DropdownMenuItem>
-                        ))}
+                        <div className="max-h-[25vh] overflow-y-auto">
+                          {bills.map((bill) => (
+                            <DropdownMenuItem
+                              key={`delete-${bill.id}`}
+                              onClick={() => handleDeleteTransaction('bill', bill)}
+                              className="text-red-600"
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              {bill.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
                       </DropdownMenuContent>
                     </DropdownMenu>
 
