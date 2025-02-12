@@ -12,6 +12,8 @@ import { X, Loader2 } from "lucide-react";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isBetween from "dayjs/plugin/isBetween";
+import { memo, useMemo } from 'react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isBetween);
@@ -32,6 +34,50 @@ interface DailySummaryDialogProps {
   };
 }
 
+// Memoized TransactionCard component to prevent unnecessary re-renders
+const TransactionCard = memo(({ 
+  title, 
+  items, 
+  type 
+}: { 
+  title: string; 
+  items: (Income | Bill)[]; 
+  type: 'income' | 'bill' 
+}) => {
+  return (
+    <div className="mb-4">
+      <h4 className="text-sm font-medium text-muted-foreground mb-2">{title}</h4>
+      {items.length > 0 ? (
+        <div className="space-y-2">
+          {items.map((item) => (
+            <div 
+              key={item.id} 
+              className={`flex justify-between items-center text-sm ${
+                type === 'income' 
+                  ? 'bg-green-50 dark:bg-green-950/30' 
+                  : 'bg-red-50 dark:bg-red-950/30'
+              } p-2 rounded`}
+            >
+              <span>{type === 'income' ? (item as Income).source : (item as Bill).name}</span>
+              <span className={`font-medium ${
+                type === 'income' 
+                  ? 'text-green-600 dark:text-green-400' 
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                {formatCurrency(item.amount)}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">No {type} transactions today</p>
+      )}
+    </div>
+  );
+});
+
+TransactionCard.displayName = 'TransactionCard';
+
 export default function DailySummaryDialog({
   isOpen,
   onOpenChange,
@@ -44,17 +90,31 @@ export default function DailySummaryDialog({
   totalBillsUpToToday,
   monthlyTotals,
 }: DailySummaryDialogProps) {
-  const selectedDate = dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
-  const currentDate = selectedDate.format('MMMM D, YYYY');
+  // Memoize date calculations
+  const selectedDate = useMemo(() => 
+    dayjs().year(selectedYear).month(selectedMonth).date(selectedDay),
+    [selectedYear, selectedMonth, selectedDay]
+  );
 
-  const dailyIncome = dayIncomes.reduce((sum, income) => sum + income.amount, 0);
-  const dailyBills = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
-  const totalNet = totalIncomeUpToToday - totalBillsUpToToday;
+  const currentDate = useMemo(() => 
+    selectedDate.format('MMMM D, YYYY'),
+    [selectedDate]
+  );
 
-  // Calculate remaining values using the provided monthly totals
-  const remainingIncome = monthlyTotals.income - totalIncomeUpToToday;
-  const remainingExpenses = monthlyTotals.expenses - totalBillsUpToToday;
-  const remainingBalance = remainingIncome - remainingExpenses;
+  // Memoize calculations
+  const { dailyIncome, dailyBills, totalNet } = useMemo(() => ({
+    dailyIncome: dayIncomes.reduce((sum, income) => sum + income.amount, 0),
+    dailyBills: dayBills.reduce((sum, bill) => sum + bill.amount, 0),
+    totalNet: totalIncomeUpToToday - totalBillsUpToToday
+  }), [dayIncomes, dayBills, totalIncomeUpToToday, totalBillsUpToToday]);
+
+  // Memoize remaining calculations
+  const { remainingIncome, remainingExpenses, remainingBalance } = useMemo(() => ({
+    remainingIncome: monthlyTotals.income - totalIncomeUpToToday,
+    remainingExpenses: monthlyTotals.expenses - totalBillsUpToToday,
+    remainingBalance: (monthlyTotals.income - totalIncomeUpToToday) - 
+                     (monthlyTotals.expenses - totalBillsUpToToday)
+  }), [monthlyTotals, totalIncomeUpToToday, totalBillsUpToToday]);
 
   if (!isOpen) return null;
 
@@ -75,48 +135,18 @@ export default function DailySummaryDialog({
             <h3 className="text-lg font-semibold mb-4">Today's Activity</h3>
 
             {/* Income Details */}
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">Income Transactions</h4>
-              {dayIncomes.length > 0 ? (
-                <div className="space-y-2">
-                  {dayIncomes.map((income) => (
-                    <div 
-                      key={income.id} 
-                      className="flex justify-between items-center text-sm bg-green-50 dark:bg-green-950/30 p-2 rounded"
-                    >
-                      <span>{income.source}</span>
-                      <span className="font-medium text-green-600 dark:text-green-400">
-                        {formatCurrency(income.amount)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No income transactions today</p>
-              )}
-            </div>
+            <TransactionCard 
+              title="Income Transactions" 
+              items={dayIncomes} 
+              type="income" 
+            />
 
             {/* Expense Details */}
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">Expense Transactions</h4>
-              {dayBills.length > 0 ? (
-                <div className="space-y-2">
-                  {dayBills.map((bill) => (
-                    <div 
-                      key={bill.id} 
-                      className="flex justify-between items-center text-sm bg-red-50 dark:bg-red-950/30 p-2 rounded"
-                    >
-                      <span>{bill.name}</span>
-                      <span className="font-medium text-red-600 dark:text-red-400">
-                        {formatCurrency(bill.amount)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No expense transactions today</p>
-              )}
-            </div>
+            <TransactionCard 
+              title="Expense Transactions" 
+              items={dayBills} 
+              type="bill" 
+            />
 
             {/* Daily Summary */}
             <div className="pt-4 border-t">
