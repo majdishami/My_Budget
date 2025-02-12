@@ -403,7 +403,6 @@ export function Budget() {
                         <div className="space-y-0.5 text-xs">
                           {dayIncomes.length > 0 && (
                             <div className="space-y-0.5">
-                              <p className="font-medium text-green-600 dark:text-green-400">Income</p>
                               {dayIncomes.map((income, index) => (
                                 <div 
                                   key={income.id} 
@@ -421,7 +420,6 @@ export function Budget() {
                           )}
                           {dayBills.length > 0 && (
                             <div className="space-y-0.5">
-                              <p className="font-medium text-red-600 dark:text-red-400">Expenses</p>
                               {dayBills.map((bill, index) => (
                                 <div 
                                   key={bill.id} 
