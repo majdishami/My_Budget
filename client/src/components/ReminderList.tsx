@@ -9,14 +9,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bill, BillReminder } from "@/types";
 import { formatCurrency } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Bell, BellOff } from "lucide-react";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 
 interface ReminderListProps {
   bills: Bill[];
+  onDisableReminder?: (billId: string | number) => void;
 }
 
-export function ReminderList({ bills }: ReminderListProps) {
+export function ReminderList({ bills, onDisableReminder }: ReminderListProps) {
   // 📅 State for storing calculated reminders
   const [reminders, setReminders] = useState<BillReminder[]>([]);
 
@@ -86,7 +89,21 @@ export function ReminderList({ bills }: ReminderListProps) {
       {reminders.map((reminder) => (
         <Card key={`${reminder.billId}-${reminder.dueDate}`}>
           <CardHeader>
-            <CardTitle className="text-lg">{reminder.billName}</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">{reminder.billName}</CardTitle>
+              {onDisableReminder && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDisableReminder(reminder.billId)}
+                  className="text-muted-foreground hover:text-destructive"
+                  title="Disable reminder"
+                >
+                  <BellOff className="h-4 w-4" />
+                  <span className="sr-only">Disable reminder</span>
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">

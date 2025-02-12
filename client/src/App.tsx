@@ -573,6 +573,7 @@ function Router() {
             isOpen={showRemindersDialog}
             onOpenChange={setShowRemindersDialog}
             bills={bills}
+            onUpdateBill={editTransaction}
           />
           <DatabaseSyncDialog
             isOpen={showDatabaseSyncDialog}
