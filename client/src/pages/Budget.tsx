@@ -139,16 +139,21 @@ export function Budget() {
 
   // Memoize monthly totals calculation
   const monthlyTotals = useMemo(() => {
+    // Calculate total income from all income occurrences
     const totalIncome = monthlyIncomeOccurrences.reduce((sum, income) => sum + income.amount, 0);
+
+    // Calculate total expenses, handling both one-time and recurring bills
     const totalExpenses = bills.reduce((sum, bill) => {
       if (bill.isOneTime) {
         const billDate = dayjs(bill.date);
-        return billDate &&
-               billDate.month() === selectedMonth && 
-               billDate.year() === selectedYear 
-               ? sum + bill.amount 
-               : sum;
+        if (billDate &&
+            billDate.month() === selectedMonth && 
+            billDate.year() === selectedYear) {
+          return sum + bill.amount;
+        }
+        return sum;
       }
+      // For recurring bills, always include them in the monthly total
       return sum + bill.amount;
     }, 0);
 
