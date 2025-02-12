@@ -62,12 +62,12 @@ export default function EditExpenseDialog({
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDays, setReminderDays] = useState(7);
 
-  // Fetch categories with error handling
-  const { data: categories = [], isError: isCategoriesError } = useQuery<Category[]>({
+  // Fetch categories with proper type definitions and error handling
+  const { data: categories = [], isError: isCategoriesError } = useQuery<Category[], Error>({
     queryKey: ['/api/categories'],
-    onError: (error) => {
-      console.error('Failed to fetch categories:', error);
-    }
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Enhanced validation state
@@ -78,6 +78,7 @@ export default function EditExpenseDialog({
     date?: string;
     reminderDays?: string;
     category?: string;
+    general?: string;
   }>({});
 
   useEffect(() => {
@@ -141,7 +142,7 @@ export default function EditExpenseDialog({
   const handleConfirm = () => {
     if (!expense || !validateForm()) return;
 
-    const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
+    const selectedCategory = categories.find((cat: Category) => cat.id.toString() === categoryId);
     if (!selectedCategory) {
       setErrors(prev => ({ ...prev, category: 'Invalid category selected' }));
       return;
@@ -272,7 +273,7 @@ export default function EditExpenseDialog({
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[200px] overflow-y-auto">
-                  {categories.map((category) => (
+                  {categories.map((category: Category) => (
                     <SelectItem
                       key={category.id}
                       value={category.id.toString()}
@@ -292,6 +293,12 @@ export default function EditExpenseDialog({
                 <Alert variant="destructive" className="py-2">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription id="category-error">{errors.category}</AlertDescription>
+                </Alert>
+              )}
+              {isCategoriesError && (
+                <Alert variant="destructive" className="py-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>Failed to load categories. Please try again.</AlertDescription>
                 </Alert>
               )}
             </div>
@@ -379,6 +386,13 @@ export default function EditExpenseDialog({
               <Bell className="mr-2 h-4 w-4" />
               {reminderEnabled ? `Reminder: ${reminderDays} days before` : 'Set Reminder'}
             </Button>
+
+            {errors.general && (
+              <Alert variant="destructive" className="py-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{errors.general}</AlertDescription>
+              </Alert>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>
