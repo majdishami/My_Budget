@@ -40,6 +40,7 @@ interface LeftSidebarProps {
   onDeleteTransaction: (type: 'income' | 'bill', data: Income | Bill) => void;
   onAddIncome: () => void;
   onAddBill: () => void;
+  onReset: () => void;
 }
 
 export function LeftSidebar({
@@ -49,6 +50,7 @@ export function LeftSidebar({
   onDeleteTransaction,
   onAddIncome,
   onAddBill,
+  onReset,
 }: LeftSidebarProps) {
   const [location] = useLocation();
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -262,23 +264,11 @@ export function LeftSidebar({
             </Link>
           </div>
 
-          {/* Reports Section */}
+          {/* Reports Section - Update the View Reminders button */}
           <div className="space-y-2">
             <h2 className="text-lg font-semibold px-2">Reports</h2>
             <div className="space-y-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() => {
-                  setShowExportDialog(true);
-                  setIsOpen(false);
-                }}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export Data
-              </Button>
-
+              {/* Move View Reminders button to the top for better visibility */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -290,6 +280,19 @@ export function LeftSidebar({
               >
                 <Bell className="mr-2 h-4 w-4" />
                 View Reminders
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => {
+                  setShowExportDialog(true);
+                  setIsOpen(false);
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export Data
               </Button>
 
               <Button
