@@ -164,7 +164,7 @@ function Router() {
                   <Link
                     href="/"
                     className={clsx(
-                      "flex items-center gap-2 px-3 py-2 rounded-md select-none cursor-pointer", // Added cursor-pointer
+                      "flex items-center gap-2 px-3 py-2 rounded-md",
                       location === "/"
                         ? "bg-primary text-primary-foreground hover:bg-primary/90"
                         : "hover:bg-accent hover:text-accent-foreground",
@@ -172,8 +172,8 @@ function Router() {
                     )}
                     aria-label="Go to Dashboard"
                   >
-                    <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
-                    <span>Dashboard</span>
+                    <LayoutDashboard className="h-4 w-4 pointer-events-none" aria-hidden="true" />
+                    <span className="pointer-events-none">Dashboard</span>
                   </Link>
 
                   <DropdownMenu>
