@@ -8,7 +8,7 @@ import { useState } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { Income, Bill } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, getCurrentDate } from "@/lib/utils"; // Added import
 import { Card } from "@/components/ui/card";
 import { useData } from "@/contexts/DataContext";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
@@ -40,7 +40,7 @@ const formatCurrency = (amount: number) => {
 
 export function Budget() {
   const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction } = useData();
-  const today = dayjs('2025-02-11');
+  const today = getCurrentDate(); // Use the getCurrentDate utility instead of hardcoded date
   const [selectedDay, setSelectedDay] = useState(today.date());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedYear, setSelectedYear] = useState(today.year());
