@@ -335,8 +335,31 @@ export function Budget() {
               <Button variant="outline" size="sm" onClick={handleAddIncome}>
                 <Plus className="h-4 w-4 mr-2" /> Add Income
               </Button>
+              <Button variant="outline" size="sm" onClick={handleEditTransaction.bind(null, 'income', incomes[0] || {id:'', source:'', amount:0, date:''})}>
+                <Edit className="h-4 w-4 mr-2" /> Edit Income
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDeleteTransaction.bind(null, 'income', incomes[0] || {id:'', source:'', amount:0, date:''})}>
+                <Trash2 className="h-4 w-4 mr-2" /> Delete Income
+              </Button>
+
               <Button variant="outline" size="sm" onClick={handleAddBill}>
                 <Plus className="h-4 w-4 mr-2" /> Add Bill
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => {
+                const latestBill = bills[bills.length - 1];
+                if (latestBill) {
+                  handleEditTransaction('bill', latestBill);
+                }
+              }}>
+                <Edit className="h-4 w-4 mr-2" /> Edit Bill
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => {
+                const latestBill = bills[bills.length - 1];
+                if (latestBill) {
+                  handleDeleteTransaction('bill', latestBill);
+                }
+              }}>
+                <Trash2 className="h-4 w-4 mr-2" /> Delete Bill
               </Button>
 
               <div>
