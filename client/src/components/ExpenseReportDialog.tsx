@@ -556,8 +556,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     );
   }
 
-  // Update category display component to show icons
-  function CategoryDisplay({ category, color, icon }: { category: string; color: string; icon?: string | null }) {
+  // Update CategoryDisplay component interface
+  interface CategoryDisplayProps {
+    category: string;
+    color: string;
+    icon?: string | null;
+  }
+
+  function CategoryDisplay({ category, color, icon }: CategoryDisplayProps) {
     return (
       <div className="flex items-center gap-2">
         <div
