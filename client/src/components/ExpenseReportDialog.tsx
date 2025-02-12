@@ -115,11 +115,6 @@ interface ExpenseReportDialogProps {
   bills: Bill[];
 }
 
-interface ExpenseReportDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  bills: Bill[];
-}
 export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: ExpenseReportDialogProps) {
   const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
@@ -892,7 +887,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                       {selectedValue === "all_categories" ? (
                                         <>
                                           <TableCell>
-                                            <CategoryDisplay category={transaction.category} color={transaction.color} icon={transaction.icon} />
+                                            <CategoryDisplay category={transaction.category} color={transaction.color || '#D3D3D3'} icon={transaction.icon} />
                                           </TableCell>
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
                                             {formatCurrency(transaction.amount)}
