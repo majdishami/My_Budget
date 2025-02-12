@@ -13,7 +13,7 @@ import { Card } from "@/components/ui/card";
 import { useData } from "@/contexts/DataContext";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
 import EditExpenseDialog from "@/components/EditExpenseDialog";
-import { Menu, X, Calendar } from "lucide-react";
+import { Menu, X, Calendar, Plus, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -34,6 +34,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 dayjs.extend(isBetween);
 
@@ -318,7 +324,6 @@ export function Budget() {
                 </SelectContent>
               </Select>
 
-              {/* Only show current date when viewing current month and year */}
               {selectedMonth === today.month() && selectedYear === today.year() && (
                 <div className="text-sm text-muted-foreground">
                   {currentDate}
@@ -326,7 +331,14 @@ export function Budget() {
               )}
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="sm" onClick={handleAddIncome}>
+                <Plus className="h-4 w-4 mr-2" /> Add Income
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleAddBill}>
+                <Plus className="h-4 w-4 mr-2" /> Add Bill
+              </Button>
+
               <div>
                 <p className="text-sm text-muted-foreground">Month Total Income</p>
                 <p className="text-lg font-semibold text-green-600">
@@ -341,7 +353,7 @@ export function Budget() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Month Net Balance</p>
-                <p className="text-lg font-semibold text-blue-600"> {/* Changed to text-blue-600 */}
+                <p className="text-lg font-semibold text-blue-600">
                   {formatCurrency(
                     calculateTotalsUpToDay(totalDaysInMonth).totalIncome -
                     calculateTotalsUpToDay(totalDaysInMonth).totalBills
@@ -426,27 +438,71 @@ export function Budget() {
                           {dayIncomes.map((income, index) => (
                             <div
                               key={income.id}
-                              className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1"
+                              className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1 group"
                             >
                               <span className="truncate max-w-[60%]">
                                 {index + 1}. {income.source}
                               </span>
-                              <span className="font-medium shrink-0">
-                                {formatCurrency(income.amount)}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium shrink-0">
+                                  {formatCurrency(income.amount)}
+                                </span>
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditTransaction('income', income);
+                                    }}
+                                    className="p-1 hover:bg-green-100 dark:hover:bg-green-900 rounded"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteTransaction('income', income);
+                                    }}
+                                    className="p-1 hover:bg-green-100 dark:hover:bg-green-900 rounded"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           ))}
                           {dayBills.map((bill, index) => (
                             <div
                               key={bill.id}
-                              className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
+                              className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1 group"
                             >
                               <span className="truncate max-w-[60%]">
                                 {index + 1}. {bill.name}
                               </span>
-                              <span className="font-medium shrink-0">
-                                {formatCurrency(bill.amount)}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium shrink-0">
+                                  {formatCurrency(bill.amount)}
+                                </span>
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditTransaction('bill', bill);
+                                    }}
+                                    className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteTransaction('bill', bill);
+                                    }}
+                                    className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
