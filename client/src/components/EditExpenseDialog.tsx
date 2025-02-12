@@ -126,11 +126,15 @@ export default function EditExpenseDialog({
   const handleConfirm = () => {
     if (!expense || !validateForm()) return;
 
+    const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
+
     const baseUpdates = {
       name,
       amount: parseFloat(amount),
       day: parseInt(day),
       category_id: parseInt(categoryId),
+      category_name: selectedCategory?.name || 'Uncategorized',
+      category_color: selectedCategory?.color || '#D3D3D3',
       reminderEnabled,
       reminderDays,
       user_id: expense.user_id,
@@ -147,7 +151,7 @@ export default function EditExpenseDialog({
     } else if (specificDate) {
       // Create a new one-time expense
       const specificBill: Bill = {
-        id: generateId(), // Generate new string ID
+        id: generateId(),
         ...baseUpdates,
         day: dayjs(specificDate).date(),
         date: dayjs(specificDate).toISOString(),
