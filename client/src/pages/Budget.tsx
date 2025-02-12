@@ -1,19 +1,21 @@
-/**
- * ================================================
- * 🎯 Budget Component
- * ================================================
- */
-
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { Income, Bill } from "@/types";
 import { cn } from "@/lib/utils";
+import { LeftSidebar } from "@/components/LeftSidebar";
 import { Card } from "@/components/ui/card";
-import { useData } from "@/contexts/DataContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
-import EditExpenseDialog from "@/components/EditExpenseDialog";
-import { Menu, Plus, Trash2, Edit } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -28,440 +30,489 @@ import {
 
 dayjs.extend(isBetween);
 
-const generateId = () => crypto.randomUUID();
+type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'weekly';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(amount);
 };
 
 export function Budget() {
-  const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction } = useData();
-  const today = dayjs('2025-02-11');
-  const [selectedDay, setSelectedDay] = useState(today.date());
-  const [selectedMonth, setSelectedMonth] = useState(today.month());
+  const today = dayjs('2025-02-09');
   const [selectedYear, setSelectedYear] = useState(today.year());
-  const [showDailySummary, setShowDailySummary] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(today.month());
+  const [selectedDay, setSelectedDay] = useState<number>(today.date());
+  const [showDayDialog, setShowDayDialog] = useState(false);
+  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [bills, setBills] = useState<Bill[]>([]);
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
-  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAddBillDialog, setShowAddBillDialog] = useState(false);
   const [deletingBill, setDeletingBill] = useState<Bill | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
+  const [showEditIncomeDialog, setShowEditIncomeDialog] = useState(false);
+  const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   const [deletingIncome, setDeletingIncome] = useState<Income | null>(null);
+  const [showDeleteIncomeDialog, setShowDeleteIncomeDialog] = useState(false);
+  const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
+  const [showDailySummary, setShowDailySummary] = useState(false);
 
-  const handleAddIncome = () => {
-    const newIncome: Income = {
-      id: generateId(),
-      source: "",
-      amount: 0,
-      date: today.toISOString()
-    };
-    addIncome(newIncome);
+  const closeSummary = () => {
+    setShowDayDialog(false);
   };
 
-  const handleAddBill = () => {
-    const newBill: Bill = {
-      id: generateId(),
-      name: "",
-      amount: 0,
-      day: today.date(),
-      category_id: 1,
-      category_name: "Uncategorized",
-      user_id: 1,
-      created_at: today.toISOString(),
-      isOneTime: false,
-      date: today.toISOString()
-    };
-    addBill(newBill);
-  };
+  useEffect(() => {
+    localStorage.removeItem("incomes");
+    localStorage.removeItem("bills");
 
-  const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
-    if (type === 'income') {
-      setEditingIncome(transaction as Income);
-      setShowEditDialog(true);
+    const storedIncomes = localStorage.getItem("incomes");
+    const storedBills = localStorage.getItem("bills");
+
+    if (!storedIncomes) {
+      const today = dayjs();
+      const sampleIncomes: Income[] = [
+        { id: "1", source: "Majdi's Salary", amount: 4739.00, date: today.date(1).toISOString() },
+        { id: "2", source: "Majdi's Salary", amount: 4739.00, date: today.date(15).toISOString() },
+        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" } 
+      ];
+      setIncomes(sampleIncomes);
+      localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
     } else {
-      setEditingBill(transaction as Bill);
-      setShowEditDialog(true);
+      setIncomes(JSON.parse(storedIncomes));
     }
-  };
 
-  const handleDeleteTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
-    if (type === 'income') {
-      setDeletingIncome(transaction as Income);
-      setShowDeleteDialog(true);
+    if (!storedBills) {
+      const sampleBills: Bill[] = [
+        { id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429.00, day: 1 },
+        { id: "2", name: "Maid's 1st payment", amount: 120.00, day: 1 },
+        { id: "3", name: "Monthly Rent", amount: 3750.00, day: 1 },
+        { id: "4", name: "Sling TV (CC 9550)", amount: 75.00, day: 3 },
+        { id: "5", name: "Cox Internet", amount: 81.00, day: 6 },
+        { id: "6", name: "Water Bill", amount: 80.00, day: 7 },
+        { id: "7", name: "NV Energy Electrical ($100 winter months)", amount: 250.00, day: 7 },
+        { id: "8", name: "TransAmerica Life Insurance", amount: 77.00, day: 9 },
+        { id: "9", name: "Credit Card minimum payments", amount: 225.00, day: 14 },
+        { id: "10", name: "Apple/Google/YouTube (CC 9550)", amount: 130.00, day: 14 },
+        { id: "11", name: "Expenses & Groceries charged on (CC 2647)", amount: 3000.00, day: 16 },
+        { id: "12", name: "Maid's 2nd Payment of the month", amount: 120.00, day: 17 },
+        { id: "13", name: "SoFi Personal Loan", amount: 1915.00, day: 17 },
+        { id: "14", name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75.00, day: 17 },
+        { id: "15", name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704.00, day: 28 }
+      ];
+      setBills(sampleBills);
+      localStorage.setItem("bills", JSON.stringify(sampleBills));
     } else {
-      setDeletingBill(transaction as Bill);
-      setShowDeleteDialog(true);
+      setBills(JSON.parse(storedBills));
     }
-  };
-
-  const handleConfirmDelete = () => {
-    if (deletingBill) {
-      deleteTransaction(deletingBill);
-      setShowDeleteDialog(false);
-      setDeletingBill(null);
-    } else if (deletingIncome) {
-      deleteTransaction(deletingIncome);
-      setShowDeleteDialog(false);
-      setDeletingIncome(null);
-    }
-  };
-
-  const months = Array.from({ length: 12 }, (_, i) => ({
-    value: i,
-    label: dayjs().month(i).format('MMMM')
-  }));
-
-  const years = Array.from({ length: 11 }, (_, i) => ({
-    value: today.year() - 5 + i,
-    label: (today.year() - 5 + i).toString()
-  }));
-
-  const getWeeksInMonth = (year: number, month: number) => {
-    const firstDay = dayjs().year(year).month(month).startOf('month');
-    const lastDay = firstDay.endOf('month');
-    const numWeeks = Math.ceil((firstDay.day() + lastDay.date()) / 7);
-    return Array.from({ length: numWeeks }, (_, i) => ({
-      value: i + 1,
-      label: `Week ${i + 1}`
-    }));
-  };
-
-  const weeks = getWeeksInMonth(selectedYear, selectedMonth);
-
-  const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf("month");
-  const lastDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).endOf("month");
-  const firstDayIndex = firstDayOfMonth.day();
-  const totalDaysInMonth = lastDayOfMonth.date();
-  const calendarDays = Array.from({ length: 35 }, (_, index) => {
-    const day = index - firstDayIndex + 1;
-    return day >= 1 && day <= totalDaysInMonth ? day : null;
-  });
-
-  const isCurrentDay = (day: number) => {
-    return day === today.date() &&
-           selectedMonth === today.month() &&
-           selectedYear === today.year();
-  };
-
-  const getMonthlyIncomeOccurrences = () => {
-    const currentDate = dayjs().year(selectedYear).month(selectedMonth);
-    const startOfMonth = currentDate.startOf('month');
-    const endOfMonth = currentDate.endOf('month');
-
-    const occurrences: Income[] = [];
-    const addedDates = new Set<string>(); 
-
-    incomes.forEach(income => {
-      const addIncomeIfNotExists = (date: dayjs.Dayjs, amount: number) => {
-        const dateStr = date.format('YYYY-MM-DD');
-        if (!addedDates.has(`${income.source}-${dateStr}`)) {
-          addedDates.add(`${income.source}-${dateStr}`);
-          occurrences.push({
-            id: `${income.id}-${dateStr}`,
-            source: income.source,
-            amount: amount,
-            date: date.toISOString()
-          });
-        }
-      };
-
-      if (income.source === "Majdi's Salary") {
-        addIncomeIfNotExists(startOfMonth, 4739);
-        addIncomeIfNotExists(startOfMonth.date(15), 4739);
-      } else if (income.source === "Ruba's Salary") {
-        let checkDate = dayjs('2025-01-10');
-        while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
-          if ((checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) && 
-              checkDate.day() === 5) { 
-            const weeksDiff = checkDate.diff(dayjs('2025-01-10'), 'week');
-            if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
-              addIncomeIfNotExists(checkDate, income.amount);
-            }
-          }
-          checkDate = checkDate.add(1, 'day');
-        }
-      } else {
-        const incomeDate = dayjs(income.date);
-        if (incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear) {
-          addIncomeIfNotExists(incomeDate, income.amount);
-        }
-      }
-    });
-
-    return occurrences;
-  };
+  }, []);
 
   const getIncomeForDay = (day: number) => {
-    const monthlyIncomes = getMonthlyIncomeOccurrences();
-    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
+    if (day <= 0 || day > daysInMonth) return [];
 
-    return monthlyIncomes.filter(income => {
+    const currentDate = dayjs()
+      .year(selectedYear)
+      .month(selectedMonth)
+      .date(day);
+
+    return incomes.filter(income => {
       const incomeDate = dayjs(income.date);
-      return incomeDate.date() === day && 
-             incomeDate.month() === selectedMonth && 
-             incomeDate.year() === selectedYear;
+
+      if (income.source === "Ruba's Salary") {
+        if (currentDate.day() !== 5) return false;
+
+        const startDate = dayjs('2025-01-10');
+        const weeksDiff = currentDate.diff(startDate, 'week');
+        return weeksDiff >= 0 && weeksDiff % 2 === 0;
+      }
+
+      return incomeDate.date() === day;
     });
-  }
+  };
 
   const getBillsForDay = (day: number) => {
-    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
-    return bills.filter(bill => {
-      if (bill.isOneTime) {
-        const billDate = dayjs(bill.date);
-        return billDate && billDate.date() === day && billDate.month() === selectedMonth && billDate.year() === selectedYear;
-      } else {
-        return bill.day === day;
-      }
-    });
-  }
+    if (day <= 0 || day > daysInMonth) return [];
+    return bills.filter(bill => bill.day === day);
+  };
+
+  const firstDayOfMonth = useMemo(() => {
+    return dayjs(`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`);
+  }, [selectedYear, selectedMonth]);
+
+  const daysInMonth = useMemo(() => {
+    return firstDayOfMonth.daysInMonth();
+  }, [firstDayOfMonth]);
+
+  const firstDayOfWeek = useMemo(() => {
+    const day = firstDayOfMonth.day();
+    return day === 0 ? 6 : day - 1; 
+  }, [firstDayOfMonth]);
 
   const calculateTotalsUpToDay = (day: number) => {
     let totalIncome = 0;
     let totalBills = 0;
 
-    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
+    for (let currentDay = 1; currentDay <= day; currentDay++) {
+      const dayIncomes = getIncomeForDay(currentDay);
+      totalIncome += dayIncomes.reduce((sum, income) => sum + income.amount, 0);
 
-    const monthlyIncomes = getMonthlyIncomeOccurrences();
-    monthlyIncomes.forEach(income => {
-      const incomeDate = dayjs(income.date);
-      if (incomeDate.date() <= day && incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear) {
-        totalIncome += income.amount;
-      }
-    });
-
-    bills.forEach(bill => {
-      if (bill.isOneTime) {
-        const billDate = dayjs(bill.date);
-        if (billDate.isSame(targetDate, 'month')) {
-          if (billDate.date() <= day && billDate.month() === selectedMonth && billDate.year() === selectedYear) {
-            totalBills += bill.amount;
-          }
-        }
-      } else {
-        if (bill.day <= day) {
-          totalBills += bill.amount;
-        }
-      }
-    });
+      const dayBills = getBillsForDay(currentDay);
+      totalBills += dayBills.reduce((sum, bill) => sum + bill.amount, 0);
+    }
 
     return { totalIncome, totalBills };
   };
 
-  const handleDayClick = (day: number | null) => {
-    if (day) {
+  const handleDayClick = (day: number) => {
+    if (day > 0 && day <= daysInMonth) {
       setSelectedDay(day);
       setShowDailySummary(true);
     }
   };
 
+  const isCurrentDay = (day: number) => {
+    const currentDate = dayjs();
+    return day === currentDate.date() &&
+           selectedMonth === currentDate.month() &&
+           selectedYear === currentDate.year();
+  };
+
+  const calendarDays = useMemo(() => {
+    const totalDays = 42; 
+    return Array.from({ length: totalDays }, (_, index) => {
+      const adjustedIndex = index - firstDayOfWeek;
+      return adjustedIndex >= 0 && adjustedIndex < daysInMonth ? adjustedIndex + 1 : null;
+    });
+  }, [daysInMonth, firstDayOfWeek]);
+
+  const monthlyTotals = useMemo(() => {
+    let totalIncome = 0;
+    let totalBills = 0;
+
+    incomes.forEach(income => {
+      const incomeDate = dayjs(income.date);
+
+      if (income.source === "Ruba's Salary") {
+        const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
+        const lastDayOfMonth = firstDayOfMonth.endOf('month');
+        const startDate = dayjs('2025-01-10');
+
+        let currentDate = firstDayOfMonth;
+        while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
+          if (currentDate.day() === 5) { 
+            const weeksDiff = currentDate.diff(startDate, 'week');
+            if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+              totalIncome += income.amount;
+            }
+          }
+          currentDate = currentDate.add(1, 'day');
+        }
+      } else {
+        const incomeYear = incomeDate.year();
+        const incomeMonth = incomeDate.month();
+        const incomeDay = incomeDate.date();
+
+        const adjustedDate = dayjs()
+          .year(selectedYear)
+          .month(selectedMonth)
+          .date(incomeDay);
+
+        if (adjustedDate.month() === selectedMonth) {
+          totalIncome += income.amount;
+        }
+      }
+    });
+
+    bills.forEach(bill => {
+      totalBills += bill.amount;
+    });
+
+    return {
+      totalIncome,
+      totalBills,
+      balance: totalIncome - totalBills
+    };
+  }, [incomes, bills, selectedMonth, selectedYear]);
+
+  const handleEditTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+    if (type === 'income') {
+      setEditingIncome(data as Income);
+      setShowEditIncomeDialog(true);
+    } else if (type === 'bill') {
+      setEditingBill(data as Bill);
+      setShowEditDialog(true);
+    }
+  };
+
+  const handleDeleteTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+    if (type === 'income') {
+      setDeletingIncome(data as Income);
+      setShowDeleteIncomeDialog(true);
+    } else {
+      setDeletingBill(data as Bill);
+      setShowDeleteDialog(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (deletingBill) {
+      const newBills = bills.filter(b => b.id !== deletingBill.id);
+      setBills(newBills);
+      localStorage.setItem("bills", JSON.stringify(newBills));
+      setShowDeleteDialog(false);
+      setDeletingBill(null);
+    }
+  };
+
+  const confirmIncomeDelete = () => {
+    if (deletingIncome) {
+      const newIncomes = incomes.filter(i => i.source !== deletingIncome.source);
+      setIncomes(newIncomes);
+      localStorage.setItem("incomes", JSON.stringify(newIncomes));
+      setShowDeleteIncomeDialog(false);
+      setDeletingIncome(null);
+    }
+  };
+
+  const handleAddIncome = () => {
+    setAddIncomeDate(new Date());
+    setShowAddIncomeDialog(true);
+  };
+
+  const handleAddBill = () => {
+    setShowAddBillDialog(true);
+  };
+
+  const handleReset = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
+
+  const years = useMemo(() => {
+    const currentYear = today.year();
+    return Array.from({ length: 21 }, (_, i) => currentYear - 10 + i);
+  }, [today]);
+
+  const months = useMemo(() => (
+    Array.from({ length: 12 }, (_, i) => ({
+      value: i,
+      label: dayjs().month(i).format("MMMM")
+    }))
+  ), []);
+
+  const handleMonthChange = (newMonth: number) => {
+    setSelectedMonth(newMonth);
+    setSelectedDay(1); 
+  };
+
+  const handleYearChange = (newYear: number) => {
+    setSelectedYear(newYear);
+    setSelectedDay(1); 
+  };
+
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">My Budget</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleAddIncome}>
-              <Plus className="h-4 w-4 mr-2" /> Add Income
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleEditTransaction('income', incomes[0])}>
-              <Edit className="h-4 w-4 mr-2" /> Edit Income
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleDeleteTransaction('income', incomes[0])}>
-              <Trash2 className="h-4 w-4 mr-2" /> Delete Income
-            </Button>
+    <div className="min-h-screen flex bg-background">
+      <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
+        <LeftSidebar
+          incomes={incomes}
+          bills={bills}
+          onEditTransaction={handleEditTransaction}
+          onDeleteTransaction={handleDeleteTransaction}
+          onAddIncome={handleAddIncome}
+          onAddBill={handleAddBill}
+          onReset={handleReset}
+        />
+      </aside>
 
-            <Button variant="outline" size="sm" onClick={handleAddBill}>
-              <Plus className="h-4 w-4 mr-2" /> Add Bill
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleEditTransaction('bill', bills[0])}>
-              <Edit className="h-4 w-4 mr-2" /> Edit Bill
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleDeleteTransaction('bill', bills[0])}>
-              <Trash2 className="h-4 w-4 mr-2" /> Delete Bill
-            </Button>
+      <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
+        <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex justify-between items-center">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold">
+                My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+              </h1>
+              <div className="flex items-center gap-2">
+                <select 
+                  value={selectedMonth}
+                  onChange={(e) => handleMonthChange(parseInt(e.target.value))}
+                  className="p-2 border rounded bg-background min-w-[120px]"
+                  aria-label="Select month"
+                >
+                  {months.map(month => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedYear}
+                  onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                  className="p-2 border rounded bg-background min-w-[100px]"
+                  aria-label="Select year"
+                >
+                  {years.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedDay}
+                  onChange={(e) => setSelectedDay(parseInt(e.target.value))}
+                  className="p-2 border rounded bg-background min-w-[80px]"
+                  aria-label="Select day"
+                >
+                  {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
+                    <option key={day} value={day}>
+                      {day.toString().padStart(2, '0')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <ThemeToggle />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Income</p>
+                <p className="text-lg font-semibold text-green-600">
+                  {formatCurrency(monthlyTotals.totalIncome)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Bills</p>
+                <p className="text-lg font-semibold text-red-600">
+                  {formatCurrency(monthlyTotals.totalBills)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Net Balance</p>
+                <p className={`text-lg font-semibold ${
+                  monthlyTotals.balance >= 0 ? "text-green-600" : "text-red-600"
+                }`}>
+                  {formatCurrency(monthlyTotals.balance)}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="flex items-center gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Month Total Income</p>
-            <p className="text-lg font-semibold text-green-600">
-              {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalIncome)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Month Total Bills</p>
-            <p className="text-lg font-semibold text-red-600">
-              {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalBills)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Month Net Balance</p>
-            <p className="text-lg font-semibold text-blue-600">
-              {formatCurrency(
-                calculateTotalsUpToDay(totalDaysInMonth).totalIncome -
-                calculateTotalsUpToDay(totalDaysInMonth).totalBills
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
+        <div className="flex-1 overflow-y-auto">
+          <Card className="m-4">
+            <div className="overflow-hidden">
+              <table className="w-full border-collapse">
+                <thead className="sticky top-0 bg-background z-10">
+                  <tr>
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
+                      <th key={day} className="p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
+                        {day}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {Array.from({ length: 6 }, (_, weekIndex) => (
+                    <tr key={weekIndex} className="divide-x">
+                      {Array.from({ length: 7 }, (_, dayIndex) => {
+                        const dayNumber = calendarDays[weekIndex * 7 + dayIndex];
+                        if (dayNumber === null) {
+                          return <td key={dayIndex} className="border p-2 bg-muted/10 h-48 w-[14.28%]" />;
+                        }
 
-      <Card className="w-full">
-        <div className="w-full overflow-hidden">
-          <table className="w-full table-fixed border-collapse text-sm lg:text-base">
-            <thead className="sticky top-0 bg-background z-10">
-              <tr>
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                  <th key={day} className="p-1 lg:p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
-                    {day}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {Array.from({ length: 5 }, (_, weekIndex) => (
-                <tr key={weekIndex} className="divide-x">
-                  {Array.from({ length: 7 }, (_, dayIndex) => {
-                    const dayNumber = calendarDays[weekIndex * 7 + dayIndex];
-                    if (dayNumber === null) {
-                      return <td key={dayIndex} className="border p-1 lg:p-2 bg-muted/10 h-24 lg:h-48" />;
-                    }
+                        const dayIncomes = getIncomeForDay(dayNumber);
+                        const dayBills = getBillsForDay(dayNumber);
+                        const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
 
-                    const currentDate = dayjs().year(selectedYear).month(selectedMonth).date(dayNumber);
-                    const dayOfWeek = currentDate.format('ddd');
-                    const dayIncomes = getIncomeForDay(dayNumber);
-                    const dayBills = getBillsForDay(dayNumber);
-                    const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
-                    const isToday = isCurrentDay(dayNumber);
-
-                    return (
-                      <td
-                        key={dayIndex}
-                        onClick={() => handleDayClick(dayNumber)}
-                        aria-label={`${dayNumber} ${dayjs().format("MMMM")} ${today.year()}${isToday ? ' (Today)' : ''}`}
-                        className={cn(
-                          "border p-1 lg:p-2 align-top cursor-pointer transition-colors h-24 lg:h-48 relative touch-manipulation",
-                          "hover:bg-accent",
-                          isToday && "ring-2 ring-primary ring-offset-2 border-primary border-2",
-                          selectedDay === dayNumber && "bg-accent/50 font-semibold",
-                          hasTransactions && "shadow-sm"
-                        )}
-                      >
-                        <div className="flex justify-between items-start mb-1">
-                          <div className="flex items-center gap-1">
-                            <span className={cn(
-                              "font-medium text-base lg:text-lg",
-                              isToday && "text-primary font-bold"
-                            )}>
-                              {dayNumber}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {dayOfWeek}
-                            </span>
-                            {isToday && (
-                              <span className="text-xs font-medium text-primary ml-1 animate-flash px-1 rounded">
-                                Today
-                              </span>
+                        return (
+                          <td
+                            key={dayIndex}
+                            onClick={() => handleDayClick(dayNumber)}
+                            className={cn(
+                              "border p-2 align-top cursor-pointer transition-colors h-48 w-[14.28%]",
+                              "hover:bg-accent",
+                              isCurrentDay(dayNumber) && "ring-2 ring-primary ring-offset-2 border-primary",
+                              selectedDay === dayNumber && "bg-accent/50 font-semibold",
+                              hasTransactions && "shadow-sm"
                             )}
-                          </div>
-                          {hasTransactions && (
-                            <div className="flex gap-1">
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <div className="flex flex-col">
+                                <span className={cn(
+                                  "font-medium text-lg",
+                                  isCurrentDay(dayNumber) && "text-primary font-bold"
+                                )}>
+                                  {dayNumber}
+                                </span>
+                                {isCurrentDay(dayNumber) && (
+                                  <span className="text-xs font-medium text-primary">
+                                    Today
+                                  </span>
+                                )}
+                              </div>
+                              {hasTransactions && (
+                                <div className="flex gap-1">
+                                  {dayIncomes.length > 0 && (
+                                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                                  )}
+                                  {dayBills.length > 0 && (
+                                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-0.5 text-xs">
                               {dayIncomes.length > 0 && (
-                                <div className="w-2 h-2 rounded-full bg-green-500" />
+                                <div className="space-y-0.5">
+                                  <p className="font-medium text-green-600 dark:text-green-400">Income</p>
+                                  {dayIncomes.map((income, index) => (
+                                    <div 
+                                      key={income.id} 
+                                      className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1"
+                                    >
+                                      <span className="truncate max-w-[60%]">
+                                        {index + 1}. {income.source}
+                                      </span>
+                                      <span className="font-medium shrink-0">
+                                        {formatCurrency(income.amount)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
                               )}
                               {dayBills.length > 0 && (
-                                <div className="w-2 h-2 rounded-full bg-red-500" />
+                                <div className="space-y-0.5">
+                                  <p className="font-medium text-red-600 dark:text-red-400">Expenses</p>
+                                  {dayBills.map((bill, index) => (
+                                    <div 
+                                      key={bill.id} 
+                                      className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
+                                    >
+                                      <span className="truncate max-w-[60%]">
+                                        {index + 1}. {bill.name}
+                                      </span>
+                                      <span className="font-medium shrink-0">
+                                        {formatCurrency(bill.amount)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                        <div className="space-y-0.5 text-xs">
-                          {dayIncomes.map((income, index) => (
-                            <div
-                              key={income.id}
-                              className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1 group"
-                            >
-                              <span className="truncate max-w-[60%]">
-                                {index + 1}. {income.source}
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium shrink-0">
-                                  {formatCurrency(income.amount)}
-                                </span>
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditTransaction('income', income);
-                                    }}
-                                    className="p-1 hover:bg-green-100 dark:hover:bg-green-900 rounded"
-                                  >
-                                    <Edit className="h-3 w-3" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteTransaction('income', income);
-                                    }}
-                                    className="p-1 hover:bg-green-100 dark:hover:bg-green-900 rounded"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                          {dayBills.map((bill, index) => (
-                            <div
-                              key={bill.id}
-                              className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1 group"
-                            >
-                              <span className="truncate max-w-[60%]">
-                                {index + 1}. {bill.name}
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium shrink-0">
-                                  {formatCurrency(bill.amount)}
-                                </span>
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditTransaction('bill', bill);
-                                    }}
-                                    className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded"
-                                  >
-                                    <Edit className="h-3 w-3" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteTransaction('bill', bill);
-                                    }}
-                                    className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </div>
-      </Card>
+      </main>
 
       <DailySummaryDialog
         isOpen={showDailySummary}
@@ -474,32 +525,6 @@ export function Budget() {
         totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
         totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
       />
-
-      <EditExpenseDialog
-        isOpen={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        expense={editingBill as Bill}
-        onUpdate={(updatedBill) => {
-          editTransaction(updatedBill);
-          setShowEditDialog(false);
-          setEditingBill(null);
-        }}
-      />
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
-          </AlertDialogHeader>
-          <AlertDialogDescription>
-            Are you sure you want to delete this transaction? This action cannot be undone.
-          </AlertDialogDescription>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
