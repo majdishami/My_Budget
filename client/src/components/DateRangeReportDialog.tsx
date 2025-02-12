@@ -401,7 +401,9 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                             .map((transaction, index) => (
                               <TableRow key={index}>
                                 <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                                <TableCell>{transaction.description}</TableCell>
+                                <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-300'}>
+                                  {transaction.description}
+                                </TableCell>
                                 <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-300'}`}>
                                   {formatCurrency(transaction.amount)}
                                 </TableCell>
