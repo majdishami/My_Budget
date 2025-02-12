@@ -11,16 +11,18 @@ const envPath = join(process.cwd(), '.env');
 console.log('Loading environment variables from:', envPath);
 config({ path: envPath });
 
-// Create pool configuration with better defaults
+// Create pool configuration with improved connection handling
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
   } : undefined,
-  max: 20, // maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // how long a client is allowed to remain idle before being closed
-  connectionTimeoutMillis: 2000, // how long to wait for a connection
-  maxUses: 7500, // number of times a connection can be used before being destroyed
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000, // Increased from 2000 to 10000
+  maxUses: 7500,
+  keepAlive: true, // Enable keepalive
+  keepAliveInitialDelayMillis: 10000
 };
 
 console.log('Database connection config:', {
@@ -31,20 +33,26 @@ console.log('Database connection config:', {
 // Initialize pool with configuration
 const pool = new Pool(poolConfig);
 
-// Add error handling for the pool
+// Enhanced error handling for the pool
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client:', err);
-  // Don't exit the process, just log the error
   if (err.code === '57P01') {
     console.log('Attempting to reconnect after connection termination...');
+    // Implement automatic reconnection after a delay
+    setTimeout(() => {
+      console.log('Attempting to reconnect to database...');
+      pool.connect().catch(connectErr => {
+        console.error('Reconnection attempt failed:', connectErr);
+      });
+    }, 5000);
   }
 });
 
 // Initialize db connection
 const db = drizzle(pool, { schema });
 
-// Simplified connection testing
-async function testConnection(retries = 3) {
+// Enhanced connection testing with better retry logic
+async function testConnection(retries = 5) { // Increased retries from 3 to 5
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(`Connection attempt ${attempt}/${retries}...`);
@@ -79,21 +87,26 @@ async function testConnection(retries = 3) {
     } catch (error) {
       console.error(`Attempt ${attempt} failed:`, error);
       if (attempt === retries) {
+        console.error('All connection attempts failed. Please check your database configuration and connectivity.');
         throw error;
       }
-      // Wait before retrying with exponential backoff
-      await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt), 10000)));
+      // Exponential backoff with maximum delay of 30 seconds
+      const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
+      console.log(`Waiting ${delay}ms before next attempt...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
   return false;
 }
 
-// Initialize connection
+// Initialize connection with better error handling
 console.log('Initializing database connection...');
 testConnection().catch(error => {
-  console.error('Fatal database configuration error:', error);
-  // Don't exit process on connection error, allow for retry
-  console.log('Connection error occurred, but server will continue running to allow for recovery');
+  console.error('Database configuration error:', error);
+  // Log additional debugging information
+  console.log('Current environment:', process.env.NODE_ENV);
+  console.log('Database URL format:', process.env.DATABASE_URL ? 
+    process.env.DATABASE_URL.replace(/:[^:@]*@/, ':****@') : 'Not set');
 });
 
 export { db, pool };

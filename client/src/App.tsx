@@ -55,10 +55,11 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { clsx } from 'clsx';
-import { Income, Bill } from "@/types";
+import { Income, Bill, OccurrenceType } from "@/types";
+import crypto from 'crypto';
 
 function Router() {
-  const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome, addBill } = useData();
+  const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome: addIncomeToData, addBill } = useData();
   const [location] = useLocation();
   const today = dayjs('2025-02-11');
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
@@ -102,6 +103,14 @@ function Router() {
     setShowDeleteDialog(false);
   };
 
+  const handleAddIncome = (newIncome: Omit<Income, "id"> & { occurrenceType: OccurrenceType }) => {
+    const incomeWithId: Income = {
+      ...newIncome,
+      id: crypto.randomUUID(),
+    };
+    addIncomeToData(incomeWithId);
+  };
+
   const currentDate = useMemo(() => ({
     day: today.date(),
     weekday: today.format('dddd'),
@@ -141,7 +150,6 @@ function Router() {
         <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <Card className="p-4">
             <div className="flex flex-col gap-4">
-              {/* Top row with title and controls */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
                   <h1 className="text-xl font-bold">
@@ -151,27 +159,23 @@ function Router() {
                 <ThemeToggle />
               </div>
 
-              {/* Navigation row */}
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Link href="/" className="w-full">
+                  <Link href="/" className="no-underline">
                     <Button
                       variant={location === "/" ? "default" : "ghost"}
                       size="sm"
                       className={clsx(
-                        location === "/" && "bg-primary text-primary-foreground hover:bg-primary/90",
-                        "w-full flex items-center"
+                        "flex items-center gap-2",
+                        location === "/" && "bg-primary text-primary-foreground hover:bg-primary/90"
                       )}
-                      asChild
+                      aria-label="Go to Dashboard"
                     >
-                      <div>
-                        <LayoutDashboard className="h-4 w-4 mr-2" />
-                        Dashboard
-                      </div>
+                      <LayoutDashboard className="h-4 w-4 select-none pointer-events-none" aria-hidden="true" />
+                      <span className="select-none pointer-events-none">Dashboard</span>
                     </Button>
                   </Link>
 
-                  {/* Expenses Dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
@@ -217,7 +221,6 @@ function Router() {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  {/* Income Dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
@@ -254,7 +257,6 @@ function Router() {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  {/* Categories Link */}
                   <Link href="/categories">
                     <Button variant="ghost" size="sm">
                       <Tags className="h-4 w-4 mr-2" />
@@ -262,7 +264,6 @@ function Router() {
                     </Button>
                   </Link>
 
-                  {/* Reports Dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
@@ -340,11 +341,10 @@ function Router() {
           </div>
         </main>
 
-        {/* Dialogs */}
         <AddIncomeDialog
           isOpen={showAddIncomeDialog}
           onOpenChange={setShowAddIncomeDialog}
-          onConfirm={addIncome}
+          onConfirm={handleAddIncome}
         />
         <AddExpenseDialog
           isOpen={showAddExpenseDialog}
@@ -389,7 +389,6 @@ function Router() {
           onOpenChange={setShowDatabaseSyncDialog}
         />
 
-        {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
