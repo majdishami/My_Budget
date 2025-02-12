@@ -36,6 +36,8 @@ export function EditIncomeDialog({
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState('');
   const [occurrenceType, setOccurrenceType] = useState<'once' | 'monthly' | 'biweekly' | 'twice-monthly'>('once');
+  const [firstDate, setFirstDate] = useState<number>(1);
+  const [secondDate, setSecondDate] = useState<number>(15);
 
   // Update form values when income changes
   useEffect(() => {
@@ -44,6 +46,8 @@ export function EditIncomeDialog({
       setAmount(income.amount.toString());
       setDate(dayjs(income.date).format('YYYY-MM-DD'));
       setOccurrenceType(income.occurrenceType);
+      if (income.firstDate) setFirstDate(income.firstDate);
+      if (income.secondDate) setSecondDate(income.secondDate);
     }
   }, [income]);
 
@@ -51,25 +55,40 @@ export function EditIncomeDialog({
   const handleOccurrenceTypeChange = (value: 'once' | 'monthly' | 'biweekly' | 'twice-monthly') => {
     setOccurrenceType(value);
     if (value === 'twice-monthly') {
-      // For twice-monthly, always set the date to the 1st of the current/next month
       const today = dayjs();
-      const firstOfMonth = today.date() < 15 
-        ? today.startOf('month')
-        : today.add(1, 'month').startOf('month');
-      setDate(firstOfMonth.format('YYYY-MM-DD'));
+      setDate(today.format('YYYY-MM-DD'));
     }
   };
 
   const handleConfirm = () => {
     if (!income) return;
 
-    onUpdate({
+    const updatedIncome: Income = {
       ...income,
       source,
       amount: parseFloat(amount),
       date: dayjs(date).toISOString(),
       occurrenceType
-    });
+    };
+
+    if (occurrenceType === 'twice-monthly') {
+      updatedIncome.firstDate = firstDate;
+      updatedIncome.secondDate = secondDate;
+    }
+
+    onUpdate(updatedIncome);
+  };
+
+  const generateDayOptions = () => {
+    const days = [];
+    for (let i = 1; i <= 31; i++) {
+      days.push(
+        <SelectItem key={i} value={i.toString()}>
+          {i}
+        </SelectItem>
+      );
+    }
+    return days;
   };
 
   return (
@@ -110,14 +129,40 @@ export function EditIncomeDialog({
                 <SelectItem value="once">One time</SelectItem>
                 <SelectItem value="monthly">Monthly</SelectItem>
                 <SelectItem value="biweekly">Bi-Weekly</SelectItem>
-                <SelectItem value="twice-monthly">Twice a month (1st & 15th)</SelectItem>
+                <SelectItem value="twice-monthly">Twice a month</SelectItem>
               </SelectContent>
             </Select>
           </div>
           {occurrenceType === 'twice-monthly' && (
-            <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-              This income will occur automatically on the 1st and 15th of every month.
-              No date selection is needed.
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label>First payment day of the month</Label>
+                <Select
+                  value={firstDate.toString()}
+                  onValueChange={(value) => setFirstDate(parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select day" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {generateDayOptions()}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Second payment day of the month</Label>
+                <Select
+                  value={secondDate.toString()}
+                  onValueChange={(value) => setSecondDate(parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select day" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {generateDayOptions()}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
           {occurrenceType !== 'twice-monthly' && (
