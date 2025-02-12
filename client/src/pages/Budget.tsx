@@ -165,23 +165,20 @@ export function Budget() {
     incomes.forEach(income => {
       if (income.source === "Majdi's Salary") {
         // Bi-monthly payments (1st and 15th)
-        const firstPayday = startOfMonth;
-        const fifteenthPayday = startOfMonth.date(15);
-
-        // Add first payment of the month (1st)
         occurrences.push({
-          ...income,
-          amount: 4739, // Fixed amount for each payment
-          date: firstPayday.toISOString(),
-          id: `${income.id}-${firstPayday.format('YYYY-MM-DD')}`
+          id: `${income.id}-${startOfMonth.format('YYYY-MM-DD')}`,
+          source: income.source,
+          amount: 4739,
+          date: startOfMonth.toISOString()
         });
 
         // Add second payment of the month (15th)
+        const fifteenthDay = startOfMonth.date(15);
         occurrences.push({
-          ...income,
-          amount: 4739, // Fixed amount for each payment
-          date: fifteenthPayday.toISOString(),
-          id: `${income.id}-${fifteenthPayday.format('YYYY-MM-DD')}`
+          id: `${income.id}-${fifteenthDay.format('YYYY-MM-DD')}`,
+          source: income.source,
+          amount: 4739,
+          date: fifteenthDay.toISOString()
         });
       } else if (income.source === "Ruba's Salary") {
         // Calculate bi-weekly occurrences
@@ -192,9 +189,10 @@ export function Budget() {
               const weeksDiff = checkDate.diff(dayjs('2025-01-10'), 'week');
               if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
                 occurrences.push({
-                  ...income,
-                  date: checkDate.toISOString(),
-                  id: `${income.id}-${checkDate.format('YYYY-MM-DD')}`
+                  id: `${income.id}-${checkDate.format('YYYY-MM-DD')}`,
+                  source: income.source,
+                  amount: income.amount,
+                  date: checkDate.toISOString()
                 });
               }
             }
@@ -203,11 +201,7 @@ export function Budget() {
         }
       } else {
         // Regular monthly incomes
-        const incomeDate = dayjs(income.date);
-        occurrences.push({
-          ...income,
-          date: incomeDate.toISOString()
-        });
+        occurrences.push(income);
       }
     });
 
