@@ -13,17 +13,8 @@ import { Card } from "@/components/ui/card";
 import { useData } from "@/contexts/DataContext";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
 import EditExpenseDialog from "@/components/EditExpenseDialog";
-import { Menu, X, Calendar, Plus, Trash2, Edit } from "lucide-react";
+import { Menu, Plus, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,16 +46,19 @@ export function Budget() {
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [showDailySummary, setShowDailySummary] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Income | Bill | null>(null);
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [showEditExpenseDialog, setShowEditExpenseDialog] = useState(false);
+  const [editingBill, setEditingBill] = useState<Bill | null>(null);
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [deletingBill, setDeletingBill] = useState<Bill | null>(null);
+  const [deletingIncome, setDeletingIncome] = useState<Income | null>(null);
 
   const handleAddIncome = () => {
     const newIncome: Income = {
       id: generateId(),
       source: "",
       amount: 0,
-      date: dayjs().toISOString()
+      date: today.toISOString()
     };
     addIncome(newIncome);
   };
@@ -74,42 +68,47 @@ export function Budget() {
       id: generateId(),
       name: "",
       amount: 0,
-      day: dayjs().date(),
+      day: today.date(),
       category_id: 1,
       category_name: "Uncategorized",
       user_id: 1,
-      created_at: dayjs().toISOString(),
+      created_at: today.toISOString(),
       isOneTime: false,
-      date: dayjs().toISOString()
+      date: today.toISOString()
     };
     addBill(newBill);
   };
 
-  const handleDeleteTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
-    setShowDeleteConfirmation(true);
-    setEditingTransaction(transaction);
+  const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
+    if (type === 'income') {
+      setEditingIncome(transaction as Income);
+      setShowEditDialog(true);
+    } else {
+      setEditingBill(transaction as Bill);
+      setShowEditDialog(true);
+    }
   };
 
-  const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
-    if (type === 'bill') {
-      setEditingTransaction(transaction);
-      setShowEditExpenseDialog(true);
+  const handleDeleteTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
+    if (type === 'income') {
+      setDeletingIncome(transaction as Income);
+      setShowDeleteDialog(true);
     } else {
-      editTransaction(transaction);
+      setDeletingBill(transaction as Bill);
+      setShowDeleteDialog(true);
     }
   };
 
   const handleConfirmDelete = () => {
-    if (editingTransaction) {
-      deleteTransaction(editingTransaction);
+    if (deletingBill) {
+      deleteTransaction(deletingBill);
+      setShowDeleteDialog(false);
+      setDeletingBill(null);
+    } else if (deletingIncome) {
+      deleteTransaction(deletingIncome);
+      setShowDeleteDialog(false);
+      setDeletingIncome(null);
     }
-    setShowDeleteConfirmation(false);
-    setEditingTransaction(null);
-  };
-
-  const handleCancelDelete = () => {
-    setShowDeleteConfirmation(false);
-    setEditingTransaction(null);
   };
 
   const months = Array.from({ length: 12 }, (_, i) => ({
@@ -263,62 +262,31 @@ export function Budget() {
   return (
     <div className="w-full">
       <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold">My Budget</h1>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleAddIncome}>
               <Plus className="h-4 w-4 mr-2" /> Add Income
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                if (incomes.length > 0) {
-                  handleEditTransaction('income', incomes[incomes.length - 1]);
-                }
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={() => handleEditTransaction('income', incomes[0])}>
               <Edit className="h-4 w-4 mr-2" /> Edit Income
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                if (incomes.length > 0) {
-                  handleDeleteTransaction('income', incomes[incomes.length - 1]);
-                }
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={() => handleDeleteTransaction('income', incomes[0])}>
               <Trash2 className="h-4 w-4 mr-2" /> Delete Income
             </Button>
 
             <Button variant="outline" size="sm" onClick={handleAddBill}>
               <Plus className="h-4 w-4 mr-2" /> Add Bill
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                if (bills.length > 0) {
-                  handleEditTransaction('bill', bills[bills.length - 1]);
-                }
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={() => handleEditTransaction('bill', bills[0])}>
               <Edit className="h-4 w-4 mr-2" /> Edit Bill
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                if (bills.length > 0) {
-                  handleDeleteTransaction('bill', bills[bills.length - 1]);
-                }
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={() => handleDeleteTransaction('bill', bills[0])}>
               <Trash2 className="h-4 w-4 mr-2" /> Delete Bill
             </Button>
           </div>
         </div>
+
         <div className="flex items-center gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Month Total Income</p>
@@ -508,17 +476,17 @@ export function Budget() {
       />
 
       <EditExpenseDialog
-        isOpen={showEditExpenseDialog}
-        onOpenChange={setShowEditExpenseDialog}
-        expense={editingTransaction as Bill}
+        isOpen={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        expense={editingBill as Bill}
         onUpdate={(updatedBill) => {
           editTransaction(updatedBill);
-          setShowEditExpenseDialog(false);
-          setEditingTransaction(null);
+          setShowEditDialog(false);
+          setEditingBill(null);
         }}
       />
 
-      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
@@ -527,7 +495,7 @@ export function Budget() {
             Are you sure you want to delete this transaction? This action cannot be undone.
           </AlertDialogDescription>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
