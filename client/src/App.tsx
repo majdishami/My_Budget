@@ -171,7 +171,18 @@ function Router() {
                   My Budget
                 </h1>
                 {isMobile ? (
-                  <>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      className="p-2 hover:bg-accent rounded-md relative"
+                      aria-label="Refresh data"
+                    >
+                      <RotateCw className={cn(
+                        "h-5 w-5",
+                        isRefreshing && "animate-spin"
+                      )} />
+                    </button>
                     <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                       <SheetTrigger asChild>
                         <button className="p-2 hover:bg-accent rounded-md">
@@ -260,18 +271,7 @@ function Router() {
                         </nav>
                       </SheetContent>
                     </Sheet>
-                    <button
-                      onClick={handleRefresh}
-                      disabled={isRefreshing}
-                      className="p-2 hover:bg-accent rounded-md relative"
-                    >
-                      <RotateCw className={cn(
-                        "h-5 w-5",
-                        isRefreshing && "animate-spin"
-                      )} />
-                      <span className="sr-only">Refresh data</span>
-                    </button>
-                  </>
+                  </div>
                 ) : (
                   <div className="flex items-center gap-4">
                     <DropdownMenu>
