@@ -29,7 +29,7 @@ import AnnualReport from "@/pages/annual";
 import DateRangeReport from "@/pages/date-range";
 import IncomeReport from "@/pages/income";
 import ExpenseReport from "@/pages/expenses";
-import { Button } from "@/components/ui/button";
+//import { Button } from "@/components/ui/button"; // Removed as per intention
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { EditIncomeDialog } from "@/components/EditIncomeDialog";
@@ -161,27 +161,27 @@ function Router() {
 
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Link href="/" className="no-underline cursor-default">
-                    <Button
-                      variant={location === "/" ? "default" : "ghost"}
-                      size="sm"
-                      className={clsx(
-                        "flex items-center gap-2 cursor-pointer",
-                        location === "/" && "bg-primary text-primary-foreground hover:bg-primary/90"
-                      )}
-                      aria-label="Go to Dashboard"
-                    >
-                      <LayoutDashboard className="h-4 w-4 select-none pointer-events-none cursor-default" aria-hidden="true" />
-                      <span className="select-none pointer-events-none cursor-default">Dashboard</span>
-                    </Button>
+                  <Link
+                    href="/"
+                    className={clsx(
+                      "flex items-center gap-2 px-3 py-2 rounded-md select-none cursor-pointer", // Added cursor-pointer
+                      location === "/"
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "hover:bg-accent hover:text-accent-foreground",
+                      "transition-colors"
+                    )}
+                    aria-label="Go to Dashboard"
+                  >
+                    <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+                    <span>Dashboard</span>
                   </Link>
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors"> {/* Replaced Button with a button */}
                         <FolderTree className="h-4 w-4 mr-2" />
                         Expenses
-                      </Button>
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="start"
@@ -223,10 +223,10 @@ function Router() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors"> {/* Replaced Button with a button */}
                         <PlusCircle className="h-4 w-4 mr-2" />
                         Income
-                      </Button>
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
@@ -258,18 +258,18 @@ function Router() {
                   </DropdownMenu>
 
                   <Link href="/categories">
-                    <Button variant="ghost" size="sm">
+                    <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors"> {/* Replaced Button with a button */}
                       <Tags className="h-4 w-4 mr-2" />
                       Categories
-                    </Button>
+                    </button>
                   </Link>
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors"> {/* Replaced Button with a button */}
                         <BarChart4 className="h-4 w-4 mr-2" />
                         Reports
-                      </Button>
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem asChild>
