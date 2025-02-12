@@ -46,7 +46,7 @@ interface RemainingCalculations {
 }
 
 export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRangeReportDialogProps) {
-  const today = useMemo(() => dayjs('2025-02-08'), []); 
+  const today = useMemo(() => dayjs('2025-02-12'), []); // Update to February 12, 2025
   const defaultDateRange = useMemo(() => ({
     from: today.toDate(),
     to: undefined
@@ -330,24 +330,24 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                     Net Balance up today: {formatCurrency(occurredNet)}
                   </div>
                 </CardContent>
-              </Card>
+            </Card>
 
-              <Card>
-                <CardHeader className="py-4">
-                  <CardTitle className="text-sm font-medium">Future Transactions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="text-green-300">
-                    Income: {formatCurrency(summary.futureIncome)}
-                  </div>
-                  <div className="text-red-300">
-                    Expenses: {formatCurrency(summary.futureExpenses)}
-                  </div>
-                  <div className="text-blue-600">
-                    Net: {formatCurrency(futureNet)}
-                  </div>
-                </CardContent>
-              </Card>
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Future Transactions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="text-green-300">
+                  Income: {formatCurrency(summary.futureIncome)}
+                </div>
+                <div className="text-red-300">
+                  Expenses: {formatCurrency(summary.futureExpenses)}
+                </div>
+                <div className="text-blue-600">
+                  Net: {formatCurrency(futureNet)}
+                </div>
+              </CardContent>
+            </Card>
 
           </div>
         </div>
