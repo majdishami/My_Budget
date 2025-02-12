@@ -28,7 +28,7 @@ interface Transaction {
 }
 
 export default function Reports() {
-  const today = dayjs('2025-02-12'); // Use mocked current date
+  const today = dayjs('2025-02-11'); // Use mocked current date
 
   // Set default date range to current month
   const [dateRange, setDateRange] = useState<{from: Date; to: Date}>({

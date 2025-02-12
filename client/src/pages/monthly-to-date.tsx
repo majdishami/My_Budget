@@ -28,7 +28,7 @@ export default function MonthlyToDateReport() {
   const [error, setError] = useState<string | null>(null);
 
   // Use mocked date consistently across the application
-  const today = dayjs('2025-02-12');
+  const today = dayjs('2025-02-11');
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');
   const [, setLocation] = useLocation();

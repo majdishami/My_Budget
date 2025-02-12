@@ -46,7 +46,7 @@ interface RemainingCalculations {
 }
 
 export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRangeReportDialogProps) {
-  const today = useMemo(() => dayjs('2025-02-12'), []); // Update to February 12, 2025
+  const today = useMemo(() => dayjs('2025-02-11'), []); // Update to February 11, 2025
   const defaultDateRange = useMemo(() => ({
     from: today.toDate(),
     to: undefined
