@@ -17,7 +17,8 @@ import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2, X, PlusCircle, BarChart4, Menu,
-  Download, Database, Tags, ChevronDown
+  Download, Database, Tags, ChevronDown,
+  RotateCw
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -60,10 +61,11 @@ import { Income, Bill, OccurrenceType } from "@/types";
 import crypto from 'crypto';
 
 function Router() {
-  const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill } = useData();
+  const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
   const [location] = useLocation();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const today = dayjs('2025-02-11');
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
@@ -114,6 +116,15 @@ function Router() {
     addIncomeToData(incomeWithId);
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const currentDate = useMemo(() => ({
     day: today.date(),
     weekday: today.format('dddd'),
@@ -121,7 +132,7 @@ function Router() {
     year: today.year()
   }), [today]);
 
-  if (isLoading) {
+  if (isLoading || isRefreshing) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -129,26 +140,28 @@ function Router() {
     );
   }
 
+  if (dataError) {
+    return (
+      <Alert
+        variant="destructive"
+        className="fixed top-4 right-4 w-auto z-50 animate-in fade-in slide-in-from-top-2"
+        role="alert"
+      >
+        <AlertDescription className="flex items-center gap-2">
+          {dataError.message}
+          <button
+            className="p-1 hover:bg-accent rounded"
+            aria-label="Dismiss error"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
   return (
     <ErrorBoundary>
-      {dataError && (
-        <Alert
-          variant="destructive"
-          className="fixed top-4 right-4 w-auto z-50 animate-in fade-in slide-in-from-top-2"
-          role="alert"
-        >
-          <AlertDescription className="flex items-center gap-2">
-            {dataError.message}
-            <button
-              className="p-1 hover:bg-accent rounded"
-              aria-label="Dismiss error"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </AlertDescription>
-        </Alert>
-      )}
-
       <div className="min-h-screen flex flex-col bg-background">
         <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <Card className="p-4">
@@ -158,94 +171,107 @@ function Router() {
                   My Budget
                 </h1>
                 {isMobile ? (
-                  <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-                    <SheetTrigger asChild>
-                      <button className="p-2 hover:bg-accent rounded-md">
-                        <Menu className="h-5 w-5" />
-                      </button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-[80vw] sm:w-[350px]">
-                      <nav className="flex flex-col gap-4 mt-4">
-                        <Link href="/" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                          Dashboard
-                        </Link>
-                        <Link href="/categories" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                          <Tags className="h-4 w-4" />
-                          Categories
-                        </Link>
-                        <button 
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            setShowAddExpenseDialog(true);
-                          }}
-                          className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                          Add Expense
+                  <>
+                    <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                      <SheetTrigger asChild>
+                        <button className="p-2 hover:bg-accent rounded-md">
+                          <Menu className="h-5 w-5" />
                         </button>
-                        <button 
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            setShowAddIncomeDialog(true);
-                          }}
-                          className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                          Add Income
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            setShowRemindersDialog(true);
-                          }}
-                          className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                        >
-                          View Reminders
-                        </button>
-                        <div className="flex flex-col gap-2">
-                          <h3 className="font-medium px-2">Reports</h3>
-                          <Link href="/reports/monthly-to-date" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                            Monthly to Date
+                      </SheetTrigger>
+                      <SheetContent side="left" className="w-[80vw] sm:w-[350px]">
+                        <nav className="flex flex-col gap-4 mt-4">
+                          <Link href="/" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                            Dashboard
                           </Link>
-                          <Link href="/reports/monthly" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                            Monthly Report
+                          <Link href="/categories" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                            <Tags className="h-4 w-4" />
+                            Categories
                           </Link>
-                          <Link href="/reports/annual" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                            Annual Report
-                          </Link>
-                          <Link href="/reports/date-range" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                            Date Range
-                          </Link>
-                          <Link href="/reports/income" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                            Income Report
-                          </Link>
-                          <Link href="/reports/expenses" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                            Expense Report
-                          </Link>
-                        </div>
-                        <button 
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            setShowExportDialog(true);
-                          }}
-                          className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                        >
-                          <Download className="h-4 w-4" />
-                          Export Data
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            setShowDatabaseSyncDialog(true);
-                          }}
-                          className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                        >
-                          <Database className="h-4 w-4" />
-                          Sync Database
-                        </button>
-                      </nav>
-                    </SheetContent>
-                  </Sheet>
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setShowAddExpenseDialog(true);
+                            }}
+                            className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                            Add Expense
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setShowAddIncomeDialog(true);
+                            }}
+                            className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                            Add Income
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setShowRemindersDialog(true);
+                            }}
+                            className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                          >
+                            View Reminders
+                          </button>
+                          <div className="flex flex-col gap-2">
+                            <h3 className="font-medium px-2">Reports</h3>
+                            <Link href="/reports/monthly-to-date" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Monthly to Date
+                            </Link>
+                            <Link href="/reports/monthly" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Monthly Report
+                            </Link>
+                            <Link href="/reports/annual" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Annual Report
+                            </Link>
+                            <Link href="/reports/date-range" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Date Range
+                            </Link>
+                            <Link href="/reports/income" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Income Report
+                            </Link>
+                            <Link href="/reports/expenses" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Expense Report
+                            </Link>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setShowExportDialog(true);
+                            }}
+                            className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                          >
+                            <Download className="h-4 w-4" />
+                            Export Data
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setShowDatabaseSyncDialog(true);
+                            }}
+                            className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                          >
+                            <Database className="h-4 w-4" />
+                            Sync Database
+                          </button>
+                        </nav>
+                      </SheetContent>
+                    </Sheet>
+                    <button
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      className="p-2 hover:bg-accent rounded-md relative"
+                    >
+                      <RotateCw className={cn(
+                        "h-5 w-5",
+                        isRefreshing && "animate-spin"
+                      )} />
+                      <span className="sr-only">Refresh data</span>
+                    </button>
+                  </>
                 ) : (
                   <div className="flex items-center gap-4">
                     <DropdownMenu>
