@@ -320,34 +320,35 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                 <CardTitle className="text-sm font-medium">Occurred Transactions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="text-green-600">
-                  Total Occurred Income: {formatCurrency(summary.occurredIncome)}
-                </div>
-                <div className="text-red-600">
-                  Total Incurred Expenses: {formatCurrency(summary.occurredExpenses)}
-                </div>
-                <div className={`font-bold ${occurredNet >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  Net Balance up today: {formatCurrency(occurredNet)}
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-green-600">
+                    Total Occurred Income: {formatCurrency(summary.occurredIncome)}
+                  </div>
+                  <div className="text-red-600">
+                    Total Incurred Expenses: {formatCurrency(summary.occurredExpenses)}
+                  </div>
+                  <div className="text-blue-600">
+                    Net Balance up today: {formatCurrency(occurredNet)}
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Future Transactions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-green-300">
-                  Income: {formatCurrency(summary.futureIncome)}
-                </div>
-                <div className="text-red-300">
-                  Expenses: {formatCurrency(summary.futureExpenses)}
-                </div>
-                <div className={`font-bold ${futureNet >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                  Net: {formatCurrency(futureNet)}
-                </div>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader className="py-4">
+                  <CardTitle className="text-sm font-medium">Future Transactions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="text-green-300">
+                    Income: {formatCurrency(summary.futureIncome)}
+                  </div>
+                  <div className="text-red-300">
+                    Expenses: {formatCurrency(summary.futureExpenses)}
+                  </div>
+                  <div className="text-blue-600">
+                    Net: {formatCurrency(futureNet)}
+                  </div>
+                </CardContent>
+              </Card>
+
           </div>
         </div>
 
@@ -369,18 +370,19 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                     {dayjs(monthKey).format('MMMM YYYY')}
                   </CardTitle>
                   <div className="text-sm space-y-1">
-                    <div className="text-blue-600">
+                    <div className="text-green-600">
                       Monthly Income: {formatCurrency(monthlyTotal.income)}
                     </div>
                     <div className="text-red-600">
                       Monthly Expenses: {formatCurrency(monthlyTotal.expenses)}
                     </div>
-                    <div className={`font-medium ${monthlyTotal.income - monthlyTotal.expenses >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                    <div className="text-blue-600">
                       Monthly Net: {formatCurrency(monthlyTotal.income - monthlyTotal.expenses)}
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Occurred Income */}
                   {monthIncomes.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-sm font-medium mb-2">Income</h4>
@@ -413,6 +415,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                     </div>
                   )}
 
+                  {/* Occurred Expenses */}
                   {monthExpenses.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium mb-2">Expenses</h4>
