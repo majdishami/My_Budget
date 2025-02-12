@@ -121,7 +121,9 @@ function Router() {
       addIncomeToData(newIncome);
       setShowAddIncomeDialog(false);
     } catch (error) {
-      logger.error("Error adding income:", error);
+      logger.error("Error adding income:", {
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   };
