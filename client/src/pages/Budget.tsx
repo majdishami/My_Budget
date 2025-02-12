@@ -159,6 +159,35 @@ export function Budget() {
     };
   }, [monthlyIncomeOccurrences, bills, selectedMonth, selectedYear]);
 
+  // Add memoized running totals calculation
+  const calculateRunningTotals = useCallback((day: number) => {
+    let totalIncome = 0;
+    let totalBills = 0;
+
+    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
+
+    monthlyIncomeOccurrences.forEach(income => {
+      const incomeDate = dayjs(income.date);
+      if (incomeDate.isSameOrBefore(targetDate)) {
+        totalIncome += income.amount;
+      }
+    });
+
+    bills.forEach(bill => {
+      if (bill.isOneTime) {
+        const billDate = dayjs(bill.date);
+        if (billDate && billDate.isSameOrBefore(targetDate)) {
+          totalBills += bill.amount;
+        }
+      } else if (bill.day <= day) {
+        totalBills += bill.amount;
+      }
+    });
+
+    return { totalIncome, totalBills };
+  }, [monthlyIncomeOccurrences, bills, selectedYear, selectedMonth]);
+
+
   // Handle month and year changes with validation
   const handleMonthChange = useCallback((month: number) => {
     setSelectedMonth(month);
@@ -383,8 +412,8 @@ export function Budget() {
         selectedYear={selectedYear}
         dayIncomes={getIncomeForDay(selectedDay)}
         dayBills={getBillsForDay(selectedDay)}
-        totalIncomeUpToToday={monthlyTotals.income}
-        totalBillsUpToToday={monthlyTotals.expenses}
+        totalIncomeUpToToday={calculateRunningTotals(selectedDay).totalIncome}
+        totalBillsUpToToday={calculateRunningTotals(selectedDay).totalBills}
         monthlyTotals={monthlyTotals}
       />
     </div>
