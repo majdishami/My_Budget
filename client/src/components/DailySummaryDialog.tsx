@@ -8,7 +8,7 @@ import {
 import { Income, Bill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isBetween from "dayjs/plugin/isBetween";
@@ -46,34 +46,16 @@ export default function DailySummaryDialog({
   const dailyBills = dayBills.reduce((sum, bill) => sum + bill.amount, 0);
   const totalNet = totalIncomeUpToToday - totalBillsUpToToday;
 
-  // Predefined monthly totals for the year 2025
-  const monthlyTotals: Record<number, { income: number, expenses: number }> = {
-    0: { income: 13814, expenses: 11031 }, // January
-    1: { income: 13814, expenses: 11031 }, // February
-    2: { income: 13814, expenses: 11031 }, // March
-    3: { income: 13814, expenses: 11031 }, // April
-    4: { income: 13814, expenses: 11031 }, // May
-    5: { income: 13814, expenses: 11031 }, // June
-    6: { income: 13814, expenses: 11031 }, // July
-    7: { income: 13814, expenses: 11031 }, // August
-    8: { income: 13814, expenses: 11031 }, // September
-    9: { income: 13814, expenses: 11031 }, // October
-    10: { income: 13814, expenses: 11031 }, // November
-    11: { income: 13814, expenses: 11031 }, // December
-  };
+  // Get the total income and expenses for the selected month from monthly totals
+  const totalMonthIncome = 13814; // This should come from your data source
+  const totalMonthExpenses = 11031; // This should come from your data source
 
-  // Get the total income and expenses for the selected month
-  const totalMonthIncome = monthlyTotals[selectedMonth].income;
-  const totalMonthExpenses = monthlyTotals[selectedMonth].expenses;
-
-  // 1. Remaining Income = Total income of the selected month - total income incurred till the day selected
+  // Calculate remaining values
   const remainingIncome = totalMonthIncome - totalIncomeUpToToday;
-
-  // 2. Remaining Expenses = total expenses of the selected month - total expenses incurred till the day selected
   const remainingExpenses = totalMonthExpenses - totalBillsUpToToday;
-
-  // 3. Balance of Remaining = Remaining Income - Remaining Expenses
   const remainingBalance = remainingIncome - remainingExpenses;
+
+  if (!isOpen) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -96,8 +78,11 @@ export default function DailySummaryDialog({
               <h4 className="text-sm font-medium text-muted-foreground mb-2">Income Transactions</h4>
               {dayIncomes.length > 0 ? (
                 <div className="space-y-2">
-                  {dayIncomes.map((income, index) => (
-                    <div key={income.id} className="flex justify-between items-center text-sm bg-green-50 dark:bg-green-950/30 p-2 rounded">
+                  {dayIncomes.map((income) => (
+                    <div 
+                      key={income.id} 
+                      className="flex justify-between items-center text-sm bg-green-50 dark:bg-green-950/30 p-2 rounded"
+                    >
                       <span>{income.source}</span>
                       <span className="font-medium text-green-600 dark:text-green-400">
                         {formatCurrency(income.amount)}
@@ -115,8 +100,11 @@ export default function DailySummaryDialog({
               <h4 className="text-sm font-medium text-muted-foreground mb-2">Expense Transactions</h4>
               {dayBills.length > 0 ? (
                 <div className="space-y-2">
-                  {dayBills.map((bill, index) => (
-                    <div key={bill.id} className="flex justify-between items-center text-sm bg-red-50 dark:bg-red-950/30 p-2 rounded">
+                  {dayBills.map((bill) => (
+                    <div 
+                      key={bill.id} 
+                      className="flex justify-between items-center text-sm bg-red-50 dark:bg-red-950/30 p-2 rounded"
+                    >
                       <span>{bill.name}</span>
                       <span className="font-medium text-red-600 dark:text-red-400">
                         {formatCurrency(bill.amount)}
