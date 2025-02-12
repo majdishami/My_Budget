@@ -154,17 +154,20 @@ function Router() {
               {/* Navigation row */}
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Link href="/">
+                  <Link href="/" className="w-full">
                     <Button
                       variant={location === "/" ? "default" : "ghost"}
                       size="sm"
                       className={clsx(
-                        "cursor-pointer",
-                        location === "/" && "bg-primary text-primary-foreground hover:bg-primary/90"
+                        location === "/" && "bg-primary text-primary-foreground hover:bg-primary/90",
+                        "w-full flex items-center"
                       )}
+                      asChild
                     >
-                      <LayoutDashboard className="h-4 w-4 mr-2" />
-                      Dashboard
+                      <div>
+                        <LayoutDashboard className="h-4 w-4 mr-2" />
+                        Dashboard
+                      </div>
                     </Button>
                   </Link>
 
@@ -176,7 +179,7 @@ function Router() {
                         Expenses
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent 
+                    <DropdownMenuContent
                       align="start"
                       side="bottom"
                       sideOffset={4}
