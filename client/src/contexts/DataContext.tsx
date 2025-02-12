@@ -357,7 +357,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setError(null);
           if ('source' in transaction) {
             // It's an income
-            const newIncomes = incomes.filter(i => i.id !== transaction.id);
+            let newIncomes: Income[];
+            if (transaction.occurrenceType !== 'once') {
+              // For recurring incomes, remove all occurrences with the same source
+              newIncomes = incomes.filter(i => i.source !== transaction.source);
+            } else {
+              // For one-time incomes, remove by ID
+              newIncomes = incomes.filter(i => i.id !== transaction.id);
+            }
             setIncomes(newIncomes);
             localStorage.setItem("budgetIncomes", JSON.stringify(newIncomes));
             logger.info("Successfully deleted income", { income: transaction });
