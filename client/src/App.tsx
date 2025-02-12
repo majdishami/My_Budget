@@ -432,6 +432,15 @@ function Router() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+
+                    <button
+                      onClick={() => setShowDatabaseSyncDialog(true)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                      <Database className="h-4 w-4" />
+                      Sync Database
+                    </button>
+
                     <ThemeToggle />
                   </div>
                 )}
