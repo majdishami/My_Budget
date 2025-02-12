@@ -161,47 +161,46 @@ export function Budget() {
     const endOfMonth = currentDate.endOf('month');
 
     const occurrences: Income[] = [];
+    const addedDates = new Set<string>(); // Track added dates to prevent duplicates
 
     incomes.forEach(income => {
-      if (income.source === "Majdi's Salary") {
-        // Bi-monthly payments (1st and 15th)
-        occurrences.push({
-          id: `${income.id}-${startOfMonth.format('YYYY-MM-DD')}`,
-          source: income.source,
-          amount: 4739,
-          date: startOfMonth.toISOString()
-        });
+      const addIncomeIfNotExists = (date: dayjs.Dayjs, amount: number) => {
+        const dateStr = date.format('YYYY-MM-DD');
+        if (!addedDates.has(`${income.source}-${dateStr}`)) {
+          addedDates.add(`${income.source}-${dateStr}`);
+          occurrences.push({
+            id: `${income.id}-${dateStr}`,
+            source: income.source,
+            amount: amount,
+            date: date.toISOString()
+          });
+        }
+      };
 
-        // Add second payment of the month (15th)
-        const fifteenthDay = startOfMonth.date(15);
-        occurrences.push({
-          id: `${income.id}-${fifteenthDay.format('YYYY-MM-DD')}`,
-          source: income.source,
-          amount: 4739,
-          date: fifteenthDay.toISOString()
-        });
+      if (income.source === "Majdi's Salary") {
+        // First payment on 1st
+        addIncomeIfNotExists(startOfMonth, 4739);
+        // Second payment on 15th
+        addIncomeIfNotExists(startOfMonth.date(15), 4739);
       } else if (income.source === "Ruba's Salary") {
         // Calculate bi-weekly occurrences
         let checkDate = dayjs('2025-01-10');
         while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
-          if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
-            if (checkDate.day() === 5) { // Friday
-              const weeksDiff = checkDate.diff(dayjs('2025-01-10'), 'week');
-              if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
-                occurrences.push({
-                  id: `${income.id}-${checkDate.format('YYYY-MM-DD')}`,
-                  source: income.source,
-                  amount: income.amount,
-                  date: checkDate.toISOString()
-                });
-              }
+          if ((checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) && 
+              checkDate.day() === 5) { // Friday
+            const weeksDiff = checkDate.diff(dayjs('2025-01-10'), 'week');
+            if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+              addIncomeIfNotExists(checkDate, income.amount);
             }
           }
           checkDate = checkDate.add(1, 'day');
         }
       } else {
         // Regular monthly incomes
-        occurrences.push(income);
+        const incomeDate = dayjs(income.date);
+        if (incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear) {
+          addIncomeIfNotExists(incomeDate, income.amount);
+        }
       }
     });
 
