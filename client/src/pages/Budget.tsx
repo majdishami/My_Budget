@@ -34,12 +34,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 dayjs.extend(isBetween);
 
@@ -57,7 +51,6 @@ const formatCurrency = (amount: number) => {
 export function Budget() {
   const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction, resetData } = useData();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Set today to February 11, 2025
   const today = dayjs('2025-02-11');
   const [selectedDay, setSelectedDay] = useState(today.date());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
@@ -68,7 +61,7 @@ export function Budget() {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showEditExpenseDialog, setShowEditExpenseDialog] = useState(false);
 
-  const currentDate = today.format('dddd, D'); // Only show day of week and day of month
+  const currentDate = today.format('dddd, D');
 
   const handleAddIncome = () => {
     const newIncome: Income = {
@@ -87,11 +80,11 @@ export function Budget() {
       amount: 0,
       day: dayjs().date(),
       category_id: 1,
-      category_name: "Uncategorized", // Added missing required field
+      category_name: "Uncategorized",
       user_id: 1,
       created_at: dayjs().toISOString(),
       isOneTime: false,
-      date: dayjs().toISOString() // Added date field for consistency
+      date: dayjs().toISOString()
     };
     addBill(newBill);
   };
@@ -123,19 +116,16 @@ export function Budget() {
     setEditingTransaction(null);
   };
 
-  // Generate array of months for the select
   const months = Array.from({ length: 12 }, (_, i) => ({
     value: i,
     label: dayjs().month(i).format('MMMM')
   }));
 
-  // Generate array of years (±5 years from current)
   const years = Array.from({ length: 11 }, (_, i) => ({
     value: today.year() - 5 + i,
     label: (today.year() - 5 + i).toString()
   }));
 
-  // Generate array of weeks for the select
   const getWeeksInMonth = (year: number, month: number) => {
     const firstDay = dayjs().year(year).month(month).startOf('month');
     const lastDay = firstDay.endOf('month');
@@ -169,7 +159,7 @@ export function Budget() {
     const endOfMonth = currentDate.endOf('month');
 
     const occurrences: Income[] = [];
-    const addedDates = new Set<string>(); // Track added dates to prevent duplicates
+    const addedDates = new Set<string>(); 
 
     incomes.forEach(income => {
       const addIncomeIfNotExists = (date: dayjs.Dayjs, amount: number) => {
@@ -186,16 +176,13 @@ export function Budget() {
       };
 
       if (income.source === "Majdi's Salary") {
-        // First payment on 1st
         addIncomeIfNotExists(startOfMonth, 4739);
-        // Second payment on 15th
         addIncomeIfNotExists(startOfMonth.date(15), 4739);
       } else if (income.source === "Ruba's Salary") {
-        // Calculate bi-weekly occurrences
         let checkDate = dayjs('2025-01-10');
         while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
           if ((checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) && 
-              checkDate.day() === 5) { // Friday
+              checkDate.day() === 5) { 
             const weeksDiff = checkDate.diff(dayjs('2025-01-10'), 'week');
             if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
               addIncomeIfNotExists(checkDate, income.amount);
@@ -204,7 +191,6 @@ export function Budget() {
           checkDate = checkDate.add(1, 'day');
         }
       } else {
-        // Regular monthly incomes
         const incomeDate = dayjs(income.date);
         if (incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear) {
           addIncomeIfNotExists(incomeDate, income.amount);
@@ -231,11 +217,9 @@ export function Budget() {
     const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
     return bills.filter(bill => {
       if (bill.isOneTime) {
-        // For one-time bills, check exact date match
         const billDate = dayjs(bill.date);
         return billDate && billDate.date() === day && billDate.month() === selectedMonth && billDate.year() === selectedYear;
       } else {
-        // For recurring bills, check if the day matches
         return bill.day === day;
       }
     });
@@ -245,10 +229,8 @@ export function Budget() {
     let totalIncome = 0;
     let totalBills = 0;
 
-    // Calculate target date
     const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
 
-    // Calculate income using monthly occurrences
     const monthlyIncomes = getMonthlyIncomeOccurrences();
     monthlyIncomes.forEach(income => {
       const incomeDate = dayjs(income.date);
@@ -257,10 +239,8 @@ export function Budget() {
       }
     });
 
-    // Calculate bills
     bills.forEach(bill => {
       if (bill.isOneTime) {
-        // For one-time bills
         const billDate = dayjs(bill.date);
         if (billDate.isSame(targetDate, 'month')) {
           if (billDate.date() <= day && billDate.month() === selectedMonth && billDate.year() === selectedYear) {
@@ -268,7 +248,6 @@ export function Budget() {
           }
         }
       } else {
-        // For recurring bills
         if (bill.day <= day) {
           totalBills += bill.amount;
         }
@@ -287,81 +266,68 @@ export function Budget() {
 
   return (
     <div className="w-full">
-      <Card className="w-full mb-4">
-        <div className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Calendar className="h-4 w-4" />
-              <Select
-                value={selectedYear.toString()}
-                onValueChange={(value) => setSelectedYear(parseInt(value))}
-              >
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue placeholder="Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map(({ value, label }) => (
-                    <SelectItem key={value} value={value.toString()}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold">My Budget</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleAddIncome}>
+              <Plus className="h-4 w-4 mr-2" /> Add Income
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                const latestIncome = incomes[incomes.length - 1];
+                if (latestIncome) {
+                  handleEditTransaction('income', latestIncome);
+                }
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" /> Edit Income
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                const latestIncome = incomes[incomes.length - 1];
+                if (latestIncome) {
+                  handleDeleteTransaction('income', latestIncome);
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Delete Income
+            </Button>
 
-              <Select
-                value={selectedMonth.toString()}
-                onValueChange={(value) => setSelectedMonth(parseInt(value))}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map(({ value, label }) => (
-                    <SelectItem key={value} value={value.toString()}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {selectedMonth === today.month() && selectedYear === today.year() && (
-                <div className="text-sm text-muted-foreground">
-                  {currentDate}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm" onClick={handleAddIncome}>
-                <Plus className="h-4 w-4 mr-2" /> Add Income
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleEditTransaction.bind(null, 'income', incomes[0] || {id:'', source:'', amount:0, date:''})}>
-                <Edit className="h-4 w-4 mr-2" /> Edit Income
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleDeleteTransaction.bind(null, 'income', incomes[0] || {id:'', source:'', amount:0, date:''})}>
-                <Trash2 className="h-4 w-4 mr-2" /> Delete Income
-              </Button>
-
-              <Button variant="outline" size="sm" onClick={handleAddBill}>
-                <Plus className="h-4 w-4 mr-2" /> Add Bill
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => {
+            <Button variant="outline" size="sm" onClick={handleAddBill}>
+              <Plus className="h-4 w-4 mr-2" /> Add Bill
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
                 const latestBill = bills[bills.length - 1];
                 if (latestBill) {
                   handleEditTransaction('bill', latestBill);
                 }
-              }}>
-                <Edit className="h-4 w-4 mr-2" /> Edit Bill
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => {
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" /> Edit Bill
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
                 const latestBill = bills[bills.length - 1];
                 if (latestBill) {
                   handleDeleteTransaction('bill', latestBill);
                 }
-              }}>
-                <Trash2 className="h-4 w-4 mr-2" /> Delete Bill
-              </Button>
-
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Delete Bill
+            </Button>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Month Total Income</p>
                 <p className="text-lg font-semibold text-green-600">
@@ -384,9 +350,7 @@ export function Budget() {
                 </p>
               </div>
             </div>
-          </div>
-        </div>
-      </Card>
+      </div>
 
       <Card className="w-full">
         <div className="w-full overflow-hidden">
