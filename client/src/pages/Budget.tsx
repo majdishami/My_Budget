@@ -260,19 +260,9 @@ export function Budget() {
   return (
     <div className="w-full">
       <div className="flex items-center justify-between p-4 border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold">My Budget</h1>
-          <Button variant="outline" size="sm">
-            <Plus className="h-4 w-4 mr-2" /> Add
-          </Button>
-          <Button variant="outline" size="sm">
-            Categories
-          </Button>
-          <Button variant="outline" size="sm">
-            Reports
-          </Button>
+        <div className="text-xl font-semibold">
+          {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
         </div>
-
         <div className="flex items-center gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Month Total Income</p>
