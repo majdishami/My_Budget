@@ -62,12 +62,15 @@ export default function EditExpenseDialog({
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDays, setReminderDays] = useState(7);
 
-  // Fetch categories
-  const { data: categories = [] } = useQuery<Category[]>({
+  // Fetch categories with error handling
+  const { data: categories = [], isError: isCategoriesError } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
+    onError: (error) => {
+      console.error('Failed to fetch categories:', error);
+    }
   });
 
-  // Validation state
+  // Enhanced validation state
   const [errors, setErrors] = useState<{
     name?: string;
     amount?: string;
@@ -95,15 +98,24 @@ export default function EditExpenseDialog({
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
 
+    // Name validation
     if (!name.trim()) {
       newErrors.name = 'Name is required';
+    } else if (name.length > 100) {
+      newErrors.name = 'Name must be less than 100 characters';
     }
 
+    // Amount validation
     const amountNum = parseFloat(amount);
-    if (!amount || isNaN(amountNum) || amountNum <= 0) {
-      newErrors.amount = 'Please enter a valid amount greater than 0';
+    if (!amount || isNaN(amountNum)) {
+      newErrors.amount = 'Please enter a valid amount';
+    } else if (amountNum <= 0) {
+      newErrors.amount = 'Amount must be greater than 0';
+    } else if (amountNum > 1000000) {
+      newErrors.amount = 'Amount must be less than 1,000,000';
     }
 
+    // Date validation
     if (dateType === 'monthly') {
       const dayNum = parseInt(day);
       if (!day || isNaN(dayNum) || dayNum < 1 || dayNum > 31) {
@@ -112,9 +124,12 @@ export default function EditExpenseDialog({
     } else {
       if (!specificDate) {
         newErrors.date = 'Please select a specific date';
+      } else if (specificDate < new Date('2024-01-01')) {
+        newErrors.date = 'Date cannot be before 2024';
       }
     }
 
+    // Category validation
     if (!categoryId) {
       newErrors.category = 'Please select a category';
     }
@@ -127,37 +142,50 @@ export default function EditExpenseDialog({
     if (!expense || !validateForm()) return;
 
     const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
+    if (!selectedCategory) {
+      setErrors(prev => ({ ...prev, category: 'Invalid category selected' }));
+      return;
+    }
 
-    const baseUpdates = {
-      name,
-      amount: parseFloat(amount),
-      day: parseInt(day),
-      category_id: parseInt(categoryId),
-      category_name: selectedCategory?.name || 'Uncategorized',
-      category_color: selectedCategory?.color || '#D3D3D3',
-      reminderEnabled,
-      reminderDays,
-      user_id: expense.user_id,
-      created_at: expense.created_at
-    };
-
-    if (dateType === 'monthly') {
-      // Regular monthly update
-      onUpdate({
-        ...expense,
-        ...baseUpdates,
-        isOneTime: false
-      });
-    } else if (specificDate) {
-      // Create a new one-time expense
-      const specificBill: Bill = {
-        id: generateId(),
-        ...baseUpdates,
-        day: dayjs(specificDate).date(),
-        date: dayjs(specificDate).toISOString(),
-        isOneTime: true
+    try {
+      const baseUpdates = {
+        name: name.trim(),
+        amount: parseFloat(amount),
+        day: parseInt(day),
+        category_id: parseInt(categoryId),
+        category_name: selectedCategory.name,
+        category_color: selectedCategory.color,
+        reminderEnabled,
+        reminderDays,
+        user_id: expense.user_id,
+        created_at: expense.created_at
       };
-      onUpdate(specificBill);
+
+      if (dateType === 'monthly') {
+        onUpdate({
+          ...expense,
+          ...baseUpdates,
+          isOneTime: false,
+          date: undefined
+        });
+      } else if (specificDate) {
+        const specificBill: Bill = {
+          id: generateId(),
+          ...baseUpdates,
+          day: dayjs(specificDate).date(),
+          date: dayjs(specificDate).toISOString(),
+          isOneTime: true
+        };
+        onUpdate(specificBill);
+      }
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      setErrors(prev => ({ 
+        ...prev, 
+        general: 'Failed to update expense. Please try again.' 
+      }));
     }
   };
 
@@ -193,6 +221,7 @@ export default function EditExpenseDialog({
                 }}
                 aria-invalid={!!errors.name}
                 aria-describedby={errors.name ? "name-error" : undefined}
+                maxLength={100}
               />
               {errors.name && (
                 <Alert variant="destructive" className="py-2">
@@ -215,6 +244,8 @@ export default function EditExpenseDialog({
                 }}
                 aria-invalid={!!errors.amount}
                 aria-describedby={errors.amount ? "amount-error" : undefined}
+                min="0"
+                max="1000000"
               />
               {errors.amount && (
                 <Alert variant="destructive" className="py-2">
@@ -326,6 +357,7 @@ export default function EditExpenseDialog({
                           setErrors(prev => ({ ...prev, date: undefined }));
                         }}
                         initialFocus
+                        disabled={(date) => date < new Date('2024-01-01')}
                       />
                     </PopoverContent>
                   </Popover>
