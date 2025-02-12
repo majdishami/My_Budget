@@ -1,5 +1,5 @@
 import { Route, useRoute } from "wouter";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import utc from "dayjs/plugin/utc";
@@ -31,6 +31,100 @@ const formatCurrency = (amount: number) => {
     maximumFractionDigits: 0
   }).format(amount);
 };
+
+// Memoized transaction card component
+const TransactionCard = memo(({ item, type }: { item: Income | Bill; type: 'income' | 'bill' }) => {
+  return (
+    <div 
+      className={`flex justify-between items-center text-[8px] md:text-xs ${
+        type === 'income' 
+          ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30' 
+          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30'
+      } rounded px-0.5`}
+    >
+      <span className="truncate max-w-[60%]">
+        {type === 'income' ? (item as Income).source : (item as Bill).name}
+      </span>
+      <span className="font-medium shrink-0">
+        {formatCurrency(item.amount)}
+      </span>
+    </div>
+  );
+});
+
+TransactionCard.displayName = 'TransactionCard';
+
+// Memoized day cell component
+const DayCell = memo(({ 
+  day, 
+  isCurrentDay,
+  selectedDay,
+  dayIncomes,
+  dayBills,
+  onDayClick 
+}: { 
+  day: number;
+  isCurrentDay: boolean;
+  selectedDay: number;
+  dayIncomes: Income[];
+  dayBills: Bill[];
+  onDayClick: (day: number) => void;
+}) => {
+  const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
+  const dayOfWeek = dayjs().date(day).format('ddd');
+
+  return (
+    <td
+      onClick={() => onDayClick(day)}
+      className={cn(
+        "border p-0.5 lg:p-2 align-top cursor-pointer transition-colors h-12 md:h-24 lg:h-48 relative touch-manipulation",
+        "hover:bg-accent active:bg-accent/70",
+        isCurrentDay && "ring-2 ring-primary ring-offset-2",
+        selectedDay === day && "bg-accent/50",
+        hasTransactions && "shadow-sm"
+      )}
+    >
+      <div className="flex justify-between items-start mb-0.5">
+        <div className="flex items-center gap-0.5">
+          <span className={cn(
+            "font-medium text-xs md:text-base lg:text-lg",
+            isCurrentDay && "text-primary font-bold"
+          )}>
+            {day}
+          </span>
+          <span className="hidden md:inline text-[10px] text-muted-foreground">
+            {dayOfWeek}
+          </span>
+          {isCurrentDay && (
+            <span className="text-[8px] md:text-xs font-medium text-primary ml-0.5 animate-pulse px-0.5 rounded">
+              Today
+            </span>
+          )}
+        </div>
+        {hasTransactions && (
+          <div className="flex gap-0.5">
+            {dayIncomes.length > 0 && (
+              <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-green-500" />
+            )}
+            {dayBills.length > 0 && (
+              <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-red-500" />
+            )}
+          </div>
+        )}
+      </div>
+      <div className="space-y-0.5 text-[8px] md:text-xs max-h-[calc(100%-1.5rem)] overflow-y-auto">
+        {dayIncomes.map((income) => (
+          <TransactionCard key={income.id} item={income} type="income" />
+        ))}
+        {dayBills.map((bill) => (
+          <TransactionCard key={bill.id} item={bill} type="bill" />
+        ))}
+      </div>
+    </td>
+  );
+});
+
+DayCell.displayName = 'DayCell';
 
 export function Budget() {
   const { incomes, bills, isLoading, error } = useData();
@@ -215,6 +309,12 @@ export function Budget() {
     setSelectedDay(Math.min(selectedDay, days));
   }, [selectedMonth, selectedDay]);
 
+  // Memoize day click handler
+  const handleDayClick = useCallback((day: number) => {
+    setSelectedDay(day);
+    setShowDailySummary(true);
+  }, []);
+
   // Loading state
   if (isLoading) {
     return (
@@ -324,97 +424,21 @@ export function Budget() {
                       return <td key={dayIndex} className="border p-0.5 lg:p-2 bg-muted/10 h-12 md:h-24 lg:h-48" />;
                     }
 
-                    const currentDate = dayjs().year(selectedYear).month(selectedMonth).date(dayNumber);
-                    const dayOfWeek = currentDate.format('ddd');
-                    const dayIncomes = getIncomeForDay(dayNumber);
-                    const dayBills = getBillsForDay(dayNumber);
-                    const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
                     const isCurrentDay = 
                       dayNumber === today.date() && 
                       selectedMonth === today.month() && 
                       selectedYear === today.year();
 
                     return (
-                      <td
+                      <DayCell
                         key={dayIndex}
-                        onClick={() => {
-                          setSelectedDay(dayNumber);
-                          setShowDailySummary(true);
-                        }}
-                        aria-label={`${dayNumber} ${dayjs().month(selectedMonth).format("MMMM")} ${selectedYear}${isCurrentDay ? ' (Today)' : ''}`}
-                        className={cn(
-                          "border p-0.5 lg:p-2 align-top cursor-pointer transition-colors h-12 md:h-24 lg:h-48 relative touch-manipulation",
-                          "hover:bg-accent active:bg-accent/70",
-                          isCurrentDay && "ring-2 ring-primary ring-offset-2",
-                          selectedDay === dayNumber && "bg-accent/50",
-                          hasTransactions && "shadow-sm"
-                        )}
-                      >
-                        <div className="flex justify-between items-start mb-0.5">
-                          <div className="flex items-center gap-0.5">
-                            <span className={cn(
-                              "font-medium text-xs md:text-base lg:text-lg",
-                              isCurrentDay && "text-primary font-bold"
-                            )}>
-                              {dayNumber}
-                            </span>
-                            <span className="hidden md:inline text-[10px] text-muted-foreground">
-                              {dayOfWeek}
-                            </span>
-                            {isCurrentDay && (
-                              <span className="text-[8px] md:text-xs font-medium text-primary ml-0.5 animate-pulse px-0.5 rounded">
-                                Today
-                              </span>
-                            )}
-                          </div>
-                          {hasTransactions && (
-                            <div className="flex gap-0.5">
-                              {dayIncomes.length > 0 && (
-                                <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-green-500" />
-                              )}
-                              {dayBills.length > 0 && (
-                                <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-red-500" />
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div className="space-y-0.5 text-[8px] md:text-xs max-h-[calc(100%-1.5rem)] overflow-y-auto">
-                          {dayIncomes.length > 0 && (
-                            <div className="space-y-0.5">
-                              {dayIncomes.map((income, index) => (
-                                <div 
-                                  key={income.id} 
-                                  className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-0.5"
-                                >
-                                  <span className="truncate max-w-[60%] text-[8px] md:text-xs">
-                                    {index + 1}. {income.source}
-                                  </span>
-                                  <span className="font-medium shrink-0 text-[8px] md:text-xs">
-                                    {formatCurrency(income.amount)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {dayBills.length > 0 && (
-                            <div className="space-y-0.5">
-                              {dayBills.map((bill, index) => (
-                                <div 
-                                  key={bill.id} 
-                                  className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-0.5"
-                                >
-                                  <span className="truncate max-w-[60%] text-[8px] md:text-xs">
-                                    {index + 1}. {bill.name}
-                                  </span>
-                                  <span className="font-medium shrink-0 text-[8px] md:text-xs">
-                                    {formatCurrency(bill.amount)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </td>
+                        day={dayNumber}
+                        isCurrentDay={isCurrentDay}
+                        selectedDay={selectedDay}
+                        dayIncomes={getIncomeForDay(dayNumber)}
+                        dayBills={getBillsForDay(dayNumber)}
+                        onDayClick={handleDayClick}
+                      />
                     );
                   })}
                 </tr>
