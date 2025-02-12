@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Bill } from "@/types";
 import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle, Calendar as CalendarIcon } from "lucide-react";
@@ -32,6 +32,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface Category {
   id: number;
@@ -52,6 +54,7 @@ export default function EditExpenseDialog({
   expense,
   onUpdate,
 }: EditExpenseDialogProps) {
+  const { toast } = useToast();
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [day, setDay] = useState('1');
@@ -61,16 +64,16 @@ export default function EditExpenseDialog({
   const [showReminderDialog, setShowReminderDialog] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDays, setReminderDays] = useState(7);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch categories with proper type definitions and error handling
-  const { data: categories = [], isError: isCategoriesError } = useQuery<Category[], Error>({
+  // Fetch categories with proper error handling
+  const { data: categories = [], isError: isCategoriesError, error: categoriesError } = useQuery<Category[], Error>({
     queryKey: ['/api/categories'],
     retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
-  // Enhanced validation state
   const [errors, setErrors] = useState<{
     name?: string;
     amount?: string;
@@ -81,7 +84,7 @@ export default function EditExpenseDialog({
     general?: string;
   }>({});
 
-  useEffect(() => {
+  const resetForm = useCallback(() => {
     if (expense) {
       setName(expense.name);
       setAmount(expense.amount.toString());
@@ -94,19 +97,25 @@ export default function EditExpenseDialog({
         setSpecificDate(new Date(expense.date));
       }
     }
+    setErrors({});
+    setIsSubmitting(false);
   }, [expense]);
 
-  const validateForm = (): boolean => {
+  useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen, resetForm]);
+
+  const validateForm = useCallback((): boolean => {
     const newErrors: typeof errors = {};
 
-    // Name validation
     if (!name.trim()) {
       newErrors.name = 'Name is required';
     } else if (name.length > 100) {
       newErrors.name = 'Name must be less than 100 characters';
     }
 
-    // Amount validation
     const amountNum = parseFloat(amount);
     if (!amount || isNaN(amountNum)) {
       newErrors.amount = 'Please enter a valid amount';
@@ -116,35 +125,32 @@ export default function EditExpenseDialog({
       newErrors.amount = 'Amount must be less than 1,000,000';
     }
 
-    // Date validation
     if (dateType === 'monthly') {
       const dayNum = parseInt(day);
       if (!day || isNaN(dayNum) || dayNum < 1 || dayNum > 31) {
         newErrors.day = 'Please enter a valid day between 1 and 31';
       }
-    } else {
-      if (!specificDate) {
-        newErrors.date = 'Please select a specific date';
-      } else if (specificDate < new Date('2024-01-01')) {
-        newErrors.date = 'Date cannot be before 2024';
-      }
+    } else if (!specificDate) {
+      newErrors.date = 'Please select a specific date';
     }
 
-    // Category validation
     if (!categoryId) {
       newErrors.category = 'Please select a category';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [name, amount, dateType, day, specificDate, categoryId]);
 
-  const handleConfirm = () => {
-    if (!expense || !validateForm()) return;
+  const handleConfirm = async () => {
+    if (!expense || !validateForm() || isSubmitting) return;
 
+    setIsSubmitting(true);
     const selectedCategory = categories.find((cat: Category) => cat.id.toString() === categoryId);
+
     if (!selectedCategory) {
       setErrors(prev => ({ ...prev, category: 'Invalid category selected' }));
+      setIsSubmitting(false);
       return;
     }
 
@@ -180,13 +186,24 @@ export default function EditExpenseDialog({
         onUpdate(specificBill);
       }
 
+      toast({
+        title: "Success",
+        description: "Expense updated successfully",
+      });
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating expense:', error);
-      setErrors(prev => ({ 
-        ...prev, 
-        general: 'Failed to update expense. Please try again.' 
+      setErrors(prev => ({
+        ...prev,
+        general: 'Failed to update expense. Please try again.'
       }));
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update expense. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -201,7 +218,24 @@ export default function EditExpenseDialog({
     setReminderEnabled(enabled);
     setReminderDays(days);
     setErrors(prev => ({ ...prev, reminderDays: undefined }));
+    toast({
+      title: "Reminder Updated",
+      description: enabled 
+        ? `Reminder set for ${days} days before due date` 
+        : "Reminder disabled",
+    });
   };
+
+  // Show error toast for category loading failure
+  useEffect(() => {
+    if (isCategoriesError && categoriesError) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load categories. Please try again.",
+      });
+    }
+  }, [isCategoriesError, categoriesError, toast]);
 
   return (
     <>
@@ -223,6 +257,7 @@ export default function EditExpenseDialog({
                 aria-invalid={!!errors.name}
                 aria-describedby={errors.name ? "name-error" : undefined}
                 maxLength={100}
+                disabled={isSubmitting}
               />
               {errors.name && (
                 <Alert variant="destructive" className="py-2">
@@ -247,6 +282,7 @@ export default function EditExpenseDialog({
                 aria-describedby={errors.amount ? "amount-error" : undefined}
                 min="0"
                 max="1000000"
+                disabled={isSubmitting}
               />
               {errors.amount && (
                 <Alert variant="destructive" className="py-2">
@@ -264,6 +300,7 @@ export default function EditExpenseDialog({
                   setCategoryId(value);
                   setErrors(prev => ({ ...prev, category: undefined }));
                 }}
+                disabled={isSubmitting}
               >
                 <SelectTrigger
                   id="category"
@@ -309,14 +346,15 @@ export default function EditExpenseDialog({
                 value={dateType}
                 onValueChange={(value: 'monthly' | 'specific') => setDateType(value)}
                 className="grid gap-2"
+                disabled={isSubmitting}
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="monthly" id="monthly" />
-                  <label htmlFor="monthly" className="text-sm">Update recurring monthly expense</label>
+                  <label htmlFor="monthly" className="text-sm">Monthly recurring expense</label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="specific" id="specific" />
-                  <label htmlFor="specific" className="text-sm">Update specific occurrence only</label>
+                  <label htmlFor="specific" className="text-sm">One-time expense</label>
                 </div>
               </RadioGroup>
 
@@ -335,6 +373,7 @@ export default function EditExpenseDialog({
                     }}
                     aria-invalid={!!errors.day}
                     aria-describedby={errors.day ? "day-error" : undefined}
+                    disabled={isSubmitting}
                   />
                   {errors.day && (
                     <Alert variant="destructive" className="py-2">
@@ -350,6 +389,7 @@ export default function EditExpenseDialog({
                       <Button
                         variant="outline"
                         className={`w-full justify-start text-left font-normal ${!specificDate && "text-muted-foreground"}`}
+                        disabled={isSubmitting}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {specificDate ? dayjs(specificDate).format('MMM D, YYYY') : <span>Pick a date</span>}
@@ -382,6 +422,7 @@ export default function EditExpenseDialog({
               variant="outline"
               onClick={() => setShowReminderDialog(true)}
               className="w-full"
+              disabled={isSubmitting}
             >
               <Bell className="mr-2 h-4 w-4" />
               {reminderEnabled ? `Reminder: ${reminderDays} days before` : 'Set Reminder'}
@@ -395,10 +436,26 @@ export default function EditExpenseDialog({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button onClick={handleConfirm}>Save Changes</Button>
+            <Button 
+              onClick={handleConfirm}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
