@@ -28,9 +28,11 @@ const formSchema = z.object({
   source: z.string().min(1, "Income source is required"),
   amount: z.number().min(0.01, "Amount must be greater than 0"),
   date: z.string().min(1, "Date is required"),
-  occurrenceType: z.enum(['once', 'monthly', 'biweekly', 'twice-monthly'] as const, {
+  occurrenceType: z.enum(['once', 'weekly', 'monthly', 'biweekly', 'twice-monthly'] as const, {
     required_error: "Please select an occurrence type",
   }),
+  firstDate: z.number().min(1).max(31).optional(),
+  secondDate: z.number().min(1).max(31).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -47,6 +49,7 @@ export function AddIncomeDialog({
   onConfirm,
 }: AddIncomeDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDatePickers, setShowDatePickers] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -55,6 +58,8 @@ export function AddIncomeDialog({
       amount: undefined,
       date: dayjs().format("YYYY-MM-DD"),
       occurrenceType: 'once',
+      firstDate: 1,
+      secondDate: 15,
     },
   });
 
@@ -75,16 +80,33 @@ export function AddIncomeDialog({
         occurrenceType: values.occurrenceType,
       };
 
+      if (values.occurrenceType === 'twice-monthly') {
+        newIncome.firstDate = values.firstDate;
+        newIncome.secondDate = values.secondDate;
+      }
+
       await onConfirm(newIncome);
       form.reset();
       onOpenChange(false);
       logger.info("Successfully added new income", { income: newIncome });
     } catch (error) {
-      logger.error("Error adding income:", error);
+      logger.error("Error adding income:", { error });
       throw error;
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const generateDayOptions = () => {
+    const days = [];
+    for (let i = 1; i <= 31; i++) {
+      days.push(
+        <SelectItem key={i} value={i.toString()}>
+          {i}
+        </SelectItem>
+      );
+    }
+    return days;
   };
 
   return (
@@ -141,7 +163,10 @@ export function AddIncomeDialog({
                 <FormItem>
                   <FormLabel>Frequency</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setShowDatePickers(value === 'twice-monthly');
+                    }}
                     defaultValue={field.value}
                   >
                     <FormControl>
@@ -151,6 +176,7 @@ export function AddIncomeDialog({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="once">One time</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
                       <SelectItem value="monthly">Monthly</SelectItem>
                       <SelectItem value="biweekly">Bi-Weekly</SelectItem>
                       <SelectItem value="twice-monthly">Twice a month</SelectItem>
@@ -161,23 +187,75 @@ export function AddIncomeDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="date"
-                      {...field}
-                      value={field.value || dayjs().format("YYYY-MM-DD")}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {form.watch("occurrenceType") === 'twice-monthly' ? (
+              <>
+                <FormField
+                  control={form.control}
+                  name="firstDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First payment day of the month</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        defaultValue={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select day" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {generateDayOptions()}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="secondDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Second payment day of the month</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        defaultValue={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select day" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {generateDayOptions()}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            ) : (
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        {...field}
+                        value={field.value || dayjs().format("YYYY-MM-DD")}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <DialogFooter>
               <Button
