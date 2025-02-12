@@ -62,7 +62,7 @@ import { Income, Bill, OccurrenceType } from "@/types";
 import crypto from 'crypto';
 import { Badge } from "@/components/ui/badge";
 import { logger } from './lib/logger';
-
+import ChartTest from "@/pages/chart-test";
 
 
 function Router() {
@@ -521,6 +521,11 @@ function Router() {
               <Route path="/reports/expenses" component={() => (
                 <ErrorBoundary name="ExpenseReport">
                   <ExpenseReport />
+                </ErrorBoundary>
+              )} />
+              <Route path="/test/chart" component={() => (
+                <ErrorBoundary name="ChartTest">
+                  <ChartTest />
                 </ErrorBoundary>
               )} />
               <Route component={() => (
