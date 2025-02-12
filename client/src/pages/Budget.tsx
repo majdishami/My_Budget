@@ -34,26 +34,33 @@ const formatCurrency = (amount: number) => {
 
 export function Budget() {
   const { incomes, bills, isLoading, error } = useData();
-  const today = useMemo(() => dayjs(), []);
+  const today = useMemo(() => dayjs(), []); // Memoize today's date
   const [selectedDay, setSelectedDay] = useState(today.date());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [showDailySummary, setShowDailySummary] = useState(false);
 
-  // Memoize months and years arrays
-  const months = useMemo(() => Array.from({ length: 12 }, (_, i) => ({
-    value: i,
-    label: dayjs().month(i).format('MMMM')
-  })), []);
+  // Optimize months and years calculations
+  const months = useMemo(() => 
+    Array.from({ length: 12 }, (_, i) => ({
+      value: i,
+      label: dayjs().month(i).format('MMMM')
+    })), 
+  []); // Empty dependency array as this never changes
 
-  const years = useMemo(() => Array.from({ length: 11 }, (_, i) => ({
-    value: today.year() - 5 + i,
-    label: (today.year() - 5 + i).toString()
-  })), [today]);
+  const years = useMemo(() => 
+    Array.from({ length: 11 }, (_, i) => ({
+      value: today.year() - 5 + i,
+      label: (today.year() - 5 + i).toString()
+    })), 
+  [today]); // Only depends on today
 
-  // Memoize calendar related calculations
+  // Optimize calendar data calculation
   const calendarData = useMemo(() => {
-    const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf("month");
+    const firstDayOfMonth = dayjs()
+      .year(selectedYear)
+      .month(selectedMonth)
+      .startOf("month");
     const lastDayOfMonth = firstDayOfMonth.endOf("month");
     const firstDayIndex = firstDayOfMonth.day();
     const totalDaysInMonth = lastDayOfMonth.date();
@@ -62,7 +69,7 @@ export function Budget() {
       const day = index - firstDayIndex + 1;
       return day >= 1 && day <= totalDaysInMonth ? day : null;
     });
-  }, [selectedYear, selectedMonth]);
+  }, [selectedYear, selectedMonth]); // Only recalculate when month or year changes
 
   // Memoize monthly income occurrences calculation
   const monthlyIncomeOccurrences = useMemo(() => {
