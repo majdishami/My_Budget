@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { Card } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import dayjs from 'dayjs';
 
 Chart.register(...registerables);
@@ -24,17 +25,37 @@ export function ChartComponent({ dateRange, data, isLoading = false }: ChartComp
   const chartInstance = useRef<Chart | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Cleanup function for chart instance
+  const cleanupChart = () => {
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+      chartInstance.current = null;
+    }
+  };
+
   useEffect(() => {
-    if (!chartRef.current || isLoading || !data) return;
+    // Clean up when component unmounts
+    return () => cleanupChart();
+  }, []);
+
+  useEffect(() => {
+    if (!chartRef.current || isLoading) return;
+
+    // Clean up existing chart
+    cleanupChart();
+
+    // If no data is provided, set error state
+    if (!data) {
+      setError('No data available for the chart');
+      return;
+    }
 
     try {
-      // Destroy existing chart
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-      }
-
       const ctx = chartRef.current.getContext('2d');
-      if (!ctx) return;
+      if (!ctx) {
+        setError('Could not initialize chart context');
+        return;
+      }
 
       chartInstance.current = new Chart(ctx, {
         type: 'line',
@@ -96,22 +117,9 @@ export function ChartComponent({ dateRange, data, isLoading = false }: ChartComp
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error creating chart');
+      cleanupChart();
     }
-
-    return () => {
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-      }
-    };
   }, [dateRange, data, isLoading]);
-
-  if (error) {
-    return (
-      <Card className="p-4">
-        <div className="text-red-500">Error: {error}</div>
-      </Card>
-    );
-  }
 
   if (isLoading) {
     return (
@@ -119,6 +127,19 @@ export function ChartComponent({ dateRange, data, isLoading = false }: ChartComp
         <div className="flex items-center justify-center min-h-[300px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+      </Card>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <Card className="p-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error || 'No data available for the chart'}
+          </AlertDescription>
+        </Alert>
       </Card>
     );
   }
