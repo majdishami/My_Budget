@@ -87,7 +87,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const generateIncomeOccurrences = (income: Income): Income[] => {
     const occurrences: Income[] = [];
     const currentDate = dayjs();
-    const startDate = dayjs(income.date);
+    const startDate = income.occurrenceType === 'twice-monthly'
+      ? dayjs(income.date).date(1) // Always start on the 1st for twice-monthly
+      : dayjs(income.date);
     // Generate occurrences for 12 months into the future
     const endDate = currentDate.add(12, 'months').endOf('month');
 
@@ -119,7 +121,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         break;
       case 'twice-monthly':
         // Generate twice-monthly occurrences for each month
-        let currentMonth = startDate.clone();
+        let currentMonth = startDate.clone().startOf('month'); // Always start at the beginning of the month
         while (currentMonth.isSameOrBefore(endDate)) {
           // First occurrence on the 1st of the month
           occurrences.push({
