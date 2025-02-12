@@ -16,7 +16,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Loader2, X, PlusCircle, BarChart4, Menu,
+  Loader2, Menu, BarChart4,
   Download, Database, Tags, ChevronDown,
   RotateCw, Plus, Edit, Trash, FileText, Bell
 } from "lucide-react";
@@ -142,10 +142,16 @@ function Router() {
     year: today.year()
   }), [today]);
 
+  // If either initial loading or manual refresh is happening, show loading state
   if (isLoading || isRefreshing) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">
+            {isRefreshing ? 'Refreshing data...' : 'Loading your budget...'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -160,14 +166,15 @@ function Router() {
         <AlertDescription className="flex items-center gap-2">
           {dataError.message}
           <button
+            onClick={() => refresh()}
             className="p-1 hover:bg-accent rounded"
-            aria-label="Dismiss error"
+            aria-label="Retry loading data"
           >
-            <X className="h-4 w-4" />
+            <RotateCw className="h-4 w-4" />
           </button>
         </AlertDescription>
       </Alert>
-    )
+    );
   }
 
 
