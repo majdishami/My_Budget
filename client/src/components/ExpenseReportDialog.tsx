@@ -832,26 +832,28 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                       return (
                         <Card key={monthKey}>
                           <CardHeader className="py-4">
-                            <CardTitle className="text-lg font-medium">
+                            <CardTitle className="text-xl font-semibold">
                               {dayjs(monthKey).format('MMMM YYYY')}
                             </CardTitle>
-                            <div className="text-sm space-y-1">
-                              <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Net Balance up today:</span>
-                                <span className="text-red-600">
-                                  {formatCurrency(monthlyTotal)}</span>
+                            {selectedValue === "all" && (
+                              <div className="text-sm space-y-1">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">Net Balance up today:</span>
+                                  <span className="text-red-600">
+                                    {formatCurrency(monthlyTotal)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">Net:</span>
+                                  <span className="text-red-600">
+                                    {formatCurrency(monthlyPaid)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">Monthly Net:</span>
+                                  <span className="text-orange-500">
+                                    {formatCurrency(monthlyTotal - monthlyPaid)}</span>
+                                </div>
                               </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Net:</span>
-                                <span className="text-red-600">
-                                  {formatCurrency(monthlyPaid)}</span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Monthly Net:</span>
-                                <span className="text-orange-500">
-                                  {formatCurrency(monthlyTotal - monthlyPaid)}</span>
-                              </div>
-                            </div>
+                            )}
                           </CardHeader>
                           <CardContent>
                             <Table>
