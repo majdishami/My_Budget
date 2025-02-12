@@ -49,19 +49,15 @@ const formatCurrency = (amount: number) => {
 };
 
 export function Budget() {
-  const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction, resetData } = useData();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction } = useData();
   const today = dayjs('2025-02-11');
   const [selectedDay, setSelectedDay] = useState(today.date());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedYear, setSelectedYear] = useState(today.year());
-  const [selectedWeek, setSelectedWeek] = useState(1);
   const [showDailySummary, setShowDailySummary] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Income | Bill | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showEditExpenseDialog, setShowEditExpenseDialog] = useState(false);
-
-  const currentDate = today.format('dddd, D');
 
   const handleAddIncome = () => {
     const newIncome: Income = {
@@ -277,9 +273,8 @@ export function Budget() {
               variant="outline" 
               size="sm" 
               onClick={() => {
-                const latestIncome = incomes[incomes.length - 1];
-                if (latestIncome) {
-                  handleEditTransaction('income', latestIncome);
+                if (incomes.length > 0) {
+                  handleEditTransaction('income', incomes[incomes.length - 1]);
                 }
               }}
             >
@@ -289,9 +284,8 @@ export function Budget() {
               variant="outline" 
               size="sm" 
               onClick={() => {
-                const latestIncome = incomes[incomes.length - 1];
-                if (latestIncome) {
-                  handleDeleteTransaction('income', latestIncome);
+                if (incomes.length > 0) {
+                  handleDeleteTransaction('income', incomes[incomes.length - 1]);
                 }
               }}
             >
@@ -305,9 +299,8 @@ export function Budget() {
               variant="outline" 
               size="sm" 
               onClick={() => {
-                const latestBill = bills[bills.length - 1];
-                if (latestBill) {
-                  handleEditTransaction('bill', latestBill);
+                if (bills.length > 0) {
+                  handleEditTransaction('bill', bills[bills.length - 1]);
                 }
               }}
             >
@@ -317,9 +310,8 @@ export function Budget() {
               variant="outline" 
               size="sm" 
               onClick={() => {
-                const latestBill = bills[bills.length - 1];
-                if (latestBill) {
-                  handleDeleteTransaction('bill', latestBill);
+                if (bills.length > 0) {
+                  handleDeleteTransaction('bill', bills[bills.length - 1]);
                 }
               }}
             >
