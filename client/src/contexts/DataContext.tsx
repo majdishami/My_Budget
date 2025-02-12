@@ -125,17 +125,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const generateIncomeOccurrences = (income: Income): Income[] => {
     const occurrences: Income[] = [];
     const currentDate = dayjs();
-    const startDate = dayjs(income.date);
-    // Generate occurrences for 12 months into the future
+    const startOfMonth = currentDate.startOf('month');
     const endDate = currentDate.add(12, 'months').endOf('month');
 
     switch (income.occurrenceType) {
       case 'once':
         occurrences.push(income);
         break;
+
       case 'weekly':
-        let weeklyDate = startDate.clone();
-        while (weeklyDate.isSameOrBefore(endDate)) {
+        let weeklyDate = dayjs(income.date);
+        while (weeklyDate.isBefore(endDate) || weeklyDate.isSame(endDate)) {
           occurrences.push({
             ...income,
             id: `${income.id}-${weeklyDate.format('YYYY-MM-DD')}`,
@@ -144,9 +144,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           weeklyDate = weeklyDate.add(7, 'days');
         }
         break;
+
+      case 'biweekly':
+        let biweeklyDate = dayjs(income.date);
+        while (biweeklyDate.isBefore(endDate) || biweeklyDate.isSame(endDate)) {
+          if (biweeklyDate.isAfter(startOfMonth) || biweeklyDate.isSame(startOfMonth)) {
+            occurrences.push({
+              ...income,
+              id: `${income.id}-${biweeklyDate.format('YYYY-MM-DD')}`,
+              date: biweeklyDate.toISOString()
+            });
+          }
+          biweeklyDate = biweeklyDate.add(14, 'days');
+        }
+        break;
+
       case 'monthly':
-        let monthlyDate = startDate.clone();
-        while (monthlyDate.isSameOrBefore(endDate)) {
+        let monthlyDate = dayjs(income.date);
+        while (monthlyDate.isBefore(endDate) || monthlyDate.isSame(endDate)) {
           occurrences.push({
             ...income,
             id: `${income.id}-${monthlyDate.format('YYYY-MM-DD')}`,
@@ -155,45 +170,39 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           monthlyDate = monthlyDate.add(1, 'month');
         }
         break;
-      case 'biweekly':
-        let biweeklyDate = startDate.clone();
-        while (biweeklyDate.isSameOrBefore(endDate)) {
-          occurrences.push({
-            ...income,
-            id: `${income.id}-${biweeklyDate.format('YYYY-MM-DD')}`,
-            date: biweeklyDate.toISOString()
-          });
-          biweeklyDate = biweeklyDate.add(14, 'days');
-        }
-        break;
+
       case 'twice-monthly':
-        // Generate twice-monthly occurrences based on selected days
-        let currentMonth = startDate.clone().startOf('month');
-        while (currentMonth.isSameOrBefore(endDate)) {
-          // First occurrence on the selected first day
-          const firstOccurrence = currentMonth.date(income.firstDate || 1);
-          if (firstOccurrence.isValid()) {
-            occurrences.push({
-              ...income,
-              id: `${income.id}-1-${firstOccurrence.format('YYYY-MM-DD')}`,
-              date: firstOccurrence.toISOString()
-            });
+        let currentMonth = startOfMonth;
+        while (currentMonth.isBefore(endDate) || currentMonth.isSame(endDate)) {
+          // First occurrence on the first date (default to 1st if not specified)
+          if (income.firstDate) {
+            const firstOccurrence = currentMonth.date(income.firstDate);
+            if (firstOccurrence.isValid()) {
+              occurrences.push({
+                ...income,
+                id: `${income.id}-1-${firstOccurrence.format('YYYY-MM-DD')}`,
+                date: firstOccurrence.toISOString()
+              });
+            }
           }
 
-          // Second occurrence on the selected second day
-          const secondOccurrence = currentMonth.date(income.secondDate || 15);
-          if (secondOccurrence.isValid()) {
-            occurrences.push({
-              ...income,
-              id: `${income.id}-2-${secondOccurrence.format('YYYY-MM-DD')}`,
-              date: secondOccurrence.toISOString()
-            });
+          // Second occurrence on the second date (default to 15th if not specified)
+          if (income.secondDate) {
+            const secondOccurrence = currentMonth.date(income.secondDate);
+            if (secondOccurrence.isValid()) {
+              occurrences.push({
+                ...income,
+                id: `${income.id}-2-${secondOccurrence.format('YYYY-MM-DD')}`,
+                date: secondOccurrence.toISOString()
+              });
+            }
           }
 
           currentMonth = currentMonth.add(1, 'month');
         }
         break;
     }
+
     return occurrences;
   };
 
@@ -212,8 +221,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const today = dayjs();
 
       const defaultIncomes: Income[] = [
-        { id: generateId(), source: "Majdi's Salary", amount: 4739, date: today.date(1).toISOString(), occurrenceType: 'monthly' },
-        { id: generateId(), source: "Ruba's Salary", amount: 2168, date: today.day(5).toISOString(), occurrenceType: 'monthly' }
+        { 
+          id: generateId(), 
+          source: "Majdi's Salary", 
+          amount: 4739, 
+          date: today.date(1).toISOString(), 
+          occurrenceType: 'twice-monthly',
+          firstDate: 1,  // First day of month
+          secondDate: 15 // 15th of month
+        },
+        { 
+          id: generateId(), 
+          source: "Ruba's Salary", 
+          amount: 2168, 
+          date: today.day(5).toISOString(), 
+          occurrenceType: 'biweekly' 
+        }
       ];
 
       const defaultBills: Bill[] = [
