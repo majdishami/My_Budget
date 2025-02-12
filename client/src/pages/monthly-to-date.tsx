@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Transaction {
   date: string;
@@ -23,13 +24,19 @@ interface Transaction {
 
 export default function MonthlyToDateReport() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const today = dayjs('2025-02-10'); // Current date
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Use mocked date consistently across the application
+  const today = dayjs('2025-02-12');
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');
   const [, setLocation] = useLocation();
 
   useEffect(() => {
     try {
+      setIsLoading(true);
+      setError(null);
       const mockTransactions: Transaction[] = [];
 
       // Add Majdi's salary occurrences
@@ -89,7 +96,9 @@ export default function MonthlyToDateReport() {
       setTransactions(mockTransactions);
     } catch (error) {
       console.error('Error generating transactions:', error);
-      setTransactions([]); // Set empty array on error
+      setError('Failed to generate transactions. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   }, [today]);
 
@@ -121,6 +130,23 @@ export default function MonthlyToDateReport() {
 
   const netBalance = totals.income - totals.expenses;
 
+  if (error) {
+    return (
+      <div className="container mx-auto p-4 text-center">
+        <div className="bg-red-50 text-red-800 p-4 rounded-md">
+          <p>{error}</p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            variant="outline" 
+            className="mt-4"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-4 max-w-5xl">
       <div className="flex justify-between items-center mb-4">
@@ -138,147 +164,199 @@ export default function MonthlyToDateReport() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <Card>
-          <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Total Occurred Income</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(totals.income)}
-            </div>
-          </CardContent>
-        </Card>
+        {isLoading ? (
+          <>
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader className="py-4">
+                  <Skeleton className="h-4 w-[150px]" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-[120px]" />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Total Occurred Income</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(totals.income)}
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Total Incurred Expenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(totals.expenses)}
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Total Incurred Expenses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(totals.expenses)}
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Net Balance up to date</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${netBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-              {formatCurrency(netBalance)}
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Net Balance up to date</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${netBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                  {formatCurrency(netBalance)}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Remaining Amounts Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Card className="bg-muted/50">
-          <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Remaining Income</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-400">
-              {formatCurrency(remaining.income)}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Expected: {formatCurrency(monthlyExpectedTotals.income)}
-            </p>
-          </CardContent>
-        </Card>
+        {isLoading ? (
+          <>
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="bg-muted/50">
+                <CardHeader className="py-4">
+                  <Skeleton className="h-4 w-[150px]" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-[120px]" />
+                  <Skeleton className="h-4 w-[100px] mt-2" />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <Card className="bg-muted/50">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Remaining Income</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-400">
+                  {formatCurrency(remaining.income)}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Expected: {formatCurrency(monthlyExpectedTotals.income)}
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card className="bg-muted/50">
-          <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Remaining Expenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-400">
-              {formatCurrency(remaining.expenses)}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Expected: {formatCurrency(monthlyExpectedTotals.expenses)}
-            </p>
-          </CardContent>
-        </Card>
+            <Card className="bg-muted/50">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Remaining Expenses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-400">
+                  {formatCurrency(remaining.expenses)}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Expected: {formatCurrency(monthlyExpectedTotals.expenses)}
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card className="bg-muted/50">
-          <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Remaining Balance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${remaining.balance >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
-              {formatCurrency(remaining.balance)}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Future net balance
-            </p>
-          </CardContent>
-        </Card>
+            <Card className="bg-muted/50">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Remaining Balance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${remaining.balance >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+                  {formatCurrency(remaining.balance)}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Future net balance
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       <div className="space-y-4">
-        <Card>
-          <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Income Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions
-                  .filter(t => t.type === 'income')
-                  .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                  .map((transaction, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                      <TableCell>{transaction.description}</TableCell>
-                      <TableCell className="text-right text-green-600">
-                        {formatCurrency(transaction.amount)}
-                      </TableCell>
+        {isLoading ? (
+          <>
+            {[1, 2].map((i) => (
+              <Card key={i}>
+                <CardHeader className="py-4">
+                  <Skeleton className="h-4 w-[150px]" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-32 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Income Transactions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions
+                      .filter(t => t.type === 'income')
+                      .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                      .map((transaction, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell className="text-right text-green-600">
+                            {formatCurrency(transaction.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Expense Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions
-                  .filter(t => t.type === 'expense')
-                  .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                  .map((transaction, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                      <TableCell>{transaction.description}</TableCell>
-                      <TableCell className="text-right text-red-600">
-                        {formatCurrency(transaction.amount)}
-                      </TableCell>
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-medium">Expense Transactions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions
+                      .filter(t => t.type === 'expense')
+                      .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                      .map((transaction, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell className="text-right text-red-600">
+                            {formatCurrency(transaction.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );

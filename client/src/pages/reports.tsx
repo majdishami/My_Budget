@@ -9,9 +9,10 @@ import { ChartComponent } from '@/components/ChartComponent';
 import { PDFReport } from '@/components/PDFReport';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Icons
-import { FileText, Download, Printer } from 'lucide-react';
+import { FileText, Download, Printer, AlertCircle } from 'lucide-react';
 
 // Utils
 import { formatCurrency } from '@/lib/reportUtils';
@@ -19,8 +20,15 @@ import { formatCurrency } from '@/lib/reportUtils';
 // Initialize dayjs plugins
 dayjs.extend(isBetween);
 
+interface Transaction {
+  date: string;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense';
+}
+
 export default function Reports() {
-  const today = dayjs(); // Use actual current date
+  const today = dayjs('2025-02-12'); // Use mocked current date
 
   // Set default date range to current month
   const [dateRange, setDateRange] = useState<{from: Date; to: Date}>({
@@ -34,6 +42,10 @@ export default function Reports() {
     balance: 0
   });
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
   const { toast } = useToast();
 
   // Calculate totals when date range changes
@@ -42,78 +54,144 @@ export default function Reports() {
     const endDate = dayjs(dateRange.to);
 
     const calculateTotals = () => {
-      let income = 0;
-      let expenses = 0;
+      try {
+        setIsLoading(true);
+        setError(null);
+        let income = 0;
+        let expenses = 0;
+        const newTransactions: Transaction[] = [];
 
-      // Helper function to check if a date has occurred
-      const hasDateOccurred = (checkDate: dayjs.Dayjs) => {
-        return checkDate.isBefore(today) || 
-               (checkDate.isSame(today, 'day') && 
-                checkDate.isSame(today, 'month') && 
-                checkDate.isSame(today, 'year'));
-      };
+        // Helper function to check if a date has occurred
+        const hasDateOccurred = (checkDate: dayjs.Dayjs) => {
+          return checkDate.isBefore(today) || 
+                 (checkDate.isSame(today, 'day') && 
+                  checkDate.isSame(today, 'month') && 
+                  checkDate.isSame(today, 'year'));
+        };
 
-      // Calculate Majdi's salary (1st and 15th of each month)
-      let currentDate = startDate.startOf('month');
-      while (currentDate.isSameOrBefore(endDate)) {
-        const firstPayday = currentDate.date(1);
-        const fifteenthPayday = currentDate.date(15);
+        // Calculate Majdi's salary (1st and 15th of each month)
+        let currentDate = startDate.startOf('month');
+        while (currentDate.isSameOrBefore(endDate)) {
+          const firstPayday = currentDate.date(1);
+          const fifteenthPayday = currentDate.date(15);
 
-        if (firstPayday.isBetween(startDate, endDate, 'day', '[]')) {
-          if (hasDateOccurred(firstPayday)) {
-            income += 2250; // Half of monthly salary
+          if (firstPayday.isBetween(startDate, endDate, 'day', '[]')) {
+            if (hasDateOccurred(firstPayday)) {
+              income += 4739;
+              newTransactions.push({
+                date: firstPayday.format('YYYY-MM-DD'),
+                description: "Majdi's Salary",
+                amount: 4739,
+                type: 'income'
+              });
+            }
           }
-        }
 
-        if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]')) {
-          if (hasDateOccurred(fifteenthPayday)) {
-            income += 2250; // Other half of monthly salary
+          if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]')) {
+            if (hasDateOccurred(fifteenthPayday)) {
+              income += 4739;
+              newTransactions.push({
+                date: fifteenthPayday.format('YYYY-MM-DD'),
+                description: "Majdi's Salary",
+                amount: 4739,
+                type: 'income'
+              });
+            }
           }
+
+          currentDate = currentDate.add(1, 'month');
         }
 
-        currentDate = currentDate.add(1, 'month');
-      }
+        // Calculate Ruba's bi-weekly salary
+        let biweeklyDate = dayjs('2025-01-10'); // Starting date
+        while (biweeklyDate.isBefore(startDate)) {
+          biweeklyDate = biweeklyDate.add(14, 'day');
+        }
 
-      // Calculate Ruba's bi-weekly salary
-      let biweeklyDate = dayjs('2025-01-10'); // Starting date
-      while (biweeklyDate.isBefore(startDate)) {
-        biweeklyDate = biweeklyDate.add(14, 'day');
-      }
-
-      while (biweeklyDate.isSameOrBefore(endDate)) {
-        if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]')) {
-          if (hasDateOccurred(biweeklyDate)) {
-            income += 2000;
+        while (biweeklyDate.isSameOrBefore(endDate)) {
+          if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]')) {
+            if (hasDateOccurred(biweeklyDate)) {
+              income += 2168;
+              newTransactions.push({
+                date: biweeklyDate.format('YYYY-MM-DD'),
+                description: "Ruba's Salary",
+                amount: 2168,
+                type: 'income'
+              });
+            }
           }
+          biweeklyDate = biweeklyDate.add(14, 'day');
         }
-        biweeklyDate = biweeklyDate.add(14, 'day');
-      }
 
-      // Calculate expenses
-      // Monthly expenses (rent, utilities, etc.)
-      currentDate = startDate.startOf('month');
-      while (currentDate.isSameOrBefore(endDate)) {
-        if (currentDate.isBefore(today, 'month') || 
-            (currentDate.isSame(today, 'month') && 
-             currentDate.isSame(today, 'year'))) {
-          // Only add expenses for months that have occurred
-          expenses += 3200;
+        // Calculate expenses
+        // Monthly expenses (rent, utilities, etc.)
+        const monthlyExpenses = [
+          { description: 'ATT Phone Bill', amount: 429, date: 1 },
+          { description: "Maid's 1st payment", amount: 120, date: 1 },
+          { description: 'Monthly Rent', amount: 3750, date: 1 },
+          { description: 'Sling TV', amount: 75, date: 3 },
+          { description: 'Cox Internet', amount: 81, date: 6 },
+          { description: 'Water Bill', amount: 80, date: 7 },
+          { description: 'NV Energy Electrical', amount: 250, date: 7 },
+          { description: 'TransAmerica Life Insurance', amount: 77, date: 9 },
+          { description: 'Credit Card minimum payments', amount: 225, date: 14 },
+          { description: 'Apple/Google/YouTube', amount: 130, date: 14 },
+          { description: 'Expenses & Groceries', amount: 3000, date: 16 },
+          { description: "Maid's 2nd Payment", amount: 120, date: 17 },
+          { description: 'SoFi Personal Loan', amount: 1915, date: 17 },
+          { description: 'Southwest Gas', amount: 75, date: 17 },
+          { description: 'Car Insurance for 3 cars', amount: 704, date: 28 }
+        ];
+
+        currentDate = startDate.startOf('month');
+        while (currentDate.isSameOrBefore(endDate)) {
+          if (currentDate.isBefore(today, 'month') || 
+              (currentDate.isSame(today, 'month') && 
+               currentDate.isSame(today, 'year'))) {
+            monthlyExpenses.forEach(expense => {
+              const expenseDate = currentDate.date(expense.date);
+              if (expenseDate.isBetween(startDate, endDate, 'day', '[]') && 
+                  hasDateOccurred(expenseDate)) {
+                expenses += expense.amount;
+                newTransactions.push({
+                  date: expenseDate.format('YYYY-MM-DD'),
+                  description: expense.description,
+                  amount: expense.amount,
+                  type: 'expense'
+                });
+              }
+            });
+          }
+          currentDate = currentDate.add(1, 'month');
         }
-        currentDate = currentDate.add(1, 'month');
-      }
 
-      setTotals({
-        income,
-        expenses,
-        balance: income - expenses
-      });
+        setTotals({
+          income,
+          expenses,
+          balance: income - expenses
+        });
+        setTransactions(newTransactions);
+      } catch (err) {
+        console.error('Error calculating totals:', err);
+        setError('Failed to calculate financial data. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     calculateTotals();
   }, [dateRange, today]);
 
   const handlePrint = () => {
-    window.print();
+    try {
+      window.print();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to print report",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExportPDF = async () => {
@@ -131,6 +209,24 @@ export default function Reports() {
       });
     }
   };
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="bg-red-50 text-red-800 p-4 rounded-md flex items-center gap-2">
+          <AlertCircle className="h-5 w-5" />
+          <p>{error}</p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            variant="outline" 
+            className="ml-auto"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6 print:p-0">
@@ -153,38 +249,55 @@ export default function Reports() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Income</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(totals.income)}
-            </div>
-          </CardContent>
-        </Card>
+        {isLoading ? (
+          <>
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-4 w-[150px]" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-[120px]" />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Total Income</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(totals.income)}
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Expenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(totals.expenses)}
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Total Expenses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(totals.expenses)}
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Net Balance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {formatCurrency(totals.balance)}
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Net Balance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(totals.balance)}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       <Card className="print:shadow-none">
@@ -193,7 +306,11 @@ export default function Reports() {
         </CardHeader>
         <CardContent>
           <div className="h-[400px]">
-            <ChartComponent dateRange={dateRange} />
+            {isLoading ? (
+              <Skeleton className="w-full h-full" />
+            ) : (
+              <ChartComponent dateRange={dateRange} />
+            )}
           </div>
         </CardContent>
       </Card>
@@ -205,31 +322,39 @@ export default function Reports() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Date</th>
-                  <th className="text-left p-2">Description</th>
-                  <th className="text-right p-2">Amount</th>
-                  <th className="text-left p-2">Type</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {/* Add dynamic transaction rows based on date range */}
-                <tr>
-                  <td className="p-2">{dayjs(dateRange.from).format('YYYY-MM-DD')}</td>
-                  <td className="p-2">Monthly Rent</td>
-                  <td className="p-2 text-right text-red-600">-$3,750.00</td>
-                  <td className="p-2">Expense</td>
-                </tr>
-                <tr>
-                  <td className="p-2">{dayjs(dateRange.from).format('YYYY-MM-DD')}</td>
-                  <td className="p-2">Salary</td>
-                  <td className="p-2 text-right text-green-600">$4,739.00</td>
-                  <td className="p-2">Income</td>
-                </tr>
-              </tbody>
-            </table>
+            {isLoading ? (
+              <Skeleton className="w-full h-[200px]" />
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Date</th>
+                    <th className="text-left p-2">Description</th>
+                    <th className="text-right p-2">Amount</th>
+                    <th className="text-left p-2">Type</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {transactions
+                    .sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
+                    .map((transaction, index) => (
+                      <tr key={index}>
+                        <td className="p-2">
+                          {dayjs(transaction.date).format('YYYY-MM-DD')}
+                        </td>
+                        <td className="p-2">{transaction.description}</td>
+                        <td className={`p-2 text-right ${
+                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {transaction.type === 'income' ? '+' : '-'}
+                          {formatCurrency(transaction.amount)}
+                        </td>
+                        <td className="p-2 capitalize">{transaction.type}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </CardContent>
       </Card>
