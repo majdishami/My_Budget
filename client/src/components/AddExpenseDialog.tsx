@@ -106,12 +106,16 @@ export function AddExpenseDialog({
   const handleConfirm = () => {
     if (!validateForm()) return;
 
+    const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
+
     const newBill: Bill = {
       id: generateId(),
       name: name.trim(),
       amount: parseFloat(amount),
       day: parseInt(day),
       category_id: parseInt(categoryId),
+      category_name: selectedCategory?.name || 'Uncategorized',
+      category_color: selectedCategory?.color || '#D3D3D3',
       user_id: 1,
       created_at: new Date().toISOString(),
       isOneTime: false,
