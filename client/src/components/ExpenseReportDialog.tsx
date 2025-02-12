@@ -829,15 +829,15 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             </CardTitle>
                             <div className="text-sm space-y-1">
                               <div className="flex justify-between items-center">
-                                <span className="text-blue-500">Net Balance up today:</span>
+                                <span className="text-muted-foreground">Net Balance up today:</span>
                                 <span className="text-blue-500">{formatCurrency(monthlyTotal)}</span>
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="text-blue-500">Net:</span>
+                                <span className="text-muted-foreground">Net:</span>
                                 <span className="text-blue-500">{formatCurrency(monthlyPaid)}</span>
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="text-blue-500">Monthly Net:</span>
+                                <span className="text-muted-foreground">Monthly Net:</span>
                                 <span className="text-blue-500">{formatCurrency(monthlyTotal - monthlyPaid)}</span>
                               </div>
                             </div>
