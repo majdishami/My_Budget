@@ -170,44 +170,6 @@ function Router() {
     )
   }
 
-  const getMonthlyIncomeOccurrences = () => {
-    const currentDate = dayjs();
-    const startOfMonth = currentDate.startOf('month');
-    const endOfMonth = currentDate.endOf('month');
-    const startDate = dayjs('2025-01-10');
-
-    const occurrences: Income[] = [];
-    const addedDates = new Set<string>();
-
-    incomes.forEach(income => {
-      if (income.source === "Ruba's Salary") {
-        let checkDate = startDate.clone();
-        while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
-          if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
-            if (checkDate.day() === 5) {
-              const weeksDiff = checkDate.diff(startDate, 'week');
-              if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
-                const dateStr = checkDate.format('YYYY-MM-DD');
-                if (!addedDates.has(`${income.source}-${dateStr}`)) {
-                  addedDates.add(`${income.source}-${dateStr}`);
-                  occurrences.push({
-                    ...income,
-                    date: checkDate.toISOString(),
-                    id: `${income.id}-${checkDate.format('YYYY-MM-DD')}`
-                  });
-                }
-              }
-            }
-          }
-          checkDate = checkDate.add(1, 'day');
-        }
-      } else {
-        occurrences.push(income);
-      }
-    });
-
-    return occurrences;
-  };
 
   return (
     <ErrorBoundary name="MainRouter">
@@ -382,25 +344,69 @@ function Router() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel>Edit Income</DropdownMenuLabel>
-                          {getMonthlyIncomeOccurrences().map((income) => (
+                          {incomes.reduce((uniqueIncomes: Income[], income) => {
+                            // For recurring incomes, only show the next occurrence
+                            if (income.occurrenceType !== 'once') {
+                              const existingIncome = uniqueIncomes.find(i => i.source === income.source);
+                              if (!existingIncome || dayjs(income.date).isBefore(dayjs(existingIncome.date))) {
+                                // Remove any existing income with same source
+                                const filteredIncomes = uniqueIncomes.filter(i => i.source !== income.source);
+                                return [...filteredIncomes, income];
+                              }
+                              return uniqueIncomes;
+                            }
+                            // For one-time incomes, show all
+                            return [...uniqueIncomes, income];
+                          }, []).map((income) => (
                             <DropdownMenuItem
                               key={`edit-${income.id}`}
                               onClick={() => handleEditTransaction('income', income)}
                             >
                               <Edit className="mr-2 h-4 w-4" />
-                              {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
+                              <div className="flex items-center gap-2">
+                                <span>{income.source}</span>
+                                {income.occurrenceType !== 'once' && (
+                                  <Badge variant="outline" className="ml-2">
+                                    {income.occurrenceType}
+                                  </Badge>
+                                )}
+                                <span className="text-muted-foreground text-sm">
+                                  ({dayjs(income.date).format('MMM D')})
+                                </span>
+                              </div>
                             </DropdownMenuItem>
                           ))}
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel>Delete Income</DropdownMenuLabel>
-                          {getMonthlyIncomeOccurrences().map((income) => (
+                          {incomes.reduce((uniqueIncomes: Income[], income) => {
+                            // Same reduction logic as above for delete section
+                            if (income.occurrenceType !== 'once') {
+                              const existingIncome = uniqueIncomes.find(i => i.source === income.source);
+                              if (!existingIncome || dayjs(income.date).isBefore(dayjs(existingIncome.date))) {
+                                const filteredIncomes = uniqueIncomes.filter(i => i.source !== income.source);
+                                return [...filteredIncomes, income];
+                              }
+                              return uniqueIncomes;
+                            }
+                            return [...uniqueIncomes, income];
+                          }, []).map((income) => (
                             <DropdownMenuItem
                               key={`delete-${income.id}`}
                               onClick={() => handleDeleteTransaction('income', income)}
                               className="text-red-600"
                             >
                               <Trash className="mr-2 h-4 w-4" />
-                              {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
+                              <div className="flex items-center gap-2">
+                                <span>{income.source}</span>
+                                {income.occurrenceType !== 'once' && (
+                                  <Badge variant="outline" className="ml-2">
+                                    {income.occurrenceType}
+                                  </Badge>
+                                )}
+                                <span className="text-muted-foreground text-sm">
+                                  ({dayjs(income.date).format('MMM D')})
+                                </span>
+                              </div>
                             </DropdownMenuItem>
                           ))}
                         </DropdownMenuContent>
