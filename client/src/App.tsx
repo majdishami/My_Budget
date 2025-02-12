@@ -161,7 +161,7 @@ function Router() {
 
               <div className="flex items-center justify-between border-t pt-4">
                 <div className="flex items-center gap-4">
-                  <Link href="/" className="no-underline">
+                  <Link href="/" className="no-underline cursor-default">
                     <Button
                       variant={location === "/" ? "default" : "ghost"}
                       size="sm"
