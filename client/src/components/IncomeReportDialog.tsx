@@ -26,7 +26,7 @@ import {
 // Types and Utils
 import { DateRange } from "react-day-picker";
 import { Income } from "@/types";
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getCurrentDate } from '@/lib/utils';
 
 // Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
@@ -46,7 +46,7 @@ interface IncomeReportDialogProps {
 }
 
 export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: IncomeReportDialogProps) {
-  const today = useMemo(() => dayjs('2025-02-10'), []); // Fixed current date
+  const today = useMemo(() => getCurrentDate(), []); // Use getCurrentDate utility
   const [date, setDate] = useState<DateRange | undefined>({
     from: today.toDate(),
     to: undefined
@@ -112,23 +112,32 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
           }
         } else {
           // For Majdi's salary and other regular incomes
-          // Calculate the actual date for the current month
-          const currentMonthDate = dayjs(income.date)
-            .year(startDate.year())
-            .month(startDate.month());
+          // Calculate the actual date for each month in the range
+          let currentDate = startDate.clone().startOf('month');
 
-          // Generate entries for each month in the range
-          let currentDate = currentMonthDate;
           while (currentDate.isSameOrBefore(endDate)) {
-            if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
+            // Add salary on 1st and 15th of each month
+            const firstPayDay = currentDate.date(1);
+            const fifteenthPayDay = currentDate.date(15);
+
+            if (firstPayDay.isBetween(startDate, endDate, 'day', '[]')) {
               mockTransactions.push({
-                date: currentDate.format('YYYY-MM-DD'),
+                date: firstPayDay.format('YYYY-MM-DD'),
                 description: income.source,
                 amount: income.amount,
-                occurred: hasDateOccurred(currentDate)
+                occurred: hasDateOccurred(firstPayDay)
               });
             }
-            // Move to next month with same day
+
+            if (fifteenthPayDay.isBetween(startDate, endDate, 'day', '[]')) {
+              mockTransactions.push({
+                date: fifteenthPayDay.format('YYYY-MM-DD'),
+                description: income.source,
+                amount: income.amount,
+                occurred: hasDateOccurred(fifteenthPayDay)
+              });
+            }
+
             currentDate = currentDate.add(1, 'month');
           }
         }
