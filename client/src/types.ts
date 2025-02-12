@@ -23,7 +23,7 @@ export interface Income {
  * Represents a recurring bill or expense
  */
 export interface Bill {
-  id: string;  // Explicitly typed as string and required
+  id: string;
   name: string;
   amount: number;
   day: number;
@@ -31,10 +31,9 @@ export interface Bill {
   user_id: number;
   created_at: string;
   isOneTime: boolean;
-  date?: string;  // Optional for one-time bills
-  // UI-specific properties
+  date?: string;
   category?: string;
-  category_name?: string;
+  category_name: string;  // Changed from optional to required
   category_color?: string;
   reminderEnabled?: boolean;
   reminderDays?: number;
@@ -45,9 +44,31 @@ export interface Bill {
  * Represents a specific reminder instance for a bill
  */
 export interface BillReminder {
-  billId: string;  // Explicitly typed as string
+  billId: string;
   billName: string;
   dueDate: string;
   amount: number;
   reminderDate: string;
+}
+
+/**
+ * 🔄 OccurrenceType
+ * Defines how often a transaction occurs
+ */
+export type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'weekly';
+
+/**
+ * 📊 DataContextType
+ * Defines the shape of the data context
+ */
+export interface DataContextType {
+  isLoading: boolean;
+  error: Error | null;
+  incomes: Income[];
+  bills: Bill[];
+  deleteTransaction: (transaction: Income | Bill) => void;
+  editTransaction: (transaction: Income | Bill) => void;
+  addIncomeToData: (income: Income) => void;
+  addBill: (bill: Bill) => void;
+  refresh: () => Promise<void>;
 }
