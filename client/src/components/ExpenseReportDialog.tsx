@@ -616,7 +616,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                       <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-2xl font-bold text-green-600"> {/* Changed from blue-600 */}
                         {formatCurrency(summary.totalAmount)}
                       </div>
                     </CardContent>
@@ -627,7 +627,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                       <CardTitle className="text-sm font-medium">Paid to Date</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-2xl font-bold text-green-600"> {/* Changed from blue-600 */}
                         {formatCurrency(summary.occurredAmount)}
                       </div>
                     </CardContent>
@@ -638,7 +638,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                       <CardTitle className="text-sm font-medium">Remaining</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold text-blue-300">
+                      <div className="text-2xl font-bold text-orange-500"> {/* Changed from blue-300 */}
                         {formatCurrency(summary.pendingAmount)}
                       </div>
                     </CardContent>
@@ -676,16 +676,16 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                               <TableCell className="text-right font-medium">
                                 {formatCurrency(ct.total)}
                               </TableCell>
-                              <TableCell className="text-right text-blue-600">
+                              <TableCell className="text-right text-green-600"> {/* Changed from blue-600 */}
                                 {formatCurrency(ct.occurred)}
                               </TableCell>
-                              <TableCell className="text-right text-blue-300">
+                              <TableCell className="text-right text-orange-500"> {/* Changed from blue-300 */}
                                 {formatCurrency(ct.pending)}
                               </TableCell>
-                              <TableCell className="text-right text-blue-600">
+                              <TableCell className="text-right text-green-600"> {/* Changed from blue-600 */}
                                 {ct.occurredCount}
                               </TableCell>
-                              <TableCell className="text-right text-blue-300">
+                              <TableCell className="text-right text-orange-500"> {/* Changed from blue-300 */}
                                 {ct.pendingCount}
                               </TableCell>
                             </TableRow>
@@ -733,10 +733,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                   {formatCurrency(expense.totalAmount)}
                                 </div>
                                 <div className="text-right text-xs">
-                                  <span className="text-blue-600 font-medium">
+                                  <span className="text-green-600 font-medium"> {/* Changed from blue-600 */}
                                     {formatCurrency(expense.occurredAmount)}</span>
                                   {" / "}
-                                  <span className="text-blue-300">
+                                  <span className="text-orange-500"> {/* Changed from blue-300 */}
                                     {formatCurrency(expense.pendingAmount)}</span>
                                 </div>
                               </TableCell>
@@ -745,10 +745,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                   {expense.occurredCount + expense.pendingCount}
                                 </div>
                                 <div className="text-right text-xs">
-                                  <span className="text-blue-600 font-medium">
+                                  <span className="text-green-600 font-medium"> {/* Changed from blue-600 */}
                                     {expense.occurredCount}</span>
                                   {" / "}
-                                  <span className="text-blue-300">
+                                  <span className="text-orange-500"> {/* Changed from blue-300 */}
                                     {expense.pendingCount}</span>
                                 </div>
                               </TableCell>
@@ -784,8 +784,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableRow key={item.description}>
                               <TableCell>{item.description}</TableCell>
                               <TableCell>
-                                <CategoryDisplay 
-                                  category={item.category} 
+                                <CategoryDisplay
+                                  category={item.category}
                                   color={item.color || '#D3D3D3'}
                                   icon={bills.find(b => b.category_name === item.category)?.category?.icon || null}
                                 />
@@ -796,16 +796,16 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                               <TableCell className="text-right font-medium">
                                 {formatCurrency(item.total)}
                               </TableCell>
-                              <TableCell className="text-right text-blue-600">
+                              <TableCell className="text-right text-green-600"> {/* Changed from blue-600 */}
                                 {formatCurrency(item.occurred)}
                               </TableCell>
-                              <TableCell className="text-right text-blue-300">
+                              <TableCell className="text-right text-orange-500"> {/* Changed from blue-300 */}
                                 {formatCurrency(item.pending)}
                               </TableCell>
-                              <TableCell className="text-right text-blue-600">
+                              <TableCell className="text-right text-green-600"> {/* Changed from blue-600 */}
                                 {item.occurredCount}
                               </TableCell>
-                              <TableCell className="text-right text-blue-300">
+                              <TableCell className="text-right text-orange-500"> {/* Changed from blue-300 */}
                                 {item.pendingCount}
                               </TableCell>
                             </TableRow>
@@ -834,15 +834,18 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <div className="text-sm space-y-1">
                               <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Net Balance up today:</span>
-                                <span className="text-blue-500">{formatCurrency(monthlyTotal)}</span>
+                                <span className="text-green-600"> {/* Changed from blue-500 */}
+                                  {formatCurrency(monthlyTotal)}</span>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Net:</span>
-                                <span className="text-blue-500">{formatCurrency(monthlyPaid)}</span>
+                                <span className="text-green-600"> {/* Changed from blue-500 */}
+                                  {formatCurrency(monthlyPaid)}</span>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Monthly Net:</span>
-                                <span className="text-blue-500">{formatCurrency(monthlyTotal - monthlyPaid)}</span>
+                                <span className="text-orange-500"> {/* Changed from blue-500 */}
+                                  {formatCurrency(monthlyTotal - monthlyPaid)}</span>
                               </div>
                             </div>
                           </CardHeader>
@@ -882,10 +885,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                           <TableCell>
                                             <CategoryDisplay category={transaction.category} color={transaction.color} icon={transaction.icon} />
                                           </TableCell>
-                                          <TableCell className={`text-right ${transaction.occurred ? 'text-blue-600' : 'text-blue-300'}`}>
+                                          <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-orange-500'}`}> {/* Changed from blue-600/blue-300 */}
                                             {formatCurrency(transaction.amount)}
                                           </TableCell>
-                                          <TableCell className={`${transaction.occurred ? 'text-blue-600' : 'text-blue-300'}`}>
+                                          <TableCell className={`${transaction.occurred ? 'text-green-600' : 'text-orange-500'}`}> {/* Changed from blue-600/blue-300 */}
                                             {transaction.occurred ? 'Paid' : 'Pending'}
                                           </TableCell>
                                         </>
@@ -896,10 +899,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                           <TableCell>
                                             <CategoryDisplay category={transaction.category} color={transaction.color} icon={transaction.icon} />
                                           </TableCell>
-                                          <TableCell className={`text-right ${transaction.occurred ? 'text-blue-600' : 'text-blue-300'}`}>
+                                          <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-orange-500'}`}> {/* Changed from blue-600/blue-300 */}
                                             {formatCurrency(transaction.amount)}
                                           </TableCell>
-                                          <TableCell className={`${transaction.occurred ? 'text-blue-600' : 'text-blue-300'}`}>
+                                          <TableCell className={`${transaction.occurred ? 'text-green-600' : 'text-orange-500'}`}> {/* Changed from blue-600/blue-300 */}
                                             {transaction.occurred ? 'Paid' : 'Pending'}
                                           </TableCell>
                                         </>
