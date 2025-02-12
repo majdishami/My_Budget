@@ -257,12 +257,62 @@ export function Budget() {
     }
   };
 
+  const daysInMonth = dayjs().year(selectedYear).month(selectedMonth).daysInMonth();
+  const handleMonthChange = (month: number) => {
+    setSelectedMonth(month);
+    const days = dayjs().year(selectedYear).month(month).daysInMonth();
+    setSelectedDay(Math.min(selectedDay, days)); // Ensure selectedDay is valid
+  };
+
+  const handleYearChange = (year: number) => {
+    setSelectedYear(year);
+    const days = dayjs().year(year).month(selectedMonth).daysInMonth();
+    setSelectedDay(Math.min(selectedDay, days)); // Ensure selectedDay is valid
+  };
+
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-between p-4 border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="text-xl font-semibold">
-          {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+        <div className="flex items-center gap-2">
+          <select 
+            value={selectedMonth}
+            onChange={(e) => handleMonthChange(parseInt(e.target.value))}
+            className="p-2 border rounded bg-background min-w-[120px]"
+            aria-label="Select month"
+          >
+            {months.map(month => (
+              <option key={month.value} value={month.value}>
+                {month.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedYear}
+            onChange={(e) => handleYearChange(parseInt(e.target.value))}
+            className="p-2 border rounded bg-background min-w-[100px]"
+            aria-label="Select year"
+          >
+            {years.map(year => (
+              <option key={year.value} value={year.value}>{year.label}</option>
+            ))}
+          </select>
+
+          <select
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(parseInt(e.target.value))}
+            className="p-2 border rounded bg-background min-w-[80px]"
+            aria-label="Select day"
+          >
+            {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
+              <option key={day} value={day}>
+                {day.toString().padStart(2, '0')}
+              </option>
+            ))}
+          </select>
         </div>
+
         <div className="flex items-center gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Month Total Income</p>
