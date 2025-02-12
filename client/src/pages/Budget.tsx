@@ -322,9 +322,7 @@ export function Budget() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Month Net Balance</p>
-            <p className={`text-lg font-semibold ${
-              2782 >= 0 ? "text-green-600" : "text-red-600"
-            }`}>
+            <p className="text-lg font-semibold text-blue-600">
               ${formatCurrency(2782)}
             </p>
           </div>
