@@ -148,17 +148,11 @@ function Router() {
       <div className="min-h-screen flex flex-col bg-background">
         <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <Card className="p-4">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <h1 className="text-xl font-bold">
-                    My Budget
-                  </h1>
-                </div>
-                <ThemeToggle />
-              </div>
-
-              <div className="flex items-center justify-between border-t pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <h1 className="text-xl font-bold">
+                  My Budget
+                </h1>
                 <div className="flex items-center gap-4">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -167,12 +161,7 @@ function Router() {
                         Expenses
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      side="bottom"
-                      sideOffset={4}
-                      className="max-h-[300px] overflow-y-auto w-[200px]"
-                    >
+                    <DropdownMenuContent>
                       <DropdownMenuItem onClick={() => setShowAddExpenseDialog(true)}>
                         <PlusCircle className="h-4 w-4 mr-2" />
                         Add Expense
@@ -304,11 +293,11 @@ function Router() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+                <ThemeToggle />
               </div>
             </div>
           </Card>
         </header>
-
         <main className="flex-1 overflow-hidden mt-6">
           <div className="h-full p-2">
             <Switch>
