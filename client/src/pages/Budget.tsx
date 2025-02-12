@@ -1,12 +1,9 @@
-/**
- * ================================================
- * 🎯 Budget Component
- * ================================================
- */
-
+import { Route, useRoute } from "wouter";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import { Income, Bill } from "@/types";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -14,10 +11,15 @@ import { useData } from "@/contexts/DataContext";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import ThemeToggle from "@/components/ThemeToggle"; // Assuming ThemeToggle is imported correctly
+import ThemeToggle from "@/components/ThemeToggle";
 
-
+// Initialize dayjs plugins
 dayjs.extend(isBetween);
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+// Set default timezone to local
+dayjs.tz.setDefault(dayjs.tz.guess());
 
 const generateId = () => crypto.randomUUID();
 
