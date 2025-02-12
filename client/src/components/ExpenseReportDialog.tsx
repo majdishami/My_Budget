@@ -583,9 +583,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
               <Button variant="outline" onClick={handleBackToSelection}>
                 Back to Selection
               </Button>
-              <DialogClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
+              <DialogClose asChild>
+                <button
+                  className="rounded-sm opacity-70 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  aria-label="Close dialog"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </button>
               </DialogClose>
             </div>
           </div>
@@ -901,7 +906,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
               </div>
             </>
           )}
-        </div>
+                </div>
       </DialogContent>
     </Dialog>
   );
