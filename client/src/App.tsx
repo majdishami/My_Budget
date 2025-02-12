@@ -57,12 +57,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { clsx } from 'clsx';
-import { Income, Bill, OccurrenceType } from "@/types";
+import { Income, Bill } from "@/types";
 import crypto from 'crypto';
 import { Badge } from "@/components/ui/badge";
 import { logger } from './lib/logger';
-import ChartTest from "@/pages/chart-test";
 
 
 function Router() {
@@ -261,9 +259,6 @@ function Router() {
                               <Link href="/reports/expenses" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
                                 Expense Report
                               </Link>
-                              <Link href="/test/chart" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Chart Test
-                              </Link>
                             </div>
                             <button
                               onClick={() => {
@@ -456,9 +451,6 @@ function Router() {
                           <DropdownMenuItem asChild>
                             <Link href="/reports/expenses">Expense Report</Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href="/test/chart">Chart Test</Link>
-                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => setShowExportDialog(true)}>
                             Export Data
@@ -527,11 +519,6 @@ function Router() {
               <Route path="/reports/expenses" component={() => (
                 <ErrorBoundary name="ExpenseReport">
                   <ExpenseReport />
-                </ErrorBoundary>
-              )} />
-              <Route path="/test/chart" component={() => (
-                <ErrorBoundary name="ChartTest">
-                  <ChartTest />
                 </ErrorBoundary>
               )} />
               <Route component={() => (
