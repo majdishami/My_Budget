@@ -4,26 +4,16 @@
  * ================================================
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { Income, Bill } from "@/types";
-import { cn, getCurrentDate } from "@/lib/utils"; // Added import
+import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { useData } from "@/contexts/DataContext";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 dayjs.extend(isBetween);
 
@@ -39,135 +29,39 @@ const formatCurrency = (amount: number) => {
 };
 
 export function Budget() {
-  const { incomes, bills, addIncome, addBill, deleteTransaction, editTransaction } = useData();
-  const today = getCurrentDate();
+  const { incomes, bills, isLoading, error } = useData();
+  const today = useMemo(() => dayjs(), []);
   const [selectedDay, setSelectedDay] = useState(today.date());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [showDailySummary, setShowDailySummary] = useState(false);
-  const [editingBill, setEditingBill] = useState<Bill | null>(null);
-  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [deletingBill, setDeletingBill] = useState<Bill | null>(null);
-  const [deletingIncome, setDeletingIncome] = useState<Income | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Add useEffect to handle initial data loading state
-  useEffect(() => {
-    if (incomes !== undefined && bills !== undefined) {
-      setIsLoading(false);
-    }
-  }, [incomes, bills]);
-
-  // Enhanced error handling for income and bill operations
-  const handleAddIncome = async () => {
-    try {
-      const newIncome: Income = {
-        id: generateId(),
-        source: "",
-        amount: 0,
-        date: today.toISOString(),
-        occurrenceType: 'once'
-      };
-      await addIncome(newIncome);
-    } catch (error) {
-      console.error('Error adding income:', error);
-      // Handle error appropriately
-    }
-  };
-
-  const handleAddBill = async () => {
-    try {
-      const newBill: Bill = {
-        id: generateId(),
-        name: "",
-        amount: 0,
-        day: today.date(),
-        category_id: 1,
-        category_name: "Uncategorized",
-        user_id: 1,
-        created_at: today.toISOString(),
-        isOneTime: false,
-        date: today.toISOString()
-      };
-      await addBill(newBill);
-    } catch (error) {
-      console.error('Error adding bill:', error);
-      // Handle error appropriately
-    }
-  };
-
-  const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
-    if (type === 'income') {
-      setEditingIncome(transaction as Income);
-      setShowEditDialog(true);
-    } else {
-      setEditingBill(transaction as Bill);
-      setShowEditDialog(true);
-    }
-  };
-
-  const handleDeleteTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
-    if (type === 'income') {
-      setDeletingIncome(transaction as Income);
-      setShowDeleteDialog(true);
-    } else {
-      setDeletingBill(transaction as Bill);
-      setShowDeleteDialog(true);
-    }
-  };
-
-  const handleConfirmDelete = () => {
-    if (deletingBill) {
-      deleteTransaction(deletingBill);
-      setShowDeleteDialog(false);
-      setDeletingBill(null);
-    } else if (deletingIncome) {
-      deleteTransaction(deletingIncome);
-      setShowDeleteDialog(false);
-      setDeletingIncome(null);
-    }
-  };
-
-  const months = Array.from({ length: 12 }, (_, i) => ({
+  // Memoize months and years arrays
+  const months = useMemo(() => Array.from({ length: 12 }, (_, i) => ({
     value: i,
     label: dayjs().month(i).format('MMMM')
-  }));
+  })), []);
 
-  const years = Array.from({ length: 11 }, (_, i) => ({
+  const years = useMemo(() => Array.from({ length: 11 }, (_, i) => ({
     value: today.year() - 5 + i,
     label: (today.year() - 5 + i).toString()
-  }));
+  })), [today]);
 
-  const getWeeksInMonth = (year: number, month: number) => {
-    const firstDay = dayjs().year(year).month(month).startOf('month');
-    const lastDay = firstDay.endOf('month');
-    const numWeeks = Math.ceil((firstDay.day() + lastDay.date()) / 7);
-    return Array.from({ length: numWeeks }, (_, i) => ({
-      value: i + 1,
-      label: `Week ${i + 1}`
-    }));
-  };
+  // Memoize calendar related calculations
+  const calendarData = useMemo(() => {
+    const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf("month");
+    const lastDayOfMonth = firstDayOfMonth.endOf("month");
+    const firstDayIndex = firstDayOfMonth.day();
+    const totalDaysInMonth = lastDayOfMonth.date();
 
-  const weeks = getWeeksInMonth(selectedYear, selectedMonth);
+    return Array.from({ length: 35 }, (_, index) => {
+      const day = index - firstDayIndex + 1;
+      return day >= 1 && day <= totalDaysInMonth ? day : null;
+    });
+  }, [selectedYear, selectedMonth]);
 
-  const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf("month");
-  const lastDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).endOf("month");
-  const firstDayIndex = firstDayOfMonth.day();
-  const totalDaysInMonth = lastDayOfMonth.date();
-  const calendarDays = Array.from({ length: 35 }, (_, index) => {
-    const day = index - firstDayIndex + 1;
-    return day >= 1 && day <= totalDaysInMonth ? day : null;
-  });
-
-  const isCurrentDay = (day: number) => {
-    return day === today.date() &&
-           selectedMonth === today.month() &&
-           selectedYear === today.year();
-  };
-
-  const getMonthlyIncomeOccurrences = () => {
+  // Memoize monthly income occurrences calculation
+  const monthlyIncomeOccurrences = useMemo(() => {
     const currentDate = dayjs().year(selectedYear).month(selectedMonth);
     const startOfMonth = currentDate.startOf('month');
     const endOfMonth = currentDate.endOf('month');
@@ -189,10 +83,14 @@ export function Budget() {
         }
       };
 
-      if (income.source === "Majdi's Salary") {
-        addIncomeIfNotExists(startOfMonth, 4739, 'twice-monthly');
-        addIncomeIfNotExists(startOfMonth.date(15), 4739, 'twice-monthly');
-      } else if (income.source === "Ruba's Salary") {
+      if (income.occurrenceType === 'twice-monthly') {
+        if (income.firstDate) {
+          addIncomeIfNotExists(startOfMonth.date(income.firstDate), income.amount / 2, 'twice-monthly');
+        }
+        if (income.secondDate) {
+          addIncomeIfNotExists(startOfMonth.date(income.secondDate), income.amount / 2, 'twice-monthly');
+        }
+      } else if (income.occurrenceType === 'biweekly') {
         let checkDate = dayjs('2025-01-10');
         while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
           if ((checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) && 
@@ -213,115 +111,87 @@ export function Budget() {
     });
 
     return occurrences;
-  };
+  }, [incomes, selectedYear, selectedMonth]);
 
-  const getIncomeForDay = (day: number) => {
-    const monthlyIncomes = getMonthlyIncomeOccurrences();
+  // Memoize functions for getting day specific data
+  const getIncomeForDay = useCallback((day: number) => {
     const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
-
-    return monthlyIncomes.filter(income => {
+    return monthlyIncomeOccurrences.filter(income => {
       const incomeDate = dayjs(income.date);
       return incomeDate.date() === day && 
              incomeDate.month() === selectedMonth && 
              incomeDate.year() === selectedYear;
     });
-  }
+  }, [monthlyIncomeOccurrences, selectedYear, selectedMonth]);
 
-  const getBillsForDay = (day: number) => {
+  const getBillsForDay = useCallback((day: number) => {
     const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
     return bills.filter(bill => {
       if (bill.isOneTime) {
         const billDate = dayjs(bill.date);
-        return billDate && billDate.date() === day && billDate.month() === selectedMonth && billDate.year() === selectedYear;
-      } else {
-        return bill.day === day;
+        return billDate && billDate.date() === day && 
+               billDate.month() === selectedMonth && 
+               billDate.year() === selectedYear;
       }
+      return bill.day === day;
     });
-  }
+  }, [bills, selectedYear, selectedMonth]);
 
-  const calculateTotalsUpToDay = (day: number) => {
-    let totalIncome = 0;
-    let totalBills = 0;
-
-    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
-
-    const monthlyIncomes = getMonthlyIncomeOccurrences();
-    monthlyIncomes.forEach(income => {
-      const incomeDate = dayjs(income.date);
-      if (incomeDate.date() <= day && incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear) {
-        totalIncome += income.amount;
-      }
-    });
-
-    bills.forEach(bill => {
+  // Memoize monthly totals calculation
+  const monthlyTotals = useMemo(() => {
+    const totalIncome = monthlyIncomeOccurrences.reduce((sum, income) => sum + income.amount, 0);
+    const totalExpenses = bills.reduce((sum, bill) => {
       if (bill.isOneTime) {
         const billDate = dayjs(bill.date);
-        if (billDate.isSame(targetDate, 'month')) {
-          if (billDate.date() <= day && billDate.month() === selectedMonth && billDate.year() === selectedYear) {
-            totalBills += bill.amount;
-          }
-        }
-      } else {
-        if (bill.day <= day) {
-          totalBills += bill.amount;
-        }
+        return billDate &&
+               billDate.month() === selectedMonth && 
+               billDate.year() === selectedYear 
+               ? sum + bill.amount 
+               : sum;
       }
-    });
-
-    return { totalIncome, totalBills };
-  };
-
-  const handleDayClick = (day: number | null) => {
-    if (day) {
-      setSelectedDay(day);
-      setShowDailySummary(true);
-    }
-  };
-
-  const daysInMonth = dayjs().year(selectedYear).month(selectedMonth).daysInMonth();
-  const handleMonthChange = (month: number) => {
-    setSelectedMonth(month);
-    const days = dayjs().year(selectedYear).month(month).daysInMonth();
-    setSelectedDay(Math.min(selectedDay, days)); // Ensure selectedDay is valid
-  };
-
-  const handleYearChange = (year: number) => {
-    setSelectedYear(year);
-    const days = dayjs().year(year).month(selectedMonth).daysInMonth();
-    setSelectedDay(Math.min(selectedDay, days)); // Ensure selectedDay is valid
-  };
-
-
-  const calculateMonthlyTotals = () => {
-    const monthStart = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
-    const monthEnd = monthStart.endOf('month');
-
-    let totalIncome = 0;
-    let totalExpenses = 0;
-
-    // Calculate total income for the month
-    const monthlyIncomes = getMonthlyIncomeOccurrences();
-    monthlyIncomes.forEach(income => {
-      totalIncome += income.amount;
-    });
-
-    // Calculate total expenses for the month
-    bills.forEach(bill => {
-      if (bill.isOneTime) {
-        const billDate = dayjs(bill.date);
-        if (billDate.isBetween(monthStart, monthEnd, 'day', '[]')) {
-          totalExpenses += bill.amount;
-        }
-      } else {
-        totalExpenses += bill.amount;
-      }
-    });
+      return sum + bill.amount;
+    }, 0);
 
     return {
       income: totalIncome,
-      expenses: totalExpenses
+      expenses: totalExpenses,
+      net: totalIncome - totalExpenses
     };
-  };
+  }, [monthlyIncomeOccurrences, bills, selectedMonth, selectedYear]);
+
+  // Handle month and year changes with validation
+  const handleMonthChange = useCallback((month: number) => {
+    setSelectedMonth(month);
+    const days = dayjs().year(selectedYear).month(month).daysInMonth();
+    setSelectedDay(Math.min(selectedDay, days));
+  }, [selectedYear, selectedDay]);
+
+  const handleYearChange = useCallback((year: number) => {
+    setSelectedYear(year);
+    const days = dayjs().year(year).month(selectedMonth).daysInMonth();
+    setSelectedDay(Math.min(selectedDay, days));
+  }, [selectedMonth, selectedDay]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading budget data...</span>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Alert variant="destructive" className="m-4">
+        <AlertDescription>
+          Failed to load budget data: {error.message}
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -347,11 +217,12 @@ export function Budget() {
             aria-label="Select year"
           >
             {years.map(year => (
-              <option key={year.value} value={year.value}>{year.label}</option>
+              <option key={year.value} value={year.value}>
+                {year.label}
+              </option>
             ))}
           </select>
 
-          {/* Only show day info for current month */}
           {selectedMonth === today.month() && selectedYear === today.year() && (
             <span className="text-sm text-muted-foreground ml-2">
               {today.format('ddd')}, {today.format('D')}
@@ -363,22 +234,21 @@ export function Budget() {
           <div>
             <p className="text-sm text-muted-foreground">Month Total Income</p>
             <p className="text-lg font-semibold text-green-600">
-              {formatCurrency(calculateMonthlyTotals().income)}
+              {formatCurrency(monthlyTotals.income)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Month Total Bills</p>
             <p className="text-lg font-semibold text-red-600">
-              {formatCurrency(calculateMonthlyTotals().expenses)}
+              {formatCurrency(monthlyTotals.expenses)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Month Net Balance</p>
-            <p className="text-lg font-semibold text-blue-600">
-              {formatCurrency(
-                calculateMonthlyTotals().income -
-                calculateMonthlyTotals().expenses
-              )}
+            <p className={`text-lg font-semibold ${
+              monthlyTotals.net >= 0 ? 'text-blue-600' : 'text-red-600'
+            }`}>
+              {formatCurrency(monthlyTotals.net)}
             </p>
           </div>
         </div>
@@ -400,7 +270,7 @@ export function Budget() {
               {Array.from({ length: 5 }, (_, weekIndex) => (
                 <tr key={weekIndex} className="divide-x">
                   {Array.from({ length: 7 }, (_, dayIndex) => {
-                    const dayNumber = calendarDays[weekIndex * 7 + dayIndex];
+                    const dayNumber = calendarData[weekIndex * 7 + dayIndex];
                     if (dayNumber === null) {
                       return <td key={dayIndex} className="border p-1 lg:p-2 bg-muted/10 h-24 lg:h-48" />;
                     }
@@ -410,18 +280,24 @@ export function Budget() {
                     const dayIncomes = getIncomeForDay(dayNumber);
                     const dayBills = getBillsForDay(dayNumber);
                     const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
-                    const isToday = isCurrentDay(dayNumber);
+                    const isCurrentDay = 
+                      dayNumber === today.date() && 
+                      selectedMonth === today.month() && 
+                      selectedYear === today.year();
 
                     return (
                       <td
                         key={dayIndex}
-                        onClick={() => handleDayClick(dayNumber)}
-                        aria-label={`${dayNumber} ${dayjs().format("MMMM")} ${today.year()}${isToday ? ' (Today)' : ''}`}
+                        onClick={() => {
+                          setSelectedDay(dayNumber);
+                          setShowDailySummary(true);
+                        }}
+                        aria-label={`${dayNumber} ${dayjs().month(selectedMonth).format("MMMM")} ${selectedYear}${isCurrentDay ? ' (Today)' : ''}`}
                         className={cn(
                           "border p-1 lg:p-2 align-top cursor-pointer transition-colors h-24 lg:h-48 relative touch-manipulation",
                           "hover:bg-accent",
-                          isToday && "ring-2 ring-primary ring-offset-2 border-primary border-2",
-                          selectedDay === dayNumber && "bg-accent/50 font-semibold",
+                          isCurrentDay && "ring-2 ring-primary ring-offset-2",
+                          selectedDay === dayNumber && "bg-accent/50",
                           hasTransactions && "shadow-sm"
                         )}
                       >
@@ -429,15 +305,15 @@ export function Budget() {
                           <div className="flex items-center gap-1">
                             <span className={cn(
                               "font-medium text-base lg:text-lg",
-                              isToday && "text-primary font-bold"
+                              isCurrentDay && "text-primary font-bold"
                             )}>
                               {dayNumber}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {dayOfWeek}
                             </span>
-                            {isToday && (
-                              <span className="text-xs font-medium text-primary ml-1 animate-flash px-1 rounded">
+                            {isCurrentDay && (
+                              <span className="text-xs font-medium text-primary ml-1 animate-pulse px-1 rounded">
                                 Today
                               </span>
                             )}
@@ -507,25 +383,10 @@ export function Budget() {
         selectedYear={selectedYear}
         dayIncomes={getIncomeForDay(selectedDay)}
         dayBills={getBillsForDay(selectedDay)}
-        totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
-        totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
-        monthlyTotals={calculateMonthlyTotals()}
+        totalIncomeUpToToday={monthlyTotals.income}
+        totalBillsUpToToday={monthlyTotals.expenses}
+        monthlyTotals={monthlyTotals}
       />
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
-          </AlertDialogHeader>
-          <AlertDialogDescription>
-            Are you sure you want to delete this transaction? This action cannot be undone.
-          </AlertDialogDescription>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
