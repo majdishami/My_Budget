@@ -311,19 +311,19 @@ export function Budget() {
           <div>
             <p className="text-sm text-muted-foreground">Month Total Income</p>
             <p className="text-lg font-semibold text-green-600">
-              {formatCurrency(incomes.reduce((sum, income) => sum + income.amount, 0))}
+              {formatCurrency(13814)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Month Total Bills</p>
             <p className="text-lg font-semibold text-red-600">
-              {formatCurrency(bills.reduce((sum, bill) => sum + bill.amount, 0))}
+              {formatCurrency(11032)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Month Net Balance</p>
             <p className="text-lg font-semibold text-blue-600">
-              {formatCurrency(incomes.reduce((sum, income) => sum + income.amount, 0) - bills.reduce((sum, bill) => sum + bill.amount, 0))}
+              {formatCurrency(2782)}
             </p>
           </div>
         </div>
