@@ -16,6 +16,7 @@ export interface Income {
   source: string;
   amount: number;
   date: string;
+  occurrenceType: 'once' | 'monthly' | 'biweekly' | 'twice-monthly';
 }
 
 /**
@@ -55,7 +56,7 @@ export interface BillReminder {
  * 🔄 OccurrenceType
  * Defines how often a transaction occurs
  */
-export type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'weekly';
+export type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'twice-monthly';
 
 /**
  * 📊 DataContextType

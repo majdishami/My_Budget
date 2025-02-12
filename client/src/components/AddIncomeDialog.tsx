@@ -12,6 +12,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Income } from "@/types";
 import dayjs from "dayjs";
 import { logger } from "@/lib/logger";
@@ -21,6 +28,9 @@ const formSchema = z.object({
   source: z.string().min(1, "Income source is required"),
   amount: z.number().min(0.01, "Amount must be greater than 0"),
   date: z.string().min(1, "Date is required"),
+  occurrenceType: z.enum(['once', 'monthly', 'biweekly', 'twice-monthly'] as const, {
+    required_error: "Please select an occurrence type",
+  }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -44,6 +54,7 @@ export function AddIncomeDialog({
       source: "",
       amount: undefined,
       date: dayjs().format("YYYY-MM-DD"),
+      occurrenceType: 'once',
     },
   });
 
@@ -61,6 +72,7 @@ export function AddIncomeDialog({
         source: values.source,
         amount: values.amount,
         date: dayjs(values.date).toISOString(),
+        occurrenceType: values.occurrenceType,
       };
 
       await onConfirm(newIncome);
@@ -117,6 +129,33 @@ export function AddIncomeDialog({
                       onChange={(e) => field.onChange(parseFloat(e.target.value))}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="occurrenceType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Frequency</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="once">One time</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="biweekly">Bi-Weekly</SelectItem>
+                      <SelectItem value="twice-monthly">Twice a month</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
