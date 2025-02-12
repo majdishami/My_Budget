@@ -157,6 +157,37 @@ export function LeftSidebar({
                   size="sm"
                   className="w-full justify-start"
                 >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[200px]">
+                <DropdownMenuItem
+                  onClick={() => {
+                    onAddIncome();
+                    setIsOpen(false);
+                  }}
+                >
+                  Add Income
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    onAddBill();
+                    setIsOpen(false);
+                  }}
+                >
+                  Add Expense
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
                   <Edit className="mr-2 h-4 w-4" />
                   Edit
                 </Button>
