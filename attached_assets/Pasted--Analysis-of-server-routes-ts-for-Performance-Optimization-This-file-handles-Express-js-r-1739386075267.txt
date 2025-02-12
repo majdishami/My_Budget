@@ -1,0 +1,99 @@
+### **Analysis of `server/routes.ts` for Performance Optimization**
+This file handles **Express.js routes**, authentication using `passport`, and database interactions using `Drizzle ORM` and `PostgreSQL`.
+
+---
+
+### **Potential Performance Issues & Optimizations**
+
+#### **1. Inefficient Password Hashing (SHA-256)**
+- **Problem:** Uses `crypto.createHash('sha256')`, which is **not optimized for password storage**. SHA-256 is **too fast**, making brute-force attacks easier.
+- **Fix:** Use `bcrypt` for secure password hashing with salting.
+  ```ts
+  import bcrypt from "bcrypt";
+  
+  async function hashPassword(password: string): Promise<string> {
+      const saltRounds = 10;
+      return await bcrypt.hash(password, saltRounds);
+  }
+  ```
+
+#### **2. Session Storage in PostgreSQL (Potential Bottleneck)**
+- **Issue:** Sessions are stored in PostgreSQL using `connect-pg-simple`. If many users are active, this can slow down performance due to frequent **database reads/writes**.
+- **Fix:** Use **Redis** instead of PostgreSQL for session storage.
+  ```ts
+  import RedisStore from "connect-redis";
+  import Redis from "ioredis";
+
+  const redisClient = new Redis(process.env.REDIS_URL);
+  app.use(session({
+      store: new RedisStore({ client: redisClient }),
+      secret: process.env.SESSION_SECRET,
+      resave: false,
+      saveUninitialized: false,
+      cookie: { secure: process.env.NODE_ENV === "production" }
+  }));
+  ```
+
+#### **3. Potential N+1 Query Issues with Drizzle ORM**
+- **Problem:** If queries inside loops fetch user-related data, it can result in **multiple database calls (N+1 issue)**.
+- **Fix:** Use `JOIN` queries instead of separate calls.
+  ```ts
+  // Instead of multiple queries...
+  const user = await db.select().from(users).where(eq(users.id, userId));
+  const userCategories = await db.select().from(categories).where(eq(categories.userId, userId));
+
+  // Optimize with JOIN
+  const userWithCategories = await db
+    .select({
+        user: users,
+        category: categories,
+    })
+    .from(users)
+    .leftJoin(categories, eq(users.id, categories.userId))
+    .where(eq(users.id, userId));
+  ```
+
+#### **4. API Endpoint Optimization:**
+- **Issue:** If an API route fetches data without pagination, it can **slow down significantly** with large datasets.
+- **Fix:** Implement pagination for large queries.
+  ```ts
+  app.get("/categories", async (req, res) => {
+      const page = Number(req.query.page) || 1;
+      const limit = 10;
+      const offset = (page - 1) * limit;
+
+      const categoriesList = await db
+        .select()
+        .from(categories)
+        .limit(limit)
+        .offset(offset);
+
+      res.json({ data: categoriesList });
+  });
+  ```
+
+#### **5. Avoid Blocking Operations on API Requests**
+- **Problem:** Synchronous functions like **password hashing inside a request handler** can block the event loop.
+- **Fix:** Use `async/await` for non-blocking operations.
+  ```ts
+  app.post("/register", async (req, res) => {
+      try {
+          const hashedPassword = await hashPassword(req.body.password);
+          await db.insert(users).values({ ...req.body, password: hashedPassword });
+          res.status(201).json({ message: "User registered successfully" });
+      } catch (error) {
+          res.status(500).json({ error: "Registration failed" });
+      }
+  });
+  ```
+
+---
+
+### **Key Performance Optimizations**
+✅ **Use `bcrypt` instead of SHA-256** for password security.  
+✅ **Switch session storage from PostgreSQL to Redis** for faster lookups.  
+✅ **Optimize database queries** with `JOIN` instead of multiple fetches.  
+✅ **Implement pagination** in API endpoints to avoid slow responses.  
+✅ **Ensure all API calls are non-blocking** (`async/await`).  
+
+Would you like me to check **frontend performance** next, such as React rendering optimizations? 🚀
