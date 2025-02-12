@@ -14,6 +14,8 @@ import { useData } from "@/contexts/DataContext";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ThemeToggle from "@/components/ThemeToggle"; // Assuming ThemeToggle is imported correctly
+
 
 dayjs.extend(isBetween);
 
@@ -229,57 +231,63 @@ export function Budget() {
   return (
     <div className="w-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between p-2 md:p-4 border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 space-y-2 md:space-y-0">
-        <div className="flex items-center gap-1 md:gap-2">
-          <select 
-            value={selectedMonth}
-            onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-            className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w-[120px] text-xs md:text-base"
-            aria-label="Select month"
-          >
-            {months.map(month => (
-              <option key={month.value} value={month.value}>
-                {month.label}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center justify-between w-full md:w-auto">
+          <div className="flex items-center gap-1 md:gap-2">
+            <select 
+              value={selectedMonth}
+              onChange={(e) => handleMonthChange(parseInt(e.target.value))}
+              className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w-[120px] text-xs md:text-base"
+              aria-label="Select month"
+            >
+              {months.map(month => (
+                <option key={month.value} value={month.value}>
+                  {month.label}
+                </option>
+              ))}
+            </select>
 
-          <select
-            value={selectedYear}
-            onChange={(e) => handleYearChange(parseInt(e.target.value))}
-            className="p-1.5 md:p-2 border rounded bg-background min-w-[80px] md:min-w-[100px] text-xs md:text-base"
-            aria-label="Select year"
-          >
-            {years.map(year => (
-              <option key={year.value} value={year.value}>
-                {year.label}
-              </option>
-            ))}
-          </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => handleYearChange(parseInt(e.target.value))}
+              className="p-1.5 md:p-2 border rounded bg-background min-w-[80px] md:min-w-[100px] text-xs md:text-base"
+              aria-label="Select year"
+            >
+              {years.map(year => (
+                <option key={year.value} value={year.value}>
+                  {year.label}
+                </option>
+              ))}
+            </select>
 
-          {selectedMonth === today.month() && selectedYear === today.year() && (
-            <span className="text-[10px] md:text-sm text-muted-foreground ml-1 md:ml-2">
-              {today.format('ddd')}, {today.format('D')}
-            </span>
-          )}
+            {selectedMonth === today.month() && selectedYear === today.year() && (
+              <span className="text-[10px] md:text-sm text-muted-foreground ml-1 md:ml-2">
+                {today.format('ddd')}, {today.format('D')}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center">
+            <ThemeToggle />
+          </div>
         </div>
 
         <div className="grid grid-cols-3 md:flex md:items-center gap-1 md:gap-4">
           <div>
             <p className="text-[10px] md:text-sm text-muted-foreground">Month Income</p>
-            <p className="text-xs md:text-lg font-semibold text-green-600">
+            <p className="text-xs md:text-lg font-semibold text-green-600 dark:text-green-400">
               {formatCurrency(monthlyTotals.income)}
             </p>
           </div>
           <div>
             <p className="text-[10px] md:text-sm text-muted-foreground">Month Bills</p>
-            <p className="text-xs md:text-lg font-semibold text-red-600">
+            <p className="text-xs md:text-lg font-semibold text-red-600 dark:text-red-400">
               {formatCurrency(monthlyTotals.expenses)}
             </p>
           </div>
           <div>
             <p className="text-[10px] md:text-sm text-muted-foreground">Month Net</p>
             <p className={`text-xs md:text-lg font-semibold ${
-              monthlyTotals.net >= 0 ? 'text-blue-600' : 'text-red-600'
+              monthlyTotals.net >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'
             }`}>
               {formatCurrency(monthlyTotals.net)}
             </p>
