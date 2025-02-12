@@ -14,6 +14,8 @@ interface DataContextType {
   deleteTransaction: (transaction: Income | Bill) => void;
   editTransaction: (transaction: Income | Bill) => void;
   resetData: () => Promise<void>;
+  refresh: () => Promise<void>;
+  addIncomeToData: (income: Income) => void;
   isLoading: boolean;
   error: Error | null;
 }
@@ -64,6 +66,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (typeof bill.category_id !== 'number') {
       throw new Error('Bill category_id must be a number');
     }
+    if (typeof bill.category_name !== 'string') {
+      throw new Error('Bill category_name must be a string');
+    }
     if (typeof bill.user_id !== 'number') {
       throw new Error('Bill user_id must be a number');
     }
@@ -89,21 +94,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       ];
 
       const defaultBills: Bill[] = [
-        { id: generateId(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1, category_id: 8, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Maid's 1st payment", amount: 120, day: 1, category_id: 11, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Monthly Rent", amount: 3750, day: 1, category_id: 1, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Sling TV (CC 9550)", amount: 75, day: 3, category_id: 10, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Cox Internet", amount: 81, day: 6, category_id: 9, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Water Bill", amount: 80, day: 7, category_id: 7, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "NV Energy Electrical ($100 winter months)", amount: 250, day: 7, category_id: 5, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "TransAmerica Life Insurance", amount: 77, day: 9, category_id: 13, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Credit Card minimum payments", amount: 225, day: 14, category_id: 14, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14, category_id: 12, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Expenses & Groceries charged on (CC 2647)", amount: 3000, day: 16, category_id: 4, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Maid's 2nd Payment of the month", amount: 120, day: 17, category_id: 11, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "SoFi Personal Loan", amount: 1915, day: 17, category_id: 2, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75, day: 17, category_id: 6, isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704, day: 28, category_id: 3, isOneTime: false, user_id: 1, created_at: today.toISOString() }
+        { id: generateId(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1, category_id: 8, category_name: "Phone & Internet", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "Maid's 1st payment", amount: 120, day: 1, category_id: 11, category_name: "Home Services", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "Monthly Rent", amount: 3750, day: 1, category_id: 1, category_name: "Housing", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "Sling TV (CC 9550)", amount: 75, day: 3, category_id: 10, category_name: "Entertainment", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "Cox Internet", amount: 81, day: 6, category_id: 9, category_name: "Internet", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "Water Bill", amount: 80, day: 7, category_id: 7, category_name: "Utilities", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "NV Energy Electrical", amount: 250, day: 7, category_id: 5, category_name: "Electricity", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "TransAmerica Life Insurance", amount: 77, day: 9, category_id: 13, category_name: "Insurance", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "Credit Card minimum payments", amount: 225, day: 14, category_id: 14, category_name: "Credit Cards", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14, category_id: 12, category_name: "Subscriptions", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "Expenses & Groceries", amount: 3000, day: 16, category_id: 4, category_name: "Groceries", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "Maid's 2nd Payment", amount: 120, day: 17, category_id: 11, category_name: "Home Services", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "SoFi Personal Loan", amount: 1915, day: 17, category_id: 2, category_name: "Loans", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "Southwest Gas", amount: 75, day: 17, category_id: 6, category_name: "Gas", isOneTime: false, user_id: 1, created_at: today.toISOString() },
+        { id: generateId(), name: "Car Insurance (3 cars)", amount: 704, day: 28, category_id: 3, category_name: "Auto Insurance", isOneTime: false, user_id: 1, created_at: today.toISOString() }
       ];
 
       // Validate default data
@@ -130,67 +135,80 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    const loadData = async () => {
+  const refresh = async () => {
+    try {
+      setIsLoading(true);
+      await loadData();
+      logger.info("Successfully refreshed data");
+    } catch (error) {
+      logger.error("Error refreshing data:", { error });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      let storedIncomes: Income[] = [];
+      let storedBills: Bill[] = [];
+      let shouldInitialize = false;
+
       try {
-        setIsLoading(true);
-        setError(null);
-
-        let storedIncomes: Income[] = [];
-        let storedBills: Bill[] = [];
-        let shouldInitialize = false;
-
-        try {
-          const incomesData = localStorage.getItem("budgetIncomes");
-          if (incomesData) {
-            const parsedIncomes = JSON.parse(incomesData);
-            parsedIncomes.forEach(isValidIncome);
-            storedIncomes = parsedIncomes;
-            logger.info("Successfully loaded incomes", { count: parsedIncomes.length });
-          } else {
-            shouldInitialize = true;
-          }
-        } catch (error) {
-          logger.warn("Invalid stored incomes, will initialize defaults", { error });
-          shouldInitialize = true;
-        }
-
-        try {
-          const billsData = localStorage.getItem("budgetBills");
-          if (billsData) {
-            const parsedBills = JSON.parse(billsData);
-            parsedBills.forEach(isValidBill);
-            storedBills = parsedBills;
-            logger.info("Successfully loaded bills", { count: parsedBills.length });
-          } else {
-            shouldInitialize = true;
-          }
-        } catch (error) {
-          logger.warn("Invalid stored bills, will initialize defaults", { error });
-          shouldInitialize = true;
-        }
-
-        if (shouldInitialize) {
-          await initializeDefaultData();
+        const incomesData = localStorage.getItem("budgetIncomes");
+        if (incomesData) {
+          const parsedIncomes = JSON.parse(incomesData);
+          parsedIncomes.forEach(isValidIncome);
+          storedIncomes = parsedIncomes;
+          logger.info("Successfully loaded incomes", { count: parsedIncomes.length });
         } else {
-          setIncomes(storedIncomes);
-          setBills(storedBills);
+          shouldInitialize = true;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to load data";
-        logger.error("Error loading data:", { error });
-        setError(new Error(errorMessage));
-        // Attempt to initialize with defaults if loading fails
-        await initializeDefaultData();
-      } finally {
-        setIsLoading(false);
+        logger.warn("Invalid stored incomes, will initialize defaults", { error });
+        shouldInitialize = true;
       }
-    };
 
+      try {
+        const billsData = localStorage.getItem("budgetBills");
+        if (billsData) {
+          const parsedBills = JSON.parse(billsData);
+          parsedBills.forEach(isValidBill);
+          storedBills = parsedBills;
+          logger.info("Successfully loaded bills", { count: parsedBills.length });
+        } else {
+          shouldInitialize = true;
+        }
+      } catch (error) {
+        logger.warn("Invalid stored bills, will initialize defaults", { error });
+        shouldInitialize = true;
+      }
+
+      if (shouldInitialize) {
+        await initializeDefaultData();
+      } else {
+        setIncomes(storedIncomes);
+        setBills(storedBills);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to load data";
+      logger.error("Error loading data:", { error });
+      setError(new Error(errorMessage));
+      // Attempt to initialize with defaults if loading fails
+      await initializeDefaultData();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadData();
   }, []);
 
-  const addIncome = (income: Income) => {
+  const addIncomeToData = (income: Income) => {
     try {
       setError(null);
       if (!isValidIncome(income)) {
@@ -221,60 +239,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add bill";
       logger.error("Error in addBill:", { error });
-      setError(new Error(errorMessage));
-      throw error;
-    }
-  };
-
-  const deleteTransaction = (transaction: Income | Bill) => {
-    try {
-      setError(null);
-      if ('source' in transaction) {
-        // It's an income
-        const newIncomes = incomes.filter(i => i.id !== transaction.id);
-        setIncomes(newIncomes);
-        localStorage.setItem("budgetIncomes", JSON.stringify(newIncomes));
-        logger.info("Successfully deleted income", { income: transaction });
-      } else {
-        // It's a bill
-        const newBills = bills.filter(b => b.id !== transaction.id);
-        setBills(newBills);
-        localStorage.setItem("budgetBills", JSON.stringify(newBills));
-        logger.info("Successfully deleted bill", { bill: transaction });
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
-      logger.error("Error in deleteTransaction:", { error });
-      setError(new Error(errorMessage));
-      throw error;
-    }
-  };
-
-  const editTransaction = (transaction: Income | Bill) => {
-    try {
-      setError(null);
-      if ('source' in transaction) {
-        // It's an income
-        if (!isValidIncome(transaction)) {
-          throw new Error("Invalid income data");
-        }
-        const newIncomes = incomes.map(i => i.id === transaction.id ? transaction : i);
-        setIncomes(newIncomes);
-        localStorage.setItem("budgetIncomes", JSON.stringify(newIncomes));
-        logger.info("Successfully edited income", { income: transaction });
-      } else {
-        // It's a bill
-        if (!isValidBill(transaction)) {
-          throw new Error("Invalid bill data");
-        }
-        const newBills = bills.map(b => b.id === transaction.id ? transaction : b);
-        setBills(newBills);
-        localStorage.setItem("budgetBills", JSON.stringify(newBills));
-        logger.info("Successfully edited bill", { bill: transaction });
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
-      logger.error("Error in editTransaction:", { error });
       setError(new Error(errorMessage));
       throw error;
     }
@@ -318,10 +282,60 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
       },
-      addIncome,
+      addIncome: addIncomeToData,
       addBill,
-      deleteTransaction,
-      editTransaction,
+      deleteTransaction: (transaction: Income | Bill) => {
+        try {
+          setError(null);
+          if ('source' in transaction) {
+            // It's an income
+            const newIncomes = incomes.filter(i => i.id !== transaction.id);
+            setIncomes(newIncomes);
+            localStorage.setItem("budgetIncomes", JSON.stringify(newIncomes));
+            logger.info("Successfully deleted income", { income: transaction });
+          } else {
+            // It's a bill
+            const newBills = bills.filter(b => b.id !== transaction.id);
+            setBills(newBills);
+            localStorage.setItem("budgetBills", JSON.stringify(newBills));
+            logger.info("Successfully deleted bill", { bill: transaction });
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
+          logger.error("Error in deleteTransaction:", { error });
+          setError(new Error(errorMessage));
+          throw error;
+        }
+      },
+      editTransaction: (transaction: Income | Bill) => {
+        try {
+          setError(null);
+          if ('source' in transaction) {
+            // It's an income
+            if (!isValidIncome(transaction)) {
+              throw new Error("Invalid income data");
+            }
+            const newIncomes = incomes.map(i => i.id === transaction.id ? transaction : i);
+            setIncomes(newIncomes);
+            localStorage.setItem("budgetIncomes", JSON.stringify(newIncomes));
+            logger.info("Successfully edited income", { income: transaction });
+          } else {
+            // It's a bill
+            if (!isValidBill(transaction)) {
+              throw new Error("Invalid bill data");
+            }
+            const newBills = bills.map(b => b.id === transaction.id ? transaction : b);
+            setBills(newBills);
+            localStorage.setItem("budgetBills", JSON.stringify(newBills));
+            logger.info("Successfully edited bill", { bill: transaction });
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
+          logger.error("Error in editTransaction:", { error });
+          setError(new Error(errorMessage));
+          throw error;
+        }
+      },
       resetData: async () => {
         try {
           setError(null);
@@ -336,6 +350,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
       },
+      refresh,
+      addIncomeToData,
       isLoading,
       error
     }}>

@@ -33,7 +33,7 @@ export interface Bill {
   isOneTime: boolean;
   date?: string;
   category?: string;
-  category_name: string;  // Changed from optional to required
+  category_name: string;
   category_color?: string;
   reminderEnabled?: boolean;
   reminderDays?: number;
@@ -66,9 +66,13 @@ export interface DataContextType {
   error: Error | null;
   incomes: Income[];
   bills: Bill[];
+  saveIncomes: (newIncomes: Income[]) => Promise<void>;
+  saveBills: (newBills: Bill[]) => Promise<void>;
+  addIncome: (income: Income) => void;
+  addBill: (bill: Bill) => void;
   deleteTransaction: (transaction: Income | Bill) => void;
   editTransaction: (transaction: Income | Bill) => void;
-  addIncomeToData: (income: Income) => void;
-  addBill: (bill: Bill) => void;
+  resetData: () => Promise<void>;
   refresh: () => Promise<void>;
+  addIncomeToData: (income: Income) => void;
 }
