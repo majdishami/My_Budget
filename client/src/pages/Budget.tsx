@@ -328,28 +328,28 @@ export function Budget() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Month Total Income</p>
-                <p className="text-lg font-semibold text-green-600">
-                  {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalIncome)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Month Total Bills</p>
-                <p className="text-lg font-semibold text-red-600">
-                  {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalBills)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Month Net Balance</p>
-                <p className="text-lg font-semibold text-blue-600">
-                  {formatCurrency(
-                    calculateTotalsUpToDay(totalDaysInMonth).totalIncome -
-                    calculateTotalsUpToDay(totalDaysInMonth).totalBills
-                  )}
-                </p>
-              </div>
-            </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Month Total Income</p>
+            <p className="text-lg font-semibold text-green-600">
+              {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalIncome)}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Month Total Bills</p>
+            <p className="text-lg font-semibold text-red-600">
+              {formatCurrency(calculateTotalsUpToDay(totalDaysInMonth).totalBills)}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Month Net Balance</p>
+            <p className="text-lg font-semibold text-blue-600">
+              {formatCurrency(
+                calculateTotalsUpToDay(totalDaysInMonth).totalIncome -
+                calculateTotalsUpToDay(totalDaysInMonth).totalBills
+              )}
+            </p>
+          </div>
+        </div>
       </div>
 
       <Card className="w-full">
