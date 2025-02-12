@@ -16,6 +16,7 @@ import { FileText, Download, Printer, AlertCircle } from 'lucide-react';
 
 // Utils
 import { formatCurrency } from '@/lib/reportUtils';
+import { getCurrentDate } from '@/lib/utils';
 
 // Initialize dayjs plugins
 dayjs.extend(isBetween);
@@ -28,7 +29,7 @@ interface Transaction {
 }
 
 export default function Reports() {
-  const today = dayjs('2025-02-11'); // Use mocked current date
+  const today = getCurrentDate(); // Use the current date utility
 
   // Set default date range to current month
   const [dateRange, setDateRange] = useState<{from: Date; to: Date}>({

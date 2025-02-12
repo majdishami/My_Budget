@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getCurrentDate } from '@/lib/utils';
 
 interface Transaction {
   date: string;
@@ -27,8 +28,8 @@ export default function MonthlyToDateReport() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Use mocked date consistently across the application
-  const today = dayjs('2025-02-11');
+  // Use the current date utility
+  const today = getCurrentDate();
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');
   const [, setLocation] = useLocation();
@@ -56,7 +57,7 @@ export default function MonthlyToDateReport() {
       // Add Ruba's salary for February 7th
       if (today.date() >= 7) {
         mockTransactions.push({
-          date: '2025-02-07',
+          date: today.date(7).format('YYYY-MM-DD'),
           description: "Ruba's Salary",
           amount: 2168,
           type: 'income'
@@ -85,7 +86,7 @@ export default function MonthlyToDateReport() {
       monthlyExpenses.forEach(expense => {
         if (today.date() >= expense.date) {
           mockTransactions.push({
-            date: `2025-02-${String(expense.date).padStart(2, '0')}`,
+            date: today.date(expense.date).format('YYYY-MM-DD'),
             description: expense.description,
             amount: expense.amount,
             type: 'expense'

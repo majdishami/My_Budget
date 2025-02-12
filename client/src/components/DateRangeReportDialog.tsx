@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getCurrentDate } from '@/lib/utils';
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isBetween);
@@ -46,7 +47,7 @@ interface RemainingCalculations {
 }
 
 export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRangeReportDialogProps) {
-  const today = useMemo(() => dayjs('2025-02-11'), []); // Update to February 11, 2025
+  const today = useMemo(() => getCurrentDate(), []); // Use the current date utility
   const defaultDateRange = useMemo(() => ({
     from: today.toDate(),
     to: undefined

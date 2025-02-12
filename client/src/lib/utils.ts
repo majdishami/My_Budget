@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import dayjs from 'dayjs';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -19,4 +20,13 @@ export function generateId(): string {
   const timestamp = Date.now().toString(36);
   const randomStr = Math.random().toString(36).substring(2, 8);
   return `${timestamp}-${randomStr}`;
+}
+
+// Get current date with test date override capability
+export function getCurrentDate() {
+  // For testing: if running in development and test date is set
+  if (import.meta.env.MODE === 'development' && import.meta.env.VITE_TEST_DATE) {
+    return dayjs(import.meta.env.VITE_TEST_DATE);
+  }
+  return dayjs();
 }
