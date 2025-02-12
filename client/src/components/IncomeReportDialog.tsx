@@ -234,7 +234,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               <CardTitle className="text-sm font-medium">Pending Income</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-400">{formatCurrency(summaryTotals.pending)}</div>
+              <div className="text-2xl font-bold text-green-300">{formatCurrency(summaryTotals.pending)}</div>
             </CardContent>
           </Card>
         </div>
@@ -253,9 +253,13 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               {transactions.map((transaction, index) => (
                 <TableRow key={`${transaction.date}-${index}`}>
                   <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                  <TableCell>{transaction.description}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(transaction.amount)}</TableCell>
-                  <TableCell>{transaction.occurred ? 'Paid' : 'Pending'}</TableCell>
+                  <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-300'}>
+                    {transaction.description}
+                  </TableCell>
+                  <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-300'}`}>
+                    {formatCurrency(transaction.amount)}</TableCell>
+                  <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-300'}>
+                    {transaction.occurred ? 'Paid' : 'Pending'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
