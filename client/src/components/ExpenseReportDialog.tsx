@@ -455,7 +455,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 </div>
               )}
             </DialogTitle>
-            </DialogHeader>
+          </DialogHeader>
 
           <div className="flex flex-col space-y-4 py-4">
             <div>
