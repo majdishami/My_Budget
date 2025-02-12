@@ -51,7 +51,6 @@ export function EditIncomeDialog({
     }
   }, [income]);
 
-  // Handle occurrence type change
   const handleOccurrenceTypeChange = (value: 'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly') => {
     setOccurrenceType(value);
     if (value === 'twice-monthly') {
@@ -134,7 +133,7 @@ export function EditIncomeDialog({
               </SelectContent>
             </Select>
           </div>
-          {occurrenceType === 'twice-monthly' && (
+          {occurrenceType === 'twice-monthly' ? (
             <div className="space-y-4">
               <div className="grid gap-2">
                 <Label>First payment day of the month</Label>
@@ -165,8 +164,7 @@ export function EditIncomeDialog({
                 </Select>
               </div>
             </div>
-          )}
-          {occurrenceType !== 'twice-monthly' && (
+          ) : (
             <div className="grid gap-2">
               <Label htmlFor="date">
                 {occurrenceType === 'once' ? 'Date' : 'Start Date'}
