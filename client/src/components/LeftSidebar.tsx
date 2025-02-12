@@ -58,42 +58,6 @@ export function LeftSidebar({
   const [showDatabaseSyncDialog, setShowDatabaseSyncDialog] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  const getMonthlyIncomeOccurrences = () => {
-    const currentDate = dayjs();
-    const startOfMonth = currentDate.startOf('month');
-    const endOfMonth = currentDate.endOf('month');
-    const startDate = dayjs('2025-01-10');
-
-    const occurrences: Income[] = [];
-
-    incomes.forEach(income => {
-      if (income.source === "Ruba's Salary") {
-        let checkDate = startDate.clone();
-        while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
-          if (checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) {
-            if (checkDate.day() === 5) {
-              const weeksDiff = checkDate.diff(startDate, 'week');
-              if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
-                occurrences.push({
-                  ...income,
-                  date: checkDate.toISOString(),
-                  id: `${income.id}-${checkDate.format('YYYY-MM-DD')}`
-                });
-              }
-            }
-          }
-          checkDate = checkDate.add(1, 'day');
-        }
-      } else {
-        occurrences.push(income);
-      }
-    });
-
-    return occurrences;
-  };
-
-  const monthlyIncomes = getMonthlyIncomeOccurrences();
-
   const handleRefresh = () => {
     window.location.reload();
   };
@@ -104,7 +68,7 @@ export function LeftSidebar({
 
   return (
     <div className="relative">
-      {/* Mobile Controls - Outside the sliding panel */}
+      {/* Mobile Controls */}
       <div className="lg:hidden fixed top-4 left-4 z-50 flex gap-2">
         <Button
           variant="ghost"
@@ -124,6 +88,7 @@ export function LeftSidebar({
         </Button>
       </div>
 
+      {/* Sidebar Content */}
       <div className={clsx(
         "fixed inset-y-0 left-0 z-40 w-[280px] bg-background border-r transform",
         "lg:relative lg:translate-x-0 lg:w-auto",
@@ -132,7 +97,7 @@ export function LeftSidebar({
         "overflow-y-auto h-screen lg:h-auto"
       )}>
         <div className="p-4 space-y-6 pt-16 lg:pt-4">
-          {/* Main Navigation Section */}
+          {/* Main Navigation */}
           <div className="space-y-2">
             <Link href="/">
               <Button
@@ -149,106 +114,7 @@ export function LeftSidebar({
               </Button>
             </Link>
 
-            {/* Expenses Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Expenses
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[200px]">
-                <DropdownMenuItem onClick={() => {
-                  onAddBill();
-                  setIsOpen(false);
-                }}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Expense
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Edit Expenses</DropdownMenuLabel>
-                {bills.map((bill) => (
-                  <DropdownMenuItem
-                    key={`edit-${bill.id}`}
-                    onClick={() => {
-                      onEditTransaction('bill', bill);
-                      setIsOpen(false);
-                    }}
-                  >
-                    <Edit className="mr-2 h-4 w-4" />
-                    {bill.name}
-                  </DropdownMenuItem>
-                ))}
-
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Delete Expenses</DropdownMenuLabel>
-                {bills.map((bill) => (
-                  <DropdownMenuItem
-                    key={`delete-${bill.id}`}
-                    onClick={() => {
-                      onDeleteTransaction('bill', bill);
-                      setIsOpen(false);
-                    }}
-                    className="text-red-600"
-                  >
-                    <Trash className="mr-2 h-4 w-4" />
-                    {bill.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Income Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Income
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[200px]">
-                <DropdownMenuItem onClick={() => {
-                  onAddIncome();
-                  setIsOpen(false);
-                }}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Income
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Edit Income</DropdownMenuLabel>
-                {monthlyIncomes.map((income) => (
-                  <DropdownMenuItem
-                    key={`edit-${income.id}`}
-                    onClick={() => {
-                      onEditTransaction('income', income);
-                      setIsOpen(false);
-                    }}
-                  >
-                    <Edit className="mr-2 h-4 w-4" />
-                    {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
-                  </DropdownMenuItem>
-                ))}
-
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Delete Income</DropdownMenuLabel>
-                {monthlyIncomes.map((income) => (
-                  <DropdownMenuItem
-                    key={`delete-${income.id}`}
-                    onClick={() => {
-                      onDeleteTransaction('income', income);
-                      setIsOpen(false);
-                    }}
-                    className="text-red-600"
-                  >
-                    <Trash className="mr-2 h-4 w-4" />
-                    {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
+            {/* Categories */}
             <Link href="/categories" onClick={() => setIsOpen(false)}>
               <Button
                 variant={isActiveRoute("/categories") ? "default" : "ghost"}
@@ -262,52 +128,9 @@ export function LeftSidebar({
                 Categories
               </Button>
             </Link>
-          </div>
 
-          {/* Reports Section - Update the View Reminders button */}
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold px-2">Reports</h2>
+            {/* Reports */}
             <div className="space-y-2">
-              {/* Move View Reminders button to the top for better visibility */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() => {
-                  setShowRemindersDialog(true);
-                  setIsOpen(false);
-                }}
-              >
-                <Bell className="mr-2 h-4 w-4" />
-                View Reminders
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() => {
-                  setShowExportDialog(true);
-                  setIsOpen(false);
-                }}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export Data
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() => {
-                  setShowDatabaseSyncDialog(true);
-                  setIsOpen(false);
-                }}
-              >
-                <Database className="mr-2 h-4 w-4" />
-                Sync Database
-              </Button>
-
               <Link href="/reports/monthly-to-date" onClick={() => setIsOpen(false)}>
                 <Button
                   variant={isActiveRoute("/reports/monthly-to-date") ? "default" : "ghost"}
@@ -318,7 +141,7 @@ export function LeftSidebar({
                   )}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
-                  Monthly up today
+                  Monthly to Date
                 </Button>
               </Link>
 
@@ -363,28 +186,97 @@ export function LeftSidebar({
                   Date Range Report
                 </Button>
               </Link>
+
+              <Link href="/reports/income" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant={isActiveRoute("/reports/income") ? "default" : "ghost"}
+                  size="sm"
+                  className={clsx(
+                    "w-full justify-start",
+                    isActiveRoute("/reports/income") && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
+                >
+                  <FileBarChart className="mr-2 h-4 w-4" />
+                  Income Report
+                </Button>
+              </Link>
+
+              <Link href="/reports/expenses" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant={isActiveRoute("/reports/expenses") ? "default" : "ghost"}
+                  size="sm"
+                  className={clsx(
+                    "w-full justify-start",
+                    isActiveRoute("/reports/expenses") && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
+                >
+                  <FileBarChart className="mr-2 h-4 w-4" />
+                  Expense Report
+                </Button>
+              </Link>
             </div>
+
+            {/* Utilities */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start"
+              onClick={() => {
+                setShowRemindersDialog(true);
+                setIsOpen(false);
+              }}
+            >
+              <Bell className="mr-2 h-4 w-4" />
+              View Reminders
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start"
+              onClick={() => {
+                setShowExportDialog(true);
+                setIsOpen(false);
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export Data
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start"
+              onClick={() => {
+                setShowDatabaseSyncDialog(true);
+                setIsOpen(false);
+              }}
+            >
+              <Database className="mr-2 h-4 w-4" />
+              Sync Database
+            </Button>
           </div>
         </div>
-
-        <ExportDialog
-          isOpen={showExportDialog}
-          onOpenChange={setShowExportDialog}
-          incomes={incomes}
-          bills={bills}
-        />
-
-        <ViewRemindersDialog
-          isOpen={showRemindersDialog}
-          onOpenChange={setShowRemindersDialog}
-          bills={bills}
-        />
-
-        <DatabaseSyncDialog
-          isOpen={showDatabaseSyncDialog}
-          onOpenChange={setShowDatabaseSyncDialog}
-        />
       </div>
+
+      {/* Dialogs */}
+      <ExportDialog
+        isOpen={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        incomes={incomes}
+        bills={bills}
+      />
+
+      <ViewRemindersDialog
+        isOpen={showRemindersDialog}
+        onOpenChange={setShowRemindersDialog}
+        bills={bills}
+      />
+
+      <DatabaseSyncDialog
+        isOpen={showDatabaseSyncDialog}
+        onOpenChange={setShowDatabaseSyncDialog}
+      />
     </div>
   );
 }

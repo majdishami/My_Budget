@@ -481,51 +481,15 @@ function Router() {
         )}>
           <div className="h-full">
             <Switch>
-              <Route path="/" component={() => (
-                <ErrorBoundary name="DashboardPage">
-                  <Budget />
-                </ErrorBoundary>
-              )} />
-              <Route path="/categories" component={() => (
-                <ErrorBoundary name="CategoriesPage">
-                  <CategoriesPage />
-                </ErrorBoundary>
-              )} />
-              <Route path="/reports/monthly-to-date" component={() => (
-                <ErrorBoundary name="MonthlyToDateReport">
-                  <MonthlyToDateReport />
-                </ErrorBoundary>
-              )} />
-              <Route path="/reports/monthly" component={() => (
-                <ErrorBoundary name="MonthlyReport">
-                  <MonthlyReport />
-                </ErrorBoundary>
-              )} />
-              <Route path="/reports/annual" component={() => (
-                <ErrorBoundary name="AnnualReport">
-                  <AnnualReport />
-                </ErrorBoundary>
-              )} />
-              <Route path="/reports/date-range" component={() => (
-                <ErrorBoundary name="DateRangeReport">
-                  <DateRangeReport />
-                </ErrorBoundary>
-              )} />
-              <Route path="/reports/income" component={() => (
-                <ErrorBoundary name="IncomeReport">
-                  <IncomeReport />
-                </ErrorBoundary>
-              )} />
-              <Route path="/reports/expenses" component={() => (
-                <ErrorBoundary name="ExpenseReport">
-                  <ExpenseReport />
-                </ErrorBoundary>
-              )} />
-              <Route component={() => (
-                <ErrorBoundary name="NotFoundPage">
-                  <NotFound />
-                </ErrorBoundary>
-              )} />
+              <Route path="/" component={Budget} />
+              <Route path="/categories" component={CategoriesPage} />
+              <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
+              <Route path="/reports/monthly" component={MonthlyReport} />
+              <Route path="/reports/annual" component={AnnualReport} />
+              <Route path="/reports/date-range" component={DateRangeReport} />
+              <Route path="/reports/income" component={IncomeReport} />
+              <Route path="/reports/expenses" component={ExpenseReport} />
+              <Route component={NotFound} />
             </Switch>
           </div>
         </main>
