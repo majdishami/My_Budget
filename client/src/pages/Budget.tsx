@@ -81,9 +81,11 @@ export function Budget() {
       amount: 0,
       day: dayjs().date(),
       category_id: 1,
+      category_name: "Uncategorized", // Added missing required field
       user_id: 1,
       created_at: dayjs().toISOString(),
-      isOneTime: false
+      isOneTime: false,
+      date: dayjs().toISOString() // Added date field for consistency
     };
     addBill(newBill);
   };
