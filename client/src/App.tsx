@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2, X, PlusCircle, BarChart4, Menu,
   Download, Database, Tags, ChevronDown,
-  RotateCw, Plus, Edit, Trash, FileText
+  RotateCw, Plus, Edit, Trash, FileText, Bell
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -428,6 +428,11 @@ function Router() {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => setShowRemindersDialog(true)}>
+                            <Bell className="mr-2 h-4 w-4" />
+                            View Reminders
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem asChild>
                             <Link href="/reports/monthly-to-date">Monthly to Date</Link>
                           </DropdownMenuItem>
