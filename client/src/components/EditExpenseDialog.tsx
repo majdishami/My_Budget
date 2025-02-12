@@ -72,16 +72,16 @@ export default function EditExpenseDialog({
     isError: isCategoriesError, 
     error: categoriesError,
     isLoading: isCategoriesLoading 
-  } = useQuery<Category[], Error>({
+  } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     retry: 3,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    onError: (error) => {
+    onError: (err: Error) => {
       toast({
         variant: "destructive",
         title: "Error loading categories",
-        description: error.message || "Failed to load categories. Please try again.",
+        description: err.message || "Failed to load categories. Please try again.",
       });
     }
   });
@@ -158,7 +158,7 @@ export default function EditExpenseDialog({
     // Category validation
     if (!categoryId) {
       newErrors.category = 'Please select a category for this expense';
-    } else if (!categories.some(cat => cat.id.toString() === categoryId)) {
+    } else if (!categories?.some((cat: Category) => cat.id.toString() === categoryId)) {
       newErrors.category = 'Selected category is invalid';
     }
 
@@ -170,7 +170,7 @@ export default function EditExpenseDialog({
     if (!expense || !validateForm() || isSubmitting) return;
 
     setIsSubmitting(true);
-    const selectedCategory = categories.find((cat: Category) => cat.id.toString() === categoryId);
+    const selectedCategory = categories?.find((cat: Category) => cat.id.toString() === categoryId);
 
     if (!selectedCategory) {
       setErrors(prev => ({ ...prev, category: 'Invalid category selected' }));
