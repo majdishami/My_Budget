@@ -61,6 +61,9 @@ import { clsx } from 'clsx';
 import { Income, Bill, OccurrenceType } from "@/types";
 import crypto from 'crypto';
 import { Badge } from "@/components/ui/badge";
+import { logger } from './lib/logger';
+
+
 
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
@@ -110,12 +113,17 @@ function Router() {
     setShowDeleteDialog(false);
   };
 
-  const handleAddIncome = (newIncome: Omit<Income, "id"> & { occurrenceType: OccurrenceType }) => {
-    const incomeWithId: Income = {
-      ...newIncome,
-      id: crypto.randomUUID(),
-    };
-    addIncomeToData(incomeWithId);
+  const handleAddIncome = (newIncome: Income) => {
+    try {
+      if (!newIncome.id) {
+        newIncome.id = crypto.randomUUID();
+      }
+      addIncomeToData(newIncome);
+      setShowAddIncomeDialog(false);
+    } catch (error) {
+      logger.error("Error adding income:", error);
+      throw error;
+    }
   };
 
   const handleRefresh = async () => {

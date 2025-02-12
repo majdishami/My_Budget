@@ -11,39 +11,16 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Income } from "@/types";
 import dayjs from "dayjs";
-
-type OccurrenceType = 'once' | 'monthly' | 'biweekly' | 'twice-monthly';
+import { logger } from "@/lib/logger";
+import { generateId } from "@/lib/utils";
 
 const formSchema = z.object({
   source: z.string().min(1, "Income source is required"),
-  amount: z.number().positive("Amount must be greater than 0"),
-  occurrenceType: z.enum(['once', 'monthly', 'biweekly', 'twice-monthly'] as const),
-  date: z.date({
-    required_error: "Please select a date",
-    invalid_type_error: "Invalid date format",
-  }),
+  amount: z.number().min(0.01, "Amount must be greater than 0"),
+  date: z.string().min(1, "Date is required"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -51,7 +28,7 @@ type FormValues = z.infer<typeof formSchema>;
 interface AddIncomeDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (newIncome: Omit<Income, 'id'> & { occurrenceType: OccurrenceType }) => void;
+  onConfirm: (newIncome: Income) => void;
 }
 
 export function AddIncomeDialog({
@@ -60,19 +37,16 @@ export function AddIncomeDialog({
   onConfirm,
 }: AddIncomeDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const minSelectableDate = new Date();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      source: '',
+      source: "",
       amount: undefined,
-      occurrenceType: 'once',
-      date: new Date(),
+      date: dayjs().format("YYYY-MM-DD"),
     },
   });
 
-  // Reset form when dialog closes
   useEffect(() => {
     if (!isOpen) {
       form.reset();
@@ -82,16 +56,20 @@ export function AddIncomeDialog({
   const handleSubmit = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
-      await onConfirm({
+      const newIncome: Income = {
+        id: generateId(),
         source: values.source,
         amount: values.amount,
         date: dayjs(values.date).toISOString(),
-        occurrenceType: values.occurrenceType,
-      });
+      };
+
+      await onConfirm(newIncome);
       form.reset();
       onOpenChange(false);
+      logger.info("Successfully added new income", { income: newIncome });
     } catch (error) {
-      console.error('Error submitting income:', error);
+      logger.error("Error adding income:", error);
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
@@ -115,7 +93,7 @@ export function AddIncomeDialog({
                     <Input
                       placeholder="Enter income source"
                       {...field}
-                      aria-label="Income source"
+                      autoFocus
                     />
                   </FormControl>
                   <FormMessage />
@@ -136,8 +114,7 @@ export function AddIncomeDialog({
                       min="0"
                       placeholder="Enter amount"
                       {...field}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                      aria-label="Income amount"
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -147,67 +124,17 @@ export function AddIncomeDialog({
 
             <FormField
               control={form.control}
-              name="occurrenceType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Occurrence</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select occurrence type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="once">Once</SelectItem>
-                      <SelectItem value="monthly">Once a month</SelectItem>
-                      <SelectItem value="biweekly">Bi-Weekly</SelectItem>
-                      <SelectItem value="twice-monthly">Twice a month</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="date"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Start Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          aria-label="Select date"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) => date < minSelectableDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      {...field}
+                      value={field.value || dayjs().format("YYYY-MM-DD")}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
