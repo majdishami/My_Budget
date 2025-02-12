@@ -25,6 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { ExportDialog } from "@/components/ExportDialog";
@@ -102,24 +110,6 @@ export function LeftSidebar({
     return location === path;
   };
 
-  // Handle bill selection for editing
-  const handleBillEdit = (billId: string) => {
-    const bill = bills.find(b => b.id === billId);
-    if (bill) {
-      onEditTransaction('bill', bill);
-      setIsOpen(false);
-    }
-  };
-
-  // Handle bill selection for deletion
-  const handleBillDelete = (billId: string) => {
-    const bill = bills.find(b => b.id === billId);
-    if (bill) {
-      onDeleteTransaction('bill', bill);
-      setIsOpen(false);
-    }
-  };
-
   return (
     <div className="relative">
       {/* Mobile Controls - Outside the sliding panel */}
@@ -172,21 +162,27 @@ export function LeftSidebar({
           <div className="space-y-2">
             <h2 className="text-lg font-semibold px-2">Expenses</h2>
             <div className="space-y-2">
-              <Select onValueChange={handleBillEdit}>
-                <SelectTrigger className="w-full justify-start">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Expense
                   </Button>
-                </SelectTrigger>
-                <SelectContent>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[200px]">
                   {bills.map((bill) => (
-                    <SelectItem key={bill.id} value={bill.id}>
+                    <DropdownMenuItem
+                      key={bill.id}
+                      onClick={() => {
+                        onEditTransaction('bill', bill);
+                        setIsOpen(false);
+                      }}
+                    >
                       {bill.name}
-                    </SelectItem>
+                    </DropdownMenuItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Button
                 variant="ghost"
@@ -201,21 +197,28 @@ export function LeftSidebar({
                 Add Expense
               </Button>
 
-              <Select onValueChange={handleBillDelete}>
-                <SelectTrigger className="w-full justify-start">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
                     <Trash className="mr-2 h-4 w-4" />
                     Delete Expense
                   </Button>
-                </SelectTrigger>
-                <SelectContent>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[200px]">
                   {bills.map((bill) => (
-                    <SelectItem key={bill.id} value={bill.id}>
+                    <DropdownMenuItem
+                      key={bill.id}
+                      onClick={() => {
+                        onDeleteTransaction('bill', bill);
+                        setIsOpen(false);
+                      }}
+                      className="text-red-600"
+                    >
                       {bill.name}
-                    </SelectItem>
+                    </DropdownMenuItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Button
                 variant="ghost"
@@ -236,27 +239,27 @@ export function LeftSidebar({
           <div className="space-y-2">
             <h2 className="text-lg font-semibold px-2">Income</h2>
             <div className="space-y-2">
-              <Select onValueChange={(value) => {
-                const income = monthlyIncomes.find(i => i.id === value);
-                if (income) {
-                  onEditTransaction('income', income);
-                  setIsOpen(false);
-                }
-              }}>
-                <SelectTrigger className="w-full justify-start">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Income
                   </Button>
-                </SelectTrigger>
-                <SelectContent>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[200px]">
                   {monthlyIncomes.map((income) => (
-                    <SelectItem key={income.id} value={income.id}>
+                    <DropdownMenuItem
+                      key={income.id}
+                      onClick={() => {
+                        onEditTransaction('income', income);
+                        setIsOpen(false);
+                      }}
+                    >
                       {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
-                    </SelectItem>
+                    </DropdownMenuItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Button
                 variant="ghost"
@@ -271,27 +274,28 @@ export function LeftSidebar({
                 Add Income
               </Button>
 
-              <Select onValueChange={(value) => {
-                const income = monthlyIncomes.find(i => i.id === value);
-                if (income) {
-                  onDeleteTransaction('income', income);
-                  setIsOpen(false);
-                }
-              }}>
-                <SelectTrigger className="w-full justify-start">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
                     <Trash className="mr-2 h-4 w-4" />
                     Delete Income
                   </Button>
-                </SelectTrigger>
-                <SelectContent>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[200px]">
                   {monthlyIncomes.map((income) => (
-                    <SelectItem key={income.id} value={income.id}>
+                    <DropdownMenuItem
+                      key={income.id}
+                      onClick={() => {
+                        onDeleteTransaction('income', income);
+                        setIsOpen(false);
+                      }}
+                      className="text-red-600"
+                    >
                       {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
-                    </SelectItem>
+                    </DropdownMenuItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
