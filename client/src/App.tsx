@@ -16,11 +16,13 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Loader2, X, PlusCircle, BarChart4, FolderTree, LayoutDashboard,
-  Download, Database, Calendar, ChartBar, CalendarRange, FileBarChart,
-  FileText, Bell, Edit, Trash, Tags
+  Loader2, X, PlusCircle, BarChart4, Menu,
+  Download, Database, Tags, ChevronDown
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import CategoriesPage from "@/pages/Categories";
 import NotFound from "@/pages/not-found";
 import MonthlyToDateReport from "@/pages/monthly-to-date";
@@ -58,8 +60,10 @@ import { Income, Bill, OccurrenceType } from "@/types";
 import crypto from 'crypto';
 
 function Router() {
-  const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncome: addIncomeToData, addBill } = useData();
+  const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill } = useData();
   const [location] = useLocation();
+  const isMobile = useIsMobile();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const today = dayjs('2025-02-11');
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
@@ -149,161 +153,172 @@ function Router() {
         <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <Card className="p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4">
                 <h1 className="text-xl font-bold">
                   My Budget
                 </h1>
-                <div className="flex items-center gap-4">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
-                        <FolderTree className="h-4 w-4 mr-2" />
-                        Expenses
+                {isMobile ? (
+                  <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                    <SheetTrigger asChild>
+                      <button className="p-2 hover:bg-accent rounded-md">
+                        <Menu className="h-5 w-5" />
                       </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => setShowAddExpenseDialog(true)}>
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        Add Expense
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setShowRemindersDialog(true)}>
-                        <Bell className="h-4 w-4 mr-2" />
-                        View Reminders
-                      </DropdownMenuItem>
-                      {bills.map((bill) => (
-                        <DropdownMenuItem key={bill.id} className="flex justify-between">
-                          <span className="truncate mr-4">{bill.name}</span>
-                          <div className="flex gap-2">
-                            <button onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleEditTransaction('bill', bill);
-                            }}>
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleDeleteTransaction('bill', bill);
-                            }}>
-                              <Trash className="h-4 w-4" />
-                            </button>
-                          </div>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-[80vw] sm:w-[350px]">
+                      <nav className="flex flex-col gap-4 mt-4">
+                        <Link href="/" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                          Dashboard
+                        </Link>
+                        <Link href="/categories" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                          <Tags className="h-4 w-4" />
+                          Categories
+                        </Link>
+                        <button 
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            setShowAddExpenseDialog(true);
+                          }}
+                          className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                          Add Expense
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            setShowAddIncomeDialog(true);
+                          }}
+                          className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                          Add Income
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            setShowRemindersDialog(true);
+                          }}
+                          className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                        >
+                          View Reminders
+                        </button>
+                        <div className="flex flex-col gap-2">
+                          <h3 className="font-medium px-2">Reports</h3>
+                          <Link href="/reports/monthly-to-date" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                            Monthly to Date
+                          </Link>
+                          <Link href="/reports/monthly" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                            Monthly Report
+                          </Link>
+                          <Link href="/reports/annual" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                            Annual Report
+                          </Link>
+                          <Link href="/reports/date-range" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                            Date Range
+                          </Link>
+                          <Link href="/reports/income" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                            Income Report
+                          </Link>
+                          <Link href="/reports/expenses" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                            Expense Report
+                          </Link>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            setShowExportDialog(true);
+                          }}
+                          className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                        >
+                          <Download className="h-4 w-4" />
+                          Export Data
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            setShowDatabaseSyncDialog(true);
+                          }}
+                          className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                        >
+                          <Database className="h-4 w-4" />
+                          Sync Database
+                        </button>
+                      </nav>
+                    </SheetContent>
+                  </Sheet>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
+                          <PlusCircle className="h-4 w-4 mr-2" />
+                          Add
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => setShowAddExpenseDialog(true)}>
+                          Add Expense
                         </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        Income
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        Add Income
-                      </DropdownMenuItem>
-                      {incomes.map((income) => (
-                        <DropdownMenuItem key={income.id} className="flex justify-between">
-                          <span className="truncate mr-4">{income.source}</span>
-                          <div className="flex gap-2">
-                            <button onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleEditTransaction('income', income);
-                            }}>
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleDeleteTransaction('income', income);
-                            }}>
-                              <Trash className="h-4 w-4" />
-                            </button>
-                          </div>
+                        <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
+                          Add Income
                         </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
 
-                  <Link href="/categories">
-                    <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
-                      <Tags className="h-4 w-4 mr-2" />
-                      Categories
-                    </button>
-                  </Link>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                    <Link href="/categories">
                       <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
-                        <BarChart4 className="h-4 w-4 mr-2" />
-                        Reports
+                        <Tags className="h-4 w-4" />
+                        Categories
                       </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem asChild>
-                        <Link href="/reports/monthly-to-date">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Monthly to Date
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/reports/monthly">
-                          <ChartBar className="h-4 w-4 mr-2" />
-                          Monthly Report
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/reports/annual">
-                          <CalendarRange className="h-4 w-4 mr-2" />
-                          Annual Report
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/reports/date-range">
-                          <FileBarChart className="h-4 w-4 mr-2" />
-                          Date Range
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/reports/income">
-                          <FileText className="h-4 w-4 mr-2" />
-                          Income Report
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/reports/expenses">
-                          <FileText className="h-4 w-4 mr-2" />
-                          Expense Report
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setShowExportDialog(true)}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Export Data
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </Link>
 
-                  <button 
-                    onClick={() => setShowDatabaseSyncDialog(true)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors"
-                  >
-                    <Database className="h-4 w-4 mr-2" />
-                    Sync Database
-                  </button>
-                </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
+                          <BarChart4 className="h-4 w-4" />
+                          Reports
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem asChild>
+                          <Link href="/reports/monthly-to-date">Monthly to Date</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/reports/monthly">Monthly Report</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/reports/annual">Annual Report</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/reports/date-range">Date Range</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/reports/income">Income Report</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/reports/expenses">Expense Report</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setShowExportDialog(true)}>
+                          Export Data
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
                 <ThemeToggle />
               </div>
             </div>
           </Card>
         </header>
-        <main className="flex-1 overflow-hidden mt-6">
-          <div className="h-full p-2">
+
+        <main className={cn(
+          "flex-1 overflow-hidden mt-6",
+          isMobile && "px-4"
+        )}>
+          <div className="h-full">
             <Switch>
               <Route path="/" component={Budget} />
               <Route path="/categories" component={CategoriesPage} />
