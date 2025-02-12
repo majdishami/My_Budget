@@ -313,19 +313,22 @@ export function Budget() {
           <div>
             <p className="text-sm text-muted-foreground">Month Total Income</p>
             <p className="text-lg font-semibold text-green-600">
-              {formatCurrency(13814)}
+              {formatCurrency(calculateTotalsUpToDay(daysInMonth).totalIncome)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Month Total Bills</p>
             <p className="text-lg font-semibold text-red-600">
-              {formatCurrency(11032)}
+              {formatCurrency(calculateTotalsUpToDay(daysInMonth).totalBills)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Month Net Balance</p>
             <p className="text-lg font-semibold text-blue-600">
-              {formatCurrency(2782)}
+              {formatCurrency(
+                calculateTotalsUpToDay(daysInMonth).totalIncome -
+                calculateTotalsUpToDay(daysInMonth).totalBills
+              )}
             </p>
           </div>
         </div>
