@@ -680,7 +680,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 <CategoryDisplay
                                   category={ct.category}
                                   color={ct.color}
-                                  icon={bills.find(b => b.category_name === ct.category)?.category?.icon}
+                                  icon={bills.find(b => b.category_name === ct.category)?.category?.icon ?? null}
                                 />
                               </TableCell>
                               <TableCell className="text-right font-medium">
@@ -733,7 +733,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableRow key={expense.description}>
                               <TableCell className="font-medium">{expense.description}</TableCell>
                               <TableCell>
-                                <CategoryDisplay category={expense.category} color={expense.color} icon={bills.find(b => b.category_name === expense.category)?.category?.icon} />
+                                <CategoryDisplay category={expense.category} color={expense.color} icon={bills.find(b => b.category_name === expense.category)?.category?.icon ?? null} />
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {formatCurrency(expense.totalAmount / expense.transactions.length)}
@@ -797,7 +797,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 <CategoryDisplay
                                   category={item.category}
                                   color={item.color || '#D3D3D3'}
-                                  icon={bills.find(b => b.category_name === item.category)?.category?.icon || null}
+                                  icon={bills.find(b => b.category_name === item.category)?.category?.icon ?? null}
                                 />
                               </TableCell>
                               <TableCell className="text-right">
@@ -895,7 +895,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                       {selectedValue === "all_categories" ? (
                                         <>
                                           <TableCell>
-                                            <CategoryDisplay category={transaction.category} color={transaction.color || '#D3D3D3'} icon={transaction.icon} />
+                                            <CategoryDisplay category={transaction.category} color={transaction.color || '#D3D3D3'} icon={transaction.icon ?? null} />
                                           </TableCell>
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
                                             {formatCurrency(transaction.amount)}
@@ -909,7 +909,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                           <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                                           <TableCell>{transaction.description}</TableCell>
                                           <TableCell>
-                                            <CategoryDisplay category={transaction.category} color={transaction.color} icon={transaction.icon} />
+                                            <CategoryDisplay category={transaction.category} color={transaction.color} icon={transaction.icon ?? null} />
                                           </TableCell>
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
                                             {formatCurrency(transaction.amount)}
