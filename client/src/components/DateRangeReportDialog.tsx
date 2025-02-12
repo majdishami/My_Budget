@@ -369,13 +369,13 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                     {dayjs(monthKey).format('MMMM YYYY')}
                   </CardTitle>
                   <div className="text-sm space-y-1">
-                    <div className="text-green-600">
+                    <div className="text-blue-600">
                       Monthly Income: {formatCurrency(monthlyTotal.income)}
                     </div>
                     <div className="text-red-600">
                       Monthly Expenses: {formatCurrency(monthlyTotal.expenses)}
                     </div>
-                    <div className={`font-medium ${monthlyTotal.income - monthlyTotal.expenses >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`font-medium ${monthlyTotal.income - monthlyTotal.expenses >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                       Monthly Net: {formatCurrency(monthlyTotal.income - monthlyTotal.expenses)}
                     </div>
                   </div>
