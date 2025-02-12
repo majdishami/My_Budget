@@ -202,7 +202,6 @@ export function Budget() {
     return { totalIncome, totalBills };
   }, [monthlyIncomeOccurrences, bills, selectedYear, selectedMonth]);
 
-
   // Handle month and year changes with validation
   const handleMonthChange = useCallback((month: number) => {
     setSelectedMonth(month);
