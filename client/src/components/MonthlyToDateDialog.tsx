@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getCurrentDate } from '@/lib/utils';
 import dayjs from 'dayjs';
 import {
   Table,
@@ -33,7 +33,7 @@ interface MonthlyToDateDialogProps {
 
 export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToDateDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const today = dayjs();
+  const today = getCurrentDate();
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');
 
@@ -42,79 +42,78 @@ export default function MonthlyToDateDialog({ isOpen, onOpenChange }: MonthlyToD
 
     const mockTransactions: Transaction[] = [];
 
-    // Add Majdi's salary occurrences for February
-    if (dayjs().month() === 1) { // February
-      // February 1st salary
-      if (today.date() >= 1) {
-        mockTransactions.push({
-          date: '2025-02-01',
-          description: "Majdi's Salary",
-          amount: 4739,
-          type: 'income'
-        });
-      }
+    // Add Majdi's salary occurrences for the current month
+    const currentMonth = today.month();
+    const currentYear = today.year();
 
-      // February 15th salary
-      if (today.date() >= 15) {
-        mockTransactions.push({
-          date: '2025-02-15',
-          description: "Majdi's Salary",
-          amount: 4739,
-          type: 'income'
-        });
-      }
-
-      // Calculate Ruba's bi-weekly salary
-      // First payment on February 7th
-      if (today.date() >= 7) {
-        mockTransactions.push({
-          date: '2025-02-07',
-          description: "Ruba's Salary",
-          amount: 2168,
-          type: 'income'
-        });
-      }
-
-      // Second payment on February 21st
-      if (today.date() >= 21) {
-        mockTransactions.push({
-          date: '2025-02-21',
-          description: "Ruba's Salary",
-          amount: 2168,
-          type: 'income'
-        });
-      }
-
-      // Add Monthly Expenses for February
-      const monthlyExpenses = [
-        { description: 'ATT Phone Bill', amount: 429, date: 1 },
-        { description: "Maid's 1st payment", amount: 120, date: 1 },
-        { description: 'Monthly Rent', amount: 3750, date: 1 },
-        { description: 'Sling TV', amount: 75, date: 3 },
-        { description: 'Cox Internet', amount: 81, date: 6 },
-        { description: 'Water Bill', amount: 80, date: 7 },
-        { description: 'NV Energy Electrical', amount: 250, date: 7 },
-        { description: 'TransAmerica Life Insurance', amount: 77, date: 9 },
-        { description: 'Credit Card minimum payments', amount: 225, date: 14 },
-        { description: 'Apple/Google/YouTube', amount: 130, date: 14 },
-        { description: 'Expenses & Groceries', amount: 3000, date: 16 },
-        { description: "Maid's 2nd Payment", amount: 120, date: 17 },
-        { description: 'SoFi Personal Loan', amount: 1915, date: 17 },
-        { description: 'Southwest Gas', amount: 75, date: 17 },
-        { description: 'Car Insurance for 3 cars', amount: 704, date: 28 }
-      ];
-
-      monthlyExpenses.forEach(expense => {
-        if (today.date() >= expense.date) {
-          mockTransactions.push({
-            date: `2025-02-${String(expense.date).padStart(2, '0')}`,
-            description: expense.description,
-            amount: expense.amount,
-            type: 'expense'
-          });
-        }
+    // First salary of the month
+    if (today.date() >= 1) {
+      mockTransactions.push({
+        date: today.date(1).format('YYYY-MM-DD'),
+        description: "Majdi's Salary",
+        amount: 4739,
+        type: 'income'
       });
     }
+
+    // 15th salary
+    if (today.date() >= 15) {
+      mockTransactions.push({
+        date: today.date(15).format('YYYY-MM-DD'),
+        description: "Majdi's Salary",
+        amount: 4739,
+        type: 'income'
+      });
+    }
+
+    // Add Ruba's bi-weekly salary
+    if (today.date() >= 7) {
+      mockTransactions.push({
+        date: today.date(7).format('YYYY-MM-DD'),
+        description: "Ruba's Salary",
+        amount: 2168,
+        type: 'income'
+      });
+    }
+
+    if (today.date() >= 21) {
+      mockTransactions.push({
+        date: today.date(21).format('YYYY-MM-DD'),
+        description: "Ruba's Salary",
+        amount: 2168,
+        type: 'income'
+      });
+    }
+
+    // Add Monthly Expenses
+    const monthlyExpenses = [
+      { description: 'ATT Phone Bill', amount: 429, date: 1 },
+      { description: "Maid's 1st payment", amount: 120, date: 1 },
+      { description: 'Monthly Rent', amount: 3750, date: 1 },
+      { description: 'Sling TV', amount: 75, date: 3 },
+      { description: 'Cox Internet', amount: 81, date: 6 },
+      { description: 'Water Bill', amount: 80, date: 7 },
+      { description: 'NV Energy Electrical', amount: 250, date: 7 },
+      { description: 'TransAmerica Life Insurance', amount: 77, date: 9 },
+      { description: 'Credit Card minimum payments', amount: 225, date: 14 },
+      { description: 'Apple/Google/YouTube', amount: 130, date: 14 },
+      { description: 'Expenses & Groceries', amount: 3000, date: 16 },
+      { description: "Maid's 2nd Payment", amount: 120, date: 17 },
+      { description: 'SoFi Personal Loan', amount: 1915, date: 17 },
+      { description: 'Southwest Gas', amount: 75, date: 17 },
+      { description: 'Car Insurance for 3 cars', amount: 704, date: 28 }
+    ];
+
+    monthlyExpenses.forEach(expense => {
+      if (today.date() >= expense.date) {
+        mockTransactions.push({
+          date: today.date(expense.date).format('YYYY-MM-DD'),
+          description: expense.description,
+          amount: expense.amount,
+          type: 'expense'
+        });
+      }
+    });
 
     setTransactions(mockTransactions);
   }, [isOpen, today]);
