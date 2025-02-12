@@ -92,6 +92,8 @@ app.use(syncRouter);
 (async () => {
   try {
     console.log('Starting server initialization...');
+
+    // Initialize routes
     const server = registerRoutes(app);
 
     // Enhanced error handler
@@ -112,6 +114,11 @@ app.use(syncRouter);
     const isReplit = process.env.REPL_ID !== undefined;
     const PORT = parseInt(process.env.PORT || (isReplit ? '5000' : '5001'));
     const HOST = '0.0.0.0';
+
+    // Add graceful startup logging
+    console.log('Environment:', app.get("env"));
+    console.log('Trust proxy:', app.get('trust proxy'));
+    console.log(`Starting server on ${HOST}:${PORT}`);
 
     server.listen(PORT, HOST, () => {
       console.log(`Server is running at http://${HOST}:${PORT}`);
