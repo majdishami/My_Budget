@@ -12,8 +12,16 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { useData } from "@/contexts/DataContext";
 import DailySummaryDialog from "@/components/DailySummaryDialog";
-import { Menu, Plus } from "lucide-react";
+import { Menu, Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -274,37 +282,103 @@ export function Budget() {
   return (
     <div className="w-full">
       <div className="flex items-center justify-between p-4 border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-2">
-          <select 
-            value={selectedMonth}
-            onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-            className="p-2 border rounded bg-background min-w-[120px]"
-            aria-label="Select month"
-          >
-            {months.map(month => (
-              <option key={month.value} value={month.value}>
-                {month.label}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <select 
+              value={selectedMonth}
+              onChange={(e) => handleMonthChange(parseInt(e.target.value))}
+              className="p-2 border rounded bg-background min-w-[120px]"
+              aria-label="Select month"
+            >
+              {months.map(month => (
+                <option key={month.value} value={month.value}>
+                  {month.label}
+                </option>
+              ))}
+            </select>
 
-          <select
-            value={selectedYear}
-            onChange={(e) => handleYearChange(parseInt(e.target.value))}
-            className="p-2 border rounded bg-background min-w-[100px]"
-            aria-label="Select year"
-          >
-            {years.map(year => (
-              <option key={year.value} value={year.value}>{year.label}</option>
-            ))}
-          </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => handleYearChange(parseInt(e.target.value))}
+              className="p-2 border rounded bg-background min-w-[100px]"
+              aria-label="Select year"
+            >
+              {years.map(year => (
+                <option key={year.value} value={year.value}>{year.label}</option>
+              ))}
+            </select>
 
-          {/* Only show day info for current month */}
-          {selectedMonth === today.month() && selectedYear === today.year() && (
-            <span className="text-sm text-muted-foreground ml-2">
-              {today.format('ddd')}, {today.format('D')}
-            </span>
-          )}
+            {/* Only show day info for current month */}
+            {selectedMonth === today.month() && selectedYear === today.year() && (
+              <span className="text-sm text-muted-foreground ml-2">
+                {today.format('ddd')}, {today.format('D')}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[200px]">
+                <DropdownMenuLabel>Income</DropdownMenuLabel>
+                {incomes.map(income => (
+                  <DropdownMenuItem
+                    key={income.id}
+                    onClick={() => handleEditTransaction('income', income)}
+                  >
+                    {income.source}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Expenses</DropdownMenuLabel>
+                {bills.map(bill => (
+                  <DropdownMenuItem
+                    key={bill.id}
+                    onClick={() => handleEditTransaction('bill', bill)}
+                  >
+                    {bill.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[200px]">
+                <DropdownMenuLabel>Income</DropdownMenuLabel>
+                {incomes.map(income => (
+                  <DropdownMenuItem
+                    key={income.id}
+                    onClick={() => handleDeleteTransaction('income', income)}
+                    className="text-red-600"
+                  >
+                    {income.source}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Expenses</DropdownMenuLabel>
+                {bills.map(bill => (
+                  <DropdownMenuItem
+                    key={bill.id}
+                    onClick={() => handleDeleteTransaction('bill', bill)}
+                    className="text-red-600"
+                  >
+                    {bill.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
