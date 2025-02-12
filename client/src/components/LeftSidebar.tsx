@@ -19,13 +19,6 @@ import {
   LayoutDashboard
 } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -140,7 +133,7 @@ export function LeftSidebar({
         "overflow-y-auto h-screen lg:h-auto"
       )}>
         <div className="p-4 space-y-6 pt-16 lg:pt-4">
-          {/* Dashboard Section */}
+          {/* Main Navigation Section */}
           <div className="space-y-2">
             <Link href="/">
               <Button
@@ -156,34 +149,93 @@ export function LeftSidebar({
                 Dashboard
               </Button>
             </Link>
-          </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[200px]">
+                <DropdownMenuLabel>Income</DropdownMenuLabel>
+                {monthlyIncomes.map((income) => (
+                  <DropdownMenuItem
+                    key={income.id}
+                    onClick={() => {
+                      onEditTransaction('income', income);
+                      setIsOpen(false);
+                    }}
+                  >
+                    {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Expenses</DropdownMenuLabel>
+                {bills.map((bill) => (
+                  <DropdownMenuItem
+                    key={bill.id}
+                    onClick={() => {
+                      onEditTransaction('bill', bill);
+                      setIsOpen(false);
+                    }}
+                  >
+                    {bill.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <Trash className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[200px]">
+                <DropdownMenuLabel>Income</DropdownMenuLabel>
+                {monthlyIncomes.map((income) => (
+                  <DropdownMenuItem
+                    key={income.id}
+                    onClick={() => {
+                      onDeleteTransaction('income', income);
+                      setIsOpen(false);
+                    }}
+                    className="text-red-600"
+                  >
+                    {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Expenses</DropdownMenuLabel>
+                {bills.map((bill) => (
+                  <DropdownMenuItem
+                    key={bill.id}
+                    onClick={() => {
+                      onDeleteTransaction('bill', bill);
+                      setIsOpen(false);
+                    }}
+                    className="text-red-600"
+                  >
+                    {bill.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
           {/* Expenses Section */}
           <div className="space-y-2">
             <h2 className="text-lg font-semibold px-2">Expenses</h2>
             <div className="space-y-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="w-full justify-start">
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Expense
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-[200px]">
-                  {bills.map((bill) => (
-                    <DropdownMenuItem
-                      key={bill.id}
-                      onClick={() => {
-                        onEditTransaction('bill', bill);
-                        setIsOpen(false);
-                      }}
-                    >
-                      {bill.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
               <Button
                 variant="ghost"
                 size="sm"
@@ -196,29 +248,6 @@ export function LeftSidebar({
                 <Plus className="mr-2 h-4 w-4" />
                 Add Expense
               </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="w-full justify-start">
-                    <Trash className="mr-2 h-4 w-4" />
-                    Delete Expense
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-[200px]">
-                  {bills.map((bill) => (
-                    <DropdownMenuItem
-                      key={bill.id}
-                      onClick={() => {
-                        onDeleteTransaction('bill', bill);
-                        setIsOpen(false);
-                      }}
-                      className="text-red-600"
-                    >
-                      {bill.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
 
               <Button
                 variant="ghost"
@@ -239,28 +268,6 @@ export function LeftSidebar({
           <div className="space-y-2">
             <h2 className="text-lg font-semibold px-2">Income</h2>
             <div className="space-y-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="w-full justify-start">
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Income
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-[200px]">
-                  {monthlyIncomes.map((income) => (
-                    <DropdownMenuItem
-                      key={income.id}
-                      onClick={() => {
-                        onEditTransaction('income', income);
-                        setIsOpen(false);
-                      }}
-                    >
-                      {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
               <Button
                 variant="ghost"
                 size="sm"
@@ -273,29 +280,6 @@ export function LeftSidebar({
                 <Plus className="mr-2 h-4 w-4" />
                 Add Income
               </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="w-full justify-start">
-                    <Trash className="mr-2 h-4 w-4" />
-                    Delete Income
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-[200px]">
-                  {monthlyIncomes.map((income) => (
-                    <DropdownMenuItem
-                      key={income.id}
-                      onClick={() => {
-                        onDeleteTransaction('income', income);
-                        setIsOpen(false);
-                      }}
-                      className="text-red-600"
-                    >
-                      {income.source} {income.source === "Ruba's Salary" ? `(${dayjs(income.date).format('MMM D')})` : ''}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
 
