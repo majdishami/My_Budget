@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { Income, Bill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { incomeSchema } from "@/lib/validation";
 import {
   Dialog,
   DialogContent,
@@ -55,9 +56,9 @@ export default function AnnualReportDialog({
     enabled: isOpen,
   });
 
-  // Define default incomes with exact types
-  const defaultIncomes = useMemo<Income[]>(() => ([
-    {
+  // Define default incomes with Zod validation
+  const defaultIncomes = useMemo(() => {
+    const majdiSalary = incomeSchema.parse({
       id: "majdi-salary",
       source: "Majdi's Salary",
       amount: 4739,
@@ -65,15 +66,18 @@ export default function AnnualReportDialog({
       occurrenceType: "twice-monthly",
       firstDate: 1,
       secondDate: 15
-    },
-    {
+    });
+
+    const rubaSalary = incomeSchema.parse({
       id: "ruba-salary",
       source: "Ruba's Salary",
       amount: 2168,
       date: today.format('YYYY-MM-DD'),
       occurrenceType: "biweekly"
-    }
-  ]), [today]);
+    });
+
+    return [majdiSalary, rubaSalary];
+  }, [today]);
 
   const [incomes] = useState<Income[]>(defaultIncomes);
 
