@@ -28,29 +28,29 @@ interface Category {
   color: string;
 }
 
-interface AddExpenseDialogProps {
+export interface AddExpenseDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (newBill: Bill) => void;
 }
 
-export function AddExpenseDialog({
+export default function AddExpenseDialog({
   isOpen,
   onOpenChange,
   onConfirm,
 }: AddExpenseDialogProps) {
-  // Form state
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [day, setDay] = useState('1');
-  const [categoryId, setCategoryId] = useState<string>('');
+  // State
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [day, setDay] = useState("1");
+  const [categoryId, setCategoryId] = useState<string>("");
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDays, setReminderDays] = useState(7);
   const [showReminderDialog, setShowReminderDialog] = useState(false);
 
   // Fetch categories
   const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
+    queryKey: ["/api/categories"],
   });
 
   // Validation state
@@ -69,10 +69,10 @@ export function AddExpenseDialog({
   }, [isOpen]);
 
   const resetForm = () => {
-    setName('');
-    setAmount('');
-    setDay('1');
-    setCategoryId('');
+    setName("");
+    setAmount("");
+    setDay("1");
+    setCategoryId("");
     setReminderEnabled(false);
     setReminderDays(7);
     setErrors({});
@@ -82,21 +82,21 @@ export function AddExpenseDialog({
     const newErrors: typeof errors = {};
 
     if (!name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = "Name is required";
     }
 
     const amountNum = parseFloat(amount);
     if (!amount || isNaN(amountNum) || amountNum <= 0) {
-      newErrors.amount = 'Please enter a valid amount greater than 0';
+      newErrors.amount = "Please enter a valid amount greater than 0";
     }
 
     const dayNum = parseInt(day);
     if (!day || isNaN(dayNum) || dayNum < 1 || dayNum > 31) {
-      newErrors.day = 'Please enter a valid day between 1 and 31';
+      newErrors.day = "Please enter a valid day between 1 and 31";
     }
 
     if (!categoryId) {
-      newErrors.category = 'Please select a category';
+      newErrors.category = "Please select a category";
     }
 
     setErrors(newErrors);
@@ -114,9 +114,9 @@ export function AddExpenseDialog({
       amount: parseFloat(amount),
       day: parseInt(day),
       category_id: parseInt(categoryId),
-      category_name: selectedCategory?.name || 'Uncategorized',
-      category_color: selectedCategory?.color || '#D3D3D3',
-      user_id: 1,
+      category_name: selectedCategory?.name || "Uncategorized",
+      category_color: selectedCategory?.color || "#D3D3D3",
+      user_id: 1, // This should come from auth context
       created_at: new Date().toISOString(),
       isOneTime: false,
       reminderEnabled,
@@ -128,182 +128,169 @@ export function AddExpenseDialog({
     resetForm();
   };
 
-  const handleReminderSave = (enabled: boolean, days: number) => {
-    if (days < 1 || days > 30) {
-      setErrors(prev => ({
-        ...prev,
-        reminderDays: 'Reminder days must be between 1 and 30'
-      }));
-      return;
-    }
-    setReminderEnabled(enabled);
-    setReminderDays(days);
-    setErrors(prev => ({ ...prev, reminderDays: undefined }));
-  };
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-hidden">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col space-y-4 overflow-y-auto py-4">
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <label htmlFor="expense-name" className="text-sm font-medium">Name</label>
-                <Input
-                  id="expense-name"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    setErrors(prev => ({ ...prev, name: undefined }));
-                  }}
-                  placeholder="Enter expense name"
-                  aria-invalid={!!errors.name}
-                  aria-describedby={errors.name ? "name-error" : undefined}
-                />
-                {errors.name && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription id="name-error">{errors.name}</AlertDescription>
-                  </Alert>
-                )}
-              </div>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="name" className="text-sm font-medium">
+                Name
+              </label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setErrors((prev) => ({ ...prev, name: undefined }));
+                }}
+                className="col-span-3"
+              />
+              {errors.name && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errors.name}</AlertDescription>
+                </Alert>
+              )}
+            </div>
 
-              <div className="grid gap-2">
-                <label htmlFor="expense-amount" className="text-sm font-medium">Amount</label>
-                <Input
-                  id="expense-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => {
-                    setAmount(e.target.value);
-                    setErrors(prev => ({ ...prev, amount: undefined }));
-                  }}
-                  placeholder="Enter amount"
-                  aria-invalid={!!errors.amount}
-                  aria-describedby={errors.amount ? "amount-error" : undefined}
-                />
-                {errors.amount && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription id="amount-error">{errors.amount}</AlertDescription>
-                  </Alert>
-                )}
-              </div>
+            <div className="grid gap-2">
+              <label htmlFor="amount" className="text-sm font-medium">
+                Amount
+              </label>
+              <Input
+                id="amount"
+                type="number"
+                value={amount}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setErrors((prev) => ({ ...prev, amount: undefined }));
+                }}
+                className="col-span-3"
+              />
+              {errors.amount && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errors.amount}</AlertDescription>
+                </Alert>
+              )}
+            </div>
 
-              <div className="grid gap-2">
-                <label htmlFor="expense-category" className="text-sm font-medium">Category</label>
-                <Select
-                  value={categoryId}
-                  onValueChange={(value) => {
-                    setCategoryId(value);
-                    setErrors(prev => ({ ...prev, category: undefined }));
-                  }}
-                >
-                  <SelectTrigger
-                    id="expense-category"
-                    aria-invalid={!!errors.category}
-                    aria-describedby={errors.category ? "category-error" : undefined}
-                  >
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    align="start"
-                    side="bottom"
-                    sideOffset={4}
-                    className="max-h-[200px] overflow-y-auto"
-                  >
-                    {categories.map((category) => (
-                      <SelectItem
-                        key={category.id}
-                        value={category.id.toString()}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: category.color }}
-                          />
-                          {category.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.category && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription id="category-error">{errors.category}</AlertDescription>
-                  </Alert>
-                )}
-              </div>
+            <div className="grid gap-2">
+              <label htmlFor="category" className="text-sm font-medium">
+                Category
+              </label>
+              <Select
+                value={categoryId}
+                onValueChange={(value) => {
+                  setCategoryId(value);
+                  setErrors((prev) => ({ ...prev, category: undefined }));
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem
+                      key={category.id}
+                      value={category.id.toString()}
+                    >
+                      <div className="flex items-center">
+                        <div
+                          className="w-2 h-2 rounded-full mr-2"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        {category.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.category && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errors.category}</AlertDescription>
+                </Alert>
+              )}
+            </div>
 
-              <div className="grid gap-2">
-                <label htmlFor="expense-day" className="text-sm font-medium">Day of Month</label>
-                <Input
-                  id="expense-day"
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={day}
-                  onChange={(e) => {
-                    setDay(e.target.value);
-                    setErrors(prev => ({ ...prev, day: undefined }));
-                  }}
-                  placeholder="Enter day"
-                  aria-invalid={!!errors.day}
-                  aria-describedby={errors.day ? "day-error" : undefined}
-                />
-                {errors.day && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription id="day-error">{errors.day}</AlertDescription>
-                  </Alert>
-                )}
-              </div>
+            <div className="grid gap-2">
+              <label htmlFor="day" className="text-sm font-medium">
+                Day of Month
+              </label>
+              <Input
+                id="day"
+                type="number"
+                value={day}
+                min={1}
+                max={31}
+                onChange={(e) => {
+                  setDay(e.target.value);
+                  setErrors((prev) => ({ ...prev, day: undefined }));
+                }}
+                className="col-span-3"
+              />
+              {errors.day && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errors.day}</AlertDescription>
+                </Alert>
+              )}
+            </div>
 
+            <div className="grid gap-2">
               <Button
+                type="button"
                 variant="outline"
                 onClick={() => setShowReminderDialog(true)}
-                className="w-full"
-                aria-label={reminderEnabled ? `Edit reminder: ${reminderDays} days before due date` : 'Set payment reminder'}
+                className="flex items-center gap-2"
               >
-                <Bell className="mr-2 h-4 w-4" />
+                <Bell className="h-4 w-4" />
                 {reminderEnabled
-                  ? `Payment reminder: ${reminderDays} days before due date`
-                  : 'Set payment reminder'}
+                  ? `Reminder set: ${reminderDays} days before`
+                  : "Set reminder"}
               </Button>
             </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleConfirm}>Add Expense</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <ReminderDialog
-        bill={{
-          id: generateId(),
-          name,
-          amount: parseFloat(amount || '0'),
-          day: parseInt(day || '1'),
-          category_id: parseInt(categoryId || '1'),
-          category_name: categories.find(cat => cat.id.toString() === categoryId)?.name || 'Uncategorized',
-          category_color: categories.find(cat => cat.id.toString() === categoryId)?.color || '#D3D3D3',
-          user_id: 1,
-          created_at: new Date().toISOString(),
-          isOneTime: false,
-          reminderEnabled,
-          reminderDays
-        }}
-        isOpen={showReminderDialog}
-        onOpenChange={setShowReminderDialog}
-        onSave={handleReminderSave}
-      />
+
+      {showReminderDialog && (
+        <ReminderDialog
+          isOpen={showReminderDialog}
+          onOpenChange={setShowReminderDialog}
+          bill={{
+            id: generateId(),
+            name,
+            amount: parseFloat(amount || "0"),
+            day: parseInt(day),
+            category_id: parseInt(categoryId || "0"),
+            category_name: categories.find(cat => cat.id.toString() === categoryId)?.name || "Uncategorized",
+            category_color: categories.find(cat => cat.id.toString() === categoryId)?.color || "#D3D3D3",
+            user_id: 1,
+            created_at: new Date().toISOString(),
+            isOneTime: false,
+            reminderEnabled,
+            reminderDays,
+          }}
+          onSave={(enabled: boolean, days: number) => {
+            setReminderEnabled(enabled);
+            setReminderDays(days);
+            setShowReminderDialog(false);
+          }}
+        />
+      )}
     </>
   );
 }
