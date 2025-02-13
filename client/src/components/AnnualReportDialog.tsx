@@ -3,7 +3,6 @@ import dayjs from "dayjs";
 import { Income, Bill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { incomeSchema } from "@/lib/validation";
 import {
   Dialog,
   DialogContent,
@@ -56,30 +55,27 @@ export default function AnnualReportDialog({
     enabled: isOpen,
   });
 
-  // Initialize incomes with validated schema
-  const [incomes] = useState<Income[]>(() => {
-    const rawIncomes = [
-      {
-        id: "majdi-salary",
-        source: "Majdi's Salary",
-        amount: 4739,
-        date: today.format('YYYY-MM-DD'),
-        occurrenceType: 'twice-monthly',
-        firstDate: 1,
-        secondDate: 15
-      },
-      {
-        id: "ruba-salary",
-        source: "Ruba's Salary",
-        amount: 2168,
-        date: today.format('YYYY-MM-DD'),
-        occurrenceType: 'biweekly'
-      }
-    ] as const;
+  // Define static incomes
+  const staticIncomes: Income[] = [
+    {
+      id: "majdi-salary",
+      source: "Majdi's Salary",
+      amount: 4739,
+      date: today.format('YYYY-MM-DD'),
+      occurrenceType: 'twice-monthly',
+      firstDate: 1,
+      secondDate: 15
+    },
+    {
+      id: "ruba-salary",
+      source: "Ruba's Salary",
+      amount: 2168,
+      date: today.format('YYYY-MM-DD'),
+      occurrenceType: 'biweekly'
+    }
+  ];
 
-    // Parse through Zod schema to ensure type safety
-    return rawIncomes.map(income => incomeSchema.parse(income));
-  });
+  const [incomes] = useState<Income[]>(staticIncomes);
 
   // Add keyboard event listener for Escape key
   useEffect(() => {
