@@ -3,13 +3,29 @@ const { Pool } = pkg;
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "./schema";
 import { config } from 'dotenv';
-import { join } from 'path';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { seedCategories } from './seed';
 
-// Load environment variables from .env file
-const envPath = join(process.cwd(), '.env');
+// Get current file path in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables from .env file using reliable path resolution
+const envPath = path.resolve(__dirname, '../.env');
 console.log('Loading environment variables from:', envPath);
-config({ path: envPath });
+try {
+  const result = config({ path: envPath });
+
+  if (result.error) {
+    throw new Error(`Failed to load .env file: ${result.error.message}`);
+  }
+
+  console.log('.env file loaded successfully');
+} catch (error) {
+  console.error('Error loading environment variables:', error);
+  process.exit(1);
+}
 
 if (!process.env.DATABASE_URL) {
   console.error("ERROR: DATABASE_URL is not defined in .env file.");
