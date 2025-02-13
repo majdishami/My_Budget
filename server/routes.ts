@@ -305,10 +305,10 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.get('/api/test/error/network', (_req, res) => {
-    // Simulate a network timeout
+    // Simulate a network timeout with a shorter delay
     setTimeout(() => {
       res.status(504).json({ message: 'Network timeout test' });
-    }, 5000);
+    }, 2000); // Reduced from 5000ms to 2000ms
   });
 
   const httpServer = createServer(app);
