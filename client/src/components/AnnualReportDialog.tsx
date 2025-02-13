@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import dayjs from "dayjs";
-import { Bill, Income } from "@/types";
-import { formatCurrency, getCurrentDate } from "@/lib/utils";
+import { Income, Bill } from "@/types";
+import { formatCurrency } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -30,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { X, Calendar } from "lucide-react";
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import crypto from 'crypto';
 
 // Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
@@ -45,7 +45,7 @@ export default function AnnualReportDialog({
   onOpenChange,
   selectedYear,
 }: AnnualReportDialogProps) {
-  const today = useMemo(() => getCurrentDate(), []);
+  const today = useMemo(() => dayjs(), []);
   const currentYear = today.year();
   const defaultYear = selectedYear || currentYear;
   const [year, setSelectedYear] = useState<number>(defaultYear);
@@ -56,21 +56,23 @@ export default function AnnualReportDialog({
     enabled: isOpen,
   });
 
-  // Define default incomes with proper date field
+  // Define default incomes with proper date field and exact occurrence types
   const defaultIncomes: Income[] = useMemo(() => ([
     { 
-      id: '1', 
+      id: crypto.randomUUID(),
       source: "Majdi's Salary", 
       amount: 4739,
       date: today.format('YYYY-MM-DD'),
-      occurrenceType: 'twice-monthly' as const,
+      occurrenceType: 'twice-monthly',
+      firstDate: 1,
+      secondDate: 15
     },
     { 
-      id: '2', 
+      id: crypto.randomUUID(),
       source: "Ruba's Salary", 
       amount: 2168,
       date: today.format('YYYY-MM-DD'),
-      occurrenceType: 'biweekly' as const,
+      occurrenceType: 'biweekly'
     }
   ]), [today]);
 
@@ -104,14 +106,15 @@ export default function AnnualReportDialog({
       monthlyIncomes[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
     }
 
-    // Process Majdi's salary (twice monthly)
+    // Process incomes
     incomes.forEach(income => {
       if (income.source === "Majdi's Salary") {
+        // Process twice-monthly salary
         for (let month = 0; month < 12; month++) {
           const monthDate = dayjs().year(year).month(month);
           const monthKey = monthDate.format('MMMM');
-          const firstPayday = monthDate.date(1);
-          const fifteenthPayday = monthDate.date(15);
+          const firstPayday = monthDate.date(income.firstDate || 1);
+          const secondPayday = monthDate.date(income.secondDate || 15);
 
           if (firstPayday.isSameOrBefore(today)) {
             monthlyIncomes[monthKey].occurred += income.amount;
@@ -119,7 +122,7 @@ export default function AnnualReportDialog({
             monthlyIncomes[monthKey].pending += income.amount;
           }
 
-          if (fifteenthPayday.isSameOrBefore(today)) {
+          if (secondPayday.isSameOrBefore(today)) {
             monthlyIncomes[monthKey].occurred += income.amount;
           } else {
             monthlyIncomes[monthKey].pending += income.amount;
