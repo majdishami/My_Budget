@@ -1,3 +1,43 @@
+import { useEffect, useState, useMemo } from "react";
+import dayjs from "dayjs";
+import { Income, Bill } from "@/types";
+import { formatCurrency } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { X, Calendar } from "lucide-react";
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+
+dayjs.extend(isSameOrBefore);
+
+interface AnnualReportDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedYear?: number;
+}
+
 const defaultIncomes: Income[] = [
   {
     id: "majdi-salary",
@@ -15,7 +55,7 @@ const defaultIncomes: Income[] = [
     date: "2025-02-13",
     occurrenceType: "biweekly"
   }
-];
+] as const;
 
 export default function AnnualReportDialog({
   isOpen,
