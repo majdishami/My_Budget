@@ -14,11 +14,23 @@ try {
   const App = lazy(() => import("./App"));
 
   root.render(
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+    <Suspense fallback={
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        backgroundColor: '#fff'
+      }}>
+        Loading...
+      </div>
+    }>
       <App />
     </Suspense>
   );
 } catch (error) {
   console.error("Failed to initialize app:", error);
-  rootElement.innerHTML = "Failed to load application. Please try refreshing the page.";
+  if (rootElement) {
+    rootElement.innerHTML = "Failed to load application. Please try refreshing the page.";
+  }
 }
