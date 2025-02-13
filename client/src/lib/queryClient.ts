@@ -77,10 +77,6 @@ export const queryClient = new QueryClient({
         // Retry up to 3 times for other errors
         return failureCount < 3;
       },
-      useErrorBoundary: (error) => {
-        // Only use error boundary for server errors
-        return error instanceof Error && error.message.startsWith('500:');
-      },
       onError: (error: Error) => {
         toast({
           title: "Error",

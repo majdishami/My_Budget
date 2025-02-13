@@ -23,13 +23,40 @@ export function ErrorTest() {
     throwOnError: true
   });
 
+  const handleTest404 = async () => {
+    try {
+      await test404();
+    } catch (error) {
+      // Error will be handled by queryClient's onError
+      console.error('404 Error Test:', error);
+    }
+  };
+
+  const handleTest500 = async () => {
+    try {
+      await test500();
+    } catch (error) {
+      // Error will be handled by queryClient's onError
+      console.error('500 Error Test:', error);
+    }
+  };
+
+  const handleTestNetwork = async () => {
+    try {
+      await testNetwork();
+    } catch (error) {
+      // Error will be handled by queryClient's onError
+      console.error('Network Error Test:', error);
+    }
+  };
+
   return (
     <div className="space-y-4 p-4">
       <h2 className="text-lg font-semibold">Error Handling Test</h2>
       <div className="space-x-4">
-        <Button onClick={() => test404()}>Test 404 Error</Button>
-        <Button onClick={() => test500()}>Test 500 Error</Button>
-        <Button onClick={() => testNetwork()}>Test Network Error</Button>
+        <Button onClick={handleTest404}>Test 404 Error</Button>
+        <Button onClick={handleTest500}>Test 500 Error</Button>
+        <Button onClick={handleTestNetwork}>Test Network Error</Button>
       </div>
     </div>
   );
