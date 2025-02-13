@@ -77,11 +77,14 @@ export const queryClient = new QueryClient({
         // Retry up to 3 times for other errors
         return failureCount < 3;
       },
-      // Proper TypeScript type for error
-      onError: (error: unknown) => {
+      useErrorBoundary: (error) => {
+        // Only use error boundary for server errors
+        return error instanceof Error && error.message.startsWith('500:');
+      },
+      onError: (error: Error) => {
         toast({
           title: "Error",
-          description: formatErrorMessage(error as Error),
+          description: formatErrorMessage(error),
           variant: "destructive",
         });
       },
@@ -95,11 +98,10 @@ export const queryClient = new QueryClient({
         // Retry up to 2 times for other errors
         return failureCount < 2;
       },
-      // Proper TypeScript type for error
-      onError: (error: unknown) => {
+      onError: (error: Error) => {
         toast({
           title: "Error",
-          description: formatErrorMessage(error as Error),
+          description: formatErrorMessage(error),
           variant: "destructive",
         });
       },

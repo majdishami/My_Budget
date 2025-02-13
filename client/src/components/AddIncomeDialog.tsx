@@ -43,7 +43,7 @@ interface AddIncomeDialogProps {
   onConfirm: (newIncome: Income) => void;
 }
 
-export default function AddIncomeDialog({
+export function AddIncomeDialog({
   isOpen,
   onOpenChange,
   onConfirm,

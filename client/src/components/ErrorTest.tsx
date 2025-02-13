@@ -1,1 +1,0 @@
-// File client/src/components/ErrorTest.tsx removed as per instructions.
