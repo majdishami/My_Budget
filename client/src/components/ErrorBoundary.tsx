@@ -1,10 +1,11 @@
-import React, { Component, ErrorInfo, ReactNode, useEffect } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, RefreshCcw, Download, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+//import { useLocation } from 'wouter'; // Removed as window.location.href is used
 
 interface Props {
   children: ReactNode;
@@ -48,12 +49,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidMount() {
-    // Add keyboard event listener for Escape key
     document.addEventListener('keydown', this.handleKeyDown);
   }
 
   public componentWillUnmount() {
-    // Remove keyboard event listener
     document.removeEventListener('keydown', this.handleKeyDown);
   }
 
@@ -64,15 +63,21 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   private handleReset = () => {
+    // Reset the error boundary state
+    this.setState({
+      hasError: false,
+      error: undefined,
+      errorInfo: undefined,
+      errorCount: 0
+    });
+
+    // Call the onReset prop if provided
     if (this.props.onReset) {
       this.props.onReset();
     }
-    this.setState({ 
-      hasError: false, 
-      error: undefined, 
-      errorInfo: undefined,
-      errorCount: 0 
-    });
+
+    // Navigate back to home
+    window.location.href = '/';
   };
 
   private handleDownloadLogs = () => {

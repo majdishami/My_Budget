@@ -34,6 +34,13 @@ import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 // Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
 
+// Helper function to validate dates
+const isValidDate = (date: any): boolean => {
+  if (!date) return false;
+  const d = dayjs(date);
+  return d.isValid() && d.year() >= 1900 && d.year() <= 2100;
+};
+
 // Dynamic icon component
 const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
   if (!iconName) return null;
@@ -85,19 +92,22 @@ export default function AnnualReportDialog({
   selectedYear = getCurrentDate().year(),
 }: AnnualReportDialogProps) {
   const [year, setSelectedYear] = useState(selectedYear);
-  const currentYear = getCurrentDate().year();
-  const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
   const today = useMemo(() => getCurrentDate(), []);
+  const currentYear = today.year();
+  const yearOptions = Array.from(
+    { length: 10 }, 
+    (_, i) => currentYear - 5 + i
+  ).filter(year => year >= 1900 && year <= 2100);
 
   const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
   });
 
-  const defaultIncomes = [
+  const defaultIncomes = useMemo(() => ([
     { id: '1', source: "Majdi's Salary", amount: 9478 },
     { id: '2', source: "Ruba's Salary", amount: 2168 }
-  ];
+  ]), []);
 
   const [incomes] = useState(defaultIncomes);
 
@@ -122,9 +132,11 @@ export default function AnnualReportDialog({
       monthlyBreakdown: {},
     };
 
-    // Initialize monthly breakdown
+    // Initialize monthly breakdown with validation
     for (let month = 1; month <= 12; month++) {
       const monthDate = dayjs().year(year).month(month - 1).startOf('month');
+      if (!isValidDate(monthDate)) continue;
+
       const monthKey = monthDate.format('MMMM');
       summary.monthlyBreakdown[monthKey] = {
         income: { occurred: 0, pending: 0 },
@@ -139,11 +151,13 @@ export default function AnnualReportDialog({
 
     for (let month = 1; month <= 12; month++) {
       const monthDate = dayjs().year(year).month(month - 1);
+      if (!isValidDate(monthDate)) continue;
+
       const firstPayday = monthDate.date(1);
       const fifteenthPayday = monthDate.date(15);
       const monthKey = monthDate.format('MMMM');
 
-      if (firstPayday.isSameOrBefore(today)) {
+      if (firstPayday.isValid() && firstPayday.isSameOrBefore(today)) {
         summary.majdiTotal.occurred += majdiPerPaycheck;
         summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
       } else {
@@ -151,7 +165,7 @@ export default function AnnualReportDialog({
         summary.monthlyBreakdown[monthKey].income.pending += majdiPerPaycheck;
       }
 
-      if (fifteenthPayday.isSameOrBefore(today)) {
+      if (fifteenthPayday.isValid() && fifteenthPayday.isSameOrBefore(today)) {
         summary.majdiTotal.occurred += majdiPerPaycheck;
         summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
       } else {
@@ -163,9 +177,12 @@ export default function AnnualReportDialog({
     // Process Ruba's salary (bi-weekly)
     const rubaAmount = defaultIncomes.find(i => i.source === "Ruba's Salary")?.amount ?? 0;
     let rubaDate = dayjs('2025-01-10');
+    if (!isValidDate(rubaDate)) {
+      rubaDate = today.startOf('year');
+    }
     const endDate = dayjs().year(year).month(11).date(31);
 
-    while (rubaDate.isSameOrBefore(endDate)) {
+    while (rubaDate.isValid() && rubaDate.isSameOrBefore(endDate)) {
       if (rubaDate.year() === year) {
         const monthKey = rubaDate.format('MMMM');
 
@@ -184,7 +201,7 @@ export default function AnnualReportDialog({
     summary.totalIncome.occurred = summary.majdiTotal.occurred + summary.rubaTotal.occurred;
     summary.totalIncome.pending = summary.majdiTotal.pending + summary.rubaTotal.pending;
 
-    // Process bills
+    // Process bills with validation
     bills.forEach(bill => {
       const billAmount = Number(bill.amount) || 0;
       const categoryName = bill.category_name || 'Uncategorized';
@@ -195,6 +212,8 @@ export default function AnnualReportDialog({
 
       for (let month = 1; month <= 12; month++) {
         const billDate = dayjs().year(year).month(month - 1).date(bill.day);
+        if (!isValidDate(billDate)) continue;
+
         const monthKey = billDate.format('MMMM');
 
         if (billDate.isSameOrBefore(today)) {
@@ -222,7 +241,7 @@ export default function AnnualReportDialog({
     });
 
     return summary;
-  }, [incomes, bills, year, today]);
+  }, [incomes, bills, year, today, defaultIncomes]);
 
   // Calculate total net values
   const totalNetOccurred = annualSummary.totalIncome.occurred - annualSummary.totalExpenses.occurred;
