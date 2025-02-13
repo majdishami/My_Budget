@@ -39,25 +39,6 @@ interface AnnualReportDialogProps {
   selectedYear?: number;
 }
 
-const DEFAULT_INCOMES: Array<Income> = [
-  {
-    id: "majdi-salary",
-    source: "Majdi's Salary",
-    amount: 4739,
-    date: dayjs().format('YYYY-MM-DD'),
-    occurrenceType: 'twice-monthly',
-    firstDate: 1,
-    secondDate: 15
-  },
-  {
-    id: "ruba-salary",
-    source: "Ruba's Salary",
-    amount: 2168,
-    date: dayjs().format('YYYY-MM-DD'),
-    occurrenceType: 'biweekly'
-  }
-];
-
 export default function AnnualReportDialog({
   isOpen,
   onOpenChange,
@@ -74,15 +55,32 @@ export default function AnnualReportDialog({
     enabled: isOpen,
   });
 
-  const [incomes] = useState<Income[]>(DEFAULT_INCOMES);
+  const initialIncomes: Income[] = useMemo(() => [{
+    id: "majdi-salary",
+    source: "Majdi's Salary",
+    amount: 4739,
+    date: today.format('YYYY-MM-DD'),
+    occurrenceType: 'twice-monthly',
+    firstDate: 1,
+    secondDate: 15
+  }, {
+    id: "ruba-salary",
+    source: "Ruba's Salary",
+    amount: 2168,
+    date: today.format('YYYY-MM-DD'),
+    occurrenceType: 'biweekly'
+  }], [today]);
+
+  const [incomes] = useState<Income[]>(initialIncomes);
 
   // Add keyboard event listener for Escape key
+  const handleEscape = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && isOpen) {
+      onOpenChange(false);
+    }
+  };
+
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onOpenChange(false);
-      }
-    };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onOpenChange]);
@@ -106,7 +104,7 @@ export default function AnnualReportDialog({
 
     // Process incomes
     incomes.forEach(income => {
-      if (income.source === "Majdi's Salary" && income.occurrenceType === "twice-monthly") {
+      if (income.source === "Majdi's Salary" && income.occurrenceType === 'twice-monthly') {
         // Process twice-monthly salary
         for (let month = 0; month < 12; month++) {
           const monthDate = dayjs().year(year).month(month);
@@ -128,7 +126,7 @@ export default function AnnualReportDialog({
             monthlyIncomes[monthKey].pending += income.amount;
           }
         }
-      } else if (income.source === "Ruba's Salary" && income.occurrenceType === "biweekly") {
+      } else if (income.source === "Ruba's Salary" && income.occurrenceType === 'biweekly') {
         // Process bi-weekly salary
         let payDate = dayjs('2025-01-10'); // Start date
         const endDate = dayjs().year(year).endOf('year');
