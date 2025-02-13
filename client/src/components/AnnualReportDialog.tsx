@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/select";
 import { X, Calendar } from "lucide-react";
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
-import crypto from 'crypto';
 
 // Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
@@ -56,23 +55,23 @@ export default function AnnualReportDialog({
     enabled: isOpen,
   });
 
-  // Define default incomes with proper date field and exact occurrence types
-  const defaultIncomes: Income[] = useMemo(() => ([
-    { 
-      id: crypto.randomUUID(),
-      source: "Majdi's Salary", 
+  // Define default incomes with exact types
+  const defaultIncomes = useMemo<Income[]>(() => ([
+    {
+      id: "majdi-salary",
+      source: "Majdi's Salary",
       amount: 4739,
       date: today.format('YYYY-MM-DD'),
-      occurrenceType: 'twice-monthly',
+      occurrenceType: "twice-monthly",
       firstDate: 1,
       secondDate: 15
     },
-    { 
-      id: crypto.randomUUID(),
-      source: "Ruba's Salary", 
+    {
+      id: "ruba-salary",
+      source: "Ruba's Salary",
       amount: 2168,
       date: today.format('YYYY-MM-DD'),
-      occurrenceType: 'biweekly'
+      occurrenceType: "biweekly"
     }
   ]), [today]);
 
@@ -108,27 +107,29 @@ export default function AnnualReportDialog({
 
     // Process incomes
     incomes.forEach(income => {
-      if (income.source === "Majdi's Salary") {
+      if (income.source === "Majdi's Salary" && income.occurrenceType === "twice-monthly") {
         // Process twice-monthly salary
         for (let month = 0; month < 12; month++) {
           const monthDate = dayjs().year(year).month(month);
           const monthKey = monthDate.format('MMMM');
-          const firstPayday = monthDate.date(income.firstDate || 1);
-          const secondPayday = monthDate.date(income.secondDate || 15);
 
+          // First payment
+          const firstPayday = monthDate.date(income.firstDate || 1);
           if (firstPayday.isSameOrBefore(today)) {
             monthlyIncomes[monthKey].occurred += income.amount;
           } else {
             monthlyIncomes[monthKey].pending += income.amount;
           }
 
+          // Second payment
+          const secondPayday = monthDate.date(income.secondDate || 15);
           if (secondPayday.isSameOrBefore(today)) {
             monthlyIncomes[monthKey].occurred += income.amount;
           } else {
             monthlyIncomes[monthKey].pending += income.amount;
           }
         }
-      } else if (income.source === "Ruba's Salary") {
+      } else if (income.source === "Ruba's Salary" && income.occurrenceType === "biweekly") {
         // Process bi-weekly salary
         let payDate = dayjs('2025-01-10'); // Start date
         const endDate = dayjs().year(year).endOf('year');
