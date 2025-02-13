@@ -55,7 +55,11 @@ app.use(fileUpload({
   preserveExtension: true,
   abortOnLimit: true,
   uploadTimeout: 30000, // 30 seconds
-  createParentPath: true
+  createParentPath: true,
+  // Additional security settings
+  defParamCharset: 'utf8',
+  responseOnLimit: 'File size limit has been reached',
+  parseNested: false // Prevent deeply nested form data
 }));
 
 // Enable trust proxy for secure cookies when behind Replit's proxy
