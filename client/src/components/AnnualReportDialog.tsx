@@ -38,19 +38,30 @@ dayjs.extend(isSameOrBefore);
 const isValidDate = (date: any): boolean => {
   if (!date) return false;
   const d = dayjs(date);
-  return d.isValid() && d.year() >= 1900 && d.year() <= 2100;
+  return d.isValid() && d.isSame(d); // Additional check for valid date
 };
 
-// Dynamic icon component
+// Safe date parsing helper
+const safeParseDate = (date: any, fallback: dayjs.Dayjs): dayjs.Dayjs => {
+  const parsed = dayjs(date);
+  return isValidDate(parsed) ? parsed : fallback;
+};
+
+// Dynamic icon component with error handling
 const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
-  if (!iconName) return null;
-  const formatIconName = (name: string) => {
-    return name.split('-').map(part =>
-      part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-    ).join('');
-  };
-  const IconComponent = (LucideIcons as any)[formatIconName(iconName)];
-  return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
+  try {
+    if (!iconName) return null;
+    const formatIconName = (name: string) => {
+      return name.split('-').map(part =>
+        part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+      ).join('');
+    };
+    const IconComponent = (LucideIcons as any)[formatIconName(iconName)];
+    return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
+  } catch (error) {
+    console.error('Error rendering icon:', error);
+    return null;
+  }
 };
 
 interface AnnualSummary {
@@ -89,24 +100,30 @@ interface AnnualReportDialogProps {
 export default function AnnualReportDialog({
   isOpen,
   onOpenChange,
-  selectedYear = getCurrentDate().year(),
+  selectedYear,
 }: AnnualReportDialogProps) {
-  const [year, setSelectedYear] = useState(selectedYear);
   const today = useMemo(() => getCurrentDate(), []);
-  const currentYear = today.year();
-  const yearOptions = Array.from(
-    { length: 10 }, 
-    (_, i) => currentYear - 5 + i
-  ).filter(year => year >= 1900 && year <= 2100);
+  const defaultYear = selectedYear || today.year();
+  const [year, setSelectedYear] = useState(defaultYear);
+
+  // Generate valid year options
+  const yearOptions = useMemo(() => {
+    const currentYear = today.year();
+    return Array.from(
+      { length: 11 },
+      (_, i) => currentYear - 5 + i
+    ).filter(y => y >= 1900 && y <= 2100);
+  }, [today]);
 
   const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
   });
 
+  // Define default incomes with proper validation
   const defaultIncomes = useMemo(() => ([
-    { id: '1', source: "Majdi's Salary", amount: 9478 },
-    { id: '2', source: "Ruba's Salary", amount: 2168 }
+    { id: '1', source: "Majdi's Salary", amount: 9478, type: 'twice-monthly' },
+    { id: '2', source: "Ruba's Salary", amount: 2168, type: 'biweekly' }
   ]), []);
 
   const [incomes] = useState(defaultIncomes);
@@ -122,128 +139,158 @@ export default function AnnualReportDialog({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onOpenChange]);
 
-  const annualSummary = useMemo((): AnnualSummary => {
-    const summary: AnnualSummary = {
-      majdiTotal: { occurred: 0, pending: 0 },
-      rubaTotal: { occurred: 0, pending: 0 },
-      totalIncome: { occurred: 0, pending: 0 },
-      expensesByCategory: {},
-      totalExpenses: { occurred: 0, pending: 0 },
-      monthlyBreakdown: {},
-    };
-
-    // Initialize monthly breakdown with validation
-    for (let month = 1; month <= 12; month++) {
-      const monthDate = dayjs().year(year).month(month - 1).startOf('month');
-      if (!isValidDate(monthDate)) continue;
-
-      const monthKey = monthDate.format('MMMM');
-      summary.monthlyBreakdown[monthKey] = {
-        income: { occurred: 0, pending: 0 },
-        expenses: { occurred: 0, pending: 0 },
-        net: { occurred: 0, pending: 0 }
+  // Calculate annual summary with robust error handling
+  const annualSummary = useMemo(() => {
+    try {
+      const summary = {
+        majdiTotal: { occurred: 0, pending: 0 },
+        rubaTotal: { occurred: 0, pending: 0 },
+        totalIncome: { occurred: 0, pending: 0 },
+        expensesByCategory: {} as Record<string, { occurred: number; pending: number }>,
+        totalExpenses: { occurred: 0, pending: 0 },
+        monthlyBreakdown: {} as Record<string, {
+          income: { occurred: number; pending: number };
+          expenses: { occurred: number; pending: number };
+          net: { occurred: number; pending: number };
+        }>,
       };
-    }
 
-    // Process Majdi's salary (bi-monthly)
-    const majdiAmount = defaultIncomes.find(i => i.source === "Majdi's Salary")?.amount ?? 0;
-    const majdiPerPaycheck = majdiAmount / 2;
-
-    for (let month = 1; month <= 12; month++) {
-      const monthDate = dayjs().year(year).month(month - 1);
-      if (!isValidDate(monthDate)) continue;
-
-      const firstPayday = monthDate.date(1);
-      const fifteenthPayday = monthDate.date(15);
-      const monthKey = monthDate.format('MMMM');
-
-      if (firstPayday.isValid() && firstPayday.isSameOrBefore(today)) {
-        summary.majdiTotal.occurred += majdiPerPaycheck;
-        summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
-      } else {
-        summary.majdiTotal.pending += majdiPerPaycheck;
-        summary.monthlyBreakdown[monthKey].income.pending += majdiPerPaycheck;
-      }
-
-      if (fifteenthPayday.isValid() && fifteenthPayday.isSameOrBefore(today)) {
-        summary.majdiTotal.occurred += majdiPerPaycheck;
-        summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
-      } else {
-        summary.majdiTotal.pending += majdiPerPaycheck;
-        summary.monthlyBreakdown[monthKey].income.pending += majdiPerPaycheck;
-      }
-    }
-
-    // Process Ruba's salary (bi-weekly)
-    const rubaAmount = defaultIncomes.find(i => i.source === "Ruba's Salary")?.amount ?? 0;
-    let rubaDate = dayjs('2025-01-10');
-    if (!isValidDate(rubaDate)) {
-      rubaDate = today.startOf('year');
-    }
-    const endDate = dayjs().year(year).month(11).date(31);
-
-    while (rubaDate.isValid() && rubaDate.isSameOrBefore(endDate)) {
-      if (rubaDate.year() === year) {
-        const monthKey = rubaDate.format('MMMM');
-
-        if (rubaDate.isSameOrBefore(today)) {
-          summary.rubaTotal.occurred += rubaAmount;
-          summary.monthlyBreakdown[monthKey].income.occurred += rubaAmount;
-        } else {
-          summary.rubaTotal.pending += rubaAmount;
-          summary.monthlyBreakdown[monthKey].income.pending += rubaAmount;
-        }
-      }
-      rubaDate = rubaDate.add(14, 'days');
-    }
-
-    // Calculate total income
-    summary.totalIncome.occurred = summary.majdiTotal.occurred + summary.rubaTotal.occurred;
-    summary.totalIncome.pending = summary.majdiTotal.pending + summary.rubaTotal.pending;
-
-    // Process bills with validation
-    bills.forEach(bill => {
-      const billAmount = Number(bill.amount) || 0;
-      const categoryName = bill.category_name || 'Uncategorized';
-
-      if (!summary.expensesByCategory[categoryName]) {
-        summary.expensesByCategory[categoryName] = { occurred: 0, pending: 0 };
-      }
-
+      // Initialize monthly breakdown
       for (let month = 1; month <= 12; month++) {
-        const billDate = dayjs().year(year).month(month - 1).date(bill.day);
-        if (!isValidDate(billDate)) continue;
+        const monthDate = safeParseDate(
+          dayjs().year(year).month(month - 1).startOf('month'),
+          today.startOf('month')
+        );
+        const monthKey = monthDate.format('MMMM');
 
-        const monthKey = billDate.format('MMMM');
-
-        if (billDate.isSameOrBefore(today)) {
-          summary.expensesByCategory[categoryName].occurred += billAmount;
-          summary.monthlyBreakdown[monthKey].expenses.occurred += billAmount;
-        } else {
-          summary.expensesByCategory[categoryName].pending += billAmount;
-          summary.monthlyBreakdown[monthKey].expenses.pending += billAmount;
-        }
+        summary.monthlyBreakdown[monthKey] = {
+          income: { occurred: 0, pending: 0 },
+          expenses: { occurred: 0, pending: 0 },
+          net: { occurred: 0, pending: 0 }
+        };
       }
-    });
 
-    // Calculate total expenses
-    Object.values(summary.expensesByCategory).forEach(({ occurred, pending }) => {
-      summary.totalExpenses.occurred += occurred;
-      summary.totalExpenses.pending += pending;
-    });
+      // Process incomes safely
+      incomes.forEach(income => {
+        const amount = Number(income.amount) || 0;
+        if (income.source === "Majdi's Salary") {
+          // Process twice-monthly salary
+          for (let month = 1; month <= 12; month++) {
+            const monthDate = safeParseDate(
+              dayjs().year(year).month(month - 1),
+              today
+            );
+            const monthKey = monthDate.format('MMMM');
+            const firstPayday = monthDate.date(1);
+            const fifteenthPayday = monthDate.date(15);
 
-    // Calculate monthly net amounts
-    Object.entries(summary.monthlyBreakdown).forEach(([month, data]) => {
-      data.net = {
-        occurred: data.income.occurred - data.expenses.occurred,
-        pending: data.income.pending - data.expenses.pending
-      };
-    });
+            [firstPayday, fifteenthPayday].forEach(payDate => {
+              if (isValidDate(payDate) && payDate.isSameOrBefore(today)) {
+                summary.majdiTotal.occurred += amount / 2;
+                summary.monthlyBreakdown[monthKey].income.occurred += amount / 2;
+              } else {
+                summary.majdiTotal.pending += amount / 2;
+                summary.monthlyBreakdown[monthKey].income.pending += amount / 2;
+              }
+            });
+          }
+        } else if (income.source === "Ruba's Salary") {
+          // Process bi-weekly salary
+          let payDate = safeParseDate('2025-01-10', today.startOf('year'));
+          const endDate = safeParseDate(
+            dayjs().year(year).endOf('year'),
+            today.endOf('year')
+          );
 
-    return summary;
+          while (payDate.isSameOrBefore(endDate)) {
+            if (payDate.year() === year) {
+              const monthKey = payDate.format('MMMM');
+              if (payDate.isSameOrBefore(today)) {
+                summary.rubaTotal.occurred += amount;
+                summary.monthlyBreakdown[monthKey].income.occurred += amount;
+              } else {
+                summary.rubaTotal.pending += amount;
+                summary.monthlyBreakdown[monthKey].income.pending += amount;
+              }
+            }
+            payDate = payDate.add(14, 'days');
+          }
+        }
+      });
+
+      // Calculate total income
+      summary.totalIncome.occurred = summary.majdiTotal.occurred + summary.rubaTotal.occurred;
+      summary.totalIncome.pending = summary.majdiTotal.pending + summary.rubaTotal.pending;
+
+      // Process bills safely
+      bills.forEach(bill => {
+        try {
+          const billAmount = Number(bill.amount) || 0;
+          const categoryName = bill.category_name || 'Uncategorized';
+
+          if (!summary.expensesByCategory[categoryName]) {
+            summary.expensesByCategory[categoryName] = { occurred: 0, pending: 0 };
+          }
+
+          for (let month = 1; month <= 12; month++) {
+            const billDate = safeParseDate(
+              dayjs().year(year).month(month - 1).date(bill.day || 1),
+              today
+            );
+            const monthKey = billDate.format('MMMM');
+
+            if (billDate.isSameOrBefore(today)) {
+              summary.expensesByCategory[categoryName].occurred += billAmount;
+              summary.monthlyBreakdown[monthKey].expenses.occurred += billAmount;
+            } else {
+              summary.expensesByCategory[categoryName].pending += billAmount;
+              summary.monthlyBreakdown[monthKey].expenses.pending += billAmount;
+            }
+          }
+        } catch (error) {
+          console.error('Error processing bill:', error);
+        }
+      });
+
+      // Calculate total expenses
+      Object.values(summary.expensesByCategory).forEach(({ occurred, pending }) => {
+        summary.totalExpenses.occurred += occurred;
+        summary.totalExpenses.pending += pending;
+      });
+
+      // Calculate monthly net amounts
+      Object.entries(summary.monthlyBreakdown).forEach(([month, data]) => {
+        data.net = {
+          occurred: data.income.occurred - data.expenses.occurred,
+          pending: data.income.pending - data.expenses.pending
+        };
+      });
+
+      return summary;
+    } catch (error) {
+      console.error('Error calculating annual summary:', error);
+      return null;
+    }
   }, [incomes, bills, year, today, defaultIncomes]);
 
-  // Calculate total net values
+  if (!annualSummary) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              Error Loading Report
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-red-600">
+            There was an error calculating the annual report. Please try again.
+          </p>
+          <Button onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   const totalNetOccurred = annualSummary.totalIncome.occurred - annualSummary.totalExpenses.occurred;
   const totalNetPending = annualSummary.totalIncome.pending - annualSummary.totalExpenses.pending;
   const totalNet = totalNetOccurred + totalNetPending;

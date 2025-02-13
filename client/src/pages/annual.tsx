@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import AnnualReportDialog from "@/components/AnnualReportDialog";
 import { useLocation } from "wouter";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function AnnualReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
@@ -16,10 +17,12 @@ export default function AnnualReport() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Annual Report</h1>
-      <AnnualReportDialog
-        isOpen={isDialogOpen}
-        onOpenChange={handleOpenChange}
-      />
+      <ErrorBoundary>
+        <AnnualReportDialog
+          isOpen={isDialogOpen}
+          onOpenChange={handleOpenChange}
+        />
+      </ErrorBoundary>
     </div>
   );
 }
