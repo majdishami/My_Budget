@@ -30,24 +30,9 @@ import {
 import { X, Calendar, AlertCircle } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 // Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
-dayjs.extend(customParseFormat);
-
-// Helper function for creating safe dates
-const createSafeDate = (year: number, month: number, day: number): dayjs.Dayjs | null => {
-  try {
-    // Format with leading zeros
-    const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const date = dayjs(dateString);
-    return date.isValid() ? date : null;
-  } catch (error) {
-    console.error('Error creating date:', { year, month, day }, error);
-    return null;
-  }
-};
 
 // Dynamic icon component
 const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
@@ -60,12 +45,6 @@ const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
   const IconComponent = (LucideIcons as any)[formatIconName(iconName)];
   return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
 };
-
-interface AnnualReportDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  selectedYear?: number;
-}
 
 interface AnnualSummary {
   majdiTotal: { occurred: number; pending: number; };
@@ -94,17 +73,20 @@ interface Bill {
   category?: { icon: string | null };
 }
 
+interface AnnualReportDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedYear?: number;
+}
+
 export default function AnnualReportDialog({
   isOpen,
   onOpenChange,
-  selectedYear = dayjs().year(),
+  selectedYear = getCurrentDate().year(),
 }: AnnualReportDialogProps) {
   const [year, setSelectedYear] = useState(selectedYear);
-  const currentYear = dayjs().year();
-  const yearOptions = Array.from(
-    { length: 10 }, 
-    (_, i) => currentYear - 5 + i
-  );
+  const currentYear = getCurrentDate().year();
+  const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
   const today = useMemo(() => getCurrentDate(), []);
 
   const { data: bills = [] } = useQuery<Bill[]>({
@@ -130,67 +112,61 @@ export default function AnnualReportDialog({
     };
 
     // Initialize monthly breakdown
-    Array.from({ length: 12 }, (_, i) => i + 1).forEach(month => {
-      const date = createSafeDate(year, month, 1);
-      if (date) {
-        const monthKey = date.format('MMMM');
-        summary.monthlyBreakdown[monthKey] = {
-          income: { occurred: 0, pending: 0 },
-          expenses: { occurred: 0, pending: 0 },
-          net: { occurred: 0, pending: 0 }
-        };
-      }
-    });
+    for (let month = 1; month <= 12; month++) {
+      const monthDate = dayjs().year(year).month(month - 1).startOf('month');
+      const monthKey = monthDate.format('MMMM');
+      summary.monthlyBreakdown[monthKey] = {
+        income: { occurred: 0, pending: 0 },
+        expenses: { occurred: 0, pending: 0 },
+        net: { occurred: 0, pending: 0 }
+      };
+    }
 
     // Process Majdi's salary (bi-monthly)
     const majdiAmount = defaultIncomes.find(i => i.source === "Majdi's Salary")?.amount ?? 0;
     const majdiPerPaycheck = majdiAmount / 2;
 
-    Array.from({ length: 12 }, (_, i) => i + 1).forEach(month => {
-      const firstDate = createSafeDate(year, month, 1);
-      const fifteenthDate = createSafeDate(year, month, 15);
+    for (let month = 1; month <= 12; month++) {
+      const monthDate = dayjs().year(year).month(month - 1);
+      const firstPayday = monthDate.date(1);
+      const fifteenthPayday = monthDate.date(15);
+      const monthKey = monthDate.format('MMMM');
 
-      if (firstDate && fifteenthDate) {
-        const monthKey = firstDate.format('MMMM');
-
-        if (firstDate.isSameOrBefore(today)) {
-          summary.majdiTotal.occurred += majdiPerPaycheck;
-          summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
-        } else {
-          summary.majdiTotal.pending += majdiPerPaycheck;
-          summary.monthlyBreakdown[monthKey].income.pending += majdiPerPaycheck;
-        }
-
-        if (fifteenthDate.isSameOrBefore(today)) {
-          summary.majdiTotal.occurred += majdiPerPaycheck;
-          summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
-        } else {
-          summary.majdiTotal.pending += majdiPerPaycheck;
-          summary.monthlyBreakdown[monthKey].income.pending += majdiPerPaycheck;
-        }
+      if (firstPayday.isSameOrBefore(today)) {
+        summary.majdiTotal.occurred += majdiPerPaycheck;
+        summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
+      } else {
+        summary.majdiTotal.pending += majdiPerPaycheck;
+        summary.monthlyBreakdown[monthKey].income.pending += majdiPerPaycheck;
       }
-    });
+
+      if (fifteenthPayday.isSameOrBefore(today)) {
+        summary.majdiTotal.occurred += majdiPerPaycheck;
+        summary.monthlyBreakdown[monthKey].income.occurred += majdiPerPaycheck;
+      } else {
+        summary.majdiTotal.pending += majdiPerPaycheck;
+        summary.monthlyBreakdown[monthKey].income.pending += majdiPerPaycheck;
+      }
+    }
 
     // Process Ruba's salary (bi-weekly)
     const rubaAmount = defaultIncomes.find(i => i.source === "Ruba's Salary")?.amount ?? 0;
-    let currentDate = dayjs('2025-01-10');
-    const endDate = createSafeDate(year, 12, 31);
+    let rubaDate = dayjs('2025-01-10');
+    const endDate = dayjs().year(year).month(11).date(31);
 
-    if (endDate) {
-      while (currentDate.isSameOrBefore(endDate)) {
-        if (currentDate.year() === year) {
-          const monthKey = currentDate.format('MMMM');
+    while (rubaDate.isSameOrBefore(endDate)) {
+      if (rubaDate.year() === year) {
+        const monthKey = rubaDate.format('MMMM');
 
-          if (currentDate.isSameOrBefore(today)) {
-            summary.rubaTotal.occurred += rubaAmount;
-            summary.monthlyBreakdown[monthKey].income.occurred += rubaAmount;
-          } else {
-            summary.rubaTotal.pending += rubaAmount;
-            summary.monthlyBreakdown[monthKey].income.pending += rubaAmount;
-          }
+        if (rubaDate.isSameOrBefore(today)) {
+          summary.rubaTotal.occurred += rubaAmount;
+          summary.monthlyBreakdown[monthKey].income.occurred += rubaAmount;
+        } else {
+          summary.rubaTotal.pending += rubaAmount;
+          summary.monthlyBreakdown[monthKey].income.pending += rubaAmount;
         }
-        currentDate = currentDate.add(14, 'days');
       }
+      rubaDate = rubaDate.add(14, 'days');
     }
 
     // Calculate total income
@@ -206,21 +182,18 @@ export default function AnnualReportDialog({
         summary.expensesByCategory[categoryName] = { occurred: 0, pending: 0 };
       }
 
-      Array.from({ length: 12 }, (_, i) => i + 1).forEach(month => {
-        const billDate = createSafeDate(year, month, bill.day);
+      for (let month = 1; month <= 12; month++) {
+        const billDate = dayjs().year(year).month(month - 1).date(bill.day);
+        const monthKey = billDate.format('MMMM');
 
-        if (billDate) {
-          const monthKey = billDate.format('MMMM');
-
-          if (billDate.isSameOrBefore(today)) {
-            summary.expensesByCategory[categoryName].occurred += billAmount;
-            summary.monthlyBreakdown[monthKey].expenses.occurred += billAmount;
-          } else {
-            summary.expensesByCategory[categoryName].pending += billAmount;
-            summary.monthlyBreakdown[monthKey].expenses.pending += billAmount;
-          }
+        if (billDate.isSameOrBefore(today)) {
+          summary.expensesByCategory[categoryName].occurred += billAmount;
+          summary.monthlyBreakdown[monthKey].expenses.occurred += billAmount;
+        } else {
+          summary.expensesByCategory[categoryName].pending += billAmount;
+          summary.monthlyBreakdown[monthKey].expenses.pending += billAmount;
         }
-      });
+      }
     });
 
     // Calculate total expenses
@@ -289,7 +262,7 @@ export default function AnnualReportDialog({
 
         <div className="space-y-6 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-muted/50">
+            <Card>
               <CardHeader className="py-4">
                 <CardTitle className="text-sm font-medium">
                   Total Net Annual Income
@@ -300,18 +273,17 @@ export default function AnnualReportDialog({
                   {formatCurrency(annualSummary.totalIncome.occurred + annualSummary.totalIncome.pending)}
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
-                  <span className="text-green-600">
-                    ✓ {formatCurrency(annualSummary.totalIncome.occurred)}
-                  </span> occurred
-                  <br />
-                  <span className="text-green-400">
-                    ⌛ {formatCurrency(annualSummary.totalIncome.pending)}
-                  </span> pending
+                  <div className="text-green-600">
+                    ✓ {formatCurrency(annualSummary.totalIncome.occurred)} occurred
+                  </div>
+                  <div className="text-green-400">
+                    ⌛ {formatCurrency(annualSummary.totalIncome.pending)} pending
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-muted/50">
+            <Card>
               <CardHeader className="py-4">
                 <CardTitle className="text-sm font-medium">
                   Total Annual Expenses
@@ -322,18 +294,17 @@ export default function AnnualReportDialog({
                   {formatCurrency(annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)}
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
-                  <span className="text-red-600">
-                    ✓ {formatCurrency(annualSummary.totalExpenses.occurred)}
-                  </span> occurred
-                  <br />
-                  <span className="text-red-400">
-                    ⌛ {formatCurrency(annualSummary.totalExpenses.pending)}
-                  </span> pending
+                  <div className="text-red-600">
+                    ✓ {formatCurrency(annualSummary.totalExpenses.occurred)} occurred
+                  </div>
+                  <div className="text-red-400">
+                    ⌛ {formatCurrency(annualSummary.totalExpenses.pending)} pending
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-muted/50">
+            <Card>
               <CardHeader className="py-4">
                 <CardTitle className="text-sm font-medium">
                   Net Annual Balance
@@ -357,9 +328,7 @@ export default function AnnualReportDialog({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-semibold">
-                Monthly Breakdown
-              </CardTitle>
+              <CardTitle className="text-lg font-semibold">Monthly Breakdown</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
