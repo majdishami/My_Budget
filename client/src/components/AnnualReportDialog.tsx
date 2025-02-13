@@ -9,8 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -34,53 +35,6 @@ import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 // Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
 
-// Helper function to validate dates
-const isValidDate = (date: any): boolean => {
-  if (!date) return false;
-  const d = dayjs(date);
-  return d.isValid() && d.isSame(d); // Additional check for valid date
-};
-
-// Safe date parsing helper
-const safeParseDate = (date: any, fallback: dayjs.Dayjs): dayjs.Dayjs => {
-  const parsed = dayjs(date);
-  return isValidDate(parsed) ? parsed : fallback;
-};
-
-// Dynamic icon component with error handling
-const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
-  try {
-    if (!iconName) return null;
-    const formatIconName = (name: string) => {
-      return name.split('-').map(part =>
-        part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-      ).join('');
-    };
-    const IconComponent = (LucideIcons as any)[formatIconName(iconName)];
-    return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
-  } catch (error) {
-    console.error('Error rendering icon:', error);
-    return null;
-  }
-};
-
-interface AnnualSummary {
-  majdiTotal: { occurred: number; pending: number; };
-  rubaTotal: { occurred: number; pending: number; };
-  totalIncome: { occurred: number; pending: number; };
-  expensesByCategory: {
-    [key: string]: { occurred: number; pending: number; };
-  };
-  totalExpenses: { occurred: number; pending: number; };
-  monthlyBreakdown: {
-    [key: string]: {
-      income: { occurred: number; pending: number; };
-      expenses: { occurred: number; pending: number; };
-      net: { occurred: number; pending: number; };
-    };
-  };
-}
-
 interface Bill {
   id: string;
   name: string;
@@ -88,7 +42,17 @@ interface Bill {
   day: number;
   category_name: string;
   category_color: string;
-  category?: { icon: string | null };
+  category?: { 
+    icon: string | null;
+  };
+}
+
+interface Income {
+  id: string;
+  source: string;
+  amount: number;
+  date?: string;
+  occurrenceType?: 'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly';
 }
 
 interface AnnualReportDialogProps {
@@ -102,31 +66,34 @@ export default function AnnualReportDialog({
   onOpenChange,
   selectedYear,
 }: AnnualReportDialogProps) {
-  const today = useMemo(() => getCurrentDate(), []);
-  const defaultYear = selectedYear || today.year();
-  const [year, setSelectedYear] = useState(defaultYear);
+  const today = useMemo(() => getCurrentDate(), []); // Use getCurrentDate utility
+  const currentYear = today.year();
+  const defaultYear = selectedYear || currentYear;
+  const [year, setSelectedYear] = useState<number>(defaultYear);
 
-  // Generate valid year options
-  const yearOptions = useMemo(() => {
-    const currentYear = today.year();
-    return Array.from(
-      { length: 11 },
-      (_, i) => currentYear - 5 + i
-    ).filter(y => y >= 1900 && y <= 2100);
-  }, [today]);
-
+  // Get bills data
   const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
   });
 
-  // Define default incomes with proper validation
-  const defaultIncomes = useMemo(() => ([
-    { id: '1', source: "Majdi's Salary", amount: 9478, type: 'twice-monthly' },
-    { id: '2', source: "Ruba's Salary", amount: 2168, type: 'biweekly' }
-  ]), []);
+  // Define default incomes
+  const defaultIncomes: Income[] = [
+    { 
+      id: '1', 
+      source: "Majdi's Salary", 
+      amount: 4739,
+      occurrenceType: 'twice-monthly'
+    },
+    { 
+      id: '2', 
+      source: "Ruba's Salary", 
+      amount: 2168,
+      occurrenceType: 'biweekly'
+    }
+  ];
 
-  const [incomes] = useState(defaultIncomes);
+  const [incomes] = useState<Income[]>(defaultIncomes);
 
   // Add keyboard event listener for Escape key
   useEffect(() => {
@@ -139,224 +106,166 @@ export default function AnnualReportDialog({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onOpenChange]);
 
-  // Calculate annual summary with robust error handling
-  const annualSummary = useMemo(() => {
-    try {
-      const summary = {
-        majdiTotal: { occurred: 0, pending: 0 },
-        rubaTotal: { occurred: 0, pending: 0 },
-        totalIncome: { occurred: 0, pending: 0 },
-        expensesByCategory: {} as Record<string, { occurred: number; pending: number }>,
-        totalExpenses: { occurred: 0, pending: 0 },
-        monthlyBreakdown: {} as Record<string, {
-          income: { occurred: number; pending: number };
-          expenses: { occurred: number; pending: number };
-          net: { occurred: number; pending: number };
-        }>,
-      };
+  // Generate year options
+  const yearOptions = useMemo(() => {
+    return Array.from(
+      { length: 11 },
+      (_, i) => currentYear - 5 + i
+    ).filter(y => y >= 1900 && y <= 2100);
+  }, [currentYear]);
 
-      // Initialize monthly breakdown
-      for (let month = 1; month <= 12; month++) {
-        const monthDate = safeParseDate(
-          dayjs().year(year).month(month - 1).startOf('month'),
-          today.startOf('month')
-        );
-        const monthKey = monthDate.format('MMMM');
+  const generateMonthlyIncomes = () => {
+    const monthlyIncomes: Record<string, { occurred: number; pending: number }> = {};
 
-        summary.monthlyBreakdown[monthKey] = {
-          income: { occurred: 0, pending: 0 },
-          expenses: { occurred: 0, pending: 0 },
-          net: { occurred: 0, pending: 0 }
-        };
-      }
-
-      // Process incomes safely
-      incomes.forEach(income => {
-        const amount = Number(income.amount) || 0;
-        if (income.source === "Majdi's Salary") {
-          // Process twice-monthly salary
-          for (let month = 1; month <= 12; month++) {
-            const monthDate = safeParseDate(
-              dayjs().year(year).month(month - 1),
-              today
-            );
-            const monthKey = monthDate.format('MMMM');
-            const firstPayday = monthDate.date(1);
-            const fifteenthPayday = monthDate.date(15);
-
-            [firstPayday, fifteenthPayday].forEach(payDate => {
-              if (isValidDate(payDate) && payDate.isSameOrBefore(today)) {
-                summary.majdiTotal.occurred += amount / 2;
-                summary.monthlyBreakdown[monthKey].income.occurred += amount / 2;
-              } else {
-                summary.majdiTotal.pending += amount / 2;
-                summary.monthlyBreakdown[monthKey].income.pending += amount / 2;
-              }
-            });
-          }
-        } else if (income.source === "Ruba's Salary") {
-          // Process bi-weekly salary
-          let payDate = safeParseDate('2025-01-10', today.startOf('year'));
-          const endDate = safeParseDate(
-            dayjs().year(year).endOf('year'),
-            today.endOf('year')
-          );
-
-          while (payDate.isSameOrBefore(endDate)) {
-            if (payDate.year() === year) {
-              const monthKey = payDate.format('MMMM');
-              if (payDate.isSameOrBefore(today)) {
-                summary.rubaTotal.occurred += amount;
-                summary.monthlyBreakdown[monthKey].income.occurred += amount;
-              } else {
-                summary.rubaTotal.pending += amount;
-                summary.monthlyBreakdown[monthKey].income.pending += amount;
-              }
-            }
-            payDate = payDate.add(14, 'days');
-          }
-        }
-      });
-
-      // Calculate total income
-      summary.totalIncome.occurred = summary.majdiTotal.occurred + summary.rubaTotal.occurred;
-      summary.totalIncome.pending = summary.majdiTotal.pending + summary.rubaTotal.pending;
-
-      // Process bills safely
-      bills.forEach(bill => {
-        try {
-          const billAmount = Number(bill.amount) || 0;
-          const categoryName = bill.category_name || 'Uncategorized';
-
-          if (!summary.expensesByCategory[categoryName]) {
-            summary.expensesByCategory[categoryName] = { occurred: 0, pending: 0 };
-          }
-
-          for (let month = 1; month <= 12; month++) {
-            const billDate = safeParseDate(
-              dayjs().year(year).month(month - 1).date(bill.day || 1),
-              today
-            );
-            const monthKey = billDate.format('MMMM');
-
-            if (billDate.isSameOrBefore(today)) {
-              summary.expensesByCategory[categoryName].occurred += billAmount;
-              summary.monthlyBreakdown[monthKey].expenses.occurred += billAmount;
-            } else {
-              summary.expensesByCategory[categoryName].pending += billAmount;
-              summary.monthlyBreakdown[monthKey].expenses.pending += billAmount;
-            }
-          }
-        } catch (error) {
-          console.error('Error processing bill:', error);
-        }
-      });
-
-      // Calculate total expenses
-      Object.values(summary.expensesByCategory).forEach(({ occurred, pending }) => {
-        summary.totalExpenses.occurred += occurred;
-        summary.totalExpenses.pending += pending;
-      });
-
-      // Calculate monthly net amounts
-      Object.entries(summary.monthlyBreakdown).forEach(([month, data]) => {
-        data.net = {
-          occurred: data.income.occurred - data.expenses.occurred,
-          pending: data.income.pending - data.expenses.pending
-        };
-      });
-
-      return summary;
-    } catch (error) {
-      console.error('Error calculating annual summary:', error);
-      return null;
+    // Initialize months
+    for (let month = 0; month < 12; month++) {
+      const monthDate = dayjs().year(year).month(month);
+      monthlyIncomes[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
     }
-  }, [incomes, bills, year, today, defaultIncomes]);
 
-  if (!annualSummary) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
-              Error Loading Report
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-red-600">
-            There was an error calculating the annual report. Please try again.
-          </p>
-          <Button onClick={() => onOpenChange(false)}>Close</Button>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+    // Process Majdi's salary (twice monthly)
+    incomes.forEach(income => {
+      if (income.source === "Majdi's Salary") {
+        for (let month = 0; month < 12; month++) {
+          const monthDate = dayjs().year(year).month(month);
+          const monthKey = monthDate.format('MMMM');
+          const firstPayday = monthDate.date(1);
+          const fifteenthPayday = monthDate.date(15);
 
-  const totalNetOccurred = annualSummary.totalIncome.occurred - annualSummary.totalExpenses.occurred;
-  const totalNetPending = annualSummary.totalIncome.pending - annualSummary.totalExpenses.pending;
-  const totalNet = totalNetOccurred + totalNetPending;
+          if (firstPayday.isSameOrBefore(today)) {
+            monthlyIncomes[monthKey].occurred += income.amount;
+          } else {
+            monthlyIncomes[monthKey].pending += income.amount;
+          }
+
+          if (fifteenthPayday.isSameOrBefore(today)) {
+            monthlyIncomes[monthKey].occurred += income.amount;
+          } else {
+            monthlyIncomes[monthKey].pending += income.amount;
+          }
+        }
+      } else if (income.source === "Ruba's Salary") {
+        // Process Ruba's bi-weekly salary
+        let payDate = dayjs('2025-01-10'); // Start date
+        const endDate = dayjs().year(year).endOf('year');
+
+        while (payDate.isSameOrBefore(endDate)) {
+          if (payDate.year() === year) {
+            const monthKey = payDate.format('MMMM');
+            if (payDate.isSameOrBefore(today)) {
+              monthlyIncomes[monthKey].occurred += income.amount;
+            } else {
+              monthlyIncomes[monthKey].pending += income.amount;
+            }
+          }
+          payDate = payDate.add(14, 'days');
+        }
+      }
+    });
+
+    return monthlyIncomes;
+  };
+
+  const generateMonthlyExpenses = () => {
+    const monthlyExpenses: Record<string, { occurred: number; pending: number }> = {};
+
+    // Initialize months
+    for (let month = 0; month < 12; month++) {
+      const monthDate = dayjs().year(year).month(month);
+      monthlyExpenses[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
+    }
+
+    // Process bills
+    bills.forEach(bill => {
+      for (let month = 0; month < 12; month++) {
+        const billDate = dayjs().year(year).month(month).date(bill.day);
+        const monthKey = billDate.format('MMMM');
+
+        if (billDate.isSameOrBefore(today)) {
+          monthlyExpenses[monthKey].occurred += bill.amount;
+        } else {
+          monthlyExpenses[monthKey].pending += bill.amount;
+        }
+      }
+    });
+
+    return monthlyExpenses;
+  };
+
+  const monthlyIncomes = useMemo(generateMonthlyIncomes, [year, incomes, today]);
+  const monthlyExpenses = useMemo(generateMonthlyExpenses, [year, bills, today]);
+
+  // Calculate totals
+  const totals = useMemo(() => {
+    const result = {
+      income: { occurred: 0, pending: 0 },
+      expenses: { occurred: 0, pending: 0 }
+    };
+
+    Object.values(monthlyIncomes).forEach(month => {
+      result.income.occurred += month.occurred;
+      result.income.pending += month.pending;
+    });
+
+    Object.values(monthlyExpenses).forEach(month => {
+      result.expenses.occurred += month.occurred;
+      result.expenses.pending += month.pending;
+    });
+
+    return result;
+  }, [monthlyIncomes, monthlyExpenses]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="border-b pb-4">
-          <DialogTitle className="text-xl font-bold flex items-center justify-between">
-            <div className="flex items-center gap-2">
+        <DialogHeader className="flex items-center justify-between pb-4 border-b">
+          <div className="flex items-center gap-2">
+            <DialogTitle className="text-xl font-bold">
               Annual Financial Report
-              <Calendar className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="flex items-center gap-4">
-              <Select
-                value={year.toString()}
-                onValueChange={(value) => setSelectedYear(parseInt(value))}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue>{year}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {yearOptions.map((yearOption) => (
-                    <SelectItem key={yearOption} value={yearOption.toString()}>
-                      {yearOption}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="text-sm font-normal flex items-center gap-1 bg-muted px-2 py-1 rounded-md">
-                <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                <span>As of {today.format('MMMM D, YYYY')}</span>
-              </div>
-              <DialogClose asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full"
-                  aria-label="Close dialog"
-                >
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Close</span>
-                </Button>
-              </DialogClose>
-            </div>
-          </DialogTitle>
+            </DialogTitle>
+            <Calendar className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div className="flex items-center gap-4">
+            <Select
+              value={year.toString()}
+              onValueChange={(value) => setSelectedYear(parseInt(value))}
+            >
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Select year" />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogClose>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6 pt-4">
+          {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">
-                  Total Net Annual Income
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Annual Income</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(annualSummary.totalIncome.occurred + annualSummary.totalIncome.pending)}
+                  {formatCurrency(totals.income.occurred + totals.income.pending)}
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
                   <div className="text-green-600">
-                    ✓ {formatCurrency(annualSummary.totalIncome.occurred)} occurred
+                    ✓ {formatCurrency(totals.income.occurred)} occurred
                   </div>
                   <div className="text-green-400">
-                    ⌛ {formatCurrency(annualSummary.totalIncome.pending)} pending
+                    ⌛ {formatCurrency(totals.income.pending)} pending
                   </div>
                 </div>
               </CardContent>
@@ -364,20 +273,18 @@ export default function AnnualReportDialog({
 
             <Card>
               <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">
-                  Total Annual Expenses
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Annual Expenses</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
-                  {formatCurrency(annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)}
+                  {formatCurrency(totals.expenses.occurred + totals.expenses.pending)}
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
                   <div className="text-red-600">
-                    ✓ {formatCurrency(annualSummary.totalExpenses.occurred)} occurred
+                    ✓ {formatCurrency(totals.expenses.occurred)} occurred
                   </div>
                   <div className="text-red-400">
-                    ⌛ {formatCurrency(annualSummary.totalExpenses.pending)} pending
+                    ⌛ {formatCurrency(totals.expenses.pending)} pending
                   </div>
                 </div>
               </CardContent>
@@ -385,26 +292,28 @@ export default function AnnualReportDialog({
 
             <Card>
               <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">
-                  Net Annual Balance
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${totalNet >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                  {formatCurrency(totalNet)}
+                <div className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(
+                    (totals.income.occurred + totals.income.pending) -
+                    (totals.expenses.occurred + totals.expenses.pending)
+                  )}
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
-                  <div className={totalNetOccurred >= 0 ? 'text-blue-600' : 'text-red-600'}>
-                    ✓ {formatCurrency(totalNetOccurred)} occurred
+                  <div className="text-blue-600">
+                    ✓ {formatCurrency(totals.income.occurred - totals.expenses.occurred)} occurred
                   </div>
-                  <div className={totalNetPending >= 0 ? 'text-blue-400' : 'text-red-400'}>
-                    ⌛ {formatCurrency(totalNetPending)} pending
+                  <div className="text-blue-400">
+                    ⌛ {formatCurrency(totals.income.pending - totals.expenses.pending)} pending
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
+          {/* Monthly Breakdown */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-semibold">Monthly Breakdown</CardTitle>
@@ -420,109 +329,41 @@ export default function AnnualReportDialog({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Object.entries(annualSummary.monthlyBreakdown).map(([month, data]) => (
-                    <TableRow key={month}>
-                      <TableCell>{month}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="text-green-600">
-                          ✓ {formatCurrency(data.income.occurred)}
-                        </div>
-                        <div className="text-green-400">
-                          ⌛ {formatCurrency(data.income.pending)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="text-red-600">
-                          ✓ {formatCurrency(data.expenses.occurred)}
-                        </div>
-                        <div className="text-red-400">
-                          ⌛ {formatCurrency(data.expenses.pending)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className={data.net.occurred >= 0 ? 'text-blue-600' : 'text-red-600'}>
-                          ✓ {formatCurrency(data.net.occurred)}
-                        </div>
-                        <div className={data.net.pending >= 0 ? 'text-blue-400' : 'text-red-400'}>
-                          ⌛ {formatCurrency(data.net.pending)}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <span>Expense Categories Breakdown</span>
-                <div className="text-sm font-normal text-muted-foreground">
-                  ({Object.keys(annualSummary.expensesByCategory).length} categories)
-                </div>
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Annual breakdown of expenses by category, showing occurred and pending amounts
-              </p>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Monthly Average</TableHead>
-                    <TableHead className="text-right">Annual Amount</TableHead>
-                    <TableHead className="text-right">% of Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Object.entries(annualSummary.expensesByCategory)
-                    .sort(([, a], [, b]) => (b.occurred + b.pending) - (a.occurred + a.pending))
-                    .map(([categoryName, amounts]) => {
-                      const total = amounts.occurred + amounts.pending;
-                      const monthlyAverage = total / 12;
-                      const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
-                      // Find a bill with this category to get the color and icon
-                      const categoryBill = bills.find(b => b.category_name === categoryName);
+                  {Object.entries(monthlyIncomes).map(([month, income]) => {
+                    const expense = monthlyExpenses[month];
+                    const netOccurred = income.occurred - expense.occurred;
+                    const netPending = income.pending - expense.pending;
 
-                      return (
-                        <TableRow key={categoryName}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: categoryBill?.category_color || '#D3D3D3' }}
-                              />
-                              {categoryBill?.category?.icon && (
-                                <DynamicIcon iconName={categoryBill?.category?.icon} />
-                              )}
-                              {categoryName}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right text-red-600">
-                            {formatCurrency(monthlyAverage)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="text-red-600">✓ {formatCurrency(amounts.occurred)}</div>
-                            <div className="text-red-400">⌛ {formatCurrency(amounts.pending)}</div>
-                          </TableCell>
-                          <TableCell className="text-right text-muted-foreground">
-                            {percentage}%
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  <TableRow className="font-bold">
-                    <TableCell>Total</TableCell>
-                    <TableCell className="text-right text-red-600">
-                      {formatCurrency((annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending) / 12)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="text-red-600">✓ {formatCurrency(annualSummary.totalExpenses.occurred)}</div>
-                      <div className="text-red-400">⌛ {formatCurrency(annualSummary.totalExpenses.pending)}</div>
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">100%</TableCell>
-                  </TableRow>
+                    return (
+                      <TableRow key={month}>
+                        <TableCell>{month}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="text-green-600">
+                            ✓ {formatCurrency(income.occurred)}
+                          </div>
+                          <div className="text-green-400">
+                            ⌛ {formatCurrency(income.pending)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="text-red-600">
+                            ✓ {formatCurrency(expense.occurred)}
+                          </div>
+                          <div className="text-red-400">
+                            ⌛ {formatCurrency(expense.pending)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className={netOccurred >= 0 ? "text-blue-600" : "text-red-600"}>
+                            ✓ {formatCurrency(netOccurred)}
+                          </div>
+                          <div className={netPending >= 0 ? "text-blue-400" : "text-red-400"}>
+                            ⌛ {formatCurrency(netPending)}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
