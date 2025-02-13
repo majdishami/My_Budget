@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { Income, Bill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { incomeSchema } from "@/lib/validation";
 import {
   Dialog,
   DialogContent,
@@ -55,22 +56,30 @@ export default function AnnualReportDialog({
     enabled: isOpen,
   });
 
-  // Initialize incomes
-  const [incomes] = useState<Income[]>([{
-    id: "majdi-salary",
-    source: "Majdi's Salary",
-    amount: 4739,
-    date: today.format('YYYY-MM-DD'),
-    occurrenceType: 'twice-monthly',
-    firstDate: 1,
-    secondDate: 15
-  }, {
-    id: "ruba-salary",
-    source: "Ruba's Salary",
-    amount: 2168,
-    date: today.format('YYYY-MM-DD'),
-    occurrenceType: 'biweekly'
-  }]);
+  // Initialize incomes with validated schema
+  const [incomes] = useState<Income[]>(() => {
+    const rawIncomes = [
+      {
+        id: "majdi-salary",
+        source: "Majdi's Salary",
+        amount: 4739,
+        date: today.format('YYYY-MM-DD'),
+        occurrenceType: 'twice-monthly',
+        firstDate: 1,
+        secondDate: 15
+      },
+      {
+        id: "ruba-salary",
+        source: "Ruba's Salary",
+        amount: 2168,
+        date: today.format('YYYY-MM-DD'),
+        occurrenceType: 'biweekly'
+      }
+    ] as const;
+
+    // Parse through Zod schema to ensure type safety
+    return rawIncomes.map(income => incomeSchema.parse(income));
+  });
 
   // Add keyboard event listener for Escape key
   useEffect(() => {
@@ -82,14 +91,6 @@ export default function AnnualReportDialog({
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onOpenChange]);
-
-  // Generate year options
-  const yearOptions = useMemo(() => {
-    return Array.from(
-      { length: 11 },
-      (_, i) => currentYear - 5 + i
-    ).filter(y => y >= 1900 && y <= 2100);
-  }, [currentYear]);
 
   const generateMonthlyIncomes = () => {
     const monthlyIncomes: Record<string, { occurred: number; pending: number }> = {};
@@ -214,7 +215,10 @@ export default function AnnualReportDialog({
                 <SelectValue placeholder="Select year" />
               </SelectTrigger>
               <SelectContent>
-                {yearOptions.map((year) => (
+                {Array.from(
+                  { length: 11 },
+                  (_, i) => currentYear - 5 + i
+                ).filter(y => y >= 1900 && y <= 2100).map((year) => (
                   <SelectItem key={year} value={year.toString()}>
                     {year}
                   </SelectItem>
