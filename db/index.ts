@@ -32,7 +32,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-// Create pool configuration with improved connection handling
+// Pool configuration with improved connection handling
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
