@@ -8,6 +8,21 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Budget Tracker</title>
     <style>
+      /* Critical rendering path styles */
+      :root {
+        color-scheme: light dark;
+      }
+
+      html {
+        background: #ffffff; /* Light mode fallback */
+      }
+
+      @media (prefers-color-scheme: dark) {
+        html {
+          background: #000000; /* Dark mode fallback */
+        }
+      }
+
       /* Ensure body has a background color and proper height */
       body {
         margin: 0;
@@ -15,17 +30,32 @@
         min-height: 100vh;
         background-color: var(--background, #ffffff); /* Fallback color */
         -webkit-text-size-adjust: 100%;
+        /* Prevent Flash of Unstyled Content */
+        opacity: 0;
+        transition: opacity 0.2s ease-in;
       }
+
+      body.ready {
+        opacity: 1;
+      }
+
       /* Root element should also have proper height */
       #root {
         min-height: 100vh;
         display: flex;
         flex-direction: column;
+        background-color: var(--background, #ffffff);
       }
+
       /* Safari-specific fixes */
       @supports (-webkit-touch-callout: none) {
-        body, #root {
+        html, body {
           min-height: -webkit-fill-available;
+          height: -webkit-fill-available;
+        }
+        #root {
+          min-height: -webkit-fill-available;
+          height: -webkit-fill-available;
         }
       }
     </style>
@@ -33,5 +63,11 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Add ready class once the DOM is loaded
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('ready');
+      });
+    </script>
   </body>
 </html>
