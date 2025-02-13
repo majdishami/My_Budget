@@ -65,22 +65,6 @@ import { logger } from './lib/logger';
 
 
 function Router() {
-  useEffect(() => {
-    // Force a repaint to fix Safari rendering
-    document.body.style.display = 'none';
-    document.body.offsetHeight; // Force reflow
-    document.body.style.display = '';
-
-    // Ensure theme is properly initialized
-    const root = window.document.documentElement;
-    const initialColorValue = root.style.getPropertyValue('--background');
-
-    if (!initialColorValue) {
-      root.style.setProperty('--background', '#ffffff');
-      root.style.setProperty('--foreground', '#000000');
-    }
-  }, []);
-
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
   const [location] = useLocation();
   const isMobile = useIsMobile();

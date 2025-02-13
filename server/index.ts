@@ -26,11 +26,11 @@ app.use(fileUpload({
   },
   useTempFiles: true,
   tempFileDir: tmpDir,
-  debug: false,
+  debug: false, // Disable debug mode in production for security
   safeFileNames: true,
   preserveExtension: true,
   abortOnLimit: true,
-  uploadTimeout: 30000,
+  uploadTimeout: 30000, // 30 seconds
   createParentPath: true,
   defCharset: 'utf8',
   defParamCharset: 'utf8'
@@ -53,6 +53,7 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
+    // Add security headers
     res.header('X-Content-Type-Options', 'nosniff');
     res.header('X-Frame-Options', 'SAMEORIGIN');
     res.header('X-XSS-Protection', '1; mode=block');
@@ -69,6 +70,7 @@ app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
 
+  // Enhanced logging
   if (req.files) {
     const fileInfo = Object.entries(req.files).map(([key, file]) => ({
       fieldname: key,
@@ -111,6 +113,7 @@ app.use(syncRouter);
         ? "Internal Server Error" 
         : (err.message || "Internal Server Error");
 
+      // Don't expose error details in production
       const response = process.env.NODE_ENV === 'production' 
         ? { message } 
         : { message, stack: err.stack };
@@ -126,45 +129,20 @@ app.use(syncRouter);
 
     // Use different ports for Replit vs local development
     const isReplit = process.env.REPL_ID !== undefined;
-    const DEFAULT_PORT = isReplit ? 5000 : 5001;
-    let port = parseInt(process.env.PORT || String(DEFAULT_PORT));
+    const PORT = parseInt(process.env.PORT || (isReplit ? '5000' : '5001'));
     const HOST = '0.0.0.0';
-    const MAX_PORT_RETRIES = 10; // Maximum number of port retries
-    let retryCount = 0;
-
-    const startServer = () => {
-      if (retryCount >= MAX_PORT_RETRIES) {
-        console.error(`Failed to find an available port after ${MAX_PORT_RETRIES} attempts`);
-        process.exit(1);
-      }
-
-      console.log(`Attempting to start server on port ${port}...`);
-
-      server.listen(port, HOST, () => {
-        console.log(`✓ Server successfully started!`);
-        console.log(`Server is running at http://${HOST}:${port}`);
-        console.log(`Server environment: ${app.get("env")}`);
-        console.log(`Trust proxy enabled: ${app.get('trust proxy')}`);
-        console.log(`CORS and API endpoints are configured for ${isReplit ? 'Replit' : 'local'} development`);
-      }).on('error', (err: any) => {
-        if (err.code === 'EADDRINUSE') {
-          console.log(`Port ${port} is in use, trying port ${port + 1}...`);
-          port++;
-          retryCount++;
-          startServer();
-        } else {
-          console.error('Server failed to start:', err);
-          process.exit(1);
-        }
-      });
-    };
 
     // Add graceful startup logging
     console.log('Environment:', app.get("env"));
     console.log('Trust proxy:', app.get('trust proxy'));
-    console.log(`Starting server on ${HOST}:${port}`);
+    console.log(`Starting server on ${HOST}:${PORT}`);
 
-    startServer();
+    server.listen(PORT, HOST, () => {
+      console.log(`Server is running at http://${HOST}:${PORT}`);
+      console.log(`Server environment: ${app.get("env")}`);
+      console.log(`Trust proxy enabled: ${app.get('trust proxy')}`);
+      console.log(`CORS and API endpoints are configured for ${isReplit ? 'Replit' : 'local'} development`);
+    });
 
     // Handle graceful shutdown
     process.on('SIGTERM', () => {
