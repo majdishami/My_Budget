@@ -101,6 +101,17 @@ export default function AnnualReportDialog({
 
   const [incomes] = useState(defaultIncomes);
 
+  // Add keyboard event listener for Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onOpenChange(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onOpenChange]);
+
   const annualSummary = useMemo((): AnnualSummary => {
     const summary: AnnualSummary = {
       majdiTotal: { occurred: 0, pending: 0 },
@@ -248,13 +259,15 @@ export default function AnnualReportDialog({
                 <span>As of {today.format('MMMM D, YYYY')}</span>
               </div>
               <DialogClose asChild>
-                <button
-                  className="rounded-sm opacity-70 hover:opacity-100"
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full"
                   aria-label="Close dialog"
                 >
                   <X className="h-4 w-4" />
                   <span className="sr-only">Close</span>
-                </button>
+                </Button>
               </DialogClose>
             </div>
           </DialogTitle>

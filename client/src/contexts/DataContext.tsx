@@ -3,7 +3,7 @@ import { Income, Bill } from "@/types";
 import { generateId } from "@/lib/utils";
 import dayjs from "dayjs";
 import { logger } from "@/lib/logger";
-import { incomeSchema, billSchema } from "@/lib/validation";
+import { z } from "zod";
 
 interface DataContextType {
   incomes: Income[];
@@ -45,7 +45,35 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Enhanced data validation using Zod schemas
+  // Update the validation schemas to match the types
+  const incomeSchema = z.object({
+    id: z.string(),
+    source: z.string(),
+    amount: z.number(),
+    date: z.string(),
+    occurrenceType: z.enum(['once', 'weekly', 'monthly', 'biweekly', 'twice-monthly']),
+    firstDate: z.number().optional(),
+    secondDate: z.number().optional()
+  });
+
+  const billSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    amount: z.number(),
+    day: z.number(),
+    category_id: z.number(),
+    user_id: z.number(),
+    created_at: z.string(),
+    isOneTime: z.boolean(),
+    category_name: z.string(),
+    category_color: z.string().optional(),
+    category: z.object({
+      icon: z.string().nullable()
+    }).optional()
+  });
+
+
+  // Update the validateData function
   const validateData = <T extends Income | Bill>(
     data: T[],
     schema: typeof incomeSchema | typeof billSchema,
@@ -53,20 +81,35 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   ): T[] => {
     try {
       if (!Array.isArray(data)) {
-        throw new Error(`${type} data must be an array`);
+        logger.error(`${type} data must be an array`);
+        return [];
       }
 
+      const validatedData: T[] = [];
+
       data.forEach((item, index) => {
-        const result = schema.safeParse(item);
-        if (!result.success) {
-          throw new Error(`Invalid ${type} at index ${index}: ${result.error.message}`);
+        try {
+          const result = schema.safeParse(item);
+          if (result.success) {
+            validatedData.push(item);
+          } else {
+            logger.error(`Invalid ${type} at index ${index}:`, {
+              error: result.error,
+              item
+            });
+          }
+        } catch (error) {
+          logger.error(`Error validating ${type} at index ${index}:`, {
+            error,
+            item
+          });
         }
       });
 
-      return data;
+      return validatedData;
     } catch (error) {
-      logger.error(`Validation error for ${type}:`, { error });
-      throw error;
+      logger.error(`Error in validateData for ${type}:`, { error });
+      return [];
     }
   };
 
@@ -78,40 +121,40 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const today = dayjs();
 
       const defaultIncomes: Income[] = [
-        { 
-          id: generateId(), 
-          source: "Majdi's Salary", 
-          amount: 4739, 
-          date: today.date(1).toISOString(), 
+        {
+          id: generateId(),
+          source: "Majdi's Salary",
+          amount: 4739,
+          date: today.date(1).toISOString(),
           occurrenceType: 'twice-monthly',
           firstDate: 1,
           secondDate: 15
         },
-        { 
-          id: generateId(), 
-          source: "Ruba's Salary", 
-          amount: 2168, 
-          date: today.day(5).toISOString(), 
-          occurrenceType: 'biweekly' 
+        {
+          id: generateId(),
+          source: "Ruba's Salary",
+          amount: 2168,
+          date: today.day(5).toISOString(),
+          occurrenceType: 'biweekly'
         }
       ];
 
       const defaultBills: Bill[] = [
-        { id: generateId(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1, category_id: 8, category_name: "Phone & Internet", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Maid's 1st payment", amount: 120, day: 1, category_id: 11, category_name: "Home Services", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Monthly Rent", amount: 3750, day: 1, category_id: 1, category_name: "Housing", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Sling TV (CC 9550)", amount: 75, day: 3, category_id: 10, category_name: "Entertainment", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Cox Internet", amount: 81, day: 6, category_id: 9, category_name: "Internet", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Water Bill", amount: 80, day: 7, category_id: 7, category_name: "Utilities", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "NV Energy Electrical", amount: 250, day: 7, category_id: 5, category_name: "Electricity", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "TransAmerica Life Insurance", amount: 77, day: 9, category_id: 13, category_name: "Insurance", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Credit Card minimum payments", amount: 225, day: 14, category_id: 14, category_name: "Credit Cards", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14, category_id: 12, category_name: "Subscriptions", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Expenses & Groceries", amount: 3000, day: 16, category_id: 4, category_name: "Groceries", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Maid's 2nd Payment", amount: 120, day: 17, category_id: 11, category_name: "Home Services", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "SoFi Personal Loan", amount: 1915, day: 17, category_id: 2, category_name: "Loans", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Southwest Gas", amount: 75, day: 17, category_id: 6, category_name: "Gas", isOneTime: false, user_id: 1, created_at: today.toISOString() },
-        { id: generateId(), name: "Car Insurance (3 cars)", amount: 704, day: 28, category_id: 3, category_name: "Auto Insurance", isOneTime: false, user_id: 1, created_at: today.toISOString() }
+        { id: generateId(), name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1, category_id: 8, category_name: "Phone & Internet", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#FF0000' },
+        { id: generateId(), name: "Maid's 1st payment", amount: 120, day: 1, category_id: 11, category_name: "Home Services", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#00FF00' },
+        { id: generateId(), name: "Monthly Rent", amount: 3750, day: 1, category_id: 1, category_name: "Housing", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#0000FF' },
+        { id: generateId(), name: "Sling TV (CC 9550)", amount: 75, day: 3, category_id: 10, category_name: "Entertainment", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#FFFF00' },
+        { id: generateId(), name: "Cox Internet", amount: 81, day: 6, category_id: 9, category_name: "Internet", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#00FFFF' },
+        { id: generateId(), name: "Water Bill", amount: 80, day: 7, category_id: 7, category_name: "Utilities", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#FF00FF' },
+        { id: generateId(), name: "NV Energy Electrical", amount: 250, day: 7, category_id: 5, category_name: "Electricity", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#800080' },
+        { id: generateId(), name: "TransAmerica Life Insurance", amount: 77, day: 9, category_id: 13, category_name: "Insurance", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#008000' },
+        { id: generateId(), name: "Credit Card minimum payments", amount: 225, day: 14, category_id: 14, category_name: "Credit Cards", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#800000' },
+        { id: generateId(), name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14, category_id: 12, category_name: "Subscriptions", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#000080' },
+        { id: generateId(), name: "Expenses & Groceries", amount: 3000, day: 16, category_id: 4, category_name: "Groceries", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#808000' },
+        { id: generateId(), name: "Maid's 2nd Payment", amount: 120, day: 17, category_id: 11, category_name: "Home Services", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#008080' },
+        { id: generateId(), name: "SoFi Personal Loan", amount: 1915, day: 17, category_id: 2, category_name: "Loans", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#808080' },
+        { id: generateId(), name: "Southwest Gas", amount: 75, day: 17, category_id: 6, category_name: "Gas", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#FF8C00' },
+        { id: generateId(), name: "Car Insurance (3 cars)", amount: 704, day: 28, category_id: 3, category_name: "Auto Insurance", isOneTime: false, user_id: 1, created_at: today.toISOString(), category_color: '#A0522D' }
       ];
 
       // Validate default data using Zod schemas
@@ -232,42 +275,53 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return allOccurrences.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
   };
 
+  // Update the loadFromStorage function
+  const loadFromStorage = async <T extends Income | Bill>(
+    key: string,
+    schema: typeof incomeSchema | typeof billSchema,
+    type: string
+  ): Promise<T[]> => {
+    const data = localStorage.getItem(key);
+    if (!data) return [];
+
+    try {
+      const parsed = JSON.parse(data);
+      if (!Array.isArray(parsed)) {
+        logger.error(`Invalid ${type} data format`);
+        return [];
+      }
+
+      const validated = validateData(parsed, schema, type);
+      if (validated.length === 0) {
+        logger.warn(`No valid ${type} data found, using defaults`);
+      }
+      return validated;
+    } catch (error) {
+      logger.error(`Error loading ${type} data:`, { error });
+      return [];
+    }
+  };
+
+  // Update the loadData function
   const loadData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const loadFromStorage = async <T extends Income | Bill>(
-        key: string,
-        validator: (item: any) => boolean,
-        type: string
-      ): Promise<T[]> => {
-        const data = localStorage.getItem(key);
-        if (!data) return [];
-        try {
-          const parsed = JSON.parse(data);
-          return validateData(parsed, validator, type);
-        } catch (error) {
-          logger.warn(`Invalid stored ${type}, initializing defaults`, { error });
-          return [];
-        }
-      };
-
       const [storedIncomes, storedBills] = await Promise.all([
-        loadFromStorage<Income>("budgetIncomes", isValidIncome, "income"),
-        loadFromStorage<Bill>("budgetBills", isValidBill, "bill")
+        loadFromStorage<Income>("budgetIncomes", incomeSchema, "income"),
+        loadFromStorage<Bill>("budgetBills", billSchema, "bill")
       ]);
 
-      if (!storedIncomes.length && !storedBills.length) {
+      if (storedIncomes.length === 0 && storedBills.length === 0) {
         await initializeDefaultData();
       } else {
         setIncomes(storedIncomes);
         setBills(storedBills);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load data";
       logger.error("Error loading data:", { error });
-      setError(new Error(errorMessage));
+      setError(error instanceof Error ? error : new Error("Failed to load data"));
       await initializeDefaultData();
     } finally {
       setIsLoading(false);
@@ -319,14 +373,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setError(new Error(errorMessage));
       throw error;
     }
-  };
-
-  const isValidIncome = (income: any): income is Income => {
-    return incomeSchema.safeParse(income).success;
-  };
-
-  const isValidBill = (bill: any): bill is Bill => {
-    return billSchema.safeParse(bill).success;
   };
 
 
