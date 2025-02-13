@@ -217,7 +217,6 @@ export default function AnnualReportDialog({
         </DialogHeader>
 
         <div className="space-y-6 pt-4">
-          {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="py-4">
@@ -280,7 +279,6 @@ export default function AnnualReportDialog({
             </Card>
           </div>
 
-          {/* Monthly Breakdown */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-semibold">Monthly Breakdown</CardTitle>
