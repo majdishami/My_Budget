@@ -4,7 +4,7 @@
  * ================================================
  */
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Switch, Route, Link, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -25,21 +25,9 @@ import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import CategoriesPage from "@/pages/Categories";
-import NotFound from "@/pages/not-found";
-import MonthlyToDateReport from "@/pages/monthly-to-date";
-import MonthlyReport from "@/pages/monthly";
-import AnnualReport from "@/pages/annual";
-import DateRangeReport from "@/pages/date-range";
-import IncomeReport from "@/pages/income";
-import ExpenseReport from "@/pages/expenses";
-import { AddIncomeDialog } from "@/components/AddIncomeDialog";
-import { AddExpenseDialog } from "@/components/AddExpenseDialog";
-import { EditIncomeDialog } from "@/components/EditIncomeDialog";
-import EditExpenseDialog from "@/components/EditExpenseDialog";
-import { ExportDialog } from "@/components/ExportDialog";
-import { ViewRemindersDialog } from "@/components/ViewRemindersDialog";
-import { DatabaseSyncDialog } from "@/components/DatabaseSyncDialog";
+import crypto from 'crypto';
+import { Badge } from "@/components/ui/badge";
+import { logger } from './lib/logger';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,11 +46,28 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Income, Bill } from "@/types";
-import crypto from 'crypto';
-import { Badge } from "@/components/ui/badge";
-import { logger } from './lib/logger';
 
+// Add proper type imports
+import type { Income, Bill } from "@/types";
+
+// Lazy load pages with proper default exports
+const CategoriesPage = React.lazy(() => import("@/pages/Categories"));
+const MonthlyToDateReport = React.lazy(() => import("@/pages/monthly-to-date"));
+const MonthlyReport = React.lazy(() => import("@/pages/monthly"));
+const AnnualReport = React.lazy(() => import("@/pages/annual"));
+const DateRangeReport = React.lazy(() => import("@/pages/date-range"));
+const IncomeReport = React.lazy(() => import("@/pages/income"));
+const ExpenseReport = React.lazy(() => import("@/pages/expenses"));
+const NotFound = React.lazy(() => import("@/pages/not-found"));
+
+// Lazy load dialogs with proper default exports
+const AddIncomeDialog = React.lazy(() => import("@/components/AddIncomeDialog"));
+const AddExpenseDialog = React.lazy(() => import("@/components/AddExpenseDialog"));
+const EditIncomeDialog = React.lazy(() => import("@/components/EditIncomeDialog"));
+const EditExpenseDialog = React.lazy(() => import("@/components/EditExpenseDialog"));
+const ExportDialog = React.lazy(() => import("@/components/ExportDialog"));
+const ViewRemindersDialog = React.lazy(() => import("@/components/ViewRemindersDialog"));
+const DatabaseSyncDialog = React.lazy(() => import("@/components/DatabaseSyncDialog"));
 
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
@@ -510,70 +515,73 @@ function Router() {
           isMobile && "px-4"
         )}>
           <div className="h-full">
-            <Switch>
-              <Route path="/" component={Budget} />
-              <Route path="/categories" component={CategoriesPage} />
-              <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
-              <Route path="/reports/monthly" component={MonthlyReport} />
-              <Route path="/reports/annual" component={AnnualReport} />
-              <Route path="/reports/date-range" component={DateRangeReport} />
-              <Route path="/reports/income" component={IncomeReport} />
-              <Route path="/reports/expenses" component={ExpenseReport} />
-              <Route component={NotFound} />
-            </Switch>
+            <React.Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+              <Switch>
+                <Route path="/" component={Budget} />
+                <Route path="/categories" component={CategoriesPage} />
+                <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
+                <Route path="/reports/monthly" component={MonthlyReport} />
+                <Route path="/reports/annual" component={AnnualReport} />
+                <Route path="/reports/date-range" component={DateRangeReport} />
+                <Route path="/reports/income" component={IncomeReport} />
+                <Route path="/reports/expenses" component={ExpenseReport} />
+                <Route component={NotFound} />
+              </Switch>
+            </React.Suspense>
           </div>
         </main>
 
         <ErrorBoundary name="Dialogs">
-          <AddIncomeDialog
-            isOpen={showAddIncomeDialog}
-            onOpenChange={setShowAddIncomeDialog}
-            onConfirm={handleAddIncome}
-          />
-          <AddExpenseDialog
-            isOpen={showAddExpenseDialog}
-            onOpenChange={setShowAddExpenseDialog}
-            onConfirm={addBill}
-          />
-          <EditIncomeDialog
-            isOpen={showEditIncomeDialog}
-            onOpenChange={setShowEditIncomeDialog}
-            income={selectedIncome}
-            onUpdate={(updatedIncome) => {
-              editTransaction(updatedIncome);
-              setShowEditIncomeDialog(false);
-              setSelectedIncome(null);
-            }}
-          />
-          {selectedBill && (
-            <EditExpenseDialog
-              isOpen={showEditExpenseDialog}
-              onOpenChange={setShowEditExpenseDialog}
-              expense={selectedBill}
-              onUpdate={(updatedBill) => {
-                editTransaction(updatedBill);
-                setShowEditExpenseDialog(false);
-                setSelectedBill(null);
+          <React.Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <AddIncomeDialog
+              isOpen={showAddIncomeDialog}
+              onOpenChange={setShowAddIncomeDialog}
+              onConfirm={handleAddIncome}
+            />
+            <AddExpenseDialog
+              isOpen={showAddExpenseDialog}
+              onOpenChange={setShowAddExpenseDialog}
+              onConfirm={addBill}
+            />
+            <EditIncomeDialog
+              isOpen={showEditIncomeDialog}
+              onOpenChange={setShowEditIncomeDialog}
+              income={selectedIncome}
+              onUpdate={(updatedIncome: Income) => {
+                editTransaction(updatedIncome);
+                setShowEditIncomeDialog(false);
+                setSelectedIncome(null);
               }}
             />
-          )}
-          <ExportDialog
-            isOpen={showExportDialog}
-            onOpenChange={setShowExportDialog}
-            incomes={incomes}
-            bills={bills}
-          />
-          <ViewRemindersDialog
-            isOpen={showRemindersDialog}
-            onOpenChange={setShowRemindersDialog}
-            bills={bills}
-            onUpdateBill={editTransaction}
-          />
-          <DatabaseSyncDialog
-            isOpen={showDatabaseSyncDialog}
-            onOpenChange={setShowDatabaseSyncDialog}
-          />
-
+            {selectedBill && (
+              <EditExpenseDialog
+                isOpen={showEditExpenseDialog}
+                onOpenChange={setShowEditExpenseDialog}
+                expense={selectedBill}
+                onUpdate={(updatedBill) => {
+                  editTransaction(updatedBill);
+                  setShowEditExpenseDialog(false);
+                  setSelectedBill(null);
+                }}
+              />
+            )}
+            <ExportDialog
+              isOpen={showExportDialog}
+              onOpenChange={setShowExportDialog}
+              incomes={incomes}
+              bills={bills}
+            />
+            <ViewRemindersDialog
+              isOpen={showRemindersDialog}
+              onOpenChange={setShowRemindersDialog}
+              bills={bills}
+              onUpdateBill={editTransaction}
+            />
+            <DatabaseSyncDialog
+              isOpen={showDatabaseSyncDialog}
+              onOpenChange={setShowDatabaseSyncDialog}
+            />
+          </React.Suspense>
           <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -608,13 +616,18 @@ function App() {
       <ErrorBoundary
         name="RootErrorBoundary"
         onReset={() => {
-          // Clear any cached data and reload the app
           queryClient.clear();
           window.location.reload();
         }}
       >
-        <Router />
-        <Toaster />
+        <React.Suspense fallback={
+          <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        }>
+          <Router />
+          <Toaster />
+        </React.Suspense>
       </ErrorBoundary>
     </QueryClientProvider>
   );
