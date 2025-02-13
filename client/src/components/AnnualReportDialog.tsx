@@ -43,7 +43,7 @@ const defaultIncomes = [
     id: "majdi-salary",
     source: "Majdi's Salary",
     amount: 4739,
-    date: dayjs().format("YYYY-MM-DD"),
+    date: "2025-02-13",
     occurrenceType: "twice-monthly" as const,
     firstDate: 1,
     secondDate: 15
@@ -52,7 +52,7 @@ const defaultIncomes = [
     id: "ruba-salary",
     source: "Ruba's Salary",
     amount: 2168,
-    date: dayjs().format("YYYY-MM-DD"),
+    date: "2025-02-13",
     occurrenceType: "biweekly" as const
   }
 ];
@@ -62,20 +62,21 @@ export default function AnnualReportDialog({
   onOpenChange,
   selectedYear,
 }: AnnualReportDialogProps) {
-  const today = useMemo(() => dayjs(), []);
-  const currentYear = today.year();
-  const defaultYear = selectedYear ?? currentYear;
-  const [year, setYear] = useState(defaultYear);
+  // Fixed date for consistency
+  const fixedDate = "2025-02-13";
+  const today = useMemo(() => dayjs(fixedDate), []);
+  const currentYear = 2025;
+  const [year, setYear] = useState<number>(selectedYear ?? currentYear);
 
   const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
   });
 
-  const [incomes] = useState<Income[]>(defaultIncomes);
+  const [incomes, setIncomes] = useState<Income[]>(defaultIncomes);
 
   useEffect(() => {
-    if (selectedYear) {
+    if (selectedYear != null) {
       setYear(selectedYear);
     }
   }, [selectedYear]);
@@ -90,10 +91,11 @@ export default function AnnualReportDialog({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onOpenChange]);
 
-  const generateMonthlyIncomes = () => {
+  const generateMonthlyIncomes = useMemo(() => {
     const monthlyIncomes: Record<string, { occurred: number; pending: number }> = {};
-    const startOfYear = dayjs().year(year).startOf('year');
+    const startOfYear = dayjs(fixedDate).year(year).startOf('year');
 
+    // Initialize all months
     for (let month = 0; month < 12; month++) {
       const monthDate = startOfYear.add(month, 'month');
       monthlyIncomes[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
@@ -120,7 +122,7 @@ export default function AnnualReportDialog({
           }
         }
       } else if (income.source === "Ruba's Salary" && income.occurrenceType === "biweekly") {
-        let payDate = dayjs().year(year).month(0).date(10); // Start from January 10th
+        let payDate = dayjs(fixedDate).year(year).month(0).date(10);
         const endDate = startOfYear.endOf('year');
 
         while (payDate.isSameOrBefore(endDate)) {
@@ -138,11 +140,11 @@ export default function AnnualReportDialog({
     });
 
     return monthlyIncomes;
-  };
+  }, [year, incomes, today]);
 
-  const generateMonthlyExpenses = () => {
+  const generateMonthlyExpenses = useMemo(() => {
     const monthlyExpenses: Record<string, { occurred: number; pending: number }> = {};
-    const startOfYear = dayjs().year(year).startOf('year');
+    const startOfYear = dayjs(fixedDate).year(year).startOf('year');
 
     for (let month = 0; month < 12; month++) {
       const monthDate = startOfYear.add(month, 'month');
@@ -163,10 +165,7 @@ export default function AnnualReportDialog({
     });
 
     return monthlyExpenses;
-  };
-
-  const monthlyIncomes = useMemo(generateMonthlyIncomes, [year, incomes, today]);
-  const monthlyExpenses = useMemo(generateMonthlyExpenses, [year, bills, today]);
+  }, [year, bills, today]);
 
   const totals = useMemo(() => {
     const result = {
@@ -174,18 +173,18 @@ export default function AnnualReportDialog({
       expenses: { occurred: 0, pending: 0 }
     };
 
-    Object.values(monthlyIncomes).forEach(month => {
+    Object.values(generateMonthlyIncomes).forEach(month => {
       result.income.occurred += month.occurred;
       result.income.pending += month.pending;
     });
 
-    Object.values(monthlyExpenses).forEach(month => {
+    Object.values(generateMonthlyExpenses).forEach(month => {
       result.expenses.occurred += month.occurred;
       result.expenses.pending += month.pending;
     });
 
     return result;
-  }, [monthlyIncomes, monthlyExpenses]);
+  }, [generateMonthlyIncomes, generateMonthlyExpenses]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -209,9 +208,9 @@ export default function AnnualReportDialog({
                 {Array.from(
                   { length: 11 },
                   (_, i) => currentYear - 5 + i
-                ).map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
+                ).map((y) => (
+                  <SelectItem key={y} value={y.toString()}>
+                    {y}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -302,8 +301,8 @@ export default function AnnualReportDialog({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Object.entries(monthlyIncomes).map(([month, income]) => {
-                    const expense = monthlyExpenses[month];
+                  {Object.entries(generateMonthlyIncomes).map(([month, income]) => {
+                    const expense = generateMonthlyExpenses[month];
                     const netOccurred = income.occurred - expense.occurred;
                     const netPending = income.pending - expense.pending;
 
