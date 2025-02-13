@@ -46,7 +46,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { RouteComponentProps } from 'react-router-dom';
 
 // Proper type imports
 import type { Income, Bill } from "@/types";
@@ -63,13 +62,41 @@ const ExpenseReport = React.lazy(() => import("@/pages/expenses"));
 const NotFound = React.lazy(() => import("@/pages/not-found"));
 
 // Lazy load dialogs with proper types
-const AddIncomeDialog = React.lazy(() => import("@/components/AddIncomeDialog"));
-const AddExpenseDialog = React.lazy(() => import("@/components/AddExpenseDialog"));
-const EditIncomeDialog = React.lazy(() => import("@/components/EditIncomeDialog"));
-const EditExpenseDialog = React.lazy(() => import("@/components/EditExpenseDialog"));
-const ExportDialog = React.lazy(() => import("@/components/ExportDialog"));
-const ViewRemindersDialog = React.lazy(() => import("@/components/ViewRemindersDialog"));
-const DatabaseSyncDialog = React.lazy(() => import("@/components/DatabaseSyncDialog"));
+const AddIncomeDialog = React.lazy(() => 
+  import("@/components/AddIncomeDialog").then(module => ({ 
+    default: module.default || module 
+  }))
+);
+const AddExpenseDialog = React.lazy(() => 
+  import("@/components/AddExpenseDialog").then(module => ({ 
+    default: module.default || module 
+  }))
+);
+const EditIncomeDialog = React.lazy(() => 
+  import("@/components/EditIncomeDialog").then(module => ({ 
+    default: module.default || module 
+  }))
+);
+const EditExpenseDialog = React.lazy(() => 
+  import("@/components/EditExpenseDialog").then(module => ({ 
+    default: module.default || module 
+  }))
+);
+const ExportDialog = React.lazy(() => 
+  import("@/components/ExportDialog").then(module => ({ 
+    default: module.default || module 
+  }))
+);
+const ViewRemindersDialog = React.lazy(() => 
+  import("@/components/ViewRemindersDialog").then(module => ({ 
+    default: module.default || module 
+  }))
+);
+const DatabaseSyncDialog = React.lazy(() => 
+  import("@/components/DatabaseSyncDialog").then(module => ({ 
+    default: module.default || module 
+  }))
+);
 
 function Router() {
   const {
