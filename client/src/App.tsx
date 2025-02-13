@@ -190,315 +190,111 @@ function Router() {
                   <h1 className="text-xl font-bold">
                     My Budget
                   </h1>
-                  {isMobile ? (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleRefresh}
-                        disabled={isRefreshing}
-                        className="p-2 hover:bg-accent rounded-md relative"
-                        aria-label="Refresh data"
-                      >
-                        <RotateCw className={cn(
-                          "h-5 w-5",
-                          isRefreshing && "animate-spin"
-                        )} />
-                      </button>
-                      <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-                        <SheetTrigger asChild>
-                          <button className="p-2 hover:bg-accent rounded-md">
-                            <Menu className="h-5 w-5" />
-                          </button>
-                        </SheetTrigger>
-                        <SheetContent side="left" className="w-[80vw] sm:w-[350px]">
-                          <nav className="flex flex-col gap-4 mt-4">
-                            <Link href="/" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                              Dashboard
-                            </Link>
-                            <Link href="/categories" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                              <Tags className="h-4 w-4" />
-                              Categories
-                            </Link>
-                            <button
-                              onClick={() => {
-                                setIsMenuOpen(false);
-                                setShowAddExpenseDialog(true);
-                              }}
-                              className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                              Add Expense
-                            </button>
-                            <button
-                              onClick={() => {
-                                setIsMenuOpen(false);
-                                setShowAddIncomeDialog(true);
-                              }}
-                              className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                              Add Income
-                            </button>
-                            <button
-                              onClick={() => {
-                                setIsMenuOpen(false);
-                                setShowRemindersDialog(true);
-                              }}
-                              className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                            >
-                              View Reminders
-                            </button>
-                            <div className="flex flex-col gap-2">
-                              <h3 className="font-medium px-2">Reports</h3>
-                              <Link href="/reports/monthly-to-date" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Monthly to Date
-                              </Link>
-                              <Link href="/reports/monthly" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Monthly Report
-                              </Link>
-                              <Link href="/reports/annual" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Annual Report
-                              </Link>
-                              <Link href="/reports/date-range" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Date Range
-                              </Link>
-                              <Link href="/reports/income" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Income Report
-                              </Link>
-                              <Link href="/reports/expenses" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Expense Report
-                              </Link>
-                            </div>
-                            <button
-                              onClick={() => {
-                                setIsMenuOpen(false);
-                                setShowExportDialog(true);
-                              }}
-                              className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                            >
-                              <Download className="h-4 w-4" />
-                              Export Data
-                            </button>
-                            <button
-                              onClick={() => {
-                                setIsMenuOpen(false);
-                                setShowDatabaseSyncDialog(true);
-                              }}
-                              className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                            >
-                              <Database className="h-4 w-4" />
-                              Sync Database
-                            </button>
-                          </nav>
-                        </SheetContent>
-                      </Sheet>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-4">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
-                            <FileText className="h-4 w-4" />
-                            Expenses
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="max-h-[60vh] overflow-y-auto">
-                          <DropdownMenuItem onClick={() => setShowAddExpenseDialog(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Expense
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel>Edit Expenses</DropdownMenuLabel>
-                          <div className="max-h-[25vh] overflow-y-auto">
-                            {bills.map((bill) => (
-                              <DropdownMenuItem
-                                key={`edit-${bill.id}`}
-                                onClick={() => handleEditTransaction('bill', bill)}
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                {bill.name}
-                              </DropdownMenuItem>
-                            ))}
-                          </div>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel>Delete Expenses</DropdownMenuLabel>
-                          <div className="max-h-[25vh] overflow-y-auto">
-                            {bills.map((bill) => (
-                              <DropdownMenuItem
-                                key={`delete-${bill.id}`}
-                                onClick={() => handleDeleteTransaction('bill', bill)}
-                                className="text-red-600"
-                              >
-                                <Trash className="mr-2 h-4 w-4" />
-                                {bill.name}
-                              </DropdownMenuItem>
-                            ))}
-                          </div>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
-                            <FileText className="h-4 w-4" />
-                            Income
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Income
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel>Edit Income</DropdownMenuLabel>
-                          {incomes.reduce((uniqueIncomes: Income[], income) => {
-                            // For recurring incomes, only show the next occurrence
-                            if (income.occurrenceType !== 'once') {
-                              const existingIncome = uniqueIncomes.find(i => i.source === income.source);
-                              if (!existingIncome || dayjs(income.date).isBefore(dayjs(existingIncome.date))) {
-                                // Remove any existing income with same source
-                                const filteredIncomes = uniqueIncomes.filter(i => i.source !== income.source);
-                                return [...filteredIncomes, income];
-                              }
-                              return uniqueIncomes;
-                            }
-                            // For one-time incomes, show all
-                            return [...uniqueIncomes, income];
-                          }, []).map((income) => {
-                            // Determine the correct occurrence type label
-                            let occurrenceTypeLabel = income.occurrenceType;
-                            if (income.source === "Majdi's Salary") {
-                              occurrenceTypeLabel = "twice-monthly";
-                            } else if (income.source === "Ruba's Salary") {
-                              occurrenceTypeLabel = "biweekly";
-                            }
-
-                            return (
-                              <DropdownMenuItem
-                                key={`edit-${income.id}`}
-                                onClick={() => handleEditTransaction('income', income)}
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                <div className="flex items-center gap-2">
-                                  <span>{income.source}</span>
-                                  <Badge variant="outline" className="ml-2">
-                                    {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
-                                      occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
-                                      occurrenceTypeLabel === 'monthly' ? 'Monthly' :
-                                      occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
-                                  </Badge>
-                                  <span className="text-muted-foreground text-sm">
-                                    ({dayjs(income.date).format('MMM D')})
-                                  </span>
-                                </div>
-                              </DropdownMenuItem>
-                            );
-                          })}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel>Delete Income</DropdownMenuLabel>
-                          {incomes.reduce((uniqueIncomes: Income[], income) => {
-                            // Same reduction logic as above for delete section
-                            if (income.occurrenceType !== 'once') {
-                              const existingIncome = uniqueIncomes.find(i => i.source === income.source);
-                              if (!existingIncome || dayjs(income.date).isBefore(dayjs(existingIncome.date))) {
-                                const filteredIncomes = uniqueIncomes.filter(i => i.source !== income.source);
-                                return [...filteredIncomes, income];
-                              }
-                              return uniqueIncomes;
-                            }
-                            return [...uniqueIncomes, income];
-                          }, []).map((income) => {
-                            // Determine the correct occurrence type label for delete section
-                            let occurrenceTypeLabel = income.occurrenceType;
-                            if (income.source === "Majdi's Salary") {
-                              occurrenceTypeLabel = "twice-monthly";
-                            } else if (income.source === "Ruba's Salary") {
-                              occurrenceTypeLabel = "biweekly";
-                            }
-
-                            return (
-                              <DropdownMenuItem
-                                key={`delete-${income.id}`}
-                                onClick={() => handleDeleteTransaction('income', income)}
-                                className="text-red-600"
-                              >
-                                <Trash className="mr-2 h-4 w-4" />
-                                <div className="flex items-center gap-2">
-                                  <span>{income.source}</span>
-                                  <Badge variant="outline" className="ml-2">
-                                    {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
-                                      occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
-                                      occurrenceTypeLabel === 'monthly' ? 'Monthly' :
-                                      occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
-                                  </Badge>
-                                  <span className="text-muted-foreground text-sm">
-                                    ({dayjs(income.date).format('MMM D')})
-                                  </span>
-                                </div>
-                              </DropdownMenuItem>
-                            );
-                          })}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      <Link href="/categories">
-                        <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
-                          <Tags className="h-4 w-4" />
-                          Categories
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      className="p-2 hover:bg-accent rounded-md relative"
+                      aria-label="Refresh data"
+                    >
+                      <RotateCw className={cn(
+                        "h-5 w-5",
+                        isRefreshing && "animate-spin"
+                      )} />
+                    </button>
+                    <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                      <SheetTrigger asChild>
+                        <button
+                          className="p-2 hover:bg-accent rounded-md flex items-center gap-2 border border-input"
+                          aria-label="Open menu"
+                        >
+                          <Menu className="h-5 w-5" />
+                          <span className="text-sm font-medium">Menu</span>
                         </button>
-                      </Link>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors">
-                            <BarChart4 className="h-4 w-4" />
-                            Reports
-                            <ChevronDown className="h-4 w-4" />
+                      </SheetTrigger>
+                      <SheetContent side="left" className="w-[80vw] sm:w-[350px]">
+                        <nav className="flex flex-col gap-4 mt-4">
+                          <Link href="/" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                            Dashboard
+                          </Link>
+                          <Link href="/categories" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                            <Tags className="h-4 w-4" />
+                            Categories
+                          </Link>
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setShowAddExpenseDialog(true);
+                            }}
+                            className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                            Add Expense
                           </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => setShowRemindersDialog(true)}>
-                            <Bell className="mr-2 h-4 w-4" />
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setShowAddIncomeDialog(true);
+                            }}
+                            className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                            Add Income
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setShowRemindersDialog(true);
+                            }}
+                            className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                          >
                             View Reminders
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild>
-                            <Link href="/reports/monthly-to-date">Monthly to Date</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href="/reports/monthly">Monthly Report</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href="/reports/annual">Annual Report</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href="/reports/date-range">Date Range</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href="/reports/income">Income Report</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href="/reports/expenses">Expense Report</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => setShowExportDialog(true)}>
+                          </button>
+                          <div className="flex flex-col gap-2">
+                            <h3 className="font-medium px-2">Reports</h3>
+                            <Link href="/reports/monthly-to-date" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Monthly to Date
+                            </Link>
+                            <Link href="/reports/monthly" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Monthly Report
+                            </Link>
+                            <Link href="/reports/annual" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Annual Report
+                            </Link>
+                            <Link href="/reports/date-range" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Date Range
+                            </Link>
+                            <Link href="/reports/income" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Income Report
+                            </Link>
+                            <Link href="/reports/expenses" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                              Expense Report
+                            </Link>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setShowExportDialog(true);
+                            }}
+                            className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                          >
+                            <Download className="h-4 w-4" />
                             Export Data
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      <button
-                        onClick={() => setShowDatabaseSyncDialog(true)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-md select-none hover:bg-accent hover:text-accent-foreground transition-colors"
-                      >
-                        <Database className="h-4 w-4" />
-                        Sync Database
-                      </button>
-
-                      <ThemeToggle />
-                    </div>
-                  )}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setShowDatabaseSyncDialog(true);
+                            }}
+                            className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                          >
+                            <Database className="h-4 w-4" />
+                            Sync Database
+                          </button>
+                        </nav>
+                      </SheetContent>
+                    </Sheet>
+                  </div>
                 </div>
               </div>
             </Card>
