@@ -1,141 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { categories, users, bills, insertUserSchema, insertCategorySchema } from "@db/schema";
+import { categories, insertCategorySchema } from "@db/schema";
 import { eq } from "drizzle-orm";
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import session from "express-session";
-import ConnectPgSimple from "connect-pg-simple";
-import crypto from "crypto";
 import { sql } from 'drizzle-orm';
 import pkg from 'pg';
 const { Pool } = pkg;
 
-// Hash password using SHA-256
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
 export function registerRoutes(app: Express): Server {
-  // Initialize PostgreSQL session store
-  const PgSession = ConnectPgSimple(session);
-
-  // Set up session middleware
-  app.use(session({
-    store: new PgSession({
-      conObject: {
-        connectionString: process.env.DATABASE_URL,
-      },
-    }),
-    secret: crypto.randomBytes(32).toString('hex'),
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    },
-  }));
-
-  // Initialize Passport and restore authentication state from session
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  // Set up Passport Local Strategy
-  passport.use(new LocalStrategy(async (username, password, done) => {
-    try {
-      const [user] = await db.select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (!user) {
-        return done(null, false, { message: 'Invalid username or password' });
-      }
-
-      const hashedPassword = hashPassword(password);
-      if (hashedPassword !== user.password) {
-        return done(null, false, { message: 'Invalid username or password' });
-      }
-
-      return done(null, user);
-    } catch (err) {
-      return done(err);
-    }
-  }));
-
-  passport.serializeUser((user: any, done) => {
-    done(null, user.id);
-  });
-
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      const [user] = await db.select()
-        .from(users)
-        .where(eq(users.id, id))
-        .limit(1);
-      done(null, user);
-    } catch (err) {
-      done(err);
-    }
-  });
-
-  // Middleware to check if user is authenticated
-  const requireAuth = (req: any, res: any, next: any) => {
-    if (req.isAuthenticated()) {
-      return next();
-    }
-    res.status(401).json({ message: 'Unauthorized' });
-  };
-
-  // Authentication Routes
-  app.post('/api/auth/register', async (req, res) => {
-    try {
-      const { username, password } = await insertUserSchema.parseAsync(req.body);
-
-      // Check if username already exists
-      const [existingUser] = await db.select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (existingUser) {
-        return res.status(400).json({ message: 'Username already exists' });
-      }
-
-      // Create new user
-      const hashedPassword = hashPassword(password);
-      const [newUser] = await db.insert(users)
-        .values({
-          username,
-          password: hashedPassword,
-        })
-        .returning();
-
-      res.status(201).json({ message: 'User created successfully', id: newUser.id });
-    } catch (error) {
-      res.status(400).json({ message: 'Invalid request' });
-    }
-  });
-
-  app.post('/api/auth/login', passport.authenticate('local'), (req, res) => {
-    res.json({ message: 'Logged in successfully' });
-  });
-
-  app.post('/api/auth/logout', (req, res) => {
-    req.logout(() => {
-      res.json({ message: 'Logged out successfully' });
-    });
-  });
-
-  // Test route for auth status
-  app.get('/api/auth/status', (req, res) => {
-    res.json({
-      isAuthenticated: req.isAuthenticated(),
-      user: req.user ? { id: (req.user as any).id } : null
-    });
-  });
-
   // Initialize a database pool for raw queries
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -211,9 +83,10 @@ export function registerRoutes(app: Express): Server {
   app.patch('/api/categories/:id', async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
-      const category = await db.query.categories.findFirst({
-        where: eq(categories.id, categoryId),
-      });
+      const [category] = await db.select()
+        .from(categories)
+        .where(eq(categories.id, categoryId))
+        .limit(1);
 
       if (!category) {
         return res.status(404).json({ message: 'Category not found' });
@@ -244,9 +117,10 @@ export function registerRoutes(app: Express): Server {
   app.delete('/api/categories/:id', async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
-      const category = await db.query.categories.findFirst({
-        where: eq(categories.id, categoryId),
-      });
+      const [category] = await db.select()
+        .from(categories)
+        .where(eq(categories.id, categoryId))
+        .limit(1);
 
       if (!category) {
         return res.status(404).json({ message: 'Category not found' });
@@ -261,44 +135,6 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: 'Server error deleting category' });
     }
   });
-
-  // Bills Routes
-  app.get('/api/bills', async (req, res) => {
-    try {
-      console.log('[Bills API] Fetching bills with categories...');
-
-      const billsWithCategories = await db.query.bills.findMany({
-        with: {
-          category: true
-        },
-        orderBy: (bills, { asc }) => [asc(bills.created_at)]
-      });
-
-      console.log('[Bills API] Found bills:', billsWithCategories.length);
-
-      // Transform the data to include category information directly
-      const formattedBills = billsWithCategories.map(bill => ({
-        ...bill,
-        category_name: bill.category?.name || 'Uncategorized',
-        category_color: bill.category?.color || '#D3D3D3',
-        category_icon: bill.category?.icon || null
-      }));
-
-      return res.json(formattedBills);
-    } catch (error) {
-      console.error('[Bills API] Error:', error);
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Unknown database error';
-
-      return res.status(500).json({
-        message: 'Failed to load bills',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error : undefined
-      });
-    }
-  });
-
 
   const httpServer = createServer(app);
   return httpServer;
