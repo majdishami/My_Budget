@@ -30,7 +30,6 @@ import {
 import { X, Calendar } from "lucide-react";
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 
-// Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
 
 interface AnnualReportDialogProps {
@@ -39,25 +38,24 @@ interface AnnualReportDialogProps {
   selectedYear?: number;
 }
 
-// Move static data outside component
-const staticIncomes = [
-  {
-    id: "majdi-salary",
-    source: "Majdi's Salary",
-    amount: 4739,
+function createIncome(
+  id: string,
+  source: string,
+  amount: number,
+  occurrenceType: Income['occurrenceType'],
+  firstDate?: number,
+  secondDate?: number
+): Income {
+  return {
+    id,
+    source,
+    amount,
     date: dayjs().format('YYYY-MM-DD'),
-    occurrenceType: 'twice-monthly' as const,
-    firstDate: 1,
-    secondDate: 15
-  },
-  {
-    id: "ruba-salary",
-    source: "Ruba's Salary",
-    amount: 2168,
-    date: dayjs().format('YYYY-MM-DD'),
-    occurrenceType: 'biweekly' as const
-  }
-] as const;
+    occurrenceType,
+    ...(firstDate && { firstDate }),
+    ...(secondDate && { secondDate })
+  };
+}
 
 export default function AnnualReportDialog({
   isOpen,
@@ -69,15 +67,30 @@ export default function AnnualReportDialog({
   const defaultYear = selectedYear || currentYear;
   const [year, setSelectedYear] = useState<number>(defaultYear);
 
-  // Get bills data
   const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
   });
 
-  const [incomes] = useState<Income[]>(staticIncomes);
+  const defaultIncomes = [
+    createIncome(
+      "majdi-salary",
+      "Majdi's Salary",
+      4739,
+      'twice-monthly',
+      1,
+      15
+    ),
+    createIncome(
+      "ruba-salary",
+      "Ruba's Salary",
+      2168,
+      'biweekly'
+    )
+  ];
 
-  // Add keyboard event listener for Escape key
+  const [incomes] = useState<Income[]>(defaultIncomes);
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -91,21 +104,17 @@ export default function AnnualReportDialog({
   const generateMonthlyIncomes = () => {
     const monthlyIncomes: Record<string, { occurred: number; pending: number }> = {};
 
-    // Initialize months
     for (let month = 0; month < 12; month++) {
       const monthDate = dayjs().year(year).month(month);
       monthlyIncomes[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
     }
 
-    // Process incomes
     incomes.forEach(income => {
       if (income.source === "Majdi's Salary" && income.occurrenceType === 'twice-monthly') {
-        // Process twice-monthly salary
         for (let month = 0; month < 12; month++) {
           const monthDate = dayjs().year(year).month(month);
           const monthKey = monthDate.format('MMMM');
 
-          // First payment
           const firstPayday = monthDate.date(income.firstDate || 1);
           if (firstPayday.isSameOrBefore(today)) {
             monthlyIncomes[monthKey].occurred += income.amount;
@@ -113,7 +122,6 @@ export default function AnnualReportDialog({
             monthlyIncomes[monthKey].pending += income.amount;
           }
 
-          // Second payment
           const secondPayday = monthDate.date(income.secondDate || 15);
           if (secondPayday.isSameOrBefore(today)) {
             monthlyIncomes[monthKey].occurred += income.amount;
@@ -122,8 +130,7 @@ export default function AnnualReportDialog({
           }
         }
       } else if (income.source === "Ruba's Salary" && income.occurrenceType === 'biweekly') {
-        // Process bi-weekly salary
-        let payDate = dayjs('2025-01-10'); // Start date
+        let payDate = dayjs('2025-01-10');
         const endDate = dayjs().year(year).endOf('year');
 
         while (payDate.isSameOrBefore(endDate)) {
@@ -146,13 +153,11 @@ export default function AnnualReportDialog({
   const generateMonthlyExpenses = () => {
     const monthlyExpenses: Record<string, { occurred: number; pending: number }> = {};
 
-    // Initialize months
     for (let month = 0; month < 12; month++) {
       const monthDate = dayjs().year(year).month(month);
       monthlyExpenses[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
     }
 
-    // Process bills
     bills.forEach(bill => {
       for (let month = 0; month < 12; month++) {
         const billDate = dayjs().year(year).month(month).date(bill.day);
@@ -172,7 +177,6 @@ export default function AnnualReportDialog({
   const monthlyIncomes = useMemo(generateMonthlyIncomes, [year, incomes, today]);
   const monthlyExpenses = useMemo(generateMonthlyExpenses, [year, bills, today]);
 
-  // Calculate totals
   const totals = useMemo(() => {
     const result = {
       income: { occurred: 0, pending: 0 },
