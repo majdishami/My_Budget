@@ -58,7 +58,7 @@ export default function AnnualReportDialog({
 
   // Define default incomes with Zod validation
   const defaultIncomes = useMemo(() => {
-    const majdiSalary = incomeSchema.parse({
+    const majdiSalary = {
       id: "majdi-salary",
       source: "Majdi's Salary",
       amount: 4739,
@@ -66,17 +66,21 @@ export default function AnnualReportDialog({
       occurrenceType: "twice-monthly",
       firstDate: 1,
       secondDate: 15
-    });
+    } as const;
 
-    const rubaSalary = incomeSchema.parse({
+    const rubaSalary = {
       id: "ruba-salary",
       source: "Ruba's Salary",
       amount: 2168,
       date: today.format('YYYY-MM-DD'),
       occurrenceType: "biweekly"
-    });
+    } as const;
 
-    return [majdiSalary, rubaSalary];
+    // Validate using Zod schema
+    return [
+      incomeSchema.parse(majdiSalary),
+      incomeSchema.parse(rubaSalary)
+    ];
   }, [today]);
 
   const [incomes] = useState<Income[]>(defaultIncomes);
