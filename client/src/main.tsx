@@ -1,6 +1,5 @@
 import { createRoot } from "react-dom/client";
 import { lazy, Suspense } from "react";
-import { DataProvider } from "@/contexts/DataContext";
 import "./index.css";
 
 // Error handling for initialization
@@ -15,11 +14,9 @@ try {
   const App = lazy(() => import("./App"));
 
   root.render(
-    <DataProvider>
-      <Suspense fallback={<div>Loading...</div>}>
-        <App />
-      </Suspense>
-    </DataProvider>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <App />
+    </Suspense>
   );
 } catch (error) {
   console.error("Failed to initialize app:", error);

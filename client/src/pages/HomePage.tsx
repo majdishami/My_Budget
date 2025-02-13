@@ -17,7 +17,7 @@ export default function HomePage() {
             <CardTitle>Budget Overview</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>Welcome to your budget tracker!</p>
+            <p className="text-foreground">Welcome to your budget tracker!</p>
           </CardContent>
         </Card>
       </main>
