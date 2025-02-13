@@ -18,7 +18,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2, Menu, BarChart4,
   Download, Database, Tags, ChevronDown,
-  RotateCw, Plus, Edit, Trash, FileText, Bell
+  RotateCw, Plus, Edit, Trash, FileText, Bell,
+  PlusCircle
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
