@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import dayjs from "dayjs";
-import { Income, Bill } from "@/types";
+import { Income, Bill, OccurrenceType } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -39,14 +39,14 @@ interface AnnualReportDialogProps {
   selectedYear?: number;
 }
 
-// Define static incomes
+// Define default incomes with proper typing
 const DEFAULT_INCOMES: Income[] = [
   {
     id: "majdi-salary",
     source: "Majdi's Salary",
     amount: 4739,
     date: dayjs().format('YYYY-MM-DD'),
-    occurrenceType: "twice-monthly",
+    occurrenceType: 'twice-monthly' as OccurrenceType,
     firstDate: 1,
     secondDate: 15
   },
@@ -55,7 +55,7 @@ const DEFAULT_INCOMES: Income[] = [
     source: "Ruba's Salary",
     amount: 2168,
     date: dayjs().format('YYYY-MM-DD'),
-    occurrenceType: "biweekly"
+    occurrenceType: 'biweekly' as OccurrenceType
   }
 ];
 
