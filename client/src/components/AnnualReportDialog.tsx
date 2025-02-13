@@ -43,7 +43,7 @@ const defaultIncomes: Income[] = [
     id: "majdi-salary",
     source: "Majdi's Salary",
     amount: 4739,
-    date: "2025-02-13",
+    date: dayjs("2025-02-13").format("YYYY-MM-DD"),
     occurrenceType: "twice-monthly",
     firstDate: 1,
     secondDate: 15
@@ -52,10 +52,10 @@ const defaultIncomes: Income[] = [
     id: "ruba-salary",
     source: "Ruba's Salary",
     amount: 2168,
-    date: "2025-02-13",
+    date: dayjs("2025-02-13").format("YYYY-MM-DD"),
     occurrenceType: "biweekly"
   }
-] as const;
+];
 
 export default function AnnualReportDialog({
   isOpen,
@@ -65,14 +65,19 @@ export default function AnnualReportDialog({
   const today = useMemo(() => dayjs("2025-02-13"), []);
   const currentYear = today.year();
   const defaultYear = selectedYear || currentYear;
-  const [year, setSelectedYear] = useState<number>(defaultYear);
-
+  const [selectedYear_, setSelectedYear] = useState<number>(defaultYear);
   const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
   });
 
   const [incomes] = useState<Income[]>(defaultIncomes);
+
+  useEffect(() => {
+    if (selectedYear) {
+      setSelectedYear(selectedYear);
+    }
+  }, [selectedYear]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -86,16 +91,17 @@ export default function AnnualReportDialog({
 
   const generateMonthlyIncomes = () => {
     const monthlyIncomes: Record<string, { occurred: number; pending: number }> = {};
+    const startOfYear = dayjs().year(selectedYear_).startOf('year');
 
     for (let month = 0; month < 12; month++) {
-      const monthDate = dayjs().year(year).month(month);
+      const monthDate = startOfYear.add(month, 'month');
       monthlyIncomes[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
     }
 
     incomes.forEach(income => {
       if (income.source === "Majdi's Salary" && income.occurrenceType === "twice-monthly") {
         for (let month = 0; month < 12; month++) {
-          const monthDate = dayjs().year(year).month(month);
+          const monthDate = startOfYear.add(month, 'month');
           const monthKey = monthDate.format('MMMM');
 
           const firstPayday = monthDate.date(income.firstDate || 1);
@@ -114,10 +120,10 @@ export default function AnnualReportDialog({
         }
       } else if (income.source === "Ruba's Salary" && income.occurrenceType === "biweekly") {
         let payDate = dayjs("2025-01-10");
-        const endDate = dayjs().year(year).endOf('year');
+        const endDate = startOfYear.endOf('year');
 
         while (payDate.isSameOrBefore(endDate)) {
-          if (payDate.year() === year) {
+          if (payDate.year() === selectedYear_) {
             const monthKey = payDate.format('MMMM');
             if (payDate.isSameOrBefore(today)) {
               monthlyIncomes[monthKey].occurred += income.amount;
@@ -135,15 +141,16 @@ export default function AnnualReportDialog({
 
   const generateMonthlyExpenses = () => {
     const monthlyExpenses: Record<string, { occurred: number; pending: number }> = {};
+    const startOfYear = dayjs().year(selectedYear_).startOf('year');
 
     for (let month = 0; month < 12; month++) {
-      const monthDate = dayjs().year(year).month(month);
+      const monthDate = startOfYear.add(month, 'month');
       monthlyExpenses[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
     }
 
     bills.forEach(bill => {
       for (let month = 0; month < 12; month++) {
-        const billDate = dayjs().year(year).month(month).date(bill.day);
+        const billDate = startOfYear.add(month, 'month').date(bill.day);
         const monthKey = billDate.format('MMMM');
 
         if (billDate.isSameOrBefore(today)) {
@@ -157,8 +164,8 @@ export default function AnnualReportDialog({
     return monthlyExpenses;
   };
 
-  const monthlyIncomes = useMemo(generateMonthlyIncomes, [year, incomes, today]);
-  const monthlyExpenses = useMemo(generateMonthlyExpenses, [year, bills, today]);
+  const monthlyIncomes = useMemo(generateMonthlyIncomes, [selectedYear_, incomes, today]);
+  const monthlyExpenses = useMemo(generateMonthlyExpenses, [selectedYear_, bills, today]);
 
   const totals = useMemo(() => {
     const result = {
@@ -191,7 +198,7 @@ export default function AnnualReportDialog({
           </div>
           <div className="flex items-center gap-4">
             <Select
-              value={year.toString()}
+              value={selectedYear_.toString()}
               onValueChange={(value) => setSelectedYear(parseInt(value))}
             >
               <SelectTrigger className="w-[120px]">
