@@ -1,3 +1,10 @@
+import { useState, useEffect } from "react";
+import { Bill } from "@/types";
+import { ReminderDialog } from "@/components/ReminderDialog";
+import { Bell, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useQuery } from "@tanstack/react-query";
+import { generateId } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -7,13 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
-import { Bill } from "@/types";
-import { ReminderDialog } from "@/components/ReminderDialog";
-import { Bell, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useQuery } from "@tanstack/react-query";
-import { generateId } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -34,12 +34,11 @@ export interface AddExpenseDialogProps {
   onConfirm: (newBill: Bill) => void;
 }
 
-export default function AddExpenseDialog({
+const AddExpenseDialog = ({
   isOpen,
   onOpenChange,
   onConfirm,
-}: AddExpenseDialogProps) {
-  // State
+}: AddExpenseDialogProps) => {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [day, setDay] = useState("1");
@@ -48,12 +47,10 @@ export default function AddExpenseDialog({
   const [reminderDays, setReminderDays] = useState(7);
   const [showReminderDialog, setShowReminderDialog] = useState(false);
 
-  // Fetch categories
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
   });
 
-  // Validation state
   const [errors, setErrors] = useState<{
     name?: string;
     amount?: string;
@@ -61,7 +58,6 @@ export default function AddExpenseDialog({
     category?: string;
   }>({});
 
-  // Reset form on close
   useEffect(() => {
     if (!isOpen) {
       resetForm();
@@ -78,7 +74,7 @@ export default function AddExpenseDialog({
     setErrors({});
   };
 
-  const validateForm = (): boolean => {
+  const validateForm = () => {
     const newErrors: typeof errors = {};
 
     if (!name.trim()) {
@@ -106,7 +102,7 @@ export default function AddExpenseDialog({
   const handleConfirm = () => {
     if (!validateForm()) return;
 
-    const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
+    const selectedCategory = categories.find((cat) => cat.id.toString() === categoryId);
 
     const newBill: Bill = {
       id: generateId(),
@@ -116,7 +112,7 @@ export default function AddExpenseDialog({
       category_id: parseInt(categoryId),
       category_name: selectedCategory?.name || "Uncategorized",
       category_color: selectedCategory?.color || "#D3D3D3",
-      user_id: 1, // This should come from auth context
+      user_id: 1,
       created_at: new Date().toISOString(),
       isOneTime: false,
       reminderEnabled,
@@ -131,7 +127,7 @@ export default function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
@@ -147,7 +143,6 @@ export default function AddExpenseDialog({
                   setName(e.target.value);
                   setErrors((prev) => ({ ...prev, name: undefined }));
                 }}
-                className="col-span-3"
               />
               {errors.name && (
                 <Alert variant="destructive">
@@ -164,12 +159,13 @@ export default function AddExpenseDialog({
               <Input
                 id="amount"
                 type="number"
+                step="0.01"
+                min="0"
                 value={amount}
                 onChange={(e) => {
                   setAmount(e.target.value);
                   setErrors((prev) => ({ ...prev, amount: undefined }));
                 }}
-                className="col-span-3"
               />
               {errors.amount && (
                 <Alert variant="destructive">
@@ -190,7 +186,7 @@ export default function AddExpenseDialog({
                   setErrors((prev) => ({ ...prev, category: undefined }));
                 }}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger>
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -225,14 +221,13 @@ export default function AddExpenseDialog({
               <Input
                 id="day"
                 type="number"
-                value={day}
                 min={1}
                 max={31}
+                value={day}
                 onChange={(e) => {
                   setDay(e.target.value);
                   setErrors((prev) => ({ ...prev, day: undefined }));
                 }}
-                className="col-span-3"
               />
               {errors.day && (
                 <Alert variant="destructive">
@@ -256,7 +251,6 @@ export default function AddExpenseDialog({
               </Button>
             </div>
           </div>
-
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
@@ -293,4 +287,6 @@ export default function AddExpenseDialog({
       )}
     </>
   );
-}
+};
+
+export default AddExpenseDialog;

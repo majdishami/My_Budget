@@ -53,57 +53,36 @@ import type { Income, Bill } from "@/types";
 import type { ComponentType } from "react";
 
 // Lazy load pages with proper types
-const CategoriesPage = React.lazy(() => import("@/pages/Categories")) as unknown as ComponentType<RouteComponentProps>;
-const MonthlyToDateReport = React.lazy(() => import("@/pages/monthly-to-date")) as unknown as ComponentType<RouteComponentProps>;
-const MonthlyReport = React.lazy(() => import("@/pages/monthly")) as unknown as ComponentType<RouteComponentProps>;
-const AnnualReport = React.lazy(() => import("@/pages/annual")) as unknown as ComponentType<RouteComponentProps>;
-const DateRangeReport = React.lazy(() => import("@/pages/date-range")) as unknown as ComponentType<RouteComponentProps>;
-const IncomeReport = React.lazy(() => import("@/pages/income")) as unknown as ComponentType<RouteComponentProps>;
-const ExpenseReport = React.lazy(() => import("@/pages/expenses")) as unknown as ComponentType<RouteComponentProps>;
-const NotFound = React.lazy(() => import("@/pages/not-found")) as unknown as ComponentType<RouteComponentProps>;
+const CategoriesPage = React.lazy(() => import("@/pages/Categories"));
+const MonthlyToDateReport = React.lazy(() => import("@/pages/monthly-to-date"));
+const MonthlyReport = React.lazy(() => import("@/pages/monthly"));
+const AnnualReport = React.lazy(() => import("@/pages/annual"));
+const DateRangeReport = React.lazy(() => import("@/pages/date-range"));
+const IncomeReport = React.lazy(() => import("@/pages/income"));
+const ExpenseReport = React.lazy(() => import("@/pages/expenses"));
+const NotFound = React.lazy(() => import("@/pages/not-found"));
 
 // Lazy load dialogs with proper types
-const AddIncomeDialog = React.lazy(() => import("@/components/AddIncomeDialog")) as unknown as ComponentType<{
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: (newIncome: Income) => void;
-}>;
-const AddExpenseDialog = React.lazy(() => import("@/components/AddExpenseDialog")) as unknown as ComponentType<{
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: (newBill: Bill) => void;
-}>;
-const EditIncomeDialog = React.lazy(() => import("@/components/EditIncomeDialog")) as unknown as ComponentType<{
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  income: Income | null;
-  onUpdate: (updatedIncome: Income) => void;
-}>;
-const EditExpenseDialog = React.lazy(() => import("@/components/EditExpenseDialog")) as unknown as ComponentType<{
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  expense: Bill;
-  onUpdate: (updatedBill: Bill) => void;
-}>;
-const ExportDialog = React.lazy(() => import("@/components/ExportDialog")) as unknown as ComponentType<{
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  incomes: Income[];
-  bills: Bill[];
-}>;
-const ViewRemindersDialog = React.lazy(() => import("@/components/ViewRemindersDialog")) as unknown as ComponentType<{
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  bills: Bill[];
-  onUpdateBill: (transaction: Income | Bill) => void;
-}>;
-const DatabaseSyncDialog = React.lazy(() => import("@/components/DatabaseSyncDialog")) as unknown as ComponentType<{
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-}>;
+const AddIncomeDialog = React.lazy(() => import("@/components/AddIncomeDialog"));
+const AddExpenseDialog = React.lazy(() => import("@/components/AddExpenseDialog"));
+const EditIncomeDialog = React.lazy(() => import("@/components/EditIncomeDialog"));
+const EditExpenseDialog = React.lazy(() => import("@/components/EditExpenseDialog"));
+const ExportDialog = React.lazy(() => import("@/components/ExportDialog"));
+const ViewRemindersDialog = React.lazy(() => import("@/components/ViewRemindersDialog"));
+const DatabaseSyncDialog = React.lazy(() => import("@/components/DatabaseSyncDialog"));
 
 function Router() {
-  const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
+  const {
+    isLoading,
+    error: dataError,
+    incomes,
+    bills,
+    deleteTransaction,
+    editTransaction,
+    addIncomeToData,
+    addBill,
+    refresh
+  } = useData();
   const [location] = useLocation();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -576,16 +555,18 @@ function Router() {
               onOpenChange={setShowAddExpenseDialog}
               onConfirm={addBill}
             />
-            <EditIncomeDialog
-              isOpen={showEditIncomeDialog}
-              onOpenChange={setShowEditIncomeDialog}
-              income={selectedIncome}
-              onUpdate={(updatedIncome: Income) => {
-                editTransaction(updatedIncome);
-                setShowEditIncomeDialog(false);
-                setSelectedIncome(null);
-              }}
-            />
+            {selectedIncome && (
+              <EditIncomeDialog
+                isOpen={showEditIncomeDialog}
+                onOpenChange={setShowEditIncomeDialog}
+                income={selectedIncome}
+                onUpdate={(updatedIncome: Income) => {
+                  editTransaction(updatedIncome);
+                  setShowEditIncomeDialog(false);
+                  setSelectedIncome(null);
+                }}
+              />
+            )}
             {selectedBill && (
               <EditExpenseDialog
                 isOpen={showEditExpenseDialog}
