@@ -38,25 +38,6 @@ interface AnnualReportDialogProps {
   selectedYear?: number;
 }
 
-function createIncome(
-  id: string,
-  source: string,
-  amount: number,
-  occurrenceType: Income['occurrenceType'],
-  firstDate?: number,
-  secondDate?: number
-): Income {
-  return {
-    id,
-    source,
-    amount,
-    date: dayjs().format('YYYY-MM-DD'),
-    occurrenceType,
-    ...(firstDate && { firstDate }),
-    ...(secondDate && { secondDate })
-  };
-}
-
 export default function AnnualReportDialog({
   isOpen,
   onOpenChange,
@@ -72,22 +53,24 @@ export default function AnnualReportDialog({
     enabled: isOpen,
   });
 
-  const defaultIncomes = [
-    createIncome(
-      "majdi-salary",
-      "Majdi's Salary",
-      4739,
-      'twice-monthly',
-      1,
-      15
-    ),
-    createIncome(
-      "ruba-salary",
-      "Ruba's Salary",
-      2168,
-      'biweekly'
-    )
-  ];
+  const defaultIncomes: Income[] = useMemo(() => ([
+    {
+      id: "majdi-salary",
+      source: "Majdi's Salary",
+      amount: 4739,
+      date: dayjs().format('YYYY-MM-DD'),
+      occurrenceType: 'twice-monthly',
+      firstDate: 1,
+      secondDate: 15
+    },
+    {
+      id: "ruba-salary",
+      source: "Ruba's Salary",
+      amount: 2168,
+      date: dayjs().format('YYYY-MM-DD'),
+      occurrenceType: 'biweekly'
+    }
+  ]), []);
 
   const [incomes] = useState<Income[]>(defaultIncomes);
 
