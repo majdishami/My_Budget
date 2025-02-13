@@ -38,12 +38,31 @@ interface AnnualReportDialogProps {
   selectedYear?: number;
 }
 
+const defaultIncomes: Income[] = [
+  {
+    id: "majdi-salary",
+    source: "Majdi's Salary",
+    amount: 4739,
+    date: "2025-02-13",
+    occurrenceType: "twice-monthly",
+    firstDate: 1,
+    secondDate: 15
+  },
+  {
+    id: "ruba-salary",
+    source: "Ruba's Salary",
+    amount: 2168,
+    date: "2025-02-13",
+    occurrenceType: "biweekly"
+  }
+];
+
 export default function AnnualReportDialog({
   isOpen,
   onOpenChange,
   selectedYear,
 }: AnnualReportDialogProps) {
-  const today = useMemo(() => dayjs(), []);
+  const today = useMemo(() => dayjs("2025-02-13"), []);
   const currentYear = today.year();
   const defaultYear = selectedYear || currentYear;
   const [year, setSelectedYear] = useState<number>(defaultYear);
@@ -52,25 +71,6 @@ export default function AnnualReportDialog({
     queryKey: ['/api/bills'],
     enabled: isOpen,
   });
-
-  const defaultIncomes: Income[] = useMemo(() => ([
-    {
-      id: "majdi-salary",
-      source: "Majdi's Salary",
-      amount: 4739,
-      date: dayjs().format('YYYY-MM-DD'),
-      occurrenceType: 'twice-monthly',
-      firstDate: 1,
-      secondDate: 15
-    },
-    {
-      id: "ruba-salary",
-      source: "Ruba's Salary",
-      amount: 2168,
-      date: dayjs().format('YYYY-MM-DD'),
-      occurrenceType: 'biweekly'
-    }
-  ]), []);
 
   const [incomes] = useState<Income[]>(defaultIncomes);
 
@@ -93,7 +93,7 @@ export default function AnnualReportDialog({
     }
 
     incomes.forEach(income => {
-      if (income.source === "Majdi's Salary" && income.occurrenceType === 'twice-monthly') {
+      if (income.source === "Majdi's Salary" && income.occurrenceType === "twice-monthly") {
         for (let month = 0; month < 12; month++) {
           const monthDate = dayjs().year(year).month(month);
           const monthKey = monthDate.format('MMMM');
@@ -112,8 +112,8 @@ export default function AnnualReportDialog({
             monthlyIncomes[monthKey].pending += income.amount;
           }
         }
-      } else if (income.source === "Ruba's Salary" && income.occurrenceType === 'biweekly') {
-        let payDate = dayjs('2025-01-10');
+      } else if (income.source === "Ruba's Salary" && income.occurrenceType === "biweekly") {
+        let payDate = dayjs("2025-01-10");
         const endDate = dayjs().year(year).endOf('year');
 
         while (payDate.isSameOrBefore(endDate)) {
