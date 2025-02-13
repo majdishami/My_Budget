@@ -16,45 +16,48 @@ if (!fs.existsSync(tmpDir)) {
 }
 
 // Basic middleware setup
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Configure file upload middleware
+// Configure file upload middleware with improved security
 app.use(fileUpload({
   limits: { 
     fileSize: 50 * 1024 * 1024 // 50MB max file size
   },
   useTempFiles: true,
   tempFileDir: tmpDir,
-  debug: true, // Enable debug mode
+  debug: false, // Disable debug mode in production for security
   safeFileNames: true,
   preserveExtension: true,
   abortOnLimit: true,
   uploadTimeout: 30000, // 30 seconds
+  createParentPath: true,
+  defCharset: 'utf8',
+  defParamCharset: 'utf8'
 }));
 
 // Enable trust proxy for secure cookies when behind Replit's proxy
 app.enable('trust proxy');
 
-// Enhanced CORS configuration for both Replit and local development
+// Enhanced CORS configuration with security headers
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  // Allow Replit domains, localhost, and local development ports
-  if (origin && (
-    origin.endsWith('.replit.dev') || 
-    origin === 'http://localhost:5000' ||
-    origin === 'http://localhost:5001' ||
-    origin === 'http://127.0.0.1:5000' ||
-    origin === 'http://127.0.0.1:5001' ||
-    origin.startsWith('http://localhost:') ||
-    origin.startsWith('http://127.0.0.1:')
-  )) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
+  const allowedOrigins = [
+    /\.replit\.dev$/,
+    /^http:\/\/localhost:50\d{2}$/,
+    /^http:\/\/127\.0\.0\.1:50\d{2}$/
+  ];
 
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
+  if (origin && allowedOrigins.some(pattern => pattern.test(origin))) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    // Add security headers
+    res.header('X-Content-Type-Options', 'nosniff');
+    res.header('X-Frame-Options', 'SAMEORIGIN');
+    res.header('X-XSS-Protection', '1; mode=block');
+  }
 
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
@@ -62,13 +65,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// Enhanced request logging middleware
+// Optimized logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
 
+  // Enhanced logging
   if (req.files) {
-    console.log('Files received:', Object.keys(req.files));
+    const fileInfo = Object.entries(req.files).map(([key, file]) => ({
+      fieldname: key,
+      size: (file as any).size,
+      mimetype: (file as any).mimetype
+    }));
+    log(`Files received: ${JSON.stringify(fileInfo)}`);
   }
 
   log(`[${req.method}] ${path} from ${req.ip}`);
@@ -96,12 +105,20 @@ app.use(syncRouter);
     // Initialize routes
     const server = registerRoutes(app);
 
-    // Enhanced error handler
+    // Enhanced error handler with security considerations
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Server error:', err);
       const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
+      const message = process.env.NODE_ENV === 'production' 
+        ? "Internal Server Error" 
+        : (err.message || "Internal Server Error");
+
+      // Don't expose error details in production
+      const response = process.env.NODE_ENV === 'production' 
+        ? { message } 
+        : { message, stack: err.stack };
+
+      res.status(status).json(response);
     });
 
     if (app.get("env") === "development") {
