@@ -4,17 +4,23 @@ import { useQuery } from "@tanstack/react-query";
 export function ErrorTest() {
   const { refetch: test404 } = useQuery({
     queryKey: ['/api/test/error/404'],
-    enabled: false
+    enabled: false,
+    retry: false,
+    throwOnError: true
   });
 
   const { refetch: test500 } = useQuery({
     queryKey: ['/api/test/error/500'],
-    enabled: false
+    enabled: false,
+    retry: false,
+    throwOnError: true
   });
 
   const { refetch: testNetwork } = useQuery({
     queryKey: ['/api/test/error/network'],
-    enabled: false
+    enabled: false,
+    retry: false,
+    throwOnError: true
   });
 
   return (
