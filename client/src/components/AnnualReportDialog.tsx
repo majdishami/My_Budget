@@ -45,7 +45,7 @@ export default function AnnualReportDialog({
   onOpenChange,
   selectedYear,
 }: AnnualReportDialogProps) {
-  const today = useMemo(() => getCurrentDate(), []); // Use getCurrentDate utility
+  const today = useMemo(() => getCurrentDate(), []);
   const currentYear = today.year();
   const defaultYear = selectedYear || currentYear;
   const [year, setSelectedYear] = useState<number>(defaultYear);
@@ -56,21 +56,23 @@ export default function AnnualReportDialog({
     enabled: isOpen,
   });
 
-  // Define default incomes
+  // Define default incomes with proper date field
   const defaultIncomes: Income[] = useMemo(() => ([
     { 
       id: '1', 
       source: "Majdi's Salary", 
       amount: 4739,
-      occurrenceType: 'twice-monthly'
+      date: today.format('YYYY-MM-DD'),
+      occurrenceType: 'twice-monthly' as const,
     },
     { 
       id: '2', 
       source: "Ruba's Salary", 
       amount: 2168,
-      occurrenceType: 'biweekly'
+      date: today.format('YYYY-MM-DD'),
+      occurrenceType: 'biweekly' as const,
     }
-  ]), []);
+  ]), [today]);
 
   const [incomes] = useState<Income[]>(defaultIncomes);
 
