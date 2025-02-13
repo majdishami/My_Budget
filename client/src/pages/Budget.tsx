@@ -12,7 +12,6 @@ import DailySummaryDialog from "@/components/DailySummaryDialog";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ThemeToggle from "@/components/ThemeToggle";
-import { ErrorTest } from "@/components/ErrorTest";
 
 // Initialize dayjs plugins
 dayjs.extend(isBetween);
@@ -447,10 +446,6 @@ export function Budget() {
             </tbody>
           </table>
         </div>
-      </Card>
-
-      <Card className="m-1 md:m-4">
-        <ErrorTest />
       </Card>
 
       <DailySummaryDialog
