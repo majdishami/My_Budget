@@ -39,14 +39,13 @@ interface AnnualReportDialogProps {
   selectedYear?: number;
 }
 
-// Define default incomes with proper typing
-const DEFAULT_INCOMES: Income[] = [
+const DEFAULT_INCOMES: Array<Income> = [
   {
     id: "majdi-salary",
     source: "Majdi's Salary",
     amount: 4739,
     date: dayjs().format('YYYY-MM-DD'),
-    occurrenceType: 'twice-monthly' as OccurrenceType,
+    occurrenceType: 'twice-monthly',
     firstDate: 1,
     secondDate: 15
   },
@@ -55,7 +54,7 @@ const DEFAULT_INCOMES: Income[] = [
     source: "Ruba's Salary",
     amount: 2168,
     date: dayjs().format('YYYY-MM-DD'),
-    occurrenceType: 'biweekly' as OccurrenceType
+    occurrenceType: 'biweekly'
   }
 ];
 
