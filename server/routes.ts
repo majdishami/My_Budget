@@ -295,6 +295,22 @@ export function registerRoutes(app: Express): Server {
   });
 
 
+  // Add test endpoints after existing routes but before httpServer creation
+  app.get('/api/test/error/404', (_req, res) => {
+    res.status(404).json({ message: 'Resource not found test' });
+  });
+
+  app.get('/api/test/error/500', (_req, res) => {
+    res.status(500).json({ message: 'Server error test' });
+  });
+
+  app.get('/api/test/error/network', (_req, res) => {
+    // Simulate a network timeout
+    setTimeout(() => {
+      res.status(504).json({ message: 'Network timeout test' });
+    }, 5000);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
