@@ -42,6 +42,26 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+// Create a function to handle common error messages
+function formatErrorMessage(error: Error): string {
+  if (error.message.includes('Failed to fetch')) {
+    return 'Network error: Please check your connection';
+  }
+  if (error.message.startsWith('401:')) {
+    return 'Authentication required';
+  }
+  if (error.message.startsWith('403:')) {
+    return 'Access denied';
+  }
+  if (error.message.startsWith('404:')) {
+    return 'Resource not found';
+  }
+  if (error.message.startsWith('500:')) {
+    return 'Server error: Please try again later';
+  }
+  return error.message;
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -49,26 +69,39 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
-      retry: false,
-      // Add loading state timeout
-      suspense: true,
-      useErrorBoundary: true,
-      // Add global error handling
+      retry: (failureCount, error) => {
+        // Don't retry on client-side errors
+        if (error instanceof Error && error.message.match(/^[45]\d\d:/)) {
+          return false;
+        }
+        // Retry up to 3 times for other errors
+        return failureCount < 3;
+      },
+      useErrorBoundary: (error) => {
+        // Only use error boundary for server errors
+        return error instanceof Error && error.message.startsWith('500:');
+      },
       onError: (error: Error) => {
         toast({
           title: "Error",
-          description: error.message,
+          description: formatErrorMessage(error),
           variant: "destructive",
         });
       },
     },
     mutations: {
-      retry: false,
-      // Add global error handling for mutations
+      retry: (failureCount, error) => {
+        // Don't retry on client-side errors
+        if (error instanceof Error && error.message.match(/^[45]\d\d:/)) {
+          return false;
+        }
+        // Retry up to 2 times for other errors
+        return failureCount < 2;
+      },
       onError: (error: Error) => {
         toast({
           title: "Error",
-          description: error.message,
+          description: formatErrorMessage(error),
           variant: "destructive",
         });
       },
