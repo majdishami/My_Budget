@@ -1,40 +1,27 @@
 import { createRoot } from "react-dom/client";
 import { lazy, Suspense } from "react";
-import { Toaster } from "@/components/ui/toaster";
 import { DataProvider } from "@/contexts/DataContext";
 import "./index.css";
 
-// Lazy load the main App component
-const App = lazy(() => import("./App"));
-
-// Create root element for React
+// Error handling for initialization
 const rootElement = document.getElementById("root");
-if (!rootElement) throw new Error("Failed to find root element");
-
-const root = createRoot(rootElement);
-
-// Enable HMR for App component
-if (import.meta.hot) {
-  import.meta.hot.accept('./App', (newApp) => {
-    if (newApp) {
-      root.render(
-        <Suspense fallback={<div>Loading...</div>}>
-          <DataProvider>
-            <App />
-            <Toaster />
-          </DataProvider>
-        </Suspense>
-      );
-    }
-  });
+if (!rootElement) {
+  console.error("Failed to find root element");
+  throw new Error("Failed to find root element");
 }
 
-// Initial render
-root.render(
-  <Suspense fallback={<div>Loading...</div>}>
+try {
+  const root = createRoot(rootElement);
+  const App = lazy(() => import("./App"));
+
+  root.render(
     <DataProvider>
-      <App />
-      <Toaster />
+      <Suspense fallback={<div>Loading...</div>}>
+        <App />
+      </Suspense>
     </DataProvider>
-  </Suspense>
-);
+  );
+} catch (error) {
+  console.error("Failed to initialize app:", error);
+  rootElement.innerHTML = "Failed to load application. Please try refreshing the page.";
+}
