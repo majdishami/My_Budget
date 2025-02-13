@@ -77,10 +77,11 @@ export const queryClient = new QueryClient({
         // Retry up to 3 times for other errors
         return failureCount < 3;
       },
-      onError: (error: Error) => {
+      // Proper TypeScript type for error
+      onError: (error: unknown) => {
         toast({
           title: "Error",
-          description: formatErrorMessage(error),
+          description: formatErrorMessage(error as Error),
           variant: "destructive",
         });
       },
@@ -94,10 +95,11 @@ export const queryClient = new QueryClient({
         // Retry up to 2 times for other errors
         return failureCount < 2;
       },
-      onError: (error: Error) => {
+      // Proper TypeScript type for error
+      onError: (error: unknown) => {
         toast({
           title: "Error",
-          description: formatErrorMessage(error),
+          description: formatErrorMessage(error as Error),
           variant: "destructive",
         });
       },
