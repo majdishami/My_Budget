@@ -7,6 +7,28 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Budget Tracker</title>
+    <style>
+      /* Ensure body has a background color and proper height */
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background-color: var(--background, #ffffff); /* Fallback color */
+        -webkit-text-size-adjust: 100%;
+      }
+      /* Root element should also have proper height */
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      /* Safari-specific fixes */
+      @supports (-webkit-touch-callout: none) {
+        body, #root {
+          min-height: -webkit-fill-available;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
