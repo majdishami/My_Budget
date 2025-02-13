@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import dayjs from "dayjs";
-import { Income, Bill, OccurrenceType } from "@/types";
+import { Income, Bill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -55,7 +55,8 @@ export default function AnnualReportDialog({
     enabled: isOpen,
   });
 
-  const initialIncomes: Income[] = useMemo(() => [{
+  // Initialize incomes
+  const [incomes] = useState<Income[]>([{
     id: "majdi-salary",
     source: "Majdi's Salary",
     amount: 4739,
@@ -69,18 +70,15 @@ export default function AnnualReportDialog({
     amount: 2168,
     date: today.format('YYYY-MM-DD'),
     occurrenceType: 'biweekly'
-  }], [today]);
-
-  const [incomes] = useState<Income[]>(initialIncomes);
+  }]);
 
   // Add keyboard event listener for Escape key
-  const handleEscape = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && isOpen) {
-      onOpenChange(false);
-    }
-  };
-
   useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onOpenChange(false);
+      }
+    };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onOpenChange]);
