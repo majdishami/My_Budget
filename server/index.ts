@@ -26,11 +26,11 @@ app.use(fileUpload({
   },
   useTempFiles: true,
   tempFileDir: tmpDir,
-  debug: false, // Disable debug mode in production for security
+  debug: false,
   safeFileNames: true,
   preserveExtension: true,
   abortOnLimit: true,
-  uploadTimeout: 30000, // 30 seconds
+  uploadTimeout: 30000,
   createParentPath: true,
   defCharset: 'utf8',
   defParamCharset: 'utf8'
@@ -41,23 +41,14 @@ app.enable('trust proxy');
 
 // Enhanced CORS configuration with security headers
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    /\.replit\.dev$/,
-    /^http:\/\/localhost:50\d{2}$/,
-    /^http:\/\/127\.0\.0\.1:50\d{2}$/
-  ];
-
-  if (origin && allowedOrigins.some(pattern => pattern.test(origin))) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    // Add security headers
-    res.header('X-Content-Type-Options', 'nosniff');
-    res.header('X-Frame-Options', 'SAMEORIGIN');
-    res.header('X-XSS-Protection', '1; mode=block');
-  }
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  // Add security headers
+  res.header('X-Content-Type-Options', 'nosniff');
+  res.header('X-Frame-Options', 'SAMEORIGIN');
+  res.header('X-XSS-Protection', '1; mode=block');
 
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
@@ -113,7 +104,6 @@ app.use(syncRouter);
         ? "Internal Server Error" 
         : (err.message || "Internal Server Error");
 
-      // Don't expose error details in production
       const response = process.env.NODE_ENV === 'production' 
         ? { message } 
         : { message, stack: err.stack };
@@ -127,12 +117,10 @@ app.use(syncRouter);
       serveStatic(app);
     }
 
-    // Use different ports for Replit vs local development
-    const isReplit = process.env.REPL_ID !== undefined;
-    const PORT = parseInt(process.env.PORT || (isReplit ? '5000' : '5001'));
+    // Use PORT from environment or default to 5000 (Replit's expected port)
+    const PORT = process.env.PORT || 5000;
     const HOST = '0.0.0.0';
 
-    // Add graceful startup logging
     console.log('Environment:', app.get("env"));
     console.log('Trust proxy:', app.get('trust proxy'));
     console.log(`Starting server on ${HOST}:${PORT}`);
@@ -141,7 +129,6 @@ app.use(syncRouter);
       console.log(`Server is running at http://${HOST}:${PORT}`);
       console.log(`Server environment: ${app.get("env")}`);
       console.log(`Trust proxy enabled: ${app.get('trust proxy')}`);
-      console.log(`CORS and API endpoints are configured for ${isReplit ? 'Replit' : 'local'} development`);
     });
 
     // Handle graceful shutdown
