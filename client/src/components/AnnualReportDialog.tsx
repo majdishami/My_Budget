@@ -39,6 +39,26 @@ interface AnnualReportDialogProps {
   selectedYear?: number;
 }
 
+// Move static data outside component
+const staticIncomes = [
+  {
+    id: "majdi-salary",
+    source: "Majdi's Salary",
+    amount: 4739,
+    date: dayjs().format('YYYY-MM-DD'),
+    occurrenceType: 'twice-monthly' as const,
+    firstDate: 1,
+    secondDate: 15
+  },
+  {
+    id: "ruba-salary",
+    source: "Ruba's Salary",
+    amount: 2168,
+    date: dayjs().format('YYYY-MM-DD'),
+    occurrenceType: 'biweekly' as const
+  }
+] as const;
+
 export default function AnnualReportDialog({
   isOpen,
   onOpenChange,
@@ -54,26 +74,6 @@ export default function AnnualReportDialog({
     queryKey: ['/api/bills'],
     enabled: isOpen,
   });
-
-  // Define static incomes
-  const staticIncomes: Income[] = [
-    {
-      id: "majdi-salary",
-      source: "Majdi's Salary",
-      amount: 4739,
-      date: today.format('YYYY-MM-DD'),
-      occurrenceType: 'twice-monthly',
-      firstDate: 1,
-      secondDate: 15
-    },
-    {
-      id: "ruba-salary",
-      source: "Ruba's Salary",
-      amount: 2168,
-      date: today.format('YYYY-MM-DD'),
-      occurrenceType: 'biweekly'
-    }
-  ];
 
   const [incomes] = useState<Income[]>(staticIncomes);
 
