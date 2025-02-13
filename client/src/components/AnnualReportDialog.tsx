@@ -38,13 +38,13 @@ interface AnnualReportDialogProps {
   selectedYear?: number;
 }
 
-const defaultIncomes: Income[] = [
+const defaultIncomes = [
   {
     id: "majdi-salary",
     source: "Majdi's Salary",
     amount: 4739,
-    date: dayjs("2025-02-13").format("YYYY-MM-DD"),
-    occurrenceType: "twice-monthly",
+    date: dayjs().format("YYYY-MM-DD"),
+    occurrenceType: "twice-monthly" as const,
     firstDate: 1,
     secondDate: 15
   },
@@ -52,8 +52,8 @@ const defaultIncomes: Income[] = [
     id: "ruba-salary",
     source: "Ruba's Salary",
     amount: 2168,
-    date: dayjs("2025-02-13").format("YYYY-MM-DD"),
-    occurrenceType: "biweekly"
+    date: dayjs().format("YYYY-MM-DD"),
+    occurrenceType: "biweekly" as const
   }
 ];
 
@@ -62,10 +62,11 @@ export default function AnnualReportDialog({
   onOpenChange,
   selectedYear,
 }: AnnualReportDialogProps) {
-  const today = useMemo(() => dayjs("2025-02-13"), []);
+  const today = useMemo(() => dayjs(), []);
   const currentYear = today.year();
-  const defaultYear = selectedYear || currentYear;
-  const [selectedYear_, setSelectedYear] = useState<number>(defaultYear);
+  const defaultYear = selectedYear ?? currentYear;
+  const [year, setYear] = useState(defaultYear);
+
   const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
@@ -75,7 +76,7 @@ export default function AnnualReportDialog({
 
   useEffect(() => {
     if (selectedYear) {
-      setSelectedYear(selectedYear);
+      setYear(selectedYear);
     }
   }, [selectedYear]);
 
@@ -91,7 +92,7 @@ export default function AnnualReportDialog({
 
   const generateMonthlyIncomes = () => {
     const monthlyIncomes: Record<string, { occurred: number; pending: number }> = {};
-    const startOfYear = dayjs().year(selectedYear_).startOf('year');
+    const startOfYear = dayjs().year(year).startOf('year');
 
     for (let month = 0; month < 12; month++) {
       const monthDate = startOfYear.add(month, 'month');
@@ -119,11 +120,11 @@ export default function AnnualReportDialog({
           }
         }
       } else if (income.source === "Ruba's Salary" && income.occurrenceType === "biweekly") {
-        let payDate = dayjs("2025-01-10");
+        let payDate = dayjs().year(year).month(0).date(10); // Start from January 10th
         const endDate = startOfYear.endOf('year');
 
         while (payDate.isSameOrBefore(endDate)) {
-          if (payDate.year() === selectedYear_) {
+          if (payDate.year() === year) {
             const monthKey = payDate.format('MMMM');
             if (payDate.isSameOrBefore(today)) {
               monthlyIncomes[monthKey].occurred += income.amount;
@@ -141,7 +142,7 @@ export default function AnnualReportDialog({
 
   const generateMonthlyExpenses = () => {
     const monthlyExpenses: Record<string, { occurred: number; pending: number }> = {};
-    const startOfYear = dayjs().year(selectedYear_).startOf('year');
+    const startOfYear = dayjs().year(year).startOf('year');
 
     for (let month = 0; month < 12; month++) {
       const monthDate = startOfYear.add(month, 'month');
@@ -164,8 +165,8 @@ export default function AnnualReportDialog({
     return monthlyExpenses;
   };
 
-  const monthlyIncomes = useMemo(generateMonthlyIncomes, [selectedYear_, incomes, today]);
-  const monthlyExpenses = useMemo(generateMonthlyExpenses, [selectedYear_, bills, today]);
+  const monthlyIncomes = useMemo(generateMonthlyIncomes, [year, incomes, today]);
+  const monthlyExpenses = useMemo(generateMonthlyExpenses, [year, bills, today]);
 
   const totals = useMemo(() => {
     const result = {
@@ -198,8 +199,8 @@ export default function AnnualReportDialog({
           </div>
           <div className="flex items-center gap-4">
             <Select
-              value={selectedYear_.toString()}
-              onValueChange={(value) => setSelectedYear(parseInt(value))}
+              value={year.toString()}
+              onValueChange={(value) => setYear(parseInt(value, 10))}
             >
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="Select year" />
@@ -208,7 +209,7 @@ export default function AnnualReportDialog({
                 {Array.from(
                   { length: 11 },
                   (_, i) => currentYear - 5 + i
-                ).filter(y => y >= 1900 && y <= 2100).map((year) => (
+                ).map((year) => (
                   <SelectItem key={year} value={year.toString()}>
                     {year}
                   </SelectItem>
