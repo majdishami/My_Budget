@@ -44,9 +44,10 @@ export function registerRoutes(app: Express): Server {
   // Set up Passport Local Strategy
   passport.use(new LocalStrategy(async (username, password, done) => {
     try {
-      const user = await db.query.users.findFirst({
-        where: eq(users.username, username),
-      });
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
 
       if (!user) {
         return done(null, false, { message: 'Invalid username or password' });
@@ -69,9 +70,10 @@ export function registerRoutes(app: Express): Server {
 
   passport.deserializeUser(async (id: number, done) => {
     try {
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, id),
-      });
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
       done(null, user);
     } catch (err) {
       done(err);
@@ -92,9 +94,10 @@ export function registerRoutes(app: Express): Server {
       const { username, password } = await insertUserSchema.parseAsync(req.body);
 
       // Check if username already exists
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.username, username),
-      });
+      const [existingUser] = await db.select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
 
       if (existingUser) {
         return res.status(400).json({ message: 'Username already exists' });
@@ -102,10 +105,12 @@ export function registerRoutes(app: Express): Server {
 
       // Create new user
       const hashedPassword = hashPassword(password);
-      const [newUser] = await db.insert(users).values({
-        username,
-        password: hashedPassword,
-      }).returning();
+      const [newUser] = await db.insert(users)
+        .values({
+          username,
+          password: hashedPassword,
+        })
+        .returning();
 
       res.status(201).json({ message: 'User created successfully', id: newUser.id });
     } catch (error) {
@@ -132,7 +137,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Initialize a database pool for raw queries
-  const pool = new Pool({ 
+  const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? {
       rejectUnauthorized: false
