@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import dayjs from "dayjs";
-import { Income } from "@/types";
+import { Bill, Income } from "@/types";
 import { formatCurrency, getCurrentDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -28,32 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Calendar, AlertCircle } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { X, Calendar } from "lucide-react";
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 
 // Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
-
-interface Bill {
-  id: string;
-  name: string;
-  amount: number;
-  day: number;
-  category_name: string;
-  category_color: string;
-  category?: { 
-    icon: string | null;
-  };
-}
-
-interface Income {
-  id: string;
-  source: string;
-  amount: number;
-  date?: string;
-  occurrenceType?: 'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly';
-}
 
 interface AnnualReportDialogProps {
   isOpen: boolean;
@@ -78,7 +57,7 @@ export default function AnnualReportDialog({
   });
 
   // Define default incomes
-  const defaultIncomes: Income[] = [
+  const defaultIncomes: Income[] = useMemo(() => ([
     { 
       id: '1', 
       source: "Majdi's Salary", 
@@ -91,7 +70,7 @@ export default function AnnualReportDialog({
       amount: 2168,
       occurrenceType: 'biweekly'
     }
-  ];
+  ]), []);
 
   const [incomes] = useState<Income[]>(defaultIncomes);
 
@@ -145,7 +124,7 @@ export default function AnnualReportDialog({
           }
         }
       } else if (income.source === "Ruba's Salary") {
-        // Process Ruba's bi-weekly salary
+        // Process bi-weekly salary
         let payDate = dayjs('2025-01-10'); // Start date
         const endDate = dayjs().year(year).endOf('year');
 
