@@ -15,10 +15,13 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/lib/protected-route";
+import AuthPage from "@/pages/auth-page";
 import {
   Loader2, Menu, BarChart4,
   Download, Database, Tags, ChevronDown,
-  RotateCw, Plus, Edit, Trash, FileText, Bell
+  RotateCw, Plus, Edit, Trash, FileText, Bell, PlusCircle
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -178,25 +181,16 @@ function Router() {
 
   if (dataError) {
     return (
-      <Alert
-        variant="destructive"
-        className="fixed top-4 right-4 w-auto z-50 animate-in fade-in slide-in-from-top-2"
-        role="alert"
-      >
+      <Alert variant="destructive" className="fixed top-4 right-4 w-auto z-50">
         <AlertDescription className="flex items-center gap-2">
           {dataError.message}
-          <button
-            onClick={() => refresh()}
-            className="p-1 hover:bg-accent rounded"
-            aria-label="Retry loading data"
-          >
+          <button onClick={refresh} className="p-1 hover:bg-accent rounded">
             <RotateCw className="h-4 w-4" />
           </button>
         </AlertDescription>
       </Alert>
     );
   }
-
 
   return (
     <ErrorBoundary name="MainRouter">
@@ -530,14 +524,15 @@ function Router() {
         )}>
           <div className="h-full">
             <Switch>
-              <Route path="/" component={Budget} />
-              <Route path="/categories" component={CategoriesPage} />
-              <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
-              <Route path="/reports/monthly" component={MonthlyReport} />
-              <Route path="/reports/annual" component={AnnualReport} />
-              <Route path="/reports/date-range" component={DateRangeReport} />
-              <Route path="/reports/income" component={IncomeReport} />
-              <Route path="/reports/expenses" component={ExpenseReport} />
+              <Route path="/auth" component={AuthPage} />
+              <ProtectedRoute path="/" component={Budget} />
+              <ProtectedRoute path="/categories" component={CategoriesPage} />
+              <ProtectedRoute path="/reports/monthly-to-date" component={MonthlyToDateReport} />
+              <ProtectedRoute path="/reports/monthly" component={MonthlyReport} />
+              <ProtectedRoute path="/reports/annual" component={AnnualReport} />
+              <ProtectedRoute path="/reports/date-range" component={DateRangeReport} />
+              <ProtectedRoute path="/reports/income" component={IncomeReport} />
+              <ProtectedRoute path="/reports/expenses" component={ExpenseReport} />
               <Route component={NotFound} />
             </Switch>
           </div>
@@ -624,17 +619,18 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ErrorBoundary
-        name="RootErrorBoundary"
-        onReset={() => {
-          // Clear any cached data and reload the app
-          queryClient.clear();
-          window.location.reload();
-        }}
-      >
-        <Router />
-        <Toaster />
-      </ErrorBoundary>
+      <AuthProvider>
+        <ErrorBoundary
+          name="RootErrorBoundary"
+          onReset={() => {
+            queryClient.clear();
+            window.location.reload();
+          }}
+        >
+          <Router />
+          <Toaster />
+        </ErrorBoundary>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

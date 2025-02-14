@@ -7,7 +7,6 @@ import bcrypt from "bcrypt";
 import { users, type SelectUser } from "@db/schema";
 import { db, pool } from "@db";
 import { eq } from "drizzle-orm";
-import { fromZodError } from "zod-validation-error";
 
 declare global {
   namespace Express {
@@ -41,7 +40,7 @@ export function setupAuth(app: Express) {
   const store = new PostgresSessionStore({ 
     pool,
     createTableIfMissing: true,
-    tableName: 'session' 
+    tableName: 'session'
   });
 
   const sessionSettings: session.SessionOptions = {
@@ -52,6 +51,7 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      sameSite: 'lax',
     },
   };
 
@@ -101,6 +101,10 @@ export function setupAuth(app: Express) {
   app.post("/api/auth/register", async (req, res, next) => {
     try {
       const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: 'Username and password are required' });
+      }
 
       const [existingUser] = await getUserByUsername(username);
       if (existingUser) {

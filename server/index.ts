@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: false }));
 // Enhanced logging middleware using morgan
 app.use(morgan('combined'));
 
-// Configure CORS with enhanced security
+// Configure CORS with enhanced security for authentication
 app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
@@ -32,15 +32,28 @@ app.use(cors({
       "http://localhost:5000",
       "http://localhost:5001"
     ];
-    if (!origin || allowedOrigins.some(o => origin.match(o))) {
+
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Check if the origin matches any of our allowed origins
+    if (allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return origin === allowed;
+    })) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
-  methods: "GET,POST,PUT,DELETE,OPTIONS",
-  allowedHeaders: "Content-Type, Authorization"
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  exposedHeaders: ["Set-Cookie"]
 }));
 
 // Configure file upload middleware with improved security
@@ -56,19 +69,26 @@ app.use(fileUpload({
   abortOnLimit: true,
   uploadTimeout: 30000, // 30 seconds
   createParentPath: true,
-  // Additional security settings
   defParamCharset: 'utf8',
   responseOnLimit: 'File size limit has been reached',
-  parseNested: false // Prevent deeply nested form data
+  parseNested: false
 }));
 
 // Enable trust proxy for secure cookies when behind Replit's proxy
-app.enable('trust proxy');
+app.set('trust proxy', 1);
 
 // Enhanced request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+
+  // Log authentication-related requests for debugging
+  if (path.startsWith('/api/auth/')) {
+    log(`Auth request: ${req.method} ${path} from ${req.ip}`);
+    log(`Auth headers: ${JSON.stringify(req.headers)}`);
+    log(`Session ID: ${req.sessionID}`);
+    log(`Is Authenticated: ${req.isAuthenticated?.()}`);
+  }
 
   if (req.files) {
     const fileInfo = Object.entries(req.files).map(([key, file]) => ({
@@ -78,16 +98,16 @@ app.use((req, res, next) => {
     log(`Files received: ${JSON.stringify(fileInfo)}`);
   }
 
-  log(`[${req.method}] ${path} from ${req.ip}`);
-  if (Object.keys(req.query).length > 0) {
-    log(`Query params: ${JSON.stringify(req.query)}`);
-  }
-
   res.on("finish", () => {
     const duration = Date.now() - start;
     const size = res.get('content-length');
     if (path.startsWith("/api")) {
       log(`${req.method} ${path} ${res.statusCode} ${size || 0}b in ${duration}ms`);
+
+      // Additional logging for authentication responses
+      if (path.startsWith('/api/auth/')) {
+        log(`Auth response headers: ${JSON.stringify(res.getHeaders())}`);
+      }
     }
   });
 
@@ -101,7 +121,7 @@ app.use(syncRouter);
   try {
     console.log('Starting server initialization...');
 
-    // Initialize routes
+    // Initialize routes with auth setup
     const server = registerRoutes(app);
 
     // Enhanced error handler with better error details
