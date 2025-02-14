@@ -228,8 +228,9 @@ export function Budget() {
         selectedYear,
         rawDate: income.date
       });
+      // Month in selectedMonth is 1-based, convert it to 0-based for comparison
       return incomeDate.date() === day && 
-             incomeDate.month() === selectedMonth && 
+             incomeDate.month() === (selectedMonth - 1) && 
              incomeDate.year() === selectedYear;
     });
     console.log(`Income for day ${day}:`, incomeForDay);
@@ -249,8 +250,9 @@ export function Budget() {
         selectedYear,
         rawDate: bill.date
       });
+      // Month in selectedMonth is 1-based, convert it to 0-based for comparison
       return billDate.date() === day && 
-             billDate.month() === selectedMonth && 
+             billDate.month() === (selectedMonth - 1) && 
              billDate.year() === selectedYear;
     });
     console.log(`Bills for day ${day}:`, billsForDay);
