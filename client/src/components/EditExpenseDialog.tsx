@@ -97,8 +97,13 @@ export default function EditExpenseDialog({
       // Basic fields
       setName(expense.name);
       setAmount(expense.amount.toString());
+
+      // Handle the day value, ensuring we use the correct day from the expense
+      // For recurring monthly expenses, we want the exact day value without timezone adjustment
       setDay(expense.day.toString());
-      setDateType('monthly'); 
+      setDateType('monthly');
+
+      // Set category from expense
       setCategoryId(expense.category_id ? expense.category_id.toString() : '');
 
       // Reminders
