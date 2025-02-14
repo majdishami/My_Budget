@@ -74,29 +74,6 @@ router.post('/api/sync/restore', async (req, res) => {
 
     const uploadedFile = req.files.backup as UploadedFile;
 
-    // Validate file content
-    try {
-      const fileContent = uploadedFile.data.toString('utf-8');
-      console.log('File content length:', fileContent.length);
-
-      const parsedData = JSON.parse(fileContent);
-      console.log('Data parsed successfully, validating structure...');
-
-      // Validate backup structure
-      if (!parsedData.categories || !Array.isArray(parsedData.categories)) {
-        return res.status(400).json({ error: 'Invalid backup format: missing categories array' });
-      }
-
-      if (!parsedData.bills || !Array.isArray(parsedData.bills)) {
-        return res.status(400).json({ error: 'Invalid backup format: missing bills array' });
-      }
-
-      console.log(`Found ${parsedData.categories.length} categories and ${parsedData.bills.length} bills`);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      return res.status(400).json({ error: 'Invalid JSON file content' });
-    }
-
     // Create tmp directory if it doesn't exist
     const tmpDir = path.join(process.cwd(), 'tmp');
     if (!fs.existsSync(tmpDir)) {
@@ -112,16 +89,39 @@ router.post('/api/sync/restore', async (req, res) => {
       await uploadedFile.mv(tempPath);
       console.log('Backup file saved to:', tempPath);
 
-      // Restore the database
-      const result = await restoreDatabaseBackup(tempPath);
+      // Read and validate file content
+      const fileContent = fs.readFileSync(tempPath, 'utf8');
+      console.log('File content length:', fileContent.length);
 
-      if (!result.success) {
-        return res.status(500).json({ error: result.error });
+      try {
+        const parsedData = JSON.parse(fileContent);
+        console.log('Data parsed successfully, validating structure...');
+
+        // Validate backup structure
+        if (!parsedData.categories || !Array.isArray(parsedData.categories)) {
+          throw new Error('Invalid backup format: missing categories array');
+        }
+
+        if (!parsedData.bills || !Array.isArray(parsedData.bills)) {
+          throw new Error('Invalid backup format: missing bills array');
+        }
+
+        console.log(`Found ${parsedData.categories.length} categories and ${parsedData.bills.length} bills`);
+
+        // Restore the database
+        const result = await restoreDatabaseBackup(tempPath);
+
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+
+        res.json({ message: result.message });
+      } catch (parseError) {
+        console.error('Error processing backup:', parseError);
+        throw new Error('Invalid JSON file content');
       }
-
-      res.json({ message: result.message });
     } finally {
-      // Always clean up the temporary file
+      // Clean up the temporary file
       if (fs.existsSync(tempPath)) {
         fs.unlinkSync(tempPath);
         console.log('Temporary file cleaned up');
