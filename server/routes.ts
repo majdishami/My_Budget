@@ -118,28 +118,23 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Transaction not found' });
       }
 
-      // Handle the date properly
-      const parsedDate = dayjs(req.body.date).format('YYYY-MM-DD');
-      console.log('[Transactions API] Parsed date:', parsedDate);
+      // Convert the date string to a proper Date object
+      const date = new Date(req.body.date);
+      console.log('[Transactions API] Processing date:', date);
 
       const [updatedTransaction] = await db.update(transactions)
         .set({
           description: req.body.description,
           amount: req.body.amount,
-          date: new Date(parsedDate),
+          date: date,
           type: req.body.type,
           category_id: req.body.category_id
         })
         .where(eq(transactions.id, transactionId))
         .returning();
 
-      console.log('[Transactions API] Updated transaction:', updatedTransaction);
-
-      // Return the updated transaction with properly formatted date
-      res.json({
-        ...updatedTransaction,
-        date: dayjs(updatedTransaction.date).format('YYYY-MM-DD')
-      });
+      console.log('[Transactions API] Successfully updated transaction:', updatedTransaction);
+      res.json(updatedTransaction);
     } catch (error) {
       console.error('[Transactions API] Error updating transaction:', error);
       res.status(400).json({
