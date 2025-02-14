@@ -149,7 +149,7 @@ export function Budget() {
     })), 
   [today]); 
 
-  // Update getBillsForDay to handle recurring monthly bills
+  // Update getBillsForDay to include all required Bill fields
   const getBillsForDay = useCallback((day: number) => {
     // Define the bill occurrences with their correct days
     const monthlyBills = [
@@ -170,72 +170,84 @@ export function Budget() {
       { name: "Monthly Rent", amount: 3750, day: 1 }
     ];
 
-    // Return bills that occur on the specified day
+    // Return bills that occur on the specified day with all required fields
     return monthlyBills
       .filter(bill => bill.day === day)
       .map((bill, index) => ({
         ...bill,
         id: `${bill.name}-${selectedYear}-${selectedMonth+1}-${day}-${index}`,
-        date: dayjs().year(selectedYear).month(selectedMonth).date(day).toISOString()
+        date: dayjs().year(selectedYear).month(selectedMonth).date(day).toISOString(),
+        category_id: null,  // Add required fields
+        user_id: null,
+        created_at: new Date().toISOString(),
+        isOneTime: false,
+        category_name: 'Uncategorized',
+        category_color: '#D3D3D3',
+        category_icon: null
       }));
   }, [selectedYear, selectedMonth]);
 
-  // Update getIncomeForDay to handle both recurring and one-time incomes with uniqueness
+  // Update the getIncomeForDay function to include occurrenceType
   const getIncomeForDay = useCallback((day: number) => {
-    if (day <= 0) return [];
+      if (day <= 0) return [];
 
-    const uniqueIncomes = new Set();
-    const result: Income[] = [];
+      const uniqueIncomes = new Set();
+      const result: Income[] = [];
 
-    // Handle Majdi's salary (1st and 15th)
-    if (day === 1 || day === 15) {
-      const majdiSalary = {
-        id: `majdi-${day}`,
-        source: "Majdi's Salary",
-        amount: 4739,
-        date: dayjs().year(selectedYear).month(selectedMonth).date(day).toISOString()
-      };
-      uniqueIncomes.add("Majdi's Salary");
-      result.push(majdiSalary);
-    }
-
-    // Handle Ruba's bi-weekly salary
-    const currentDate = dayjs()
-      .year(selectedYear)
-      .month(selectedMonth)
-      .date(day);
-
-    if (currentDate.day() === 5) { // Only Fridays
-      const startDate = dayjs('2025-01-10');
-      const weeksDiff = currentDate.diff(startDate, 'week');
-      if (weeksDiff >= 0 && weeksDiff % 2 === 0 && !uniqueIncomes.has("Ruba's Salary")) {
-        const rubaSalary = {
-          id: `ruba-${currentDate.format('YYYY-MM-DD')}`,
-          source: "Ruba's Salary",
-          amount: 2168,
-          date: currentDate.toISOString()
+      // Handle Majdi's salary (1st and 15th)
+      if (day === 1 || day === 15) {
+        const majdiSalary: Income = {
+          id: `majdi-${day}`,
+          source: "Majdi's Salary",
+          amount: 4739,
+          date: dayjs().year(selectedYear).month(selectedMonth).date(day).toISOString(),
+          occurrenceType: 'recurring'
         };
-        uniqueIncomes.add("Ruba's Salary");
-        result.push(rubaSalary);
+        uniqueIncomes.add("Majdi's Salary");
+        result.push(majdiSalary);
       }
-    }
 
-    // Handle one-time incomes
-    incomes.forEach(income => {
-      if (income.source !== "Majdi's Salary" && income.source !== "Ruba's Salary") {
-        const incomeDate = dayjs(income.date);
-        if (incomeDate.date() === day && 
-            incomeDate.month() === selectedMonth && 
-            incomeDate.year() === selectedYear &&
-            !uniqueIncomes.has(income.source)) {
-          uniqueIncomes.add(income.source);
-          result.push(income);
+      // Handle Ruba's bi-weekly salary
+      const currentDate = dayjs()
+        .year(selectedYear)
+        .month(selectedMonth)
+        .date(day);
+
+      if (currentDate.day() === 5) { // Only Fridays
+        const startDate = dayjs('2025-01-10');
+        const weeksDiff = currentDate.diff(startDate, 'week');
+        if (weeksDiff >= 0 && weeksDiff % 2 === 0 && !uniqueIncomes.has("Ruba's Salary")) {
+          const rubaSalary: Income = {
+            id: `ruba-${currentDate.format('YYYY-MM-DD')}`,
+            source: "Ruba's Salary",
+            amount: 2168,
+            date: currentDate.toISOString(),
+            occurrenceType: 'recurring'
+          };
+          uniqueIncomes.add("Ruba's Salary");
+          result.push(rubaSalary);
         }
       }
-    });
 
-    return result;
-  }, [incomes, selectedYear, selectedMonth]);
+      // Handle one-time incomes
+      incomes.forEach(income => {
+        if (income.source !== "Majdi's Salary" && income.source !== "Ruba's Salary") {
+          const incomeDate = dayjs(income.date);
+          if (incomeDate.date() === day && 
+              incomeDate.month() === selectedMonth && 
+              incomeDate.year() === selectedYear &&
+              !uniqueIncomes.has(income.source)) {
+            uniqueIncomes.add(income.source);
+            result.push({
+              ...income,
+              occurrenceType: income.occurrenceType || 'once'
+            });
+          }
+        }
+      });
+
+      return result;
+    }, [incomes, selectedYear, selectedMonth]);
 
   // Update monthly totals calculation to handle recurring bills
   const monthlyTotals = useMemo(() => {

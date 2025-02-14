@@ -349,6 +349,12 @@ export function registerRoutes(app: Express): Server {
       const userId = (req.user as any).id;
       const transactionId = parseInt(req.params.id);
 
+      console.log('[Transactions API] Updating transaction:', {
+        id: transactionId,
+        userId,
+        body: req.body
+      });
+
       const transaction = await db.query.transactions.findFirst({
         where: and(
           eq(transactions.id, transactionId),
@@ -357,22 +363,36 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!transaction) {
+        console.log('[Transactions API] Transaction not found:', { transactionId, userId });
         return res.status(404).json({ message: 'Transaction not found' });
       }
 
+      // Prepare update data with proper type conversions
+      const updateData = {
+        description: req.body.description,
+        amount: typeof req.body.amount === 'string' ? parseFloat(req.body.amount) : req.body.amount,
+        date: req.body.date,
+        type: req.body.type,
+        category_id: req.body.category_id ? parseInt(req.body.category_id) : null,
+      };
+
+      console.log('[Transactions API] Update data:', updateData);
+
       const [updatedTransaction] = await db.update(transactions)
-        .set(req.body)
+        .set(updateData)
         .where(and(
           eq(transactions.id, transactionId),
           eq(transactions.user_id, userId)
         ))
         .returning();
 
+      console.log('[Transactions API] Updated transaction:', updatedTransaction);
       res.json(updatedTransaction);
     } catch (error) {
-      console.error('Error updating transaction:', error);
+      console.error('[Transactions API] Error updating transaction:', error);
       res.status(400).json({
-        message: error instanceof Error ? error.message : 'Invalid request data'
+        message: error instanceof Error ? error.message : 'Invalid request data',
+        details: error instanceof Error ? error.stack : undefined
       });
     }
   });
