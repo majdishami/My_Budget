@@ -6,40 +6,6 @@ import type { UploadedFile } from 'express-fileupload';
 
 const router = Router();
 
-// Define backup directory and retention policy
-const BACKUP_DIR = path.join(process.cwd(), 'tmp');
-const MAX_BACKUPS = 5;
-
-// Ensure backup directory exists
-if (!fs.existsSync(BACKUP_DIR)) {
-  fs.mkdirSync(BACKUP_DIR, { recursive: true });
-}
-
-// Clean old backups
-function cleanOldBackups(backupDir: string, maxFiles = MAX_BACKUPS) {
-  try {
-    const files = fs.readdirSync(backupDir)
-      .filter(file => file.endsWith('.json'))
-      .map(file => ({ 
-        file, 
-        time: fs.statSync(path.join(backupDir, file)).mtime.getTime() 
-      }))
-      .sort((a, b) => b.time - a.time); // Sort by most recent
-
-    // Remove excess files
-    while (files.length > maxFiles) {
-      const oldFile = files.pop();
-      if (oldFile) {
-        const filePath = path.join(backupDir, oldFile.file);
-        fs.unlinkSync(filePath);
-        console.log(`Cleaned up old backup: ${oldFile.file}`);
-      }
-    }
-  } catch (error) {
-    console.error('Error cleaning old backups:', error);
-  }
-}
-
 router.post('/api/sync/backup', async (req, res) => {
   try {
     const result = await generateDatabaseBackup();
@@ -50,9 +16,6 @@ router.post('/api/sync/backup', async (req, res) => {
         error: result.error || 'Failed to generate backup' 
       });
     }
-
-    // Clean old backups after successful generation
-    cleanOldBackups(BACKUP_DIR);
 
     res.json({
       message: 'Backup generated successfully',
@@ -69,17 +32,15 @@ router.post('/api/sync/backup', async (req, res) => {
 router.get('/api/sync/download/:filename', (req, res) => {
   try {
     const { filename } = req.params;
-    // Prevent directory traversal by using basename
-    const safeFilename = path.basename(filename);
-    const filePath = path.join(BACKUP_DIR, safeFilename);
+    const filePath = path.join(process.cwd(), 'tmp', filename);
 
-    // Validate file exists and has correct extension
-    if (!fs.existsSync(filePath) || !safeFilename.toLowerCase().endsWith('.json')) {
+    // Validate that the file exists and has the correct extension
+    if (!fs.existsSync(filePath) || !filename.toLowerCase().endsWith('.json')) {
       console.error('Invalid or missing backup file:', filePath);
       return res.status(404).json({ error: 'Invalid or missing backup file' });
     }
 
-    res.download(filePath, safeFilename, (err) => {
+    res.download(filePath, filename, (err) => {
       if (err) {
         console.error('Error downloading file:', err);
         if (!res.headersSent) {
@@ -120,53 +81,58 @@ router.post('/api/sync/restore', async (req, res) => {
     console.log('Processing uploaded file:', {
       name: uploadedFile.name,
       size: uploadedFile.size,
-      mimetype: uploadedFile.mimetype
+      mimetype: uploadedFile.mimetype,
+      tempFilePath: uploadedFile.tempFilePath
     });
 
-    // Generate a safe filename with .json extension
+    // Create tmp directory if it doesn't exist
+    const backupPath = path.join(process.cwd(), 'tmp');
+    if (!fs.existsSync(backupPath)) {
+      fs.mkdirSync(backupPath, { recursive: true });
+    }
+
+    // Generate a new filename with .json extension
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const safeFilename = `restore_${timestamp}.json`;
-    const tempPath = path.join(BACKUP_DIR, safeFilename);
+    const tempPath = path.join(backupPath, `restore_${timestamp}.json`);
+    console.log('Moving file to:', tempPath);
 
     try {
       // Move the uploaded file
       await uploadedFile.mv(tempPath);
-      console.log('File moved successfully to:', tempPath);
+      console.log('File moved successfully');
 
-      // Verify file exists and is readable
+      // Verify that the moved file exists and is readable
       if (!fs.existsSync(tempPath)) {
         throw new Error('Failed to move uploaded file to temporary location');
       }
 
-      // Validate JSON format
+      // Try to read and parse the file to verify it's valid JSON
       try {
         const fileContent = fs.readFileSync(tempPath, 'utf-8');
-        JSON.parse(fileContent);
+        JSON.parse(fileContent); // This will throw if not valid JSON
         console.log('Verified file is valid JSON');
       } catch (parseError) {
         console.error('JSON parse error:', parseError);
         throw new Error('Invalid JSON format in backup file');
       }
 
-      // Restore database from backup
+      // Restore the database from the backup
       console.log('Starting database restore...');
       const result = await restoreDatabaseBackup(tempPath);
       console.log('Restore completed with result:', result);
 
-      // Clean up temporary file
+      // Clean up the temporary file
       fs.unlinkSync(tempPath);
       console.log('Temporary file cleaned up');
 
       if (!result.success) {
-        return res.status(500).json({ 
-          error: result.error || 'Failed to restore backup' 
-        });
+        return res.status(500).json({ error: result.error || 'Failed to restore backup' });
       }
 
       res.json({ message: 'Database restored successfully' });
     } catch (error) {
       console.error('Error during file processing:', error);
-      // Clean up temp file if it exists
+      // Clean up the temp file if it exists
       if (fs.existsSync(tempPath)) {
         fs.unlinkSync(tempPath);
       }

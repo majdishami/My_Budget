@@ -14,14 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import dayjs from "dayjs";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { getCurrentDate } from "@/lib/utils";
 
 export default function ExpenseReport() {
-  const currentDate = getCurrentDate();
   const [isDialogOpen, setIsDialogOpen] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(currentDate.format('M'));
-  const [selectedYear, setSelectedYear] = useState(currentDate.format('YYYY'));
+  const [selectedMonth, setSelectedMonth] = useState(dayjs().format('M'));
+  const [selectedYear, setSelectedYear] = useState(dayjs().format('YYYY'));
   const [, setLocation] = useLocation();
 
   const { data: bills = [], isLoading, error } = useQuery<Bill[]>({
@@ -42,10 +39,10 @@ export default function ExpenseReport() {
   }));
 
   // Generate year options (current year ± 5 years)
-  const year = currentDate.year();
+  const currentYear = dayjs().year();
   const years = Array.from({ length: 11 }, (_, i) => ({
-    value: (year - 5 + i).toString(),
-    label: (year - 5 + i).toString()
+    value: (currentYear - 5 + i).toString(),
+    label: (currentYear - 5 + i).toString()
   }));
 
   if (isLoading) {
@@ -70,6 +67,8 @@ export default function ExpenseReport() {
       </div>
     );
   }
+
+  const currentDate = dayjs();
 
   return (
     <div className="container mx-auto p-4 min-h-screen overflow-y-auto">
@@ -123,16 +122,11 @@ export default function ExpenseReport() {
         </div>
       </div>
 
-      <ErrorBoundary>
-        <ExpenseReportDialog
-          isOpen={isDialogOpen}
-          onOpenChange={handleOpenChange}
-          bills={bills.map(bill => ({
-            ...bill,
-            category_color: bill.category_color || '#808080' // Provide default color if missing
-          }))}
-        />
-      </ErrorBoundary>
+      <ExpenseReportDialog
+        isOpen={isDialogOpen}
+        onOpenChange={handleOpenChange}
+        bills={bills || []}
+      />
     </div>
   );
 }

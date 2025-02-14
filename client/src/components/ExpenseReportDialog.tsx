@@ -82,13 +82,9 @@ interface Bill {
   user_id: number;
   created_at: string;
   isOneTime: boolean;
-  date?: string;
-  category?: string;
   category_name: string;
   category_color: string;
-  category?: {
-    icon: string | null;
-  };
+  category?: { icon: string | null };
 }
 
 interface CategoryTotal {
@@ -118,13 +114,6 @@ interface ExpenseReportDialogProps {
   onOpenChange: (open: boolean) => void;
   bills: Bill[];
 }
-
-// Add date validation helper
-const isValidDate = (date: any): boolean => {
-  if (!date) return false;
-  const d = dayjs(date);
-  return d.isValid() && d.year() >= 1900 && d.year() <= 2100;
-};
 
 export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: ExpenseReportDialogProps) {
   const [selectedValue, setSelectedValue] = useState<string>("all");
@@ -177,30 +166,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const transactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
-    // Add validation for date range
-    const validateDateRange = (range: DateRange | undefined): DateRange | undefined => {
-      if (!range) return undefined;
-
-      const from = range.from ? dayjs(range.from) : null;
-      const to = range.to ? dayjs(range.to) : null;
-
-      if (!from?.isValid() || !to?.isValid()) {
-        return undefined;
-      }
-
-      if (to.isBefore(from)) {
-        return {
-          from: range.from,
-          to: range.from
-        };
-      }
-
-      return range;
-    };
-
-    const validatedDate = validateDateRange(date);
-    if (!validatedDate) {
-      setDateError("Invalid date range");
+    // Validate date range
+    if (dayjs(date.to).isBefore(date.from)) {
+      setDate({
+        from: date.from,
+        to: date.from
+      });
+      setDateError("End date cannot be before start date");
       return [];
     }
 
@@ -217,8 +189,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
     }
 
-    const startDate = dayjs(validatedDate.from);
-    const endDate = dayjs(validatedDate.to);
+    const startDate = dayjs(date.from);
+    const endDate = dayjs(date.to);
     const result: Transaction[] = [];
 
     // Generate transactions for each bill
@@ -474,24 +446,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     return "Expense Report";
   };
 
-  // Update date change handler
-  const handleDateChange = (newDate: DateRange | undefined) => {
-    const validatedDate = validateDateRange(newDate);
-    setDate(validatedDate);
-    setDateError(validatedDate ? null : "Please select valid dates");
-  };
-
-  // Add escape key handler
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onOpenChange(false);
-      }
-    };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onOpenChange]);
-
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -555,7 +509,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
               <Calendar
                 mode="range"
                 selected={date}
-                onSelect={handleDateChange}
+                onSelect={(newDate) => {
+                  setDate(newDate);
+                  setDateError(null);
+                }}
                 numberOfMonths={1}
                 defaultMonth={today.toDate()}
                 className="rounded-md w-full max-h-[300px]"
