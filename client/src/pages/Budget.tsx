@@ -335,13 +335,23 @@ export function Budget() {
       .month(selectedMonth)
       .startOf("month");
     const lastDayOfMonth = firstDayOfMonth.endOf("month");
-    const firstDayIndex = firstDayOfMonth.day();
+    const firstDayIndex = firstDayOfMonth.day(); // 0-6, where 0 is Sunday
     const totalDaysInMonth = lastDayOfMonth.date();
 
-    return Array.from({ length: 35 }, (_, index) => {
-      const day = index - firstDayIndex + 1;
-      return day >= 1 && day <= totalDaysInMonth ? day : null;
-    });
+    // Create array with empty slots for days before the first day of month
+    const days = Array(firstDayIndex).fill(null);
+
+    // Add the actual days of the month
+    for (let day = 1; day <= totalDaysInMonth; day++) {
+      days.push(day);
+    }
+
+    // Add remaining empty slots to complete the grid (always 6 rows * 7 days = 42 slots)
+    while (days.length < 42) {
+      days.push(null);
+    }
+
+    return days;
   }, [selectedYear, selectedMonth]);
 
   // Update the current day detection
@@ -453,7 +463,7 @@ export function Budget() {
               </tr>
             </thead>
             <tbody className="divide-y divide-yellow-100/50">
-              {Array.from({ length: 5 }, (_, weekIndex) => (
+              {Array.from({ length: 6 }, (_, weekIndex) => (
                 <tr key={weekIndex} className="divide-x divide-yellow-100/50">
                   {Array.from({ length: 7 }, (_, dayIndex) => {
                     const dayNumber = calendarData[weekIndex * 7 + dayIndex];
