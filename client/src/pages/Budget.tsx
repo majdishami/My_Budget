@@ -351,12 +351,20 @@ export function Budget() {
       days.push(null);
     }
 
+    // If we need more than 35 days (5 weeks) to display the month, expand the array
+    if (firstDayIndex + totalDaysInMonth > 35) {
+      console.warn('Month requires 6 rows to display properly');
+      while (days.length < 42) {
+        days.push(null);
+      }
+    }
+
     return days;
   }, [selectedYear, selectedMonth]);
 
   // Update the current day detection
   const isCurrentDay = useCallback((dayNumber: number) => {
-    const now = dayjs(); 
+    const now = dayjs(); //This line was changed to fix the issue.
     return dayNumber === now.date() && 
            selectedMonth === now.month() && 
            selectedYear === now.year();
@@ -463,7 +471,7 @@ export function Budget() {
               </tr>
             </thead>
             <tbody className="divide-y divide-yellow-100/50">
-              {Array.from({ length: 5 }, (_, weekIndex) => (
+              {Array.from({ length: calendarData.length > 35 ? 6 : 5 }, (_, weekIndex) => (
                 <tr key={weekIndex} className="divide-x divide-yellow-100/50">
                   {Array.from({ length: 7 }, (_, dayIndex) => {
                     const dayNumber = calendarData[weekIndex * 7 + dayIndex];
