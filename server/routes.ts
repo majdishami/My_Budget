@@ -279,21 +279,21 @@ export function registerRoutes(app: Express): Server {
       console.log('[Transactions API] Fetching transactions...');
       const type = req.query.type as string | undefined;
 
-      let query = db.query.transactions.findMany({
-        orderBy: [desc(transactions.date)],
-        with: {
-          category: true
-        }
-      });
+      let query = db.select({
+        id: transactions.id,
+        description: transactions.description,
+        amount: transactions.amount,
+        date: transactions.date,
+        type: transactions.type,
+        category_id: transactions.category_id,
+        category: categories
+      })
+      .from(transactions)
+      .leftJoin(categories, eq(transactions.category_id, categories.id))
+      .orderBy(desc(transactions.date));
 
       if (type) {
-        query = db.query.transactions.findMany({
-          where: eq(transactions.type, type),
-          orderBy: [desc(transactions.date)],
-          with: {
-            category: true
-          }
-        });
+        query = query.where(eq(transactions.type, type));
       }
 
       const allTransactions = await query;
@@ -311,12 +311,14 @@ export function registerRoutes(app: Express): Server {
         category_icon: transaction.category?.icon || null,
       }));
 
+      console.log('[Transactions API] Formatted transactions:', formattedTransactions);
       return res.json(formattedTransactions);
     } catch (error) {
       console.error('[Transactions API] Error:', error);
       return res.status(500).json({
         message: 'Failed to load transactions',
         error: process.env.NODE_ENV === 'development' ? error : 'Internal server error',
+        details: error instanceof Error ? error.stack : undefined
       });
     }
   });
