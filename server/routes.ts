@@ -89,7 +89,9 @@ export function registerRoutes(app: Express): Server {
         date: transactions.date,
         type: transactions.type,
         category_id: transactions.category_id,
-        category: categories
+        category_name: categories.name,
+        category_color: categories.color,
+        category_icon: categories.icon
       })
       .from(transactions)
       .leftJoin(categories, eq(transactions.category_id, categories.id))
@@ -109,9 +111,9 @@ export function registerRoutes(app: Express): Server {
         date: dayjs(transaction.date).format('YYYY-MM-DD'),
         type: transaction.type,
         category_id: transaction.category_id,
-        category_name: transaction.category?.name || 'Uncategorized',
-        category_color: transaction.category?.color || '#D3D3D3',
-        category_icon: transaction.category?.icon || null
+        category_name: transaction.category_name || 'Uncategorized',
+        category_color: transaction.category_color || '#D3D3D3',
+        category_icon: transaction.category_icon || null
       }));
 
       return res.json(formattedTransactions);
