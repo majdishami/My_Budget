@@ -30,14 +30,14 @@ export default function MonthlyReport() {
     let totalIncome = 0;
 
     // Process Majdi's salary (twice monthly)
-    const majdiSalary = incomes.find(income => income.source === "Majdi's Salary");
+    const majdiSalary = incomes.find((income: Income) => income.source === "Majdi's Salary");
     if (majdiSalary) {
       // Add both payments for the month
       totalIncome += majdiSalary.amount * 2;
     }
 
     // Process Ruba's salary (biweekly)
-    const rubaSalary = incomes.find(income => income.source === "Ruba's Salary");
+    const rubaSalary = incomes.find((income: Income) => income.source === "Ruba's Salary");
     if (rubaSalary) {
       // Calculate biweekly payments for Ruba starting from Jan 10, 2025
       const startDate = dayjs('2025-01-10');
@@ -56,7 +56,7 @@ export default function MonthlyReport() {
     }
 
     // Calculate monthly bill totals
-    const totalExpenses = bills.reduce((sum, bill) => sum + bill.amount, 0);
+    const totalExpenses = bills.reduce((sum: number, bill: Bill) => sum + bill.amount, 0);
 
     // Update monthly data
     setMonthlyData({
