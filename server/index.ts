@@ -1,188 +1,92 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import fileUpload from 'express-fileupload';
-import cors from 'cors';
-import morgan from 'morgan';
-import { db } from "@db";
-import path from "path";
-import fs from "fs";
-import * as dotenv from 'dotenv';
-
-// Load environment variables
-const envPath = path.join(process.cwd(), '.env');
-console.log('Loading environment variables from:', envPath);
-dotenv.config({ path: envPath });
-
-// Log database connection config (without sensitive data)
-console.log('Database connection config:', {
-  connectionString: '[REDACTED]',
-  ssl: process.env.DATABASE_SSL,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  maxUses: 7500,
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 10000
-});
-
-console.log('Initializing database connection...');
+import express from "express";
+import { createServer } from "http";
+import cors from "cors";
 
 // Initialize express app
-console.log('Initializing Express application...');
+console.log('Starting Express application initialization...');
 const app = express();
 
-// Create tmp directory if it doesn't exist
-const tmpDir = path.join(process.cwd(), 'tmp');
-if (!fs.existsSync(tmpDir)) {
-  console.log('Creating tmp directory at:', tmpDir);
-  fs.mkdirSync(tmpDir, { recursive: true });
-}
-
-// Basic middleware setup
-console.log('Setting up basic middleware...');
+// Basic middleware
+console.log('Setting up middleware...');
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(morgan('combined'));
-
-// Configure CORS
-console.log('Configuring CORS...');
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: "GET,POST,PUT,DELETE,OPTIONS,PATCH",
-  allowedHeaders: "Content-Type, Authorization"
-}));
-
-// Configure file upload middleware
-console.log('Setting up file upload middleware...');
-app.use(fileUpload({
-  limits: { 
-    fileSize: 50 * 1024 * 1024 // 50MB max file size
-  },
-  useTempFiles: true,
-  tempFileDir: tmpDir,
-  debug: process.env.NODE_ENV !== 'production',
-  safeFileNames: true,
-  preserveExtension: true,
-  abortOnLimit: true,
-  uploadTimeout: 30000,
-  createParentPath: true,
-  defParamCharset: 'utf8',
-  responseOnLimit: 'File size limit has been reached',
-  parseNested: false
-}));
+app.use(cors());
 
 // Request logging middleware
 app.use((req, res, next) => {
-  const start = Date.now();
-  log(`[${req.method}] ${req.path}`);
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (req.path.startsWith("/api")) {
-      log(`${req.method} ${req.path} ${res.statusCode} in ${duration}ms`);
-    }
-  });
-
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
-// Initialize database and start server
-let connectionAttempts = 0;
-const MAX_ATTEMPTS = 5;
+// Basic test route
+console.log('Setting up test route...');
+app.get('/', (_req, res) => {
+  res.setHeader('Content-Type', 'text/plain');
+  res.send('Hello World!');
+});
 
-(async () => {
-  try {
-    log('Starting server initialization...');
+app.get('/api/health', (_req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
-    // Test database connection with retries
-    while (connectionAttempts < MAX_ATTEMPTS) {
-      connectionAttempts++;
-      console.log(`Connection attempt ${connectionAttempts}/${MAX_ATTEMPTS}...`);
+// Initialize server
+console.log('Creating HTTP server...');
+const server = createServer(app);
 
-      try {
-        await db.query.categories.findMany();
-        log('Database connection established successfully');
-        break;
-      } catch (dbError) {
-        console.error('Database connection error:', dbError);
-        if (connectionAttempts === MAX_ATTEMPTS) {
-          console.error('Maximum connection attempts reached. Exiting...');
-          process.exit(1);
-        }
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
+// Server startup
+const port = 5000; // Fixed port to match Replit configuration
+const host = '0.0.0.0';
+
+console.log(`Attempting to start server on ${host}:${port}...`);
+
+// Add a timeout to ensure we can detect if the server fails to start
+const startupTimeout = setTimeout(() => {
+  console.error('Server startup timeout - failed to start within 5 seconds');
+  process.exit(1);
+}, 5000);
+
+server.listen(port, host, () => {
+  clearTimeout(startupTimeout);
+  console.log(`Server running at http://${host}:${port}`);
+  console.log(`Environment: ${app.get("env")}`);
+
+  // Log all routes for debugging
+  console.log('Registered routes:');
+  app._router.stack.forEach((r: any) => {
+    if (r.route && r.route.path) {
+      console.log(`${Object.keys(r.route.methods).join(',')} ${r.route.path}`);
     }
+  });
+});
 
-    // Initialize routes
-    console.log('Registering routes...');
-    const server = registerRoutes(app);
-
-    // Error handler
-    console.log('Setting up error handler...');
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      console.error('Server error:', {
-        message: err.message,
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-      });
-
-      res.status(err.status || 500).json({ 
-        message: err.message || "Internal Server Error",
-        error: process.env.NODE_ENV === 'development' ? err.stack : undefined
-      });
-    });
-
-    console.log('Setting up Vite/Static serving...');
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else {
-      serveStatic(app);
-    }
-
-    // Server startup configuration
-    const port = Number(process.env.PORT || 5000);
-    const host = '0.0.0.0';
-    console.log(`Attempting to start server on ${host}:${port}...`);
-
-    // Add specific error handler for server startup issues
-    server.on('error', (error: any) => {
-      console.error('Server startup error:', error);
-      if (error.syscall !== 'listen') {
-        throw error;
-      }
-
-      switch (error.code) {
-        case 'EACCES':
-          console.error(`Port ${port} requires elevated privileges`);
-          process.exit(1);
-          break;
-        case 'EADDRINUSE':
-          console.error(`Port ${port} is already in use`);
-          process.exit(1);
-          break;
-        default:
-          throw error;
-      }
-    });
-
-    server.listen(port, host, () => {
-      log(`Server running at http://${host}:${port}`);
-      log(`Environment: ${app.get("env")}`);
-      log('Server initialization completed successfully');
-
-      // Log available tables
-      db.query.categories.findMany().then(categories => {
-        console.log('Available tables:', Object.keys(db.query));
-        console.log('Categories table contains', categories.length, 'rows');
-      }).catch(err => {
-        console.error('Error querying categories:', err);
-      });
-    });
-
-  } catch (error) {
-    console.error('Fatal error during server initialization:', error);
-    process.exit(1);
+// Handle startup errors
+server.on('error', (error: any) => {
+  clearTimeout(startupTimeout);
+  console.error('Server startup error:', error);
+  if (error.syscall !== 'listen') {
+    throw error;
   }
-})();
+
+  switch (error.code) {
+    case 'EACCES':
+      console.error(`Port ${port} requires elevated privileges`);
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(`Port ${port} is already in use`);
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
