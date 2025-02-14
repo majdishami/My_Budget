@@ -61,8 +61,9 @@ interface Transaction {
   amount: number;
   occurred: boolean;
   category: string;
-  color?: string;
-  icon?: string | null;
+  category_name?: string;
+  category_color?: string;
+  category_icon?: string | null;
   type?: 'income' | 'expense';
 }
 
@@ -193,7 +194,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     const endDate = dayjs(date.to);
     const result: Transaction[] = [];
 
-    // Generate transactions for each bill
+    // Generate transactions for each bill with proper category information
     filteredBills.forEach(bill => {
       const billAmount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
       if (isNaN(billAmount)) {
@@ -201,16 +202,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         return;
       }
 
-      // Generate all occurrences within the date range
       let currentDate = startDate.clone().startOf('month').date(bill.day);
-
-      // If the first occurrence is before the start date, move to next month
       if (currentDate.isBefore(startDate)) {
         currentDate = currentDate.add(1, 'month');
       }
 
       while (currentDate.isSameOrBefore(endDate)) {
-        // Only add if the occurrence falls within the date range
         if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
           result.push({
             id: `${bill.id}-${currentDate.format('YYYY-MM-DD')}`,
@@ -219,8 +216,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             amount: billAmount,
             occurred: currentDate.isSameOrBefore(today),
             category: bill.category_name,
-            color: bill.category_color,
-            icon: bill.category?.icon
+            category_name: bill.category_name,
+            category_color: bill.category_color,
+            category_icon: bill.category?.icon,
+            type: 'expense'
           });
         }
         currentDate = currentDate.add(1, 'month');
@@ -244,7 +243,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           totalAmount: 0,
           occurredAmount: 0,
           pendingAmount: 0,
-          color: transaction.color || '#D3D3D3',
+          color: transaction.category_color || '#D3D3D3',
           transactions: [],
           occurredCount: 0,
           pendingCount: 0
@@ -330,7 +329,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             pending: 0,
             occurredCount: 0,
             pendingCount: 0,
-            color: t.color || '#D3D3D3'
+            color: t.category_color || '#D3D3D3'
           };
         }
         totals[t.category].total += t.amount;
@@ -367,7 +366,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             pending: 0,
             occurredCount: 0,
             pendingCount: 0,
-            color: t.color || '#D3D3D3'
+            color: t.category_color || '#D3D3D3'
           };
         }
         totals[t.description].total += t.amount;
@@ -404,7 +403,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             pending: 0,
             occurredCount: 0,
             pendingCount: 0,
-            color: t.color || '#D3D3D3'
+            color: t.category_color || '#D3D3D3'
           };
         }
         totals[t.description].total += t.amount;
@@ -890,7 +889,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                       {selectedValue === "all_categories" ? (
                                         <>
                                           <TableCell>
-                                            <CategoryDisplay category={transaction.category} color={transaction.color || '#D3D3D3'} icon={transaction.icon ?? null} />
+                                            <CategoryDisplay category={transaction.category} color={transaction.category_color || '#D3D3D3'} icon={transaction.category_icon ?? null} />
                                           </TableCell>
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
                                             {formatCurrency(transaction.amount)}
@@ -904,7 +903,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                           <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                                           <TableCell>{transaction.description}</TableCell>
                                           <TableCell>
-                                            <CategoryDisplay category={transaction.category} color={transaction.color} icon={transaction.icon ?? null} />
+                                            <CategoryDisplay category={transaction.category} color={transaction.category_color} icon={transaction.category_icon ?? null} />
                                           </TableCell>
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
                                             {formatCurrency(transaction.amount)}
