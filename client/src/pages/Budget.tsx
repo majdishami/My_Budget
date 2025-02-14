@@ -216,7 +216,6 @@ export function Budget() {
 
   // Memoize functions for getting day specific data
   const getIncomeForDay = useCallback((day: number) => {
-    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
     return monthlyIncomeOccurrences.filter(income => {
       const incomeDate = dayjs(income.date);
       return incomeDate.date() === day && 
@@ -226,15 +225,11 @@ export function Budget() {
   }, [monthlyIncomeOccurrences, selectedYear, selectedMonth]);
 
   const getBillsForDay = useCallback((day: number) => {
-    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
     return bills.filter(bill => {
-      if (bill.isOneTime) {
-        const billDate = dayjs(bill.date);
-        return billDate && billDate.date() === day && 
-               billDate.month() === selectedMonth && 
-               billDate.year() === selectedYear;
-      }
-      return bill.day === day;
+      const billDate = dayjs(bill.date);
+      return billDate.date() === day && 
+             billDate.month() === selectedMonth && 
+             billDate.year() === selectedYear;
     });
   }, [bills, selectedYear, selectedMonth]);
 

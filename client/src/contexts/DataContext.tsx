@@ -54,27 +54,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const transactions = await response.json();
       console.log('[DataContext] Successfully fetched transactions:', transactions);
 
+      // Process incomes
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
         .map((t: any) => ({
           id: t.id.toString(),
           source: t.description,
           amount: parseFloat(t.amount),
-          date: dayjs(t.date).format(), // Ensure consistent date format
+          date: dayjs(t.date).format('YYYY-MM-DDTHH:mm:ss[Z]'), // Use consistent ISO format
           occurrenceType: t.recurring_id ? 'recurring' : 'once'
         }));
 
       console.log('[DataContext] Processed and set incomes:', loadedIncomes);
       setIncomes(loadedIncomes);
 
-      // Load bills if they exist in transactions
+      // Process bills
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
         .map((t: any) => ({
           id: t.id.toString(),
           name: t.description,
           amount: parseFloat(t.amount),
-          date: dayjs(t.date).format(),
+          date: dayjs(t.date).format('YYYY-MM-DDTHH:mm:ss[Z]'), // Use consistent ISO format
           isOneTime: !t.recurring_id,
           day: dayjs(t.date).date()
         }));
