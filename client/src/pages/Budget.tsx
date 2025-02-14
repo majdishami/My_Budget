@@ -152,9 +152,12 @@ export function Budget() {
   // Update getBillsForDay to handle recurring monthly bills
   const getBillsForDay = useCallback((day: number) => {
     return bills.filter(bill => {
+      // Extract the day from the bill's date
       const billDate = dayjs(bill.date);
+      const billDay = billDate.date();
+
       // Bills recur monthly, so we only check the day
-      return billDate.date() === day;
+      return billDay === day;
     });
   }, [bills]);
 
