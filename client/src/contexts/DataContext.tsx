@@ -2,7 +2,6 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { Income, Bill } from "@/types";
 import dayjs from "dayjs";
 import { logger } from "@/lib/logger";
-import { incomeSchema, billSchema } from "@/lib/validation";
 
 interface DataContextType {
   incomes: Income[];
@@ -57,7 +56,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             id: t.id.toString(),
             source: t.description,
             amount: parseFloat(t.amount),
-            date: parsedDate.format('YYYY-MM-DDTHH:mm:ss[Z]'),
+            date: parsedDate.toISOString(), // Use ISO string for consistent timezone handling
             occurrenceType: t.recurring_id ? 'recurring' : 'once'
           };
           console.log('[DataContext] Processed income:', income);
@@ -76,7 +75,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             id: t.id.toString(),
             name: t.description,
             amount: parseFloat(t.amount),
-            date: parsedDate.format('YYYY-MM-DDTHH:mm:ss[Z]'),
+            date: parsedDate.toISOString(), // Use ISO string for consistent timezone handling
             isOneTime: !t.recurring_id,
             day: parsedDate.date()
           };

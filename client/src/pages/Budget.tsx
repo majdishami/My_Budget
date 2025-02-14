@@ -198,24 +198,50 @@ export function Budget() {
     return occurrences;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // Memoize functions for getting day specific data
+  // Update the getIncomeForDay and getBillsForDay functions
   const getIncomeForDay = useCallback((day: number) => {
+    console.log('Getting income for day:', { day, selectedMonth, selectedYear });
     const incomeForDay = incomes.filter(income => {
       const incomeDate = dayjs(income.date);
-      return incomeDate.date() === day && 
+      const matches = incomeDate.date() === day && 
              incomeDate.month() === (selectedMonth - 1) && 
              incomeDate.year() === selectedYear;
+
+      console.log('Income date check:', {
+        income,
+        date: incomeDate.format(),
+        day: incomeDate.date(),
+        month: incomeDate.month(),
+        year: incomeDate.year(),
+        matches
+      });
+
+      return matches;
     });
+    console.log('Income for day result:', incomeForDay);
     return incomeForDay;
   }, [incomes, selectedYear, selectedMonth]);
 
   const getBillsForDay = useCallback((day: number) => {
+    console.log('Getting bills for day:', { day, selectedMonth, selectedYear });
     const billsForDay = bills.filter(bill => {
       const billDate = dayjs(bill.date);
-      return billDate.date() === day && 
+      const matches = billDate.date() === day && 
              billDate.month() === (selectedMonth - 1) && 
              billDate.year() === selectedYear;
+
+      console.log('Bill date check:', {
+        bill,
+        date: billDate.format(),
+        day: billDate.date(),
+        month: billDate.month(),
+        year: billDate.year(),
+        matches
+      });
+
+      return matches;
     });
+    console.log('Bills for day result:', billsForDay);
     return billsForDay;
   }, [bills, selectedYear, selectedMonth]);
 
