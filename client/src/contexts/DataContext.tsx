@@ -104,14 +104,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const isIncome = 'source' in transaction;
       logger.info('[DataContext] Editing transaction:', { transaction, isIncome });
 
+      // Special handling for recurring occurrences
+      let occurrencePayload = {};
+      if (isIncome && transaction.occurrenceType !== 'once') {
+        occurrencePayload = {
+          recurring_id: 1,
+          occurrence_type: transaction.occurrenceType
+        };
+      } else if (!isIncome && !transaction.isOneTime) {
+        occurrencePayload = {
+          recurring_id: 1,
+          day: transaction.day
+        };
+      }
+
       const payload = {
         description: isIncome ? transaction.source : transaction.name,
         amount: typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount,
         date: transaction.date,
         type: isIncome ? 'income' : 'expense',
         category_id: !isIncome && transaction.category_id ? Number(transaction.category_id) : null,
-        day: !isIncome ? Number(transaction.day) : undefined,
-        recurring_id: !isIncome && !transaction.isOneTime ? 1 : null
+        ...occurrencePayload
       };
 
       logger.info('[DataContext] Edit transaction payload:', payload);
@@ -141,26 +154,50 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Update local state with the server response data to ensure consistency
       if (isIncome) {
         setIncomes(prevIncomes => 
-          prevIncomes.map(inc => inc.id === transaction.id ? {
-            ...inc,
-            source: updatedTransaction.description,
-            amount: parseFloat(updatedTransaction.amount),
-            date: dayjs(updatedTransaction.date).startOf('day').toISOString()
-          } : inc)
+          prevIncomes.map(inc => {
+            // For recurring incomes, update all instances with the same source
+            if (inc.source === transaction.source && inc.occurrenceType !== 'once') {
+              return {
+                ...inc,
+                source: updatedTransaction.description,
+                amount: parseFloat(updatedTransaction.amount),
+                occurrenceType: updatedTransaction.occurrence_type || inc.occurrenceType
+              };
+            }
+            // For one-time incomes or different sources, only update the matching ID
+            return inc.id === transaction.id ? {
+              ...inc,
+              source: updatedTransaction.description,
+              amount: parseFloat(updatedTransaction.amount),
+              date: dayjs(updatedTransaction.date).startOf('day').toISOString()
+            } : inc;
+          })
         );
       } else {
         setBills(prevBills => 
-          prevBills.map(bill => bill.id === transaction.id ? {
-            ...bill,
-            name: updatedTransaction.description,
-            amount: parseFloat(updatedTransaction.amount),
-            date: dayjs(updatedTransaction.date).startOf('day').toISOString(),
-            day: dayjs(updatedTransaction.date).date()
-          } : bill)
+          prevBills.map(bill => {
+            // For recurring bills, update all instances with the same name
+            if (bill.name === transaction.name && !bill.isOneTime) {
+              return {
+                ...bill,
+                name: updatedTransaction.description,
+                amount: parseFloat(updatedTransaction.amount),
+                day: dayjs(updatedTransaction.date).date()
+              };
+            }
+            // For one-time bills or different names, only update the matching ID
+            return bill.id === transaction.id ? {
+              ...bill,
+              name: updatedTransaction.description,
+              amount: parseFloat(updatedTransaction.amount),
+              date: dayjs(updatedTransaction.date).startOf('day').toISOString(),
+              day: dayjs(updatedTransaction.date).date()
+            } : bill;
+          })
         );
       }
 
-      // Refresh data to ensure consistency
+      // Refresh data to ensure consistency with server
       await loadData();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
