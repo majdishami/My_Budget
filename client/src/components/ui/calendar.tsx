@@ -2,13 +2,20 @@ import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker } from "react-day-picker"
 import { cn } from "@/lib/utils"
+import { Bill, Income } from "@/types"
+import { DayContent } from "@/components/DayContent"
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  bills?: Bill[];
+  incomes?: Income[];
+}
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  bills = [],
+  incomes = [],
   ...props
 }: CalendarProps) {
   return (
@@ -61,6 +68,9 @@ function Calendar({
       components={{
         IconLeft: () => <ChevronLeft className="h-4 w-4" />,
         IconRight: () => <ChevronRight className="h-4 w-4" />,
+        DayContent: ({ date, ...contentProps }) => (
+          <DayContent day={date} bills={bills} incomes={incomes} {...contentProps} />
+        ),
       }}
       {...props}
     />
