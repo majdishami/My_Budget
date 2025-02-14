@@ -177,27 +177,42 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setBills(prevBills => 
           prevBills.map(bill => {
             // For recurring bills, update all instances with the same name
-            if (bill.name === transaction.name && !bill.isOneTime) {
+            if ((bill.name === transaction.name || bill.name === updatedTransaction.description) && !bill.isOneTime) {
+              logger.info('[DataContext] Updating recurring bill:', {
+                oldName: bill.name,
+                newName: updatedTransaction.description,
+                billId: bill.id
+              });
               return {
                 ...bill,
                 name: updatedTransaction.description,
                 amount: parseFloat(updatedTransaction.amount),
-                day: dayjs(updatedTransaction.date).date()
+                day: dayjs(updatedTransaction.date).date(),
+                category_id: updatedTransaction.category_id || bill.category_id
               };
             }
             // For one-time bills or different names, only update the matching ID
-            return bill.id === transaction.id ? {
-              ...bill,
-              name: updatedTransaction.description,
-              amount: parseFloat(updatedTransaction.amount),
-              date: dayjs(updatedTransaction.date).startOf('day').toISOString(),
-              day: dayjs(updatedTransaction.date).date()
-            } : bill;
+            if (bill.id === transaction.id) {
+              logger.info('[DataContext] Updating specific bill:', {
+                oldName: bill.name,
+                newName: updatedTransaction.description,
+                billId: bill.id
+              });
+              return {
+                ...bill,
+                name: updatedTransaction.description,
+                amount: parseFloat(updatedTransaction.amount),
+                date: dayjs(updatedTransaction.date).startOf('day').toISOString(),
+                day: dayjs(updatedTransaction.date).date(),
+                category_id: updatedTransaction.category_id || bill.category_id
+              };
+            }
+            return bill;
           })
         );
       }
 
-      // Refresh data to ensure consistency with server
+      // Force a complete data refresh to ensure consistency
       await loadData();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
