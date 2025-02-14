@@ -151,17 +151,7 @@ export function Budget() {
     })), 
   [today]); 
 
-  // Update getBillsForDay to handle recurring monthly bills
-  const getBillsForDay = useCallback((day: number) => {
-    return bills.filter(bill => {
-      const billDate = dayjs(bill.date);
-      return billDate.date() === day &&
-             billDate.month() === selectedMonth &&
-             billDate.year() === selectedYear;
-    });
-  }, [bills, selectedYear, selectedMonth]);
-
-  // Update getIncomeForDay to handle both recurring and one-time incomes with uniqueness
+  // Update getIncomeForDay to handle recurring incomes across all months
   const getIncomeForDay = useCallback((day: number) => {
     if (day <= 0) return [];
 
@@ -171,10 +161,11 @@ export function Budget() {
     // Handle Majdi's salary (1st and 15th)
     if (day === 1 || day === 15) {
       const majdiSalary = {
-        id: `majdi-${day}`,
+        id: `majdi-${day}-${selectedMonth}-${selectedYear}`,
         source: "Majdi's Salary",
         amount: 4739,
-        date: dayjs().year(selectedYear).month(selectedMonth).date(day).toISOString()
+        date: dayjs().year(selectedYear).month(selectedMonth).date(day).format('YYYY-MM-DD'),
+        occurrenceType: 'twice-monthly'
       };
       uniqueIncomes.add("Majdi's Salary");
       result.push(majdiSalary);
@@ -194,7 +185,8 @@ export function Budget() {
           id: `ruba-${currentDate.format('YYYY-MM-DD')}`,
           source: "Ruba's Salary",
           amount: 2168,
-          date: currentDate.toISOString()
+          date: currentDate.format('YYYY-MM-DD'),
+          occurrenceType: 'biweekly'
         };
         uniqueIncomes.add("Ruba's Salary");
         result.push(rubaSalary);
@@ -217,6 +209,21 @@ export function Budget() {
 
     return result;
   }, [incomes, selectedYear, selectedMonth]);
+
+  // Update getBillsForDay to handle recurring bills across all months
+  const getBillsForDay = useCallback((day: number) => {
+    return bills.filter(bill => {
+      if (bill.isOneTime) {
+        const billDate = dayjs(bill.date);
+        return billDate.date() === day &&
+               billDate.month() === selectedMonth &&
+               billDate.year() === selectedYear;
+      } else {
+        // For recurring bills, show them on their day every month
+        return bill.day === day;
+      }
+    });
+  }, [bills, selectedYear, selectedMonth]);
 
   // Update monthly totals calculation to handle recurring bills
   const monthlyTotals = useMemo(() => {
@@ -318,10 +325,10 @@ export function Budget() {
 
   // Update the current day detection
   const isCurrentDay = useCallback((dayNumber: number) => {
-    const todayDate = dayjs();
-    return dayNumber === todayDate.date() && 
-           selectedMonth === todayDate.month() && 
-           selectedYear === todayDate.year();
+    const now = dayjs();
+    return dayNumber === now.date() && 
+           selectedMonth === now.month() && 
+           selectedYear === now.year();
   }, [selectedMonth, selectedYear]);
 
 
