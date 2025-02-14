@@ -221,7 +221,7 @@ export function Budget() {
     return result;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // Update getBillsForDay to handle recurring bills across all months
+  // Update getBillsForDay function to properly handle recurring bills
   const getBillsForDay = useCallback((day: number) => {
     if (day <= 0) return [];
 
@@ -281,16 +281,29 @@ export function Budget() {
     while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
       if (currentDate.day() === 5) { // Friday
         const startDate = dayjs('2025-01-10');
-        const weeksDiff = currentDate.diff(startDate, 'week');
-        if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+        const weeksDiff = Math.floor(currentDate.diff(startDate, 'days') / 7);
+        if (currentDate.isSameOrAfter(startDate) && weeksDiff % 2 === 0) {
           totalIncome += 2168; // Add Ruba's bi-weekly salary
         }
       }
       currentDate = currentDate.add(1, 'day');
     }
 
-    // Calculate total expenses (all bills recur monthly)
-    const totalExpenses = bills.reduce((sum, bill) => sum + bill.amount, 0);
+    // Calculate total expenses
+    let totalExpenses = 0;
+
+    // Add recurring bills
+    bills.forEach(bill => {
+      if (!bill.isOneTime) {
+        totalExpenses += bill.amount;
+      } else {
+        // For one-time bills, only include if they fall in this month/year
+        const billDate = dayjs(bill.date);
+        if (billDate.month() === selectedMonth && billDate.year() === selectedYear) {
+          totalExpenses += bill.amount;
+        }
+      }
+    });
 
     return {
       income: totalIncome,
