@@ -13,6 +13,7 @@ export function DayContent({ day, bills = [], incomes = [] }: DayContentProps) {
 
   // Filter bills for this day
   const dayBills = bills.filter(bill => bill.day === day.getDate());
+  console.log('Bills for day:', dayBills);
 
   // Filter incomes for this day
   const dayIncomes = incomes.filter(income => {
@@ -34,6 +35,7 @@ export function DayContent({ day, bills = [], incomes = [] }: DayContentProps) {
     const incomeDate = new Date(income.date);
     return incomeDate.getDate() === day.getDate();
   });
+  console.log('Incomes for day:', dayIncomes);
 
   const hasTransactions = dayBills.length > 0 || dayIncomes.length > 0;
 

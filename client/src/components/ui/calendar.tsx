@@ -18,7 +18,8 @@ function Calendar({
   incomes = [],
   ...props
 }: CalendarProps) {
-  console.log('Calendar rendered with bills:', bills, 'incomes:', incomes);
+  console.log('Calendar rendered with bills:', bills);
+  console.log('Calendar rendered with incomes:', incomes);
 
   return (
     <DayPicker
@@ -57,10 +58,7 @@ function Calendar({
         ),
         day_range_end: "day-range-end",
         day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: cn(
-          "bg-primary/10 text-primary font-semibold ring-2 ring-primary ring-offset-2",
-          "after:absolute after:bottom-1 after:left-0 after:right-0 after:text-[8px] after:content-['Today'] after:text-primary/80"
-        ),
+        day_today: "bg-accent text-accent-foreground",
         day_outside: "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
         day_disabled: "text-muted-foreground opacity-50",
         day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
