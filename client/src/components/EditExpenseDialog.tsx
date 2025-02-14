@@ -61,7 +61,7 @@ export default function EditExpenseDialog({
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [day, setDay] = useState('1');
-  const [dateType, setDateType] = useState<'monthly' | 'specific'>('monthly');
+  const [dateType, setDateType] = useState<'monthly' | 'specific'>('specific');
   const [specificDate, setSpecificDate] = useState<Date | undefined>(undefined);
   const [categoryId, setCategoryId] = useState<string>('');
   const [showReminderDialog, setShowReminderDialog] = useState(false);
