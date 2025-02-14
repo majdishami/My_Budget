@@ -13,7 +13,7 @@ import { Budget } from "@/pages/Budget";
 import dayjs from 'dayjs';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useData } from "@/hooks/useData"; // Fixed import path
+import { useDataContext as useData } from "@/contexts/DataContext"; // Fixed import path
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2, Menu, BarChart4,

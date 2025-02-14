@@ -21,14 +21,12 @@ export interface DataContextType {
   error: Error | null;
 }
 
-// Move context creation and export to top level
-export const DataContext = createContext<DataContextType | undefined>(undefined);
+const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Export the useData hook directly from DataContext
 export function useDataContext(): DataContextType {
   const context = useContext(DataContext);
   if (!context) {
-    throw new Error('useData must be used within a DataProvider');
+    throw new Error('useDataContext must be used within a DataProvider');
   }
   return context;
 }
