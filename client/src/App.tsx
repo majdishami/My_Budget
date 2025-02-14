@@ -63,6 +63,7 @@ import { Badge } from "@/components/ui/badge";
 import { logger } from './lib/logger';
 
 
+
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
   const [location] = useLocation();
@@ -92,7 +93,16 @@ function Router() {
 
   const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
     if (type === 'income') {
-      setSelectedIncome(transaction as Income);
+      const income = transaction as Income;
+      // Set correct occurrence type based on source
+      if (income.source === "Majdi's Salary") {
+        income.occurrenceType = 'twice-monthly';
+        income.firstDate = 1;
+        income.secondDate = 15;
+      } else if (income.source === "Ruba's Salary") {
+        income.occurrenceType = 'biweekly';
+      }
+      setSelectedIncome(income);
       setShowEditIncomeDialog(true);
     } else {
       setSelectedBill(transaction as Bill);
@@ -116,6 +126,16 @@ function Router() {
       if (!newIncome.id) {
         newIncome.id = crypto.randomUUID();
       }
+
+      // Set correct occurrence type based on source
+      if (newIncome.source === "Majdi's Salary") {
+        newIncome.occurrenceType = 'twice-monthly';
+        newIncome.firstDate = 1;
+        newIncome.secondDate = 15;
+      } else if (newIncome.source === "Ruba's Salary") {
+        newIncome.occurrenceType = 'biweekly';
+      }
+
       addIncomeToData(newIncome);
       setShowAddIncomeDialog(false);
     } catch (error) {

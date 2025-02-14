@@ -120,6 +120,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           amount: income.amount,
           date: income.date,
           type: 'income',
+          recurring_type: income.occurrenceType,
+          first_date: income.firstDate,
+          second_date: income.secondDate
         }),
       });
 
@@ -186,7 +189,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
               description: isIncome ? transaction.source : transaction.name,
               amount: transaction.amount,
               date: transaction.date,
-              type: isIncome ? 'income' : 'expense'
+              type: isIncome ? 'income' : 'expense',
+              recurring_type: isIncome ? transaction.occurrenceType : undefined,
+              first_date: isIncome ? transaction.firstDate : undefined,
+              second_date: isIncome ? transaction.secondDate : undefined
             }),
           });
 
