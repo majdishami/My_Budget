@@ -69,28 +69,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
         .map((t: any) => {
-          const date = dayjs(t.date);
-          console.log('[DataContext] Processing bill transaction:', {
-            raw: t,
-            parsedDate: date.format('YYYY-MM-DD'),
-            dayOfMonth: date.date(),
-            month: date.month(),
-            year: date.year()
-          });
+          const transactionDate = dayjs(t.date);
 
+          // Ensure we're using the actual transaction date without timezone adjustments
           const bill = {
             id: t.id.toString(),
             name: t.description,
             amount: parseFloat(t.amount),
-            date: date.format('YYYY-MM-DD'),
+            date: transactionDate.format('YYYY-MM-DD'),
             isOneTime: !t.recurring_id,
-            day: date.date(),
+            day: transactionDate.date(),
             category_id: t.category_id,
             category_name: t.category_name,
             category_color: t.category_color,
-            category_icon: t.category_icon
+            category_icon: t.category_icon,
+            user_id: t.user_id,
+            created_at: t.created_at,
+            reminderEnabled: t.reminder_enabled,
+            reminderDays: t.reminder_days
           };
-          console.log('[DataContext] Processed bill:', bill);
+
           return bill;
         });
 
