@@ -283,6 +283,23 @@ export function Budget() {
     setShowDailySummary(true);
   }, []);
 
+  // Add the calendarData calculation back
+  const calendarData = useMemo(() => {
+    const firstDayOfMonth = dayjs()
+      .year(selectedYear)
+      .month(selectedMonth)
+      .startOf("month");
+    const lastDayOfMonth = firstDayOfMonth.endOf("month");
+    const firstDayIndex = firstDayOfMonth.day();
+    const totalDaysInMonth = lastDayOfMonth.date();
+
+    return Array.from({ length: 35 }, (_, index) => {
+      const day = index - firstDayIndex + 1;
+      return day >= 1 && day <= totalDaysInMonth ? day : null;
+    });
+  }, [selectedYear, selectedMonth]);
+
+
   // Loading state
   if (isLoading) {
     return (
