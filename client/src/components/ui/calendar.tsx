@@ -19,18 +19,23 @@ function Calendar({
   incomes = [],
   ...props
 }: CalendarProps) {
-  // Generate a key that changes when bills or incomes change
+  // Generate a more detailed key that changes when transaction details change
   const transactionKey = React.useMemo(() => {
-    const billsKey = bills.map(b => `${b.id}-${b.name}-${b.amount}`).join('|');
-    const incomesKey = incomes.map(i => `${i.id}-${i.source}-${i.amount}`).join('|');
-    return `${billsKey}:${incomesKey}`;
+    const billsKey = bills.map(b => `${b.id}-${b.name}-${b.amount}-${b.date}`).join('|');
+    const incomesKey = incomes.map(i => `${i.id}-${i.source}-${i.amount}-${i.date}`).join('|');
+    const key = `${billsKey}:${incomesKey}`;
+    logger.info('Calendar transaction key updated:', { key });
+    return key;
   }, [bills, incomes]);
 
-  logger.info('Calendar rendered with transactions:', { 
-    billsCount: bills.length,
-    incomesCount: incomes.length,
-    transactionKey
-  });
+  // Log when the calendar renders with new transactions
+  React.useEffect(() => {
+    logger.info('Calendar rendered with transactions:', { 
+      billsCount: bills.length,
+      incomesCount: incomes.length,
+      transactionKey
+    });
+  }, [bills, incomes, transactionKey]);
 
   return (
     <DayPicker
