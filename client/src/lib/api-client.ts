@@ -1,6 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
 
-// Default fetcher for the Query Client
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -14,13 +13,11 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Helper function for making API requests
 export const apiRequest = async (
   endpoint: string,
   options: RequestInit = {}
 ): Promise<any> => {
   try {
-    // Check network connectivity
     if (!navigator.onLine) {
       console.error('[API Error] No internet connection');
       throw new Error('No internet connection');
@@ -38,8 +35,8 @@ export const apiRequest = async (
         'Accept': 'application/json',
         ...options.headers,
       },
+      credentials: 'include',
       signal: controller.signal,
-      mode: 'cors',
     });
 
     clearTimeout(timeoutId);
