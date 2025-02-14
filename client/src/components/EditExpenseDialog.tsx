@@ -100,17 +100,16 @@ export default function EditExpenseDialog({
       setName(expense.name);
       setAmount(expense.amount.toString());
 
-      // Date handling - set to monthly recurring by default
+      // Date handling - Initialize as monthly recurring
       setDateType('monthly');
-      if (expense.day) {
-        setDay(expense.day.toString());
-      }
+      // Set the specific day from the expense object
+      setDay(expense.day ? expense.day.toString() : '31');  // Default to 31 if not set
 
-      // Category handling
+      // Category handling - set from database
       if (expense.category_id !== null && expense.category_id !== undefined) {
         setCategoryId(expense.category_id.toString());
       } else {
-        setCategoryId('');
+        setCategoryId('');  // Default to empty if no category
       }
 
       // Reminders
