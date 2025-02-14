@@ -153,14 +153,17 @@ export default function EditExpenseDialog({
     if (!expense || !validateForm() || isSubmitting) return;
 
     setIsSubmitting(true);
-    let selectedCategory = categoryId ? categories?.find((cat: Category) => cat.id.toString() === categoryId) : null;
-
     try {
+      const selectedCategory = categoryId ? categories?.find((cat: Category) => cat.id.toString() === categoryId) : null;
+
+      // Convert categoryId to number or null
+      const parsedCategoryId = categoryId ? parseInt(categoryId, 10) : null;
+
       const baseUpdates = {
         ...expense,
         name: name.trim(),
         amount: parseFloat(amount),
-        category_id: selectedCategory?.id || null,
+        category_id: parsedCategoryId,
         category_name: selectedCategory?.name || 'Uncategorized',
         category_color: selectedCategory?.color || '#D3D3D3',
         reminderEnabled,
@@ -170,17 +173,19 @@ export default function EditExpenseDialog({
       let updatedBill: Bill;
 
       if (dateType === 'monthly') {
+        const parsedDay = parseInt(day, 10);
         updatedBill = {
           ...baseUpdates,
           isOneTime: false,
-          day: parseInt(day),
+          day: parsedDay,
           date: undefined
         };
       } else if (specificDate) {
+        const parsedDay = dayjs(specificDate).date();
         updatedBill = {
           ...baseUpdates,
           isOneTime: true,
-          day: dayjs(specificDate).date(),
+          day: parsedDay,
           date: dayjs(specificDate).toISOString()
         };
       } else {
