@@ -128,7 +128,7 @@ DayCell.displayName = 'DayCell';
 
 export function Budget() {
   const { incomes, bills, isLoading, error } = useData();
-  const today = useMemo(() => dayjs('2025-02-13'), []); 
+  const today = useMemo(() => dayjs(), []); 
   const [selectedDay, setSelectedDay] = useState(today.date());
   const [selectedMonth, setSelectedMonth] = useState(today.month()); // 0-based month
   const [selectedYear, setSelectedYear] = useState(today.year());
