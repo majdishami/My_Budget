@@ -113,14 +113,14 @@ export function LeftSidebar({
             </Button>
           </div>
           <div className="space-y-1">
-            {incomes.map((income) => (
+            {incomes.map((income, index) => (
               <div
                 key={income.id}
                 className="flex items-center justify-between p-2 hover:bg-accent rounded-lg"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {income.source}
+                    {index + 1}. {income.source}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {formatIncomeDisplay(income)} - {formatCurrency(income.amount)}
@@ -163,37 +163,41 @@ export function LeftSidebar({
             </Button>
           </div>
           <div className="space-y-1">
-            {bills.map((bill) => (
-              <div
-                key={bill.id}
-                className="flex items-center justify-between p-2 hover:bg-accent rounded-lg"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{bill.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Day {bill.day} - {formatCurrency(bill.amount)}
-                  </p>
+            {[...bills]
+              .sort((a, b) => b.amount - a.amount) 
+              .map((bill, index) => (
+                <div
+                  key={bill.id}
+                  className="flex items-center justify-between p-2 hover:bg-accent rounded-lg"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {index + 1}. {bill.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Day {bill.day} - {formatCurrency(bill.amount)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => onEditTransaction('bill', bill)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleDeleteRequest('bill', bill)}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => onEditTransaction('bill', bill)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleDeleteRequest('bill', bill)}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
 
