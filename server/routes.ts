@@ -38,14 +38,16 @@ export function registerRoutes(app: Express): Server {
   // Bills Routes
   app.get('/api/bills', async (req, res) => {
     try {
-      console.log('[Bills API] Fetching bills...');
+      console.log('[Bills API] Fetching bills with categories...');
       const allBills = await db.select({
         id: bills.id,
         name: bills.name,
         amount: bills.amount,
         day: bills.day,
         category_id: bills.category_id,
-        category: categories
+        category_name: categories.name,
+        category_color: categories.color,
+        category_icon: categories.icon
       })
       .from(bills)
       .leftJoin(categories, eq(bills.category_id, categories.id))
@@ -59,9 +61,9 @@ export function registerRoutes(app: Express): Server {
         amount: Number(bill.amount),
         day: bill.day,
         category_id: bill.category_id,
-        category_name: bill.category?.name || 'Uncategorized',
-        category_color: bill.category?.color || '#D3D3D3',
-        category_icon: bill.category?.icon || null
+        category_name: bill.category_name || 'Uncategorized',
+        category_color: bill.category_color || '#D3D3D3',
+        category_icon: bill.category_icon || null
       }));
 
       return res.json(formattedBills);
@@ -157,15 +159,11 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Transaction not found' });
       }
 
-      // Convert the date string to a proper Date object
-      const date = new Date(req.body.date);
-      console.log('[Transactions API] Processing date:', date);
-
       const [updatedTransaction] = await db.update(transactions)
         .set({
           description: req.body.description,
           amount: req.body.amount,
-          date: date,
+          date: new Date(req.body.date),
           type: req.body.type,
           category_id: req.body.category_id
         })
