@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import IncomeReportDialog from "@/components/IncomeReportDialog";
 import { useLocation } from "wouter";
 import { Income } from "@/types";
 import dayjs from "dayjs";
-import { useIncomes } from "@/hooks/useData";
+import { useData } from "@/hooks/useData";
 
 export default function IncomeReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
-  const { data: incomes = [] } = useIncomes();
+  const { incomes = [] } = useData();
   const today = dayjs('2025-02-14'); // Current date
 
   // Calculate total monthly income based on recurring patterns
