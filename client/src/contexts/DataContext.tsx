@@ -230,6 +230,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to edit transaction: ${response.status} ${response.statusText}${responseData.message ? ` - ${responseData.message}` : ''}`);
       }
 
+      // Immediately refresh data to ensure UI is up to date
       await loadData();
       logger.info("Successfully edited transaction", { transaction });
     } catch (error) {

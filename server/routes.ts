@@ -120,6 +120,7 @@ export function registerRoutes(app: Express): Server {
 
       // Handle the date properly
       const parsedDate = dayjs(req.body.date).format('YYYY-MM-DD');
+      console.log('[Transactions API] Parsed date:', parsedDate);
 
       const [updatedTransaction] = await db.update(transactions)
         .set({
@@ -133,7 +134,12 @@ export function registerRoutes(app: Express): Server {
         .returning();
 
       console.log('[Transactions API] Updated transaction:', updatedTransaction);
-      res.json(updatedTransaction);
+
+      // Return the updated transaction with properly formatted date
+      res.json({
+        ...updatedTransaction,
+        date: dayjs(updatedTransaction.date).format('YYYY-MM-DD')
+      });
     } catch (error) {
       console.error('[Transactions API] Error updating transaction:', error);
       res.status(400).json({
