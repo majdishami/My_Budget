@@ -20,12 +20,8 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Common headers for all API requests
-const defaultHeaders = {
-  'Content-Type': 'application/json',
-  'Accept': 'application/json',
-  // Add CSRF token if needed
-  'X-Requested-With': 'XMLHttpRequest'
+const headers = {
+  'Content-Type': 'application/json'
 };
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
@@ -41,8 +37,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const response = await fetch('/api/transactions', {
         method: 'GET',
-        headers: defaultHeaders,
-        credentials: 'include' // Include credentials like cookies
+        headers
       });
 
       if (!response.ok) {
@@ -51,7 +46,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const transactions = await response.json();
 
-      // Process incomes with consistent date handling
+      // Process incomes
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
         .map((t: any) => ({
@@ -64,11 +59,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       setIncomes(loadedIncomes);
 
-      // Process bills/expenses with consistent date handling
+      // Process bills/expenses
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
         .map((t: any) => {
-          // Ensure we're using the transaction date in local timezone
           const transactionDate = dayjs(t.date);
           return {
             id: t.id.toString(),
@@ -76,15 +70,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             amount: parseFloat(t.amount),
             date: transactionDate.format('YYYY-MM-DD'),
             isOneTime: !t.recurring_id,
-            day: transactionDate.date(), // Use date() to get the day of month
+            day: transactionDate.date(),
             category_id: t.category_id,
-            user_id: t.user_id,
-            created_at: t.created_at,
             category_name: t.category_name || 'Uncategorized',
             category_color: t.category_color || '#D3D3D3',
-            category_icon: t.category_icon,
-            reminderEnabled: t.reminder_enabled,
-            reminderDays: t.reminder_days
+            category_icon: t.category_icon
           };
         });
 
@@ -117,8 +107,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setError(null);
           const response = await fetch('/api/transactions', {
             method: 'POST',
-            headers: defaultHeaders,
-            credentials: 'include',
+            headers,
             body: JSON.stringify({
               description: income.source,
               amount: income.amount,
@@ -151,8 +140,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setError(null);
           const response = await fetch(`/api/transactions/${transaction.id}`, {
             method: 'DELETE',
-            headers: defaultHeaders,
-            credentials: 'include'
+            headers
           });
 
           if (!response.ok) {
@@ -179,26 +167,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             type: isIncome ? 'income' : 'expense',
             category_id: !isIncome ? Number(transaction.category_id) : null,
             day: !isIncome ? Number(transaction.day) : undefined,
-            recurring_id: !isIncome && !transaction.isOneTime ? 1 : null,
-            // Include any missing fields that might be needed
-            user_id: transaction.user_id,
-            category_name: !isIncome ? transaction.category_name : undefined,
-            category_color: !isIncome ? transaction.category_color : undefined,
-            reminder_enabled: !isIncome ? transaction.reminderEnabled : undefined,
-            reminder_days: !isIncome ? transaction.reminderDays : undefined
+            recurring_id: !isIncome && !transaction.isOneTime ? 1 : null
           };
-
-          logger.info("Editing transaction - Payload:", { payload });
 
           const response = await fetch(`/api/transactions/${transaction.id}`, {
             method: 'PATCH',
-            headers: defaultHeaders,
-            credentials: 'include', // Include credentials like cookies
+            headers,
             body: JSON.stringify(payload),
           });
 
           if (!response.ok) {
-            // Try to get detailed error message
             const errorData = await response.json().catch(() => ({}));
             logger.error("Edit transaction failed:", {
               status: response.status,
