@@ -217,7 +217,7 @@ export function Budget() {
   // Memoize functions for getting day specific data
   const getIncomeForDay = useCallback((day: number) => {
     const incomeForDay = incomes.filter(income => {
-      const incomeDate = dayjs(income.date);
+      const incomeDate = dayjs.tz(income.date);
       console.log(`Checking income for day ${day}:`, {
         income,
         incomeDay: incomeDate.date(),
@@ -237,7 +237,7 @@ export function Budget() {
 
   const getBillsForDay = useCallback((day: number) => {
     const billsForDay = bills.filter(bill => {
-      const billDate = dayjs(bill.date);
+      const billDate = dayjs.tz(bill.date);
       console.log(`Checking bill for day ${day}:`, {
         bill,
         billDay: billDate.date(),

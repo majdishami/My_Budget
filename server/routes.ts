@@ -11,6 +11,7 @@ import crypto from "crypto";
 import { sql } from 'drizzle-orm';
 import pkg from 'pg';
 const { Pool } = pkg;
+import dayjs from 'dayjs';
 
 // Hash password using SHA-256
 function hashPassword(password: string): string {
@@ -276,10 +277,6 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log('[Transactions API] Fetching transactions...');
 
-      // First verify if we can connect to the database
-      const testQuery = await db.execute(sql`SELECT NOW()`);
-      console.log('[Transactions API] Database connection test successful');
-
       const allTransactions = await db.query.transactions.findMany({
         orderBy: [desc(transactions.date)],
         with: {
@@ -287,15 +284,21 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      console.log('[Transactions API] Found transactions:', allTransactions.length);
+      console.log('[Transactions API] Raw transactions:', allTransactions);
 
-      const formattedTransactions = allTransactions.map(transaction => ({
-        ...transaction,
-        category_name: transaction.category?.name || 'Uncategorized',
-        category_color: transaction.category?.color || '#D3D3D3',
-        category_icon: transaction.category?.icon || null
-      }));
+      const formattedTransactions = allTransactions.map(transaction => {
+        const formatted = {
+          ...transaction,
+          category_name: transaction.category?.name || 'Uncategorized',
+          category_color: transaction.category?.color || '#D3D3D3',
+          category_icon: transaction.category?.icon || null,
+          date: dayjs(transaction.date).format() // Ensure consistent date format
+        };
+        console.log('[Transactions API] Formatted transaction:', formatted);
+        return formatted;
+      });
 
+      console.log('[Transactions API] All formatted transactions:', formattedTransactions);
       return res.json(formattedTransactions);
     } catch (error) {
       console.error('[Transactions API] Error:', error);
