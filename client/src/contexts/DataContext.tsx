@@ -71,6 +71,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         .filter((t: any) => t.type === 'expense')
         .map((t: any) => {
           const parsedDate = dayjs(t.date).startOf('day');
+          console.log('[DataContext] Processing bill transaction:', {
+            raw: t,
+            parsedDate: parsedDate.format(),
+            dayOfMonth: parsedDate.date(),
+            month: parsedDate.month(),
+            year: parsedDate.year()
+          });
+
           const bill = {
             id: t.id.toString(),
             name: t.description,
