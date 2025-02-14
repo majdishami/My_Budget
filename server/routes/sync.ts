@@ -67,13 +67,7 @@ router.get('/api/sync/download/:filename', (req, res) => {
 
 router.post('/api/sync/restore', async (req, res) => {
   try {
-    console.log('Received restore request', {
-      files: req.files ? Object.keys(req.files) : 'no files',
-      contentType: req.get('Content-Type')
-    });
-
     if (!req.files || !req.files.backup) {
-      console.error('No file uploaded for restore');
       return res.status(400).json({ error: 'No backup file provided' });
     }
 
@@ -100,26 +94,18 @@ router.post('/api/sync/restore', async (req, res) => {
       console.log('File moved to temporary location:', tempPath);
 
       // Restore the database
-      console.log('Starting database restore...');
       const result = await restoreDatabaseBackup(tempPath);
-      console.log('Restore result:', result);
 
       // Clean up the temporary file
       fs.unlinkSync(tempPath);
       console.log('Temporary file cleaned up');
 
       if (!result.success) {
-        return res.status(500).json({ 
-          error: result.error || 'Failed to restore backup' 
-        });
+        return res.status(500).json({ error: result.error });
       }
 
-      res.json({ 
-        message: 'Database restored successfully',
-        details: result.message 
-      });
+      res.json({ message: result.message });
     } catch (error) {
-      console.error('Error processing restore:', error);
       // Clean up temp file if it exists
       if (fs.existsSync(tempPath)) {
         fs.unlinkSync(tempPath);

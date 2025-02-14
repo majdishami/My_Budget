@@ -64,137 +64,83 @@ export async function restoreDatabaseBackup(backupFile: string) {
 
   return db.transaction(async (tx) => {
     try {
-      console.log('Reading backup file:', backupFile);
-
-      // Verify backup file exists
+      // Read and parse backup file
       if (!fs.existsSync(backupFile)) {
         throw new Error('Backup file not found');
       }
 
-      // Read and parse backup file
+      const backupContent = fs.readFileSync(backupFile, 'utf-8');
+      console.log('Reading backup file content...');
+
       let backupData: Record<string, any[]>;
       try {
-        const backupContent = fs.readFileSync(backupFile, 'utf-8');
-        console.log('Backup file content length:', backupContent.length);
-        console.log('Sample of backup content:', backupContent.substring(0, 200));
         backupData = JSON.parse(backupContent);
-        console.log('Tables in backup:', Object.keys(backupData));
-
-        // Log sample records for debugging
-        for (const table of Object.keys(backupData)) {
-          console.log(`${table} sample:`, backupData[table].slice(0, 2));
-        }
       } catch (parseError) {
-        console.error('Error parsing backup file:', parseError);
-        throw new Error(`Invalid JSON format in backup file: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
+        throw new Error(`Invalid backup file format: ${parseError instanceof Error ? parseError.message : 'Parse error'}`);
       }
 
-      // First reset all sequences
-      const sequencesResult = await tx.execute(sql`
-        SELECT sequence_name 
-        FROM information_schema.sequences 
-        WHERE sequence_schema = 'public'
-      `);
-      const sequences = (Array.isArray(sequencesResult) ? sequencesResult : sequencesResult.rows || []);
-
+      // Reset all sequences first
+      const sequences = ['categories_id_seq', 'bills_id_seq'];
       for (const seq of sequences) {
-        await tx.execute(sql.raw(`ALTER SEQUENCE "${seq.sequence_name}" RESTART WITH 1`));
-        console.log(`Reset sequence ${seq.sequence_name}`);
+        await tx.execute(sql.raw(`ALTER SEQUENCE "${seq}" RESTART WITH 1`));
+        console.log(`Reset sequence ${seq}`);
       }
 
-      // Process tables in correct order
-      const tableOrder = ['categories', 'bills'];
+      // Step 1: Restore categories and create ID mapping
+      const categoryMap = new Map<number, number>(); // old ID -> new ID
 
-      for (const tableName of tableOrder) {
-        console.log(`\nProcessing table ${tableName}`);
+      if (backupData.categories?.length > 0) {
+        console.log('Restoring categories...');
+        await tx.execute(sql.raw('TRUNCATE TABLE categories RESTART IDENTITY CASCADE'));
 
-        if (!backupData[tableName] || !Array.isArray(backupData[tableName])) {
-          console.log(`No valid data found for table ${tableName}`);
-          continue;
+        for (const category of backupData.categories) {
+          const oldId = category.id;
+          const result = await tx.execute(sql.raw(`
+            INSERT INTO categories (name, color, icon, user_id, created_at)
+            VALUES (
+              '${category.name.replace(/'/g, "''")}',
+              '${category.color.replace(/'/g, "''")}',
+              '${category.icon.replace(/'/g, "''")}',
+              ${category.user_id === null ? 'NULL' : category.user_id},
+              '${category.created_at}'::timestamp
+            )
+            RETURNING id
+          `));
+
+          const newId = result[0].id;
+          categoryMap.set(oldId, newId);
+          console.log(`Mapped category ID ${oldId} -> ${newId}`);
         }
 
-        // Clear existing data
-        await tx.execute(sql.raw(`TRUNCATE TABLE "${tableName}" RESTART IDENTITY CASCADE`));
-        console.log(`Cleared existing data from ${tableName}`);
+        // Step 2: Restore bills with updated category IDs
+        if (backupData.bills?.length > 0) {
+          console.log('Restoring bills...');
+          await tx.execute(sql.raw('TRUNCATE TABLE bills RESTART IDENTITY'));
 
-        // Get columns for the table
-        const columnsResult = await tx.execute(sql`
-          SELECT column_name, data_type, column_default
-          FROM information_schema.columns
-          WHERE table_schema = 'public'
-            AND table_name = ${tableName}
-          ORDER BY ordinal_position
-        `);
-
-        const columns = (Array.isArray(columnsResult) ? columnsResult : columnsResult.rows || [])
-          .filter(col => !col.column_default?.includes('nextval'))
-          .map(col => ({
-            name: col.column_name,
-            type: col.data_type
-          }));
-
-        console.log(`Columns for ${tableName}:`, columns.map(c => c.name));
-
-        // Process records
-        const records = backupData[tableName].filter(record => {
-          if (tableName === 'bills') {
-            const categoryExists = backupData.categories?.some(cat => cat.id === record.category_id);
-            if (!categoryExists) {
-              console.log(`Skipping bill with missing category:`, record);
-              return false;
+          for (const bill of backupData.bills) {
+            const newCategoryId = categoryMap.get(bill.category_id);
+            if (!newCategoryId) {
+              console.log(`Skipping bill with invalid category_id: ${bill.category_id}`);
+              continue;
             }
-          }
-          return true;
-        });
 
-        // Insert records in batches
-        const batchSize = 50;
-        for (let i = 0; i < records.length; i += batchSize) {
-          const batch = records.slice(i, i + batchSize);
-
-          const columnsList = columns.map(c => `"${c.name}"`).join(', ');
-          const values = batch.map(record => {
-            const rowValues = columns.map(col => {
-              const value = record[col.name];
-
-              if (value === null || value === undefined) {
-                return 'NULL';
-              }
-
-              switch (col.type) {
-                case 'integer':
-                case 'numeric':
-                case 'bigint':
-                  return value;
-                case 'timestamp without time zone':
-                case 'timestamp with time zone':
-                  return `'${value}'::timestamp`;
-                case 'boolean':
-                  return value ? 'true' : 'false';
-                default:
-                  return `'${String(value).replace(/'/g, "''")}'`;
-              }
-            });
-            return `(${rowValues.join(', ')})`;
-          }).join(',\n');
-
-          if (values) {
-            const query = `INSERT INTO "${tableName}" (${columnsList}) VALUES ${values}`;
-            await tx.execute(sql.raw(query));
-            console.log(`Inserted ${batch.length} records into ${tableName}`);
+            await tx.execute(sql.raw(`
+              INSERT INTO bills (name, amount, day, category_id, user_id, created_at)
+              VALUES (
+                '${bill.name.replace(/'/g, "''")}',
+                ${bill.amount},
+                ${bill.day},
+                ${newCategoryId},
+                ${bill.user_id === null ? 'NULL' : bill.user_id},
+                '${bill.created_at}'::timestamp
+              )
+            `));
           }
         }
 
-        // Update sequence if exists
-        const seqName = `${tableName}_id_seq`;
-        try {
-          await tx.execute(sql.raw(
-            `SELECT setval('${seqName}', (SELECT COALESCE(MAX(id), 1) FROM "${tableName}"), true)`
-          ));
-          console.log(`Updated sequence for ${tableName}`);
-        } catch (seqError) {
-          console.log(`No sequence found for ${tableName}`);
-        }
+        // Update sequences
+        await tx.execute(sql.raw("SELECT setval('categories_id_seq', (SELECT COALESCE(MAX(id), 1) FROM categories))"));
+        await tx.execute(sql.raw("SELECT setval('bills_id_seq', (SELECT COALESCE(MAX(id), 1) FROM bills))"));
       }
 
       return {
@@ -203,13 +149,10 @@ export async function restoreDatabaseBackup(backupFile: string) {
       };
     } catch (error) {
       console.error('Error in restore process:', error);
-      throw error;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
     }
-  }).catch(error => {
-    console.error('Transaction failed:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
   });
 }
