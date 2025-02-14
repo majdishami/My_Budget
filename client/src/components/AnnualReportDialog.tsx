@@ -32,6 +32,10 @@ import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 
 dayjs.extend(isSameOrBefore);
 
+// Move constants to top level to prevent recreation
+const FIXED_DATE = "2025-02-13";
+const CURRENT_YEAR = 2025;
+
 interface AnnualReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -43,7 +47,7 @@ const defaultIncomes: Income[] = [
     id: "majdi-salary",
     source: "Majdi's Salary",
     amount: 4739,
-    date: "2025-02-13",
+    date: FIXED_DATE,
     occurrenceType: "twice-monthly" as const,
     firstDate: 1,
     secondDate: 15
@@ -52,7 +56,7 @@ const defaultIncomes: Income[] = [
     id: "ruba-salary",
     source: "Ruba's Salary",
     amount: 2168,
-    date: "2025-02-13",
+    date: FIXED_DATE,
     occurrenceType: "biweekly" as const
   }
 ];
@@ -62,10 +66,7 @@ export default function AnnualReportDialog({
   onOpenChange,
   selectedYear,
 }: AnnualReportDialogProps) {
-  // Fixed current year
-  const currentYear = 2025;
-  const [year, setYear] = useState<number>(selectedYear ?? currentYear);
-  const TODAY = "2025-02-13";
+  const [year, setYear] = useState<number>(selectedYear ?? CURRENT_YEAR);
 
   const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
@@ -92,77 +93,85 @@ export default function AnnualReportDialog({
 
   const generateMonthlyIncomes = () => {
     const monthlyIncomes: Record<string, { occurred: number; pending: number }> = {};
-    const today = dayjs(TODAY);
-    const startOfYear = dayjs(TODAY).year(year).startOf('year');
+    try {
+      const today = dayjs(FIXED_DATE);
+      const startOfYear = today.year(year).startOf('year');
 
-    for (let month = 0; month < 12; month++) {
-      const monthDate = startOfYear.add(month, 'month');
-      monthlyIncomes[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
-    }
+      for (let month = 0; month < 12; month++) {
+        const monthDate = startOfYear.add(month, 'month');
+        monthlyIncomes[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
+      }
 
-    incomes.forEach(income => {
-      if (income.source === "Majdi's Salary" && income.occurrenceType === "twice-monthly") {
-        for (let month = 0; month < 12; month++) {
-          const monthDate = startOfYear.add(month, 'month');
-          const monthKey = monthDate.format('MMMM');
+      incomes.forEach(income => {
+        if (income.source === "Majdi's Salary" && income.occurrenceType === "twice-monthly") {
+          for (let month = 0; month < 12; month++) {
+            const monthDate = startOfYear.add(month, 'month');
+            const monthKey = monthDate.format('MMMM');
 
-          const firstPayday = monthDate.date(income.firstDate || 1);
-          if (firstPayday.isSameOrBefore(today)) {
-            monthlyIncomes[monthKey].occurred += income.amount;
-          } else {
-            monthlyIncomes[monthKey].pending += income.amount;
-          }
+            const firstPayday = monthDate.date(income.firstDate || 1);
+            if (firstPayday.isSameOrBefore(today)) {
+              monthlyIncomes[monthKey].occurred += income.amount;
+            } else {
+              monthlyIncomes[monthKey].pending += income.amount;
+            }
 
-          const secondPayday = monthDate.date(income.secondDate || 15);
-          if (secondPayday.isSameOrBefore(today)) {
-            monthlyIncomes[monthKey].occurred += income.amount;
-          } else {
-            monthlyIncomes[monthKey].pending += income.amount;
-          }
-        }
-      } else if (income.source === "Ruba's Salary" && income.occurrenceType === "biweekly") {
-        let payDate = dayjs(TODAY).year(year).month(0).date(10);
-        const endDate = startOfYear.endOf('year');
-
-        while (payDate.isSameOrBefore(endDate)) {
-          if (payDate.year() === year) {
-            const monthKey = payDate.format('MMMM');
-            if (payDate.isSameOrBefore(today)) {
+            const secondPayday = monthDate.date(income.secondDate || 15);
+            if (secondPayday.isSameOrBefore(today)) {
               monthlyIncomes[monthKey].occurred += income.amount;
             } else {
               monthlyIncomes[monthKey].pending += income.amount;
             }
           }
-          payDate = payDate.add(14, 'days');
+        } else if (income.source === "Ruba's Salary" && income.occurrenceType === "biweekly") {
+          let payDate = dayjs(FIXED_DATE).year(year).month(0).date(10);
+          const endDate = startOfYear.endOf('year');
+
+          while (payDate.isSameOrBefore(endDate)) {
+            if (payDate.year() === year) {
+              const monthKey = payDate.format('MMMM');
+              if (payDate.isSameOrBefore(today)) {
+                monthlyIncomes[monthKey].occurred += income.amount;
+              } else {
+                monthlyIncomes[monthKey].pending += income.amount;
+              }
+            }
+            payDate = payDate.add(14, 'days');
+          }
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error('Error generating monthly incomes:', error);
+    }
 
     return monthlyIncomes;
   };
 
   const generateMonthlyExpenses = () => {
     const monthlyExpenses: Record<string, { occurred: number; pending: number }> = {};
-    const today = dayjs(TODAY);
-    const startOfYear = dayjs(TODAY).year(year).startOf('year');
+    try {
+      const today = dayjs(FIXED_DATE);
+      const startOfYear = today.year(year).startOf('year');
 
-    for (let month = 0; month < 12; month++) {
-      const monthDate = startOfYear.add(month, 'month');
-      monthlyExpenses[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
-    }
-
-    bills.forEach(bill => {
       for (let month = 0; month < 12; month++) {
-        const billDate = startOfYear.add(month, 'month').date(bill.day);
-        const monthKey = billDate.format('MMMM');
-
-        if (billDate.isSameOrBefore(today)) {
-          monthlyExpenses[monthKey].occurred += bill.amount;
-        } else {
-          monthlyExpenses[monthKey].pending += bill.amount;
-        }
+        const monthDate = startOfYear.add(month, 'month');
+        monthlyExpenses[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
       }
-    });
+
+      bills.forEach(bill => {
+        for (let month = 0; month < 12; month++) {
+          const billDate = startOfYear.add(month, 'month').date(bill.day);
+          const monthKey = billDate.format('MMMM');
+
+          if (billDate.isSameOrBefore(today)) {
+            monthlyExpenses[monthKey].occurred += bill.amount;
+          } else {
+            monthlyExpenses[monthKey].pending += bill.amount;
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error generating monthly expenses:', error);
+    }
 
     return monthlyExpenses;
   };
@@ -206,7 +215,7 @@ export default function AnnualReportDialog({
               <SelectContent>
                 {Array.from(
                   { length: 11 },
-                  (_, i) => currentYear - 5 + i
+                  (_, i) => CURRENT_YEAR - 5 + i
                 ).map((y) => (
                   <SelectItem key={y} value={y.toString()}>
                     {y}
