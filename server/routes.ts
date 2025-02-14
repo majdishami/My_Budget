@@ -291,6 +291,11 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/transactions', async (req, res) => {
     try {
       console.log('[Transactions API] Fetching transactions...');
+
+      // First verify if we can connect to the database
+      const testQuery = await db.execute(sql`SELECT NOW()`);
+      console.log('[Transactions API] Database connection test successful');
+
       const allTransactions = await db.query.transactions.findMany({
         orderBy: [desc(transactions.date)],
         with: {
@@ -312,7 +317,8 @@ export function registerRoutes(app: Express): Server {
       console.error('[Transactions API] Error:', error);
       return res.status(500).json({
         message: 'Failed to load transactions',
-        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
+        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? error : undefined
       });
     }
   });

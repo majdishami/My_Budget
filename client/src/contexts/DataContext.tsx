@@ -33,6 +33,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setError(null);
 
+      console.log('[DataContext] Starting to fetch transactions...');
       const response = await fetch('/api/transactions', {
         method: 'GET',
         headers: {
@@ -41,10 +42,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to load transactions');
+        const errorText = await response.text();
+        console.error('[DataContext] Failed to fetch transactions:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
+        throw new Error(`Failed to load transactions: ${response.status} ${response.statusText}`);
       }
 
       const transactions = await response.json();
+      console.log('[DataContext] Successfully fetched transactions:', transactions);
+
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
         .map((t: any) => ({
@@ -56,9 +65,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }));
 
       setIncomes(loadedIncomes);
+      console.log('[DataContext] Processed and set incomes:', loadedIncomes);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
-      logger.error("Error loading data:", { error });
+      logger.error("[DataContext] Error loading data:", { error });
       setError(new Error(errorMessage));
     } finally {
       setIsLoading(false);
