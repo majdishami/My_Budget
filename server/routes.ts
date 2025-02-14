@@ -179,6 +179,14 @@ export function registerRoutes(app: Express): Server {
   app.patch('/api/transactions/:id', async (req, res) => {
     try {
       const transactionId = parseInt(req.params.id);
+      const { description, amount, date, type, category_id, day, recurring_id } = req.body;
+
+      // Validate date format
+      const parsedDate = dayjs(date);
+      if (!parsedDate.isValid()) {
+        return res.status(400).json({ message: 'Invalid date format' });
+      }
+
       const transaction = await db.query.transactions.findFirst({
         where: eq(transactions.id, transactionId),
       });
@@ -188,7 +196,15 @@ export function registerRoutes(app: Express): Server {
       }
 
       const [updatedTransaction] = await db.update(transactions)
-        .set(req.body)
+        .set({
+          description,
+          amount,
+          date: parsedDate.format('YYYY-MM-DD'),
+          type,
+          category_id,
+          day: day || null,
+          recurring_id: recurring_id || null
+        })
         .where(eq(transactions.id, transactionId))
         .returning();
 

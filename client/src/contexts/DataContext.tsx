@@ -92,6 +92,54 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     loadData();
   }, []);
 
+  const editTransaction = async (transaction: Income | Bill) => {
+    try {
+      setError(null);
+      const isIncome = 'source' in transaction;
+
+      // Ensure date is in the correct format
+      const transactionDate = dayjs(transaction.date).isValid() 
+        ? dayjs(transaction.date)
+        : dayjs();
+
+      const payload = {
+        description: isIncome ? transaction.source : transaction.name,
+        amount: Number(transaction.amount),
+        date: transactionDate.format('YYYY-MM-DD'),
+        type: isIncome ? 'income' : 'expense',
+        category_id: !isIncome ? Number(transaction.category_id) : null,
+        day: !isIncome ? transactionDate.date() : undefined,
+        recurring_id: !isIncome && !transaction.isOneTime ? 1 : null
+      };
+
+      logger.info("Editing transaction with payload:", payload);
+
+      const response = await fetch(`/api/transactions/${transaction.id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        logger.error("Edit transaction failed:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        throw new Error(errorData.message || `Failed to edit transaction: ${response.statusText}`);
+      }
+
+      await loadData();
+      logger.info("Successfully edited transaction");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
+      logger.error("Error in editTransaction:", { error });
+      setError(new Error(errorMessage));
+      throw error;
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       incomes,
@@ -155,50 +203,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
       },
-      editTransaction: async (transaction) => {
-        try {
-          setError(null);
-          const isIncome = 'source' in transaction;
-
-          const formattedDate = dayjs(transaction.date).format('YYYY-MM-DD');
-
-          const payload = {
-            description: isIncome ? transaction.source : transaction.name,
-            amount: Number(transaction.amount),
-            date: formattedDate,
-            type: isIncome ? 'income' : 'expense',
-            category_id: !isIncome ? Number(transaction.category_id) : null,
-            day: !isIncome ? Number(transaction.day) : undefined,
-            recurring_id: !isIncome && !transaction.isOneTime ? 1 : null
-          };
-
-          logger.info("Editing transaction with payload:", payload);
-
-          const response = await fetch(`/api/transactions/${transaction.id}`, {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify(payload),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            logger.error("Edit transaction failed:", {
-              status: response.status,
-              statusText: response.statusText,
-              errorData
-            });
-            throw new Error(errorData.message || `Failed to edit transaction: ${response.statusText}`);
-          }
-
-          await loadData();
-          logger.info("Successfully edited transaction");
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
-          logger.error("Error in editTransaction:", { error });
-          setError(new Error(errorMessage));
-          throw error;
-        }
-      },
+      editTransaction,
       resetData: loadData,
       refresh: loadData,
       isLoading,
