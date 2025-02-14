@@ -20,16 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  RadioGroup,
-  RadioGroupItem
-} from "@/components/ui/radio-group";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { logger } from '@/lib/logger';
@@ -57,7 +47,6 @@ export default function EditExpenseDialog({
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [day, setDay] = useState('');
-  const [dateType, setDateType] = useState<'monthly' | 'specific'>('monthly');
   const [categoryId, setCategoryId] = useState<string>('');
   const [showReminderDialog, setShowReminderDialog] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
@@ -80,40 +69,27 @@ export default function EditExpenseDialog({
     name?: string;
     amount?: string;
     day?: string;
-    date?: string;
-    reminderDays?: string;
     category?: string;
     general?: string;
   }>({});
 
-  // Initialize form when expense prop changes
   useEffect(() => {
     if (expense && isOpen) {
-      logger.info({ message: 'Initializing expense form', expense });
+      logger.info('Initializing expense form with:', expense);
 
-      // Basic fields
       setName(expense.name);
       setAmount(expense.amount.toString());
-
-      // Always monthly recurring and use the exact day from the database
-      setDateType('monthly');
-
-      // For recurring monthly expenses, ensure we use the correct day
       setDay(expense.day.toString());
 
-      // Set category directly from the expense's category_id
       if (expense.category_id) {
-        logger.info({ message: 'Setting category ID', categoryId: expense.category_id.toString() });
+        logger.info('Setting category ID:', expense.category_id.toString());
         setCategoryId(expense.category_id.toString());
       } else {
         setCategoryId('');
       }
 
-      // Reminders
       setReminderEnabled(Boolean(expense.reminderEnabled));
       setReminderDays(expense.reminderDays || 7);
-
-      // Clear errors
       setErrors({});
       setIsSubmitting(false);
     }
@@ -135,30 +111,26 @@ export default function EditExpenseDialog({
       newErrors.amount = 'Amount must be greater than 0';
     }
 
-    if (dateType === 'monthly') {
-      const dayNum = parseInt(day);
-      if (!day) {
-        newErrors.day = 'Please enter a day of the month';
-      } else if (isNaN(dayNum)) {
-        newErrors.day = 'Please enter a valid number';
-      } else if (dayNum < 1 || dayNum > 31) {
-        newErrors.day = 'Day must be between 1 and 31';
-      }
+    const dayNum = parseInt(day);
+    if (!day) {
+      newErrors.day = 'Please enter a day of the month';
+    } else if (isNaN(dayNum)) {
+      newErrors.day = 'Please enter a valid number';
+    } else if (dayNum < 1 || dayNum > 31) {
+      newErrors.day = 'Day must be between 1 and 31';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [name, amount, dateType, day]);
+  }, [name, amount, day]);
 
   const handleConfirm = async () => {
     if (!expense || !validateForm() || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
-      logger.info({ message: 'Saving expense', categoryId });
+      logger.info('Saving expense with category ID:', categoryId);
       const selectedCategory = categoryId ? categories?.find((cat: Category) => cat.id.toString() === categoryId) : null;
-
-      // Convert categoryId to number or null
       const parsedCategoryId = categoryId ? parseInt(categoryId, 10) : null;
 
       const updatedBill: Bill = {
@@ -175,7 +147,7 @@ export default function EditExpenseDialog({
         date: null
       };
 
-      logger.info({ message: 'Updating bill', updatedBill });
+      logger.info('Updating bill with:', updatedBill);
       onUpdate(updatedBill);
       toast({
         title: "Success",
@@ -183,7 +155,7 @@ export default function EditExpenseDialog({
       });
       onOpenChange(false);
     } catch (error) {
-      logger.error({ message: 'Error updating expense', error });
+      logger.error('Error updating expense:', error);
       setErrors(prev => ({
         ...prev,
         general: error instanceof Error ? error.message : 'Failed to update expense. Please try again.'
@@ -217,7 +189,6 @@ export default function EditExpenseDialog({
     });
   };
 
-  // Show error toast for category loading failure
   useEffect(() => {
     if (isCategoriesError && categoriesError) {
       toast({
