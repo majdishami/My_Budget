@@ -39,14 +39,16 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/bills', async (req, res) => {
     try {
       console.log('[Bills API] Fetching bills with categories...');
+
+      // Use a subquery to ensure we always get category information
       const allBills = await db.select({
         id: bills.id,
         name: bills.name,
         amount: bills.amount,
         day: bills.day,
         category_id: bills.category_id,
-        category_name: categories.name,
-        category_color: categories.color,
+        category_name: sql<string>`COALESCE(${categories.name}, 'Uncategorized')`,
+        category_color: sql<string>`COALESCE(${categories.color}, '#D3D3D3')`,
         category_icon: categories.icon
       })
       .from(bills)
@@ -61,8 +63,8 @@ export function registerRoutes(app: Express): Server {
         amount: Number(bill.amount),
         day: bill.day,
         category_id: bill.category_id,
-        category_name: bill.category_name || 'Uncategorized',
-        category_color: bill.category_color || '#D3D3D3',
+        category_name: bill.category_name,
+        category_color: bill.category_color,
         category_icon: bill.category_icon || null
       }));
 
