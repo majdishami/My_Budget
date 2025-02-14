@@ -79,12 +79,13 @@ export default function AnnualReportDialog({
   selectedYear,
 }: AnnualReportDialogProps) {
   const [year, setYear] = useState<number>(selectedYear ?? CURRENT_YEAR);
-  const [incomes] = useState<Income[]>(validatedDefaultIncomes);
 
   const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
   });
+
+  const [incomes] = useState<Income[]>(validatedDefaultIncomes);
 
   useEffect(() => {
     if (selectedYear != null) {
@@ -107,7 +108,6 @@ export default function AnnualReportDialog({
     const today = dayjs(FIXED_DATE);
     const startOfYear = today.year(year).startOf('year');
 
-    // Initialize all months
     for (let month = 0; month < 12; month++) {
       const monthDate = startOfYear.add(month, 'month');
       monthlyIncomes[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
