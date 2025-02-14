@@ -170,7 +170,7 @@ export function Budget() {
         source: "Majdi's Salary",
         amount: 4739,
         date: dayjs().year(selectedYear).month(selectedMonth).date(day).format('YYYY-MM-DD'),
-        occurrenceType: 'twice-monthly'
+        occurrenceType: 'twice-monthly' as const
       };
       uniqueIncomes.add("Majdi's Salary");
       result.push(majdiSalary);
@@ -183,15 +183,17 @@ export function Budget() {
       .date(day);
 
     if (currentDate.day() === 5) { // Only Fridays
-      const startDate = dayjs('2025-01-10');
+      const startDate = dayjs('2025-01-10'); // Reference start date
       const weeksDiff = currentDate.diff(startDate, 'week');
+
+      // Only include if it's a valid payday (every other Friday from the start date)
       if (weeksDiff >= 0 && weeksDiff % 2 === 0 && !uniqueIncomes.has("Ruba's Salary")) {
         const rubaSalary = {
           id: `ruba-${currentDate.format('YYYY-MM-DD')}`,
           source: "Ruba's Salary",
           amount: 2168,
           date: currentDate.format('YYYY-MM-DD'),
-          occurrenceType: 'biweekly'
+          occurrenceType: 'biweekly' as const
         };
         uniqueIncomes.add("Ruba's Salary");
         result.push(rubaSalary);
@@ -200,15 +202,13 @@ export function Budget() {
 
     // Handle one-time incomes
     incomes.forEach(income => {
-      if (income.source !== "Majdi's Salary" && income.source !== "Ruba's Salary") {
-        const incomeDate = dayjs(income.date);
-        if (incomeDate.date() === day && 
-            incomeDate.month() === selectedMonth && 
-            incomeDate.year() === selectedYear &&
-            !uniqueIncomes.has(income.source)) {
-          uniqueIncomes.add(income.source);
-          result.push(income);
-        }
+      const incomeDate = dayjs(income.date);
+      if (incomeDate.date() === day && 
+          incomeDate.month() === selectedMonth && 
+          incomeDate.year() === selectedYear &&
+          !uniqueIncomes.has(income.source)) {
+        uniqueIncomes.add(income.source);
+        result.push(income);
       }
     });
 
@@ -238,11 +238,12 @@ export function Budget() {
       } else {
         // For recurring bills, show them on their day every month
         if (bill.day === day) {
-          result.push({
+          const recurringBill = {
             ...bill,
             id: `${bill.id}-${selectedMonth}-${selectedYear}`,
             date: dayjs().year(selectedYear).month(selectedMonth).date(day).format('YYYY-MM-DD')
-          });
+          };
+          result.push(recurringBill);
           uniqueBills.add(bill.name);
         }
       }
