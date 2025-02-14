@@ -10,11 +10,6 @@ const { Pool } = pkg;
 import dayjs from 'dayjs';
 import { bills, insertBillSchema } from "@db/schema";
 
-// Hash password using SHA-256
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
 export function registerRoutes(app: Express): Server {
   // Test route
   app.get('/api/health', (req, res) => {
@@ -22,18 +17,19 @@ export function registerRoutes(app: Express): Server {
     res.json({ status: 'ok' });
   });
 
-  // Categories Routes with simplified implementation
+  // Categories Routes
   app.get('/api/categories', async (req, res) => {
     try {
-      const allCategories = await db.query.categories.findMany({
-        orderBy: [categories.name],
+      console.log("Fetching categories...");
+      const userCategories = await db.query.categories.findMany({
+        orderBy: (categories, { asc }) => [asc(categories.name)],
       });
-      return res.json(allCategories);
+      return res.json(userCategories || []);
     } catch (error) {
-      console.error('[Categories API] Error:', error);
-      return res.status(500).json({
-        message: 'Failed to load categories',
-        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
+      console.error("Error in /api/categories:", error);
+      return res.status(500).json({ 
+        message: "Failed to load categories.",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -53,19 +49,15 @@ export function registerRoutes(app: Express): Server {
       res.status(201).json(newCategory);
     } catch (error) {
       console.error('Error creating category:', error);
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        res.status(400).json({ message: 'Invalid request data' });
-      }
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Invalid request data'
+      });
     }
   });
 
   // Transactions Routes
   app.get('/api/transactions', async (req, res) => {
     try {
-      console.log('[Transactions API] Fetching transactions...');
-
       const query = db.select({
         id: transactions.id,
         description: transactions.description,
@@ -105,15 +97,31 @@ export function registerRoutes(app: Express): Server {
 
   app.post('/api/transactions', async (req, res) => {
     try {
-      const transactionData = await insertTransactionSchema.parseAsync({
-        ...req.body,
-      });
+      const parsedDate = dayjs(req.body.date);
+      if (!parsedDate.isValid()) {
+        return res.status(400).json({ message: 'Invalid date format' });
+      }
+
+      const transactionData = {
+        description: req.body.description,
+        amount: req.body.amount,
+        date: parsedDate.toDate(),
+        type: req.body.type,
+        category_id: req.body.category_id,
+        recurring_id: req.body.recurring_id || null
+      };
 
       const [newTransaction] = await db.insert(transactions)
         .values(transactionData)
         .returning();
 
-      res.status(201).json(newTransaction);
+      const response = {
+        ...newTransaction,
+        date: dayjs(newTransaction.date).format('YYYY-MM-DD'),
+        amount: Number(newTransaction.amount)
+      };
+
+      res.status(201).json(response);
     } catch (error) {
       console.error('Error creating transaction:', error);
       res.status(400).json({
@@ -125,15 +133,13 @@ export function registerRoutes(app: Express): Server {
   app.patch('/api/transactions/:id', async (req, res) => {
     try {
       const transactionId = parseInt(req.params.id);
-      const { description, amount, date, type, category_id, day, recurring_id } = req.body;
+      const { description, amount, date, type, category_id, recurring_id } = req.body;
 
-      // Validate and convert date
       const parsedDate = dayjs(date);
       if (!parsedDate.isValid()) {
         return res.status(400).json({ message: 'Invalid date format' });
       }
 
-      // Get the transaction to update
       const transaction = await db.query.transactions.findFirst({
         where: eq(transactions.id, transactionId),
       });
@@ -142,29 +148,31 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Transaction not found' });
       }
 
-      // Convert date string to Date object for database
-      const dateObject = parsedDate.toDate();
+      console.log('[Transactions API] Updating transaction:', {
+        id: transactionId,
+        originalDate: date,
+        parsedDate: parsedDate.format('YYYY-MM-DD')
+      });
 
       const [updatedTransaction] = await db.update(transactions)
         .set({
           description,
           amount,
-          date: dateObject,
+          date: parsedDate.toDate(),
           type,
           category_id,
-          day: day || null,
           recurring_id: recurring_id || null
         })
         .where(eq(transactions.id, transactionId))
         .returning();
 
-      // Format the response
       const response = {
         ...updatedTransaction,
         date: dayjs(updatedTransaction.date).format('YYYY-MM-DD'),
         amount: Number(updatedTransaction.amount)
       };
 
+      console.log('[Transactions API] Updated transaction:', response);
       res.json(response);
     } catch (error) {
       console.error('Error updating transaction:', error);
@@ -199,7 +207,7 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/bills', async (req, res) => {
     try {
       const allBills = await db.query.bills.findMany({
-        orderBy: [bills.day],
+        orderBy: [bills.name], //removed day field from orderby
         with: {
           category: true
         }
@@ -209,7 +217,6 @@ export function registerRoutes(app: Express): Server {
         id: bill.id,
         name: bill.name,
         amount: Number(bill.amount),
-        day: bill.day,
         category_id: bill.category_id,
         category_name: bill.category?.name || 'Uncategorized',
         category_color: bill.category?.color || '#D3D3D3',
@@ -229,7 +236,9 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/bills', async (req, res) => {
     try {
       const billData = await insertBillSchema.parseAsync({
-        ...req.body,
+        name:req.body.name,
+        amount: req.body.amount,
+        category_id: req.body.category_id
       });
 
       const [newBill] = await db.insert(bills)
