@@ -86,7 +86,7 @@ const DayCell = memo(({
       className={cn(
         "border border-yellow-100/50 p-0.5 lg:p-2 align-top cursor-pointer transition-colors h-12 md:h-24 lg:h-48 relative touch-manipulation",
         "hover:bg-accent active:bg-accent/70",
-        isCurrentDay && "ring-2 ring-primary ring-offset-2",
+        isCurrentDay && "ring-2 ring-primary ring-offset-2 bg-primary/5",
         selectedDay === day && "bg-accent/50",
         hasTransactions && "shadow-sm"
       )}
@@ -96,7 +96,7 @@ const DayCell = memo(({
           <div className="flex items-center gap-0.5">
             <span className={cn(
               "font-medium text-xs md:text-base lg:text-lg",
-              isCurrentDay && "text-primary font-bold animate-pulse"
+              isCurrentDay && "text-primary font-bold bg-primary/10 px-1 rounded animate-[pulse_2s_ease-in-out_infinite]"
             )}>
               {day}
             </span>
@@ -105,7 +105,7 @@ const DayCell = memo(({
             </span>
           </div>
           {isCurrentDay && (
-            <span className="text-[8px] md:text-xs font-medium text-primary animate-pulse bg-primary/10 px-1 rounded-sm">
+            <span className="text-[8px] md:text-xs font-medium text-primary bg-primary/10 px-1 rounded-sm animate-[pulse_2s_ease-in-out_infinite]">
               Today
             </span>
           )}
