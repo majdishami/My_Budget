@@ -26,6 +26,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Restore the useEffect for initial data loading
+  useEffect(() => {
+    loadData();
+  }, []);
+
   const loadData = async () => {
     try {
       setIsLoading(true);
