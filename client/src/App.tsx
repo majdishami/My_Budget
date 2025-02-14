@@ -15,9 +15,6 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "@/contexts/DataContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AuthProvider } from "@/hooks/use-auth";
-import { ProtectedRoute } from "@/lib/protected-route";
-import AuthPage from "@/pages/auth-page";
 import {
   Loader2, Menu, BarChart4,
   Download, Database, Tags, ChevronDown,
@@ -64,7 +61,6 @@ import { Income, Bill } from "@/types";
 import crypto from 'crypto';
 import { Badge } from "@/components/ui/badge";
 import { logger } from './lib/logger';
-
 
 
 function Router() {
@@ -524,15 +520,14 @@ function Router() {
         )}>
           <div className="h-full">
             <Switch>
-              <Route path="/auth" component={AuthPage} />
-              <ProtectedRoute path="/" component={Budget} />
-              <ProtectedRoute path="/categories" component={CategoriesPage} />
-              <ProtectedRoute path="/reports/monthly-to-date" component={MonthlyToDateReport} />
-              <ProtectedRoute path="/reports/monthly" component={MonthlyReport} />
-              <ProtectedRoute path="/reports/annual" component={AnnualReport} />
-              <ProtectedRoute path="/reports/date-range" component={DateRangeReport} />
-              <ProtectedRoute path="/reports/income" component={IncomeReport} />
-              <ProtectedRoute path="/reports/expenses" component={ExpenseReport} />
+              <Route path="/" component={Budget} />
+              <Route path="/categories" component={CategoriesPage} />
+              <Route path="/reports/monthly-to-date" component={MonthlyToDateReport} />
+              <Route path="/reports/monthly" component={MonthlyReport} />
+              <Route path="/reports/annual" component={AnnualReport} />
+              <Route path="/reports/date-range" component={DateRangeReport} />
+              <Route path="/reports/income" component={IncomeReport} />
+              <Route path="/reports/expenses" component={ExpenseReport} />
               <Route component={NotFound} />
             </Switch>
           </div>
@@ -619,18 +614,16 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ErrorBoundary
-          name="RootErrorBoundary"
-          onReset={() => {
-            queryClient.clear();
-            window.location.reload();
-          }}
-        >
-          <Router />
-          <Toaster />
-        </ErrorBoundary>
-      </AuthProvider>
+      <ErrorBoundary
+        name="RootErrorBoundary"
+        onReset={() => {
+          queryClient.clear();
+          window.location.reload();
+        }}
+      >
+        <Router />
+        <Toaster />
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }
