@@ -232,26 +232,15 @@ export function Budget() {
       // Skip if we've already added this bill
       if (uniqueBills.has(bill.name)) return;
 
-      if (bill.isOneTime) {
-        // For one-time bills, only show in their specific month/year
-        const billDate = dayjs(bill.date);
-        if (billDate.date() === day && 
-            billDate.month() === selectedMonth && 
-            billDate.year() === selectedYear) {
-          result.push(bill);
-          uniqueBills.add(bill.name);
-        }
-      } else {
-        // For recurring bills, show them on their day every month
-        if (bill.day === day) {
-          const recurringBill = {
-            ...bill,
-            id: `${bill.id}-${selectedMonth}-${selectedYear}`,
-            date: dayjs().year(selectedYear).month(selectedMonth).date(day).format('YYYY-MM-DD')
-          };
-          result.push(recurringBill);
-          uniqueBills.add(bill.name);
-        }
+      // For all bills, show them in every month on their specified day
+      if (bill.day === day) {
+        const recurringBill = {
+          ...bill,
+          id: `${bill.id}-${selectedMonth}-${selectedYear}`,
+          date: dayjs().year(selectedYear).month(selectedMonth).date(day).format('YYYY-MM-DD')
+        };
+        result.push(recurringBill);
+        uniqueBills.add(bill.name);
       }
     });
 
