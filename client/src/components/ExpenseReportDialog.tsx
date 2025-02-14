@@ -213,26 +213,21 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         // Only add if the occurrence falls within the date range
         if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
           result.push({
-            id: `${bill.id}-${currentDate.format('YYYY-MM-DD')}`, // Added unique ID
+            id: `${bill.id}-${currentDate.format('YYYY-MM-DD')}`,
             date: currentDate.format('YYYY-MM-DD'),
             description: bill.name,
             amount: billAmount,
             occurred: currentDate.isSameOrBefore(today),
-            category: bill.category_name || 'Uncategorized',
-            color: bill.category_color || '#D3D3D3'
+            category: bill.category_name,
+            color: bill.category_color,
+            icon: bill.category?.icon
           });
         }
         currentDate = currentDate.add(1, 'month');
       }
     });
 
-    return result.map(transaction => {
-      const categoryBill = bills.find(b => b.category_name === transaction.category);
-      return {
-        ...transaction,
-        icon: categoryBill?.category?.icon || null
-      };
-    }).sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
+    return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
   }, [showReport, selectedValue, date, bills, today]);
 
   // Group transactions by expense name for the "all" view
