@@ -380,8 +380,11 @@ export function Budget() {
   // Update the current day detection
   const isCurrentDay = useCallback((dayNumber: number) => {
     const now = dayjs();
-    const currentDate = dayjs().year(selectedYear).month(selectedMonth).date(dayNumber);
-    return currentDate.isSame(now, 'day');
+    return (
+      dayNumber === now.date() &&
+      selectedMonth === now.month() &&
+      selectedYear === now.year()
+    );
   }, [selectedMonth, selectedYear]);
 
 
@@ -493,11 +496,12 @@ export function Budget() {
                       return <td key={dayIndex} className="border border-yellow-100/50 p-0.5 lg:p-2 bg-muted/10 h-12 md:h-24 lg:h-48" />;
                     }
 
+                    const isToday = isCurrentDay(dayNumber);
                     return (
                       <DayCell
                         key={dayIndex}
                         day={dayNumber}
-                        isCurrentDay={isCurrentDay(dayNumber)}
+                        isCurrentDay={isToday}
                         selectedDay={selectedDay}
                         dayIncomes={getIncomeForDay(dayNumber)}
                         dayBills={getBillsForDay(dayNumber)}
