@@ -212,17 +212,38 @@ export function Budget() {
 
   // Update getBillsForDay to handle recurring bills across all months
   const getBillsForDay = useCallback((day: number) => {
-    return bills.filter(bill => {
+    if (day <= 0) return [];
+
+    const result: Bill[] = [];
+    const uniqueBills = new Set();
+
+    bills.forEach(bill => {
+      // Skip if we've already added this bill
+      if (uniqueBills.has(bill.name)) return;
+
       if (bill.isOneTime) {
+        // For one-time bills, only show in their specific month/year
         const billDate = dayjs(bill.date);
-        return billDate.date() === day &&
-               billDate.month() === selectedMonth &&
-               billDate.year() === selectedYear;
+        if (billDate.date() === day && 
+            billDate.month() === selectedMonth && 
+            billDate.year() === selectedYear) {
+          result.push(bill);
+          uniqueBills.add(bill.name);
+        }
       } else {
         // For recurring bills, show them on their day every month
-        return bill.day === day;
+        if (bill.day === day) {
+          result.push({
+            ...bill,
+            id: `${bill.id}-${selectedMonth}-${selectedYear}`,
+            date: dayjs().year(selectedYear).month(selectedMonth).date(day).format('YYYY-MM-DD')
+          });
+          uniqueBills.add(bill.name);
+        }
       }
     });
+
+    return result;
   }, [bills, selectedYear, selectedMonth]);
 
   // Update monthly totals calculation to handle recurring bills
@@ -325,7 +346,7 @@ export function Budget() {
 
   // Update the current day detection
   const isCurrentDay = useCallback((dayNumber: number) => {
-    const now = dayjs();
+    const now = dayjs('2025-02-14');
     return dayNumber === now.date() && 
            selectedMonth === now.month() && 
            selectedYear === now.year();
