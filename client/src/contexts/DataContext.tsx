@@ -45,39 +45,49 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       const transactions = await response.json();
+      logger.info("[DataContext] Raw transactions:", transactions);
 
-      // Process incomes
+      // Process incomes with proper date handling
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
-        .map((t: any) => ({
-          id: t.id.toString(),
-          source: t.description,
-          amount: parseFloat(t.amount),
-          date: dayjs(t.date).format('YYYY-MM-DD'),
-          occurrenceType: t.recurring_id ? 'recurring' : 'once'
-        }));
+        .map((t: any) => {
+          const date = dayjs(t.date);
+          const income = {
+            id: t.id.toString(),
+            source: t.description,
+            amount: parseFloat(t.amount),
+            date: date.format('YYYY-MM-DD'),
+            occurrenceType: t.recurring_id ? 'recurring' : 'once'
+          };
+          logger.info("[DataContext] Processed income:", income);
+          return income;
+        });
 
+      logger.info("[DataContext] All processed incomes:", loadedIncomes);
       setIncomes(loadedIncomes);
 
-      // Process bills/expenses
+      // Process bills/expenses with proper date handling
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
         .map((t: any) => {
-          const transactionDate = dayjs(t.date);
-          return {
+          const date = dayjs(t.date);
+          const bill = {
             id: t.id.toString(),
             name: t.description,
             amount: parseFloat(t.amount),
-            date: transactionDate.format('YYYY-MM-DD'),
+            date: date.format('YYYY-MM-DD'),
             isOneTime: !t.recurring_id,
-            day: transactionDate.date(),
+            day: date.date(),
             category_id: t.category_id,
             category_name: t.category_name || 'Uncategorized',
             category_color: t.category_color || '#D3D3D3',
             category_icon: t.category_icon
           };
+          logger.info("[DataContext] Processed bill:", bill);
+          return bill;
         });
 
+      logger.info("[DataContext] All processed bills:", loadedBills);
       setBills(loadedBills);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
@@ -97,22 +107,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const isIncome = 'source' in transaction;
 
-      // Ensure date is in the correct format
-      const transactionDate = dayjs(transaction.date).isValid() 
-        ? dayjs(transaction.date)
-        : dayjs();
+      // Parse and validate the date
+      let transactionDate = dayjs(transaction.date);
+      if (!transactionDate.isValid()) {
+        transactionDate = dayjs(); // Fallback to current date if invalid
+        logger.warn("[DataContext] Invalid date detected, using current date as fallback");
+      }
+
+      const formattedDate = transactionDate.format('YYYY-MM-DD');
+
+      logger.info("[DataContext] Editing transaction with date:", {
+        originalDate: transaction.date,
+        formattedDate
+      });
 
       const payload = {
         description: isIncome ? transaction.source : transaction.name,
         amount: Number(transaction.amount),
-        date: transactionDate.format('YYYY-MM-DD'),
+        date: formattedDate,
         type: isIncome ? 'income' : 'expense',
         category_id: !isIncome ? Number(transaction.category_id) : null,
-        day: !isIncome ? transactionDate.date() : undefined,
+        day: !isIncome ? transactionDate.date() : null,
         recurring_id: !isIncome && !transaction.isOneTime ? 1 : null
       };
 
-      logger.info("Editing transaction with payload:", payload);
+      logger.info("[DataContext] Editing transaction with payload:", payload);
 
       const response = await fetch(`/api/transactions/${transaction.id}`, {
         method: 'PATCH',
@@ -122,19 +141,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        logger.error("Edit transaction failed:", {
-          status: response.status,
-          statusText: response.statusText,
-          errorData
-        });
         throw new Error(errorData.message || `Failed to edit transaction: ${response.statusText}`);
       }
 
       await loadData();
-      logger.info("Successfully edited transaction");
+      logger.info("[DataContext] Successfully edited transaction");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
-      logger.error("Error in editTransaction:", { error });
+      logger.error("[DataContext] Error in editTransaction:", { error });
       setError(new Error(errorMessage));
       throw error;
     }
@@ -145,7 +159,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       incomes,
       bills,
       saveIncomes: async (newIncomes) => {
-        await Promise.all(newIncomes.map(income => addIncome(income)));
+        await Promise.all(newIncomes.map(income => ({
+          ...income,
+          date: dayjs(income.date).format('YYYY-MM-DD')
+        })).map(income => addIncome(income)));
       },
       saveBills: async (newBills) => {
         // Implement if needed
@@ -153,17 +170,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       addIncome: async (income) => {
         try {
           setError(null);
+          const formattedDate = dayjs(income.date).format('YYYY-MM-DD');
+
           const response = await fetch('/api/transactions', {
             method: 'POST',
             headers,
             body: JSON.stringify({
               description: income.source,
               amount: income.amount,
-              date: income.date,
+              date: formattedDate,
               type: 'income',
-              recurring_type: income.occurrenceType,
-              first_date: income.firstDate,
-              second_date: income.secondDate
+              recurring_type: income.occurrenceType
             }),
           });
 
@@ -172,10 +189,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
 
           await loadData();
-          logger.info("Successfully added income", { income });
+          logger.info("[DataContext] Successfully added income", { income });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Failed to add income";
-          logger.error("Error in addIncome:", { error });
+          logger.error("[DataContext] Error in addIncome:", { error });
           setError(new Error(errorMessage));
           throw error;
         }
@@ -198,7 +215,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           await loadData();
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
-          logger.error("Error in deleteTransaction:", { error });
+          logger.error("[DataContext] Error in deleteTransaction:", { error });
           setError(new Error(errorMessage));
           throw error;
         }
