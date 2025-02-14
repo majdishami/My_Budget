@@ -46,14 +46,16 @@ export function EditIncomeDialog({
 
   // Format the date display for incomes
   const formatIncomeDisplay = (income: Income) => {
-    const date = dayjs(income.date);
     if (income.source === "Majdi's Salary") {
-      return `Twice Monthly (${date.format("MMM D")})`;
+      return "Twice Monthly";
     }
     if (income.source === "Ruba's Salary") {
-      return `Bi-Weekly (${date.format("MMM D")})`;
+      return "Bi-Weekly";
     }
-    return dayjs(income.date).format('MMM D, YYYY');
+    return income.occurrenceType === 'twice-monthly' ? 'Twice Monthly' :
+           income.occurrenceType === 'biweekly' ? 'Bi-Weekly' :
+           income.occurrenceType === 'monthly' ? 'Monthly' :
+           income.occurrenceType === 'weekly' ? 'Weekly' : 'One Time';
   };
 
   // Update form values when income changes
