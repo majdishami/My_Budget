@@ -151,34 +151,13 @@ export function Budget() {
 
   // Update getBillsForDay to handle recurring monthly bills
   const getBillsForDay = useCallback((day: number) => {
-    // Define the bill occurrences with their correct days
-    const monthlyBills = [
-      { name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704, day: 28 },
-      { name: "SoFi Personal Loan", amount: 1915, day: 17 },
-      { name: "Maid's 2nd Payment of the month", amount: 120, day: 17 },
-      { name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75, day: 17 },
-      { name: "Expenses & Groceries charged on (CC 2647)", amount: 3000, day: 16 },
-      { name: "Credit Card minimum payments", amount: 225, day: 14 },
-      { name: "Apple/Google/YouTube (CC 9550)", amount: 130, day: 14 },
-      { name: "TransAmerica Life Insurance", amount: 77, day: 9 },
-      { name: "Water Bill", amount: 80, day: 7 },
-      { name: "NV Energy Electrical ($100 winter months)", amount: 250, day: 7 },
-      { name: "Cox Internet", amount: 81, day: 6 },
-      { name: "Sling TV (CC 9550)", amount: 75, day: 3 },
-      { name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1 },
-      { name: "Maid's 1st payment", amount: 120, day: 1 },
-      { name: "Monthly Rent", amount: 3750, day: 1 }
-    ];
-
-    // Return bills that occur on the specified day
-    return monthlyBills
-      .filter(bill => bill.day === day)
-      .map((bill, index) => ({
-        ...bill,
-        id: `${bill.name}-${selectedYear}-${selectedMonth+1}-${day}-${index}`,
-        date: dayjs().year(selectedYear).month(selectedMonth).date(day).toISOString()
-      }));
-  }, [selectedYear, selectedMonth]);
+    return bills.filter(bill => {
+      const billDate = dayjs(bill.date);
+      return billDate.date() === day &&
+             billDate.month() === selectedMonth &&
+             billDate.year() === selectedYear;
+    });
+  }, [bills, selectedYear, selectedMonth]);
 
   // Update getIncomeForDay to handle both recurring and one-time incomes with uniqueness
   const getIncomeForDay = useCallback((day: number) => {
