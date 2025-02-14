@@ -225,7 +225,8 @@ export function Budget() {
         incomeYear: incomeDate.year(),
         selectedDay: day,
         selectedMonth,
-        selectedYear
+        selectedYear,
+        rawDate: income.date
       });
       return incomeDate.date() === day && 
              incomeDate.month() === selectedMonth && 
@@ -245,7 +246,8 @@ export function Budget() {
         billYear: billDate.year(),
         selectedDay: day,
         selectedMonth,
-        selectedYear
+        selectedYear,
+        rawDate: bill.date
       });
       return billDate.date() === day && 
              billDate.month() === selectedMonth && 
