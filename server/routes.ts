@@ -55,19 +55,24 @@ export function registerRoutes(app: Express): Server {
       .leftJoin(categories, eq(bills.category_id, categories.id))
       .orderBy(desc(bills.amount));
 
-      console.log('[Bills API] Found bills:', allBills.length);
+      console.log('[Bills API] Raw query results:', allBills);
 
-      const formattedBills = allBills.map(bill => ({
-        id: bill.id,
-        name: bill.name,
-        amount: Number(bill.amount),
-        day: bill.day,
-        category_id: bill.category_id,
-        category_name: bill.category_name,
-        category_color: bill.category_color,
-        category_icon: bill.category_icon || null
-      }));
+      const formattedBills = allBills.map(bill => {
+        const formatted = {
+          id: bill.id,
+          name: bill.name,
+          amount: Number(bill.amount),
+          day: bill.day,
+          category_id: bill.category_id,
+          category_name: bill.category_name,
+          category_color: bill.category_color,
+          category_icon: bill.category_icon || 'home' // Default icon for rent category
+        };
+        console.log('[Bills API] Formatted bill:', formatted);
+        return formatted;
+      });
 
+      console.log('[Bills API] Found bills:', formattedBills.length);
       return res.json(formattedBills);
     } catch (error) {
       console.error('[Bills API] Error:', error);
