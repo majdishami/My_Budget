@@ -8,7 +8,6 @@ import path from "path";
 import fileUpload from 'express-fileupload';
 import cors from 'cors';
 import morgan from 'morgan';
-import { setupAuth } from "./auth";
 
 const app = express();
 
@@ -22,46 +21,8 @@ if (!fs.existsSync(tmpDir)) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Enable trust proxy for secure cookies when behind Replit's proxy
-app.set('trust proxy', 1);
-
-// Configure CORS with enhanced security
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    const allowedOrigins = [
-      /\.replit\.dev$/,
-      "http://localhost:5000",
-      "http://localhost:5001",
-      process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : null
-    ].filter(Boolean);
-
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (allowed instanceof RegExp) {
-        return allowed.test(origin);
-      }
-      return origin === allowed;
-    });
-
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  exposedHeaders: ["Set-Cookie"],
-  maxAge: 86400 // 24 hours
-}));
-
-// Setup authentication before other middleware
-setupAuth(app);
+// Configure CORS with basic settings
+app.use(cors());
 
 // Enhanced logging middleware using morgan
 app.use(morgan('combined'));
@@ -91,10 +52,7 @@ app.use((req, res, next) => {
 
   console.log('[Request] New request:', {
     method: req.method,
-    path: req.path,
-    isAuthenticated: req.isAuthenticated(),
-    sessionID: req.sessionID,
-    user: req.user ? { id: (req.user as any).id } : null
+    path: req.path
   });
 
   if (req.files) {
@@ -161,8 +119,7 @@ app.use(syncRouter);
     server.listen(PORT, HOST, () => {
       console.log(`Server is running at http://${HOST}:${PORT}`);
       console.log(`Server environment: ${app.get("env")}`);
-      console.log(`Trust proxy enabled: ${app.get('trust proxy')}`);
-      console.log(`CORS and API endpoints are configured for ${isReplit ? 'Replit' : 'local'} development`);
+      console.log(`CORS enabled for all origins`);
     });
 
     // Handle graceful shutdown

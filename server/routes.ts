@@ -1,109 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { categories, users, insertUserSchema, insertCategorySchema, transactions, insertTransactionSchema } from "@db/schema";
-import { eq, desc, and } from "drizzle-orm";
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import session from "express-session";
-import ConnectPgSimple from "connect-pg-simple";
-import crypto from "crypto";
+import { categories, transactions, insertTransactionSchema } from "@db/schema";
+import { eq, desc } from "drizzle-orm";
 import { sql } from 'drizzle-orm';
 import pkg from 'pg';
 const { Pool } = pkg;
 import dayjs from 'dayjs';
-import { bills, insertBillSchema } from "@db/schema";
-
-// Middleware to check if user is authenticated
-const requireAuth = (req: any, res: any, next: any) => {
-  console.log('[Auth Middleware] Checking authentication:', {
-    isAuthenticated: req.isAuthenticated(),
-    session: req.session,
-    user: req.user
-  });
-
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ message: 'Unauthorized' });
-};
 
 export function registerRoutes(app: Express): Server {
   console.log('[Server] Starting route registration...');
-
-  // Initialize PostgreSQL session store
-  const PgSession = ConnectPgSimple(session);
-  console.log('[Server] Initialized PgSession');
-
-  // Set up session middleware with secure settings
-  app.use(session({
-    store: new PgSession({
-      conObject: {
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? {
-          rejectUnauthorized: false
-        } : undefined
-      },
-    }),
-    secret: process.env.REPL_ID || crypto.randomBytes(32).toString('hex'),
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      httpOnly: true,
-      sameSite: 'lax'
-    },
-  }));
-
-  // Initialize Passport
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  // Set up Passport Local Strategy
-  passport.use(new LocalStrategy(async (username, password, done) => {
-    try {
-      const user = await db.query.users.findFirst({
-        where: eq(users.username, username),
-      });
-
-      if (!user) {
-        return done(null, false, { message: 'Invalid username or password' });
-      }
-
-      const hashedPassword = hashPassword(password);
-      if (hashedPassword !== user.password) {
-        return done(null, false, { message: 'Invalid username or password' });
-      }
-
-      return done(null, user);
-    } catch (err) {
-      return done(err);
-    }
-  }));
-
-  passport.serializeUser((user: any, done) => {
-    done(null, user.id);
-  });
-
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, id),
-      });
-      done(null, user);
-    } catch (err) {
-      done(err);
-    }
-  });
-
-  // Middleware to check if user is authenticated
-  //const requireAuth = (req: any, res: any, next: any) => {
-  //  if (req.isAuthenticated()) {
-  //    return next();
-  //  }
-  //  res.status(401).json({ message: 'Unauthorized' });
-  //};
 
   // Test route
   app.get('/api/health', (req, res) => {
@@ -111,76 +17,20 @@ export function registerRoutes(app: Express): Server {
     res.json({ status: 'ok' });
   });
 
-  // Authentication Routes
-  app.post('/api/auth/register', async (req, res) => {
-    try {
-      console.log('[Server] Processing registration request');
-      const { username, password } = await insertUserSchema.parseAsync(req.body);
-
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.username, username),
-      });
-
-      if (existingUser) {
-        return res.status(400).json({ message: 'Username already exists' });
-      }
-
-      const hashedPassword = hashPassword(password);
-      const [newUser] = await db.insert(users).values({
-        username,
-        password: hashedPassword,
-      }).returning();
-
-      console.log('[Server] User registered successfully');
-      res.status(201).json({ message: 'User created successfully', id: newUser.id });
-    } catch (error) {
-      console.error('[Server] Registration error:', error);
-      res.status(400).json({ message: 'Invalid request' });
-    }
-  });
-
-  app.post('/api/auth/login', passport.authenticate('local'), (req, res) => {
-    console.log('[Server] User logged in successfully');
-    res.json({ message: 'Logged in successfully' });
-  });
-
-  app.post('/api/auth/logout', (req, res) => {
-    req.logout(() => {
-      console.log('[Server] User logged out successfully');
-      res.json({ message: 'Logged out successfully' });
-    });
-  });
-
-  // Test route for auth status
-  app.get('/api/auth/status', (req, res) => {
-    console.log('[Server] Auth status check');
-    res.json({
-      isAuthenticated: req.isAuthenticated(),
-      user: req.user ? { id: (req.user as any).id } : null
-    });
-  });
-
-  // Categories Routes with simplified implementation
+  // Categories Routes
   app.get('/api/categories', async (req, res) => {
     try {
       console.log('[Categories API] Fetching categories...');
-
-      // Verify database connection
-      const testQuery = await db.execute(sql`SELECT NOW()`);
-      console.log('[Categories API] Database connection test successful');
-
       const allCategories = await db.query.categories.findMany({
         orderBy: [categories.name],
       });
-
       console.log('[Categories API] Found categories:', allCategories.length);
       return res.json(allCategories);
     } catch (error) {
       console.error('[Categories API] Error:', error);
       return res.status(500).json({
         message: 'Failed to load categories',
-        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error : undefined
+        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
       });
     }
   });
@@ -262,8 +112,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Transactions Routes - All protected with requireAuth
-  app.get('/api/transactions', requireAuth, async (req, res) => {
+  // Transactions Routes
+  app.get('/api/transactions', async (req, res) => {
     try {
       console.log('[Transactions API] Fetching transactions...');
       const type = req.query.type as string | undefined;
@@ -275,16 +125,11 @@ export function registerRoutes(app: Express): Server {
         date: transactions.date,
         type: transactions.type,
         category_id: transactions.category_id,
-        category: categories,
-        recurring_type: transactions.recurring_type,
-        first_date: transactions.first_date,
-        second_date: transactions.second_date,
-        reminder_enabled: transactions.reminder_enabled,
-        reminder_days: transactions.reminder_days
+        category: categories
       })
-        .from(transactions)
-        .leftJoin(categories, eq(transactions.category_id, categories.id))
-        .orderBy(desc(transactions.date));
+      .from(transactions)
+      .leftJoin(categories, eq(transactions.category_id, categories.id))
+      .orderBy(desc(transactions.date));
 
       if (type) {
         query = query.where(eq(transactions.type, type));
@@ -302,12 +147,7 @@ export function registerRoutes(app: Express): Server {
         category_id: transaction.category_id,
         category_name: transaction.category?.name || 'Uncategorized',
         category_color: transaction.category?.color || '#D3D3D3',
-        category_icon: transaction.category?.icon || null,
-        recurring_type: transaction.recurring_type,
-        first_date: transaction.first_date,
-        second_date: transaction.second_date,
-        reminder_enabled: transaction.reminder_enabled,
-        reminder_days: transaction.reminder_days
+        category_icon: transaction.category?.icon || null
       }));
 
       return res.json(formattedTransactions);
@@ -321,7 +161,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post('/api/transactions', requireAuth, async (req, res) => {
+  app.post('/api/transactions', async (req, res) => {
     try {
       console.log('[Transactions API] Creating new transaction:', req.body);
       const transactionData = await insertTransactionSchema.parseAsync(req.body);
@@ -340,7 +180,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch('/api/transactions/:id', requireAuth, async (req, res) => {
+  app.patch('/api/transactions/:id', async (req, res) => {
     try {
       console.log('[Transactions API] Updating transaction:', {
         id: req.params.id,
@@ -348,8 +188,6 @@ export function registerRoutes(app: Express): Server {
       });
 
       const transactionId = parseInt(req.params.id);
-
-      // Verify transaction exists
       const existingTransaction = await db.query.transactions.findFirst({
         where: eq(transactions.id, transactionId)
       });
@@ -358,19 +196,13 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Transaction not found' });
       }
 
-      // Update transaction
       const [updatedTransaction] = await db.update(transactions)
         .set({
           description: req.body.description,
           amount: req.body.amount,
           date: req.body.date,
           type: req.body.type,
-          category_id: req.body.category_id,
-          recurring_type: req.body.recurring_type,
-          first_date: req.body.first_date,
-          second_date: req.body.second_date,
-          reminder_enabled: req.body.reminder_enabled,
-          reminder_days: req.body.reminder_days
+          category_id: req.body.category_id
         })
         .where(eq(transactions.id, transactionId))
         .returning();
@@ -385,7 +217,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.delete('/api/transactions/:id', requireAuth, async (req, res) => {
+  app.delete('/api/transactions/:id', async (req, res) => {
     try {
       console.log('[Transactions API] Deleting transaction:', req.params.id);
       const transactionId = parseInt(req.params.id);
@@ -409,80 +241,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
-  // Bills Routes
-  app.get('/api/bills', async (req, res) => {
-    try {
-      console.log('[Bills API] Fetching bills...');
-
-      // Test database connection first
-      await db.execute(sql`SELECT 1`);
-      console.log('[Bills API] Database connection successful');
-
-      // Get raw bills data first
-      const rawBills = await db.select().from(bills);
-      console.log('[Bills API] Raw bills count:', rawBills.length);
-      console.log('[Bills API] Raw bills data:', JSON.stringify(rawBills, null, 2));
-
-      // Then get with relations
-      const allBills = await db.query.bills.findMany({
-        orderBy: [bills.day],
-        with: {
-          category: true
-        }
-      });
-      console.log('[Bills API] Bills with categories count:', allBills.length);
-
-      const formattedBills = allBills.map(bill => ({
-        id: bill.id,
-        name: bill.name,
-        amount: Number(bill.amount),
-        day: bill.day,
-        category_id: bill.category_id,
-        category_name: bill.category?.name || 'Uncategorized',
-        category_color: bill.category?.color || '#D3D3D3',
-        category_icon: bill.category?.icon || null,
-      }));
-
-      console.log('[Bills API] Formatted bills:', JSON.stringify(formattedBills, null, 2));
-      return res.json(formattedBills);
-    } catch (error) {
-      console.error('[Bills API] Error:', error);
-      return res.status(500).json({
-        message: 'Failed to load bills',
-        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error',
-        details: error instanceof Error ? error.stack : undefined
-      });
-    }
-  });
-
-  app.post('/api/bills', requireAuth, async (req, res) => {
-    try {
-      const userId = (req.user as any).id;
-      const billData = await insertBillSchema.parseAsync({
-        ...req.body,
-        user_id: userId,
-      });
-
-      const [newBill] = await db.insert(bills)
-        .values(billData)
-        .returning();
-
-      res.status(201).json(newBill);
-    } catch (error) {
-      console.error('Error creating bill:', error);
-      res.status(400).json({
-        message: error instanceof Error ? error.message : 'Invalid request data'
-      });
-    }
-  });
-
-  // Hash password using SHA-256
-  function hashPassword(password: string): string {
-    return crypto.createHash('sha256').update(password).digest('hex');
-  }
-
-  console.log('[Server] Route registration completed');
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -16,7 +16,6 @@ interface DataContextType {
   refresh: () => Promise<void>;
   isLoading: boolean;
   error: Error | null;
-  isAuthenticated: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -26,22 +25,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [bills, setBills] = useState<Bill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Check authentication status
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch('/api/user', {
-        credentials: 'include'
-      });
-      setIsAuthenticated(response.status === 200);
-      return response.status === 200;
-    } catch (error) {
-      console.error('Error checking auth status:', error);
-      setIsAuthenticated(false);
-      return false;
-    }
-  };
 
   // Load transactions from the API
   const loadData = async () => {
@@ -49,25 +32,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setError(null);
 
-      const isAuthed = await checkAuthStatus();
-      if (!isAuthed) {
-        throw new Error('Please log in to view transactions');
-      }
-
       console.log('[DataContext] Starting to fetch transactions...');
       const response = await fetch('/api/transactions', {
         method: 'GET',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         }
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setIsAuthenticated(false);
-          throw new Error('Please log in to view transactions');
-        }
         throw new Error(`Failed to load transactions: ${response.status} ${response.statusText}`);
       }
 
@@ -125,9 +98,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
       logger.error("[DataContext] Error loading data:", { error });
       setError(new Error(errorMessage));
-      if (error instanceof Error && error.message.includes('Please log in')) {
-        setIsAuthenticated(false);
-      }
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +111,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const response = await fetch('/api/transactions', {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -157,10 +126,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setIsAuthenticated(false);
-          throw new Error('Please log in to add income');
-        }
         const errorData = await response.json().catch(() => ({}));
         throw new Error(`Failed to add income: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
@@ -183,7 +148,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const response = await fetch('/api/transactions', {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -199,10 +163,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setIsAuthenticated(false);
-          throw new Error('Please log in to add a bill');
-        }
         const errorData = await response.json().catch(() => ({}));
         throw new Error(`Failed to add bill: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
@@ -225,17 +185,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const response = await fetch(`/api/transactions/${transaction.id}`, {
         method: 'DELETE',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         }
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setIsAuthenticated(false);
-          throw new Error('Please log in to delete transactions');
-        }
         const errorData = await response.json().catch(() => ({}));
         throw new Error(`Failed to delete transaction: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
@@ -262,7 +217,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const response = await fetch(`/api/transactions/${transaction.id}`, {
         method: 'PATCH',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -288,10 +242,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setIsAuthenticated(false);
-          throw new Error('Please log in to edit transactions');
-        }
         throw new Error(`Failed to edit transaction: ${response.status} ${response.statusText}${responseData.message ? ` - ${responseData.message}` : ''}`);
       }
 
@@ -305,15 +255,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Initialize data and check auth status
   useEffect(() => {
-    const init = async () => {
-      const isAuthed = await checkAuthStatus();
-      if (isAuthed) {
-        await loadData();
-      }
-    };
-    init();
+    loadData();
   }, []);
 
   return (
@@ -333,8 +276,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       resetData: loadData,
       refresh: loadData,
       isLoading,
-      error,
-      isAuthenticated
+      error
     }}>
       {children}
     </DataContext.Provider>
