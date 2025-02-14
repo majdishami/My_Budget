@@ -284,15 +284,23 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      console.log('[Transactions API] Raw transactions:', allTransactions);
+      console.log('[Transactions API] Raw transactions:', JSON.stringify(allTransactions, null, 2));
 
       const formattedTransactions = allTransactions.map(transaction => {
         const transactionDate = dayjs(transaction.date).startOf('day');
+        console.log('[Transactions API] Processing transaction:', {
+          original: transaction,
+          parsedDate: transactionDate.format(),
+          dayOfMonth: transactionDate.date(),
+          month: transactionDate.month(),
+          year: transactionDate.year()
+        });
+
         const formatted = {
           id: transaction.id,
           description: transaction.description,
           amount: Number(transaction.amount),
-          date: transactionDate.toISOString(), // Use ISO string for consistent timezone handling
+          date: transactionDate.toISOString(),
           type: transaction.type,
           category_id: transaction.category_id,
           category_name: transaction.category?.name || 'Uncategorized',
