@@ -136,9 +136,9 @@ export default function MonthlyToDateReport() {
       <div className="container mx-auto p-4 text-center">
         <div className="bg-red-50 text-red-800 p-4 rounded-md">
           <p>{error}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
-            variant="outline" 
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
             className="mt-4"
           >
             Retry
