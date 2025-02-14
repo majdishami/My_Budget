@@ -42,44 +42,47 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[DataContext] Failed to fetch transactions:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
         throw new Error(`Failed to load transactions: ${response.status} ${response.statusText}`);
       }
 
       const transactions = await response.json();
-      console.log('[DataContext] Successfully fetched transactions:', transactions);
+      console.log('[DataContext] Raw transactions:', transactions);
 
       // Process incomes
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
-        .map((t: any) => ({
-          id: t.id.toString(),
-          source: t.description,
-          amount: parseFloat(t.amount),
-          date: dayjs(t.date).format('YYYY-MM-DDTHH:mm:ss[Z]'), // Use consistent ISO format
-          occurrenceType: t.recurring_id ? 'recurring' : 'once'
-        }));
+        .map((t: any) => {
+          const income = {
+            id: t.id.toString(),
+            source: t.description,
+            amount: parseFloat(t.amount),
+            date: dayjs(t.date).format('YYYY-MM-DDTHH:mm:ss[Z]'),
+            occurrenceType: t.recurring_id ? 'recurring' : 'once'
+          };
+          console.log('[DataContext] Processed income:', income);
+          return income;
+        });
 
-      console.log('[DataContext] Processed and set incomes:', loadedIncomes);
+      console.log('[DataContext] All processed incomes:', loadedIncomes);
       setIncomes(loadedIncomes);
 
-      // Process bills
+      // Process bills/expenses
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
-        .map((t: any) => ({
-          id: t.id.toString(),
-          name: t.description,
-          amount: parseFloat(t.amount),
-          date: dayjs(t.date).format('YYYY-MM-DDTHH:mm:ss[Z]'), // Use consistent ISO format
-          isOneTime: !t.recurring_id,
-          day: dayjs(t.date).date()
-        }));
+        .map((t: any) => {
+          const bill = {
+            id: t.id.toString(),
+            name: t.description,
+            amount: parseFloat(t.amount),
+            date: dayjs(t.date).format('YYYY-MM-DDTHH:mm:ss[Z]'),
+            isOneTime: !t.recurring_id,
+            day: dayjs(t.date).date()
+          };
+          console.log('[DataContext] Processed bill:', bill);
+          return bill;
+        });
 
+      console.log('[DataContext] All processed bills:', loadedBills);
       setBills(loadedBills);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";

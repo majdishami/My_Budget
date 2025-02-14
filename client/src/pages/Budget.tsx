@@ -216,21 +216,43 @@ export function Budget() {
 
   // Memoize functions for getting day specific data
   const getIncomeForDay = useCallback((day: number) => {
-    return monthlyIncomeOccurrences.filter(income => {
+    const incomeForDay = incomes.filter(income => {
       const incomeDate = dayjs(income.date);
+      console.log(`Checking income for day ${day}:`, {
+        income,
+        incomeDay: incomeDate.date(),
+        incomeMonth: incomeDate.month(),
+        incomeYear: incomeDate.year(),
+        selectedDay: day,
+        selectedMonth,
+        selectedYear
+      });
       return incomeDate.date() === day && 
              incomeDate.month() === selectedMonth && 
              incomeDate.year() === selectedYear;
     });
-  }, [monthlyIncomeOccurrences, selectedYear, selectedMonth]);
+    console.log(`Income for day ${day}:`, incomeForDay);
+    return incomeForDay;
+  }, [incomes, selectedYear, selectedMonth]);
 
   const getBillsForDay = useCallback((day: number) => {
-    return bills.filter(bill => {
+    const billsForDay = bills.filter(bill => {
       const billDate = dayjs(bill.date);
+      console.log(`Checking bill for day ${day}:`, {
+        bill,
+        billDay: billDate.date(),
+        billMonth: billDate.month(),
+        billYear: billDate.year(),
+        selectedDay: day,
+        selectedMonth,
+        selectedYear
+      });
       return billDate.date() === day && 
              billDate.month() === selectedMonth && 
              billDate.year() === selectedYear;
     });
+    console.log(`Bills for day ${day}:`, billsForDay);
+    return billsForDay;
   }, [bills, selectedYear, selectedMonth]);
 
   // Memoize monthly totals calculation
