@@ -90,6 +90,8 @@ router.post('/api/sync/restore', async (req, res) => {
       if (!parsedData.bills || !Array.isArray(parsedData.bills)) {
         return res.status(400).json({ error: 'Invalid backup format: missing bills array' });
       }
+
+      console.log(`Found ${parsedData.categories.length} categories and ${parsedData.bills.length} bills`);
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
       return res.status(400).json({ error: 'Invalid JSON file content' });

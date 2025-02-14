@@ -76,7 +76,7 @@ export async function restoreDatabaseBackup(backupFile: string) {
 
       try {
         backupData = JSON.parse(backupContent);
-        console.log('Backup data parsed successfully');
+        console.log('Data parsed successfully, validating structure...');
 
         if (!backupData.categories || !Array.isArray(backupData.categories)) {
           throw new Error('Invalid backup structure: missing categories array');
