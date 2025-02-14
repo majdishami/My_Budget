@@ -14,10 +14,19 @@ const { Pool } = pkg;
 import dayjs from 'dayjs';
 import { bills, insertBillSchema } from "@db/schema";
 
-// Hash password using SHA-256
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
+// Middleware to check if user is authenticated
+const requireAuth = (req: any, res: any, next: any) => {
+  console.log('[Auth Middleware] Checking authentication:', {
+    isAuthenticated: req.isAuthenticated(),
+    session: req.session,
+    user: req.user
+  });
+
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: 'Unauthorized' });
+};
 
 export function registerRoutes(app: Express): Server {
   console.log('[Server] Starting route registration...');
@@ -26,49 +35,30 @@ export function registerRoutes(app: Express): Server {
   const PgSession = ConnectPgSimple(session);
   console.log('[Server] Initialized PgSession');
 
-  // Test database connection
-  try {
-    console.log('[Server] Testing database connection...');
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? {
-        rejectUnauthorized: false
-      } : undefined
-    });
-
-    pool.query('SELECT NOW()', (err, res) => {
-      if (err) {
-        console.error('[Server] Database connection test failed:', err);
-        throw err;
-      }
-      console.log('[Server] Database connection test successful');
-    });
-  } catch (error) {
-    console.error('[Server] Failed to create database pool:', error);
-    throw error;
-  }
-
-  // Set up session middleware
+  // Set up session middleware with secure settings
   app.use(session({
     store: new PgSession({
       conObject: {
         connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? {
+          rejectUnauthorized: false
+        } : undefined
       },
     }),
-    secret: crypto.randomBytes(32).toString('hex'),
+    secret: process.env.REPL_ID || crypto.randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      httpOnly: true,
+      sameSite: 'lax'
     },
   }));
-  console.log('[Server] Session middleware configured');
 
   // Initialize Passport
   app.use(passport.initialize());
   app.use(passport.session());
-  console.log('[Server] Passport initialized');
 
   // Set up Passport Local Strategy
   passport.use(new LocalStrategy(async (username, password, done) => {
@@ -91,7 +81,6 @@ export function registerRoutes(app: Express): Server {
       return done(err);
     }
   }));
-  console.log('[Server] Passport strategy configured');
 
   passport.serializeUser((user: any, done) => {
     done(null, user.id);
@@ -109,12 +98,12 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Middleware to check if user is authenticated
-  const requireAuth = (req: any, res: any, next: any) => {
-    if (req.isAuthenticated()) {
-      return next();
-    }
-    res.status(401).json({ message: 'Unauthorized' });
-  };
+  //const requireAuth = (req: any, res: any, next: any) => {
+  //  if (req.isAuthenticated()) {
+  //    return next();
+  //  }
+  //  res.status(401).json({ message: 'Unauthorized' });
+  //};
 
   // Test route
   app.get('/api/health', (req, res) => {
@@ -273,8 +262,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Transactions Routes
-  app.get('/api/transactions', async (req, res) => {
+  // Transactions Routes - All protected with requireAuth
+  app.get('/api/transactions', requireAuth, async (req, res) => {
     try {
       console.log('[Transactions API] Fetching transactions...');
       const type = req.query.type as string | undefined;
@@ -286,11 +275,16 @@ export function registerRoutes(app: Express): Server {
         date: transactions.date,
         type: transactions.type,
         category_id: transactions.category_id,
-        category: categories
+        category: categories,
+        recurring_type: transactions.recurring_type,
+        first_date: transactions.first_date,
+        second_date: transactions.second_date,
+        reminder_enabled: transactions.reminder_enabled,
+        reminder_days: transactions.reminder_days
       })
-      .from(transactions)
-      .leftJoin(categories, eq(transactions.category_id, categories.id))
-      .orderBy(desc(transactions.date));
+        .from(transactions)
+        .leftJoin(categories, eq(transactions.category_id, categories.id))
+        .orderBy(desc(transactions.date));
 
       if (type) {
         query = query.where(eq(transactions.type, type));
@@ -309,9 +303,13 @@ export function registerRoutes(app: Express): Server {
         category_name: transaction.category?.name || 'Uncategorized',
         category_color: transaction.category?.color || '#D3D3D3',
         category_icon: transaction.category?.icon || null,
+        recurring_type: transaction.recurring_type,
+        first_date: transaction.first_date,
+        second_date: transaction.second_date,
+        reminder_enabled: transaction.reminder_enabled,
+        reminder_days: transaction.reminder_days
       }));
 
-      console.log('[Transactions API] Formatted transactions:', formattedTransactions);
       return res.json(formattedTransactions);
     } catch (error) {
       console.error('[Transactions API] Error:', error);
@@ -325,19 +323,17 @@ export function registerRoutes(app: Express): Server {
 
   app.post('/api/transactions', requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as any).id;
-      const transactionData = await insertTransactionSchema.parseAsync({
-        ...req.body,
-        user_id: userId,
-      });
+      console.log('[Transactions API] Creating new transaction:', req.body);
+      const transactionData = await insertTransactionSchema.parseAsync(req.body);
 
       const [newTransaction] = await db.insert(transactions)
         .values(transactionData)
         .returning();
 
+      console.log('[Transactions API] Created transaction:', newTransaction);
       res.status(201).json(newTransaction);
     } catch (error) {
-      console.error('Error creating transaction:', error);
+      console.error('[Transactions API] Error creating transaction:', error);
       res.status(400).json({
         message: error instanceof Error ? error.message : 'Invalid request data'
       });
@@ -346,31 +342,43 @@ export function registerRoutes(app: Express): Server {
 
   app.patch('/api/transactions/:id', requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as any).id;
-      const transactionId = parseInt(req.params.id);
-
-      const transaction = await db.query.transactions.findFirst({
-        where: and(
-          eq(transactions.id, transactionId),
-          eq(transactions.user_id, userId)
-        ),
+      console.log('[Transactions API] Updating transaction:', {
+        id: req.params.id,
+        data: req.body
       });
 
-      if (!transaction) {
+      const transactionId = parseInt(req.params.id);
+
+      // Verify transaction exists
+      const existingTransaction = await db.query.transactions.findFirst({
+        where: eq(transactions.id, transactionId)
+      });
+
+      if (!existingTransaction) {
         return res.status(404).json({ message: 'Transaction not found' });
       }
 
+      // Update transaction
       const [updatedTransaction] = await db.update(transactions)
-        .set(req.body)
-        .where(and(
-          eq(transactions.id, transactionId),
-          eq(transactions.user_id, userId)
-        ))
+        .set({
+          description: req.body.description,
+          amount: req.body.amount,
+          date: req.body.date,
+          type: req.body.type,
+          category_id: req.body.category_id,
+          recurring_type: req.body.recurring_type,
+          first_date: req.body.first_date,
+          second_date: req.body.second_date,
+          reminder_enabled: req.body.reminder_enabled,
+          reminder_days: req.body.reminder_days
+        })
+        .where(eq(transactions.id, transactionId))
         .returning();
 
+      console.log('[Transactions API] Updated transaction:', updatedTransaction);
       res.json(updatedTransaction);
     } catch (error) {
-      console.error('Error updating transaction:', error);
+      console.error('[Transactions API] Error updating transaction:', error);
       res.status(400).json({
         message: error instanceof Error ? error.message : 'Invalid request data'
       });
@@ -379,14 +387,11 @@ export function registerRoutes(app: Express): Server {
 
   app.delete('/api/transactions/:id', requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as any).id;
+      console.log('[Transactions API] Deleting transaction:', req.params.id);
       const transactionId = parseInt(req.params.id);
 
       const transaction = await db.query.transactions.findFirst({
-        where: and(
-          eq(transactions.id, transactionId),
-          eq(transactions.user_id, userId)
-        ),
+        where: eq(transactions.id, transactionId)
       });
 
       if (!transaction) {
@@ -394,14 +399,12 @@ export function registerRoutes(app: Express): Server {
       }
 
       await db.delete(transactions)
-        .where(and(
-          eq(transactions.id, transactionId),
-          eq(transactions.user_id, userId)
-        ));
+        .where(eq(transactions.id, transactionId));
 
+      console.log('[Transactions API] Successfully deleted transaction:', req.params.id);
       res.status(204).send();
     } catch (error) {
-      console.error('Error deleting transaction:', error);
+      console.error('[Transactions API] Error deleting transaction:', error);
       res.status(500).json({ message: 'Server error deleting transaction' });
     }
   });
@@ -473,6 +476,11 @@ export function registerRoutes(app: Express): Server {
       });
     }
   });
+
+  // Hash password using SHA-256
+  function hashPassword(password: string): string {
+    return crypto.createHash('sha256').update(password).digest('hex');
+  }
 
   console.log('[Server] Route registration completed');
   const httpServer = createServer(app);

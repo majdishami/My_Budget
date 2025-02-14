@@ -8,6 +8,7 @@ import path from "path";
 import fileUpload from 'express-fileupload';
 import cors from 'cors';
 import morgan from 'morgan';
+import { setupAuth } from "./auth";
 
 const app = express();
 
@@ -21,27 +22,49 @@ if (!fs.existsSync(tmpDir)) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Enhanced logging middleware using morgan
-app.use(morgan('combined'));
+// Enable trust proxy for secure cookies when behind Replit's proxy
+app.set('trust proxy', 1);
 
 // Configure CORS with enhanced security
 app.use(cors({
   origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      return callback(null, true);
+    }
+
     const allowedOrigins = [
       /\.replit\.dev$/,
       "http://localhost:5000",
-      "http://localhost:5001"
-    ];
-    if (!origin || allowedOrigins.some(o => origin.match(o))) {
+      "http://localhost:5001",
+      process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : null
+    ].filter(Boolean);
+
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return origin === allowed;
+    });
+
+    if (isAllowed) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true,
-  methods: "GET,POST,PUT,DELETE,OPTIONS",
-  allowedHeaders: "Content-Type, Authorization"
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  exposedHeaders: ["Set-Cookie"],
+  maxAge: 86400 // 24 hours
 }));
+
+// Setup authentication before other middleware
+setupAuth(app);
+
+// Enhanced logging middleware using morgan
+app.use(morgan('combined'));
 
 // Configure file upload middleware with improved security
 app.use(fileUpload({
@@ -56,19 +79,23 @@ app.use(fileUpload({
   abortOnLimit: true,
   uploadTimeout: 30000, // 30 seconds
   createParentPath: true,
-  // Additional security settings
   defParamCharset: 'utf8',
   responseOnLimit: 'File size limit has been reached',
   parseNested: false // Prevent deeply nested form data
 }));
 
-// Enable trust proxy for secure cookies when behind Replit's proxy
-app.enable('trust proxy');
-
 // Enhanced request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+
+  console.log('[Request] New request:', {
+    method: req.method,
+    path: req.path,
+    isAuthenticated: req.isAuthenticated(),
+    sessionID: req.sessionID,
+    user: req.user ? { id: (req.user as any).id } : null
+  });
 
   if (req.files) {
     const fileInfo = Object.entries(req.files).map(([key, file]) => ({
@@ -78,7 +105,6 @@ app.use((req, res, next) => {
     log(`Files received: ${JSON.stringify(fileInfo)}`);
   }
 
-  log(`[${req.method}] ${path} from ${req.ip}`);
   if (Object.keys(req.query).length > 0) {
     log(`Query params: ${JSON.stringify(req.query)}`);
   }
@@ -131,11 +157,6 @@ app.use(syncRouter);
     const isReplit = process.env.REPL_ID !== undefined;
     const PORT = parseInt(process.env.PORT || (isReplit ? '5000' : '5001'));
     const HOST = '0.0.0.0';
-
-    // Add graceful startup logging
-    console.log('Environment:', app.get("env"));
-    console.log('Trust proxy:', app.get('trust proxy'));
-    console.log(`Starting server on ${HOST}:${PORT}`);
 
     server.listen(PORT, HOST, () => {
       console.log(`Server is running at http://${HOST}:${PORT}`);
