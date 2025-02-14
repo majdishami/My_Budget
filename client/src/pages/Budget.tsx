@@ -328,7 +328,7 @@ export function Budget() {
     setShowDailySummary(true);
   }, []);
 
-  // Add the calendarData calculation back
+  // Update the calendarData calculation
   const calendarData = useMemo(() => {
     const firstDayOfMonth = dayjs()
       .year(selectedYear)
@@ -346,8 +346,8 @@ export function Budget() {
       days.push(day);
     }
 
-    // Add remaining empty slots to complete the grid (always 6 rows * 7 days = 42 slots)
-    while (days.length < 42) {
+    // Add remaining empty slots to complete the grid (5 rows * 7 days = 35 slots)
+    while (days.length < 35) {
       days.push(null);
     }
 
@@ -356,7 +356,7 @@ export function Budget() {
 
   // Update the current day detection
   const isCurrentDay = useCallback((dayNumber: number) => {
-    const now = dayjs(); //Corrected to get the current date.
+    const now = dayjs(); 
     return dayNumber === now.date() && 
            selectedMonth === now.month() && 
            selectedYear === now.year();
@@ -463,7 +463,7 @@ export function Budget() {
               </tr>
             </thead>
             <tbody className="divide-y divide-yellow-100/50">
-              {Array.from({ length: 6 }, (_, weekIndex) => (
+              {Array.from({ length: 5 }, (_, weekIndex) => (
                 <tr key={weekIndex} className="divide-x divide-yellow-100/50">
                   {Array.from({ length: 7 }, (_, dayIndex) => {
                     const dayNumber = calendarData[weekIndex * 7 + dayIndex];
