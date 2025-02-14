@@ -60,7 +60,7 @@ export default function EditExpenseDialog({
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
-  const [day, setDay] = useState('31'); // Default to 31 for this expense
+  const [day, setDay] = useState('');
   const [dateType, setDateType] = useState<'monthly' | 'specific'>('monthly');
   const [specificDate, setSpecificDate] = useState<Date | undefined>(undefined);
   const [categoryId, setCategoryId] = useState<string>('');
@@ -94,22 +94,16 @@ export default function EditExpenseDialog({
   // Initialize form when expense prop changes
   useEffect(() => {
     if (expense && isOpen) {
-      logger.info("Initializing form with expense:", expense);
-
       // Basic fields
       setName(expense.name);
       setAmount(expense.amount.toString());
 
-      // Date handling - Always monthly recurring for this expense
+      // Always set to monthly recurring and use the day from expense
       setDateType('monthly');
-      setDay(expense.day ? expense.day.toString() : '31'); // Set to 31st as shown in the database
+      setDay(expense.day.toString());
 
-      // Category handling - set from database
-      if (expense.category_id) {
-        setCategoryId(expense.category_id.toString());
-      } else {
-        setCategoryId('');  // Default to empty if no category
-      }
+      // Set category directly from expense
+      setCategoryId(expense.category_id ? expense.category_id.toString() : '');
 
       // Reminders
       setReminderEnabled(Boolean(expense.reminderEnabled));
