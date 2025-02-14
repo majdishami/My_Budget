@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { logger } from "@/lib/logger";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface EditIncomeDialogProps {
   income: Income | null;
@@ -44,74 +45,31 @@ export function EditIncomeDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Calculate next occurrence date based on income type
-  const getNextOccurrenceDate = (income: Income): string => {
-    const today = dayjs();
-
-    if (income.source === "Majdi's Salary") {
-      // Twice monthly on 1st and 15th
-      const firstDate = today.date(1);
-      const fifteenthDate = today.date(15);
-
-      if (today.date() < 15) {
-        return fifteenthDate.format('MMM D');
-      } else if (today.date() >= 15) {
-        return firstDate.add(1, 'month').format('MMM D');
-      }
-      return firstDate.format('MMM D');
-    }
-
-    if (income.source === "Ruba's Salary") {
-      // Bi-weekly on Friday
-      let nextDate = dayjs(income.date);
-      while (nextDate.isBefore(today) || nextDate.isSame(today)) {
-        nextDate = nextDate.add(14, 'day');
-      }
-      return nextDate.format('MMM D');
-    }
-
-    // Handle other recurring incomes
-    if (income.occurrenceType === 'twice-monthly' && income.firstDate && income.secondDate) {
-      const firstDate = today.date(income.firstDate);
-      const secondDate = today.date(income.secondDate);
-
-      if (today.date() < income.firstDate) {
-        return firstDate.format('MMM D');
-      } else if (today.date() < income.secondDate) {
-        return secondDate.format('MMM D');
-      }
-      return firstDate.add(1, 'month').format('MMM D');
-    }
-
-    // For other types, just show the original date
-    return dayjs(income.date).format('MMM D, YYYY');
-  };
-
   // Format the date display for incomes
   const formatIncomeDisplay = (income: Income) => {
     if (!income) return '';
 
-    const nextDate = getNextOccurrenceDate(income);
-
+    // Get occurrence type label
+    let occurrenceTypeLabel = income.occurrenceType;
     if (income.source === "Majdi's Salary") {
-      return `Twice Monthly (${nextDate})`;
+      occurrenceTypeLabel = "twice-monthly";
+    } else if (income.source === "Ruba's Salary") {
+      occurrenceTypeLabel = "biweekly";
     }
-    if (income.source === "Ruba's Salary") {
-      return `Bi-Weekly (${nextDate})`;
-    }
-    if (income.occurrenceType === 'twice-monthly') {
-      return `Twice Monthly (${nextDate})`;
-    }
-    if (income.occurrenceType === 'biweekly') {
-      return `Bi-Weekly (${nextDate})`;
-    }
-    if (income.occurrenceType === 'monthly') {
-      return `Monthly (${nextDate})`;
-    }
-    if (income.occurrenceType === 'weekly') {
-      return `Weekly (${nextDate})`;
-    }
-    return dayjs(income.date).format('MMM D, YYYY');
+
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="ml-2">
+          {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
+           occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
+           occurrenceTypeLabel === 'monthly' ? 'Monthly' :
+           occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
+        </Badge>
+        <span className="text-muted-foreground text-sm">
+          ({dayjs(income.date).format('MMM D')})
+        </span>
+      </div>
+    );
   };
 
   // Update form values when income changes
@@ -206,11 +164,7 @@ export function EditIncomeDialog({
               }}
               readOnly={source === "Majdi's Salary" || source === "Ruba's Salary"}
             />
-            {income && (
-              <p className="text-sm text-muted-foreground">
-                {formatIncomeDisplay(income)}
-              </p>
-            )}
+            {income && formatIncomeDisplay(income)}
           </div>
 
           <div className="grid gap-2">
