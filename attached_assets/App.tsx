@@ -84,6 +84,9 @@ const App = () => {
     const storedIncomes = localStorage.getItem("incomes");
     const storedBills = localStorage.getItem("bills");
 
+    console.log('Stored incomes from localStorage:', storedIncomes);
+    console.log('Stored bills from localStorage:', storedBills);
+
     if (!storedIncomes) {
       const today = dayjs();
       const sampleIncomes: Income[] = [
