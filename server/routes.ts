@@ -35,83 +35,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post('/api/categories', async (req, res) => {
-    try {
-      const categoryData = await insertCategorySchema.parseAsync({
-        name: req.body.name,
-        color: req.body.color,
-        icon: req.body.icon,
-      });
-
-      const [newCategory] = await db.insert(categories)
-        .values(categoryData)
-        .returning();
-
-      res.status(201).json(newCategory);
-    } catch (error) {
-      console.error('Error creating category:', error);
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        res.status(400).json({ message: 'Invalid request data' });
-      }
-    }
-  });
-
-  app.patch('/api/categories/:id', async (req, res) => {
-    try {
-      const categoryId = parseInt(req.params.id);
-      const category = await db.query.categories.findFirst({
-        where: eq(categories.id, categoryId),
-      });
-
-      if (!category) {
-        return res.status(404).json({ message: 'Category not found' });
-      }
-
-      const categoryData = await insertCategorySchema.partial().parseAsync({
-        name: req.body.name,
-        color: req.body.color,
-        icon: req.body.icon === null ? undefined : req.body.icon,
-      });
-
-      const [updatedCategory] = await db.update(categories)
-        .set(categoryData)
-        .where(eq(categories.id, categoryId))
-        .returning();
-
-      res.json(updatedCategory);
-    } catch (error) {
-      console.error('Error updating category:', error);
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        res.status(400).json({ message: 'Invalid request data' });
-      }
-    }
-  });
-
-  app.delete('/api/categories/:id', async (req, res) => {
-    try {
-      const categoryId = parseInt(req.params.id);
-      const category = await db.query.categories.findFirst({
-        where: eq(categories.id, categoryId),
-      });
-
-      if (!category) {
-        return res.status(404).json({ message: 'Category not found' });
-      }
-
-      await db.delete(categories)
-        .where(eq(categories.id, categoryId));
-
-      res.status(204).send();
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      res.status(500).json({ message: 'Server error deleting category' });
-    }
-  });
-
   // Transactions Routes
   app.get('/api/transactions', async (req, res) => {
     try {
@@ -142,7 +65,7 @@ export function registerRoutes(app: Express): Server {
         id: transaction.id,
         description: transaction.description,
         amount: Number(transaction.amount),
-        date: dayjs(transaction.date).toISOString(),
+        date: dayjs(transaction.date).format('YYYY-MM-DD'),
         type: transaction.type,
         category_id: transaction.category_id,
         category_name: transaction.category?.name || 'Uncategorized',
@@ -155,8 +78,7 @@ export function registerRoutes(app: Express): Server {
       console.error('[Transactions API] Error:', error);
       return res.status(500).json({
         message: 'Failed to load transactions',
-        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error',
-        details: error instanceof Error ? error.stack : undefined
+        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
       });
     }
   });
@@ -196,11 +118,14 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Transaction not found' });
       }
 
+      // Handle the date properly
+      const parsedDate = dayjs(req.body.date).format('YYYY-MM-DD');
+
       const [updatedTransaction] = await db.update(transactions)
         .set({
           description: req.body.description,
           amount: req.body.amount,
-          date: req.body.date,
+          date: new Date(parsedDate),
           type: req.body.type,
           category_id: req.body.category_id
         })
