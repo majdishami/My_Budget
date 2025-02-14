@@ -553,7 +553,7 @@ const App = () => {
                                         className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
                                       >
                                         <span className="truncate max-w-[60%]">
-                                          {index + 1}. {bill.name}
+                                          {(index + 1)}. {bill.name}
                                         </span>
                                         <span className="font-medium shrink-0">
                                           {formatCurrency(bill.amount)}
