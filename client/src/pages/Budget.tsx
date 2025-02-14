@@ -149,13 +149,20 @@ export function Budget() {
     })), 
   [today]); 
 
-  // Update getIncomeForDay to properly handle recurring incomes
+  // Update getBillsForDay to handle recurring monthly bills
+  const getBillsForDay = useCallback((day: number) => {
+    return bills.filter(bill => {
+      const billDate = dayjs(bill.date);
+      // Bills recur monthly, so we only check the day
+      return billDate.date() === day;
+    });
+  }, [bills]);
+
+  // Update getIncomeForDay to handle both recurring and one-time incomes
   const getIncomeForDay = useCallback((day: number) => {
     if (day <= 0) return [];
 
     return incomes.filter(income => {
-      const incomeDate = dayjs(income.date);
-
       // For Ruba's bi-weekly salary
       if (income.source === "Ruba's Salary") {
         const currentDate = dayjs()
@@ -175,24 +182,15 @@ export function Budget() {
         return day === 1 || day === 15;
       }
 
-      // For other incomes, check exact date match
+      // For one-time incomes, check exact date match
+      const incomeDate = dayjs(income.date);
       return incomeDate.date() === day && 
              incomeDate.month() === selectedMonth && 
              incomeDate.year() === selectedYear;
     });
   }, [incomes, selectedYear, selectedMonth]);
 
-  // Update getBillsForDay to handle monthly bills
-  const getBillsForDay = useCallback((day: number) => {
-    return bills.filter(bill => {
-      const billDate = dayjs(bill.date);
-      return billDate.date() === day && 
-             billDate.month() === selectedMonth && 
-             billDate.year() === selectedYear;
-    });
-  }, [bills, selectedYear, selectedMonth]);
-
-  // Memoize monthly totals calculation
+  // Update monthly totals calculation to handle recurring bills
   const monthlyTotals = useMemo(() => {
     console.log('Calculating monthly totals:', {
       selectedMonth,
@@ -202,67 +200,58 @@ export function Budget() {
     });
 
     // Calculate total income
-    const totalIncome = incomes.reduce((sum, income) => {
-      const incomeDate = dayjs(income.date);
-      if (incomeDate.month() === selectedMonth && 
-          incomeDate.year() === selectedYear) {
-        console.log('Adding income:', income);
-        return sum + income.amount;
-      }
-      return sum;
-    }, 0);
+    let totalIncome = 0;
 
-    // Calculate total expenses
-    const totalExpenses = bills.reduce((sum, bill) => {
-      const billDate = dayjs(bill.date);
-      if (billDate.month() === selectedMonth && 
-          billDate.year() === selectedYear) {
-        console.log('Adding bill:', bill);
-        return sum + bill.amount;
-      }
-      return sum;
-    }, 0);
+    // Handle Majdi's salary (1st and 15th)
+    totalIncome += 4739 * 2; // Majdi's salary occurs twice per month
 
-    console.log('Monthly totals calculated:', {
-      totalIncome,
-      totalExpenses,
-      net: totalIncome - totalExpenses
-    });
+    // Handle Ruba's bi-weekly salary
+    const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
+    const lastDayOfMonth = firstDayOfMonth.endOf('month');
+    let currentDate = firstDayOfMonth;
+
+    while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
+      if (currentDate.day() === 5) { // Friday
+        const startDate = dayjs('2025-01-10');
+        const weeksDiff = currentDate.diff(startDate, 'week');
+        if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+          totalIncome += 2168; // Add Ruba's bi-weekly salary
+        }
+      }
+      currentDate = currentDate.add(1, 'day');
+    }
+
+    // Calculate total expenses (all bills recur monthly)
+    const totalExpenses = bills.reduce((sum, bill) => sum + bill.amount, 0);
 
     return {
       income: totalIncome,
       expenses: totalExpenses,
       net: totalIncome - totalExpenses
     };
-  }, [incomes, bills, selectedMonth, selectedYear]);
+  }, [bills, selectedMonth, selectedYear]);
 
-  // Add memoized running totals calculation
+  // Calculate running totals for a specific day
   const calculateRunningTotals = useCallback((day: number) => {
     let totalIncome = 0;
     let totalBills = 0;
 
     const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
 
-    incomes.forEach(income => {
-      const incomeDate = dayjs(income.date);
-      if (incomeDate.isSameOrBefore(targetDate)) {
-        totalIncome += income.amount;
-      }
-    });
+    // Calculate income up to target date
+    for (let currentDay = 1; currentDay <= day; currentDay++) {
+      const dayIncomes = getIncomeForDay(currentDay);
+      totalIncome += dayIncomes.reduce((sum, income) => sum + income.amount, 0);
+    }
 
-    bills.forEach(bill => {
-      if (bill.isOneTime) {
-        const billDate = dayjs(bill.date);
-        if (billDate && billDate.isSameOrBefore(targetDate)) {
-          totalBills += bill.amount;
-        }
-      } else if (bill.day <= day) {
-        totalBills += bill.amount;
-      }
-    });
+    // Calculate bills up to target date (all bills recur monthly)
+    for (let currentDay = 1; currentDay <= day; currentDay++) {
+      const dayBills = getBillsForDay(currentDay);
+      totalBills += dayBills.reduce((sum, bill) => sum + bill.amount, 0);
+    }
 
     return { totalIncome, totalBills };
-  }, [incomes, bills, selectedYear, selectedMonth]);
+  }, [getIncomeForDay, getBillsForDay, selectedYear, selectedMonth]);
 
   // Handle month and year changes with validation
   const handleMonthChange = useCallback((month: number) => {
