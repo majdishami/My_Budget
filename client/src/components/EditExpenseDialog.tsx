@@ -97,12 +97,8 @@ export default function EditExpenseDialog({
       // Basic fields
       setName(expense.name);
       setAmount(expense.amount.toString());
-
-      // Always set to monthly recurring and use the day from expense
-      setDateType('monthly');
       setDay(expense.day.toString());
-
-      // Set category directly from expense
+      setDateType('monthly'); 
       setCategoryId(expense.category_id ? expense.category_id.toString() : '');
 
       // Reminders
