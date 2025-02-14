@@ -230,7 +230,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to edit transaction: ${response.status} ${response.statusText}${responseData.message ? ` - ${responseData.message}` : ''}`);
       }
 
-      // Immediately refresh data to ensure UI is up to date
+      // Update local state before fetching fresh data
+      if (isIncome) {
+        setIncomes(prev => prev.map(inc => 
+          inc.id === transaction.id ? { ...inc, ...transaction } : inc
+        ));
+      } else {
+        setBills(prev => prev.map(bill => 
+          bill.id === transaction.id ? { ...bill, ...transaction } : bill
+        ));
+      }
+
+      // Then refresh data from server
       await loadData();
       logger.info("Successfully edited transaction", { transaction });
     } catch (error) {
