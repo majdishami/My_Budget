@@ -38,7 +38,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import * as Icons from 'lucide-react';
 
-// Add DynamicIcon component for rendering category icons
+// Update the DynamicIcon component to properly handle icon names
 const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
   if (!iconName) return null;
 
@@ -53,7 +53,7 @@ const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
   return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
 };
 
-// Update interfaces at the top of the file
+// Update transaction interface to properly include category information
 interface Transaction {
   id: string;
   date: string;
@@ -61,9 +61,9 @@ interface Transaction {
   amount: number;
   occurred: boolean;
   category: string;
-  category_name?: string;
-  category_color?: string;
-  category_icon?: string | null;
+  category_name: string;
+  category_color: string;
+  category_icon: string | null;
   type?: 'income' | 'expense';
 }
 
@@ -86,6 +86,7 @@ interface Bill {
   category_name: string;
   category_color: string;
   category?: { icon: string | null };
+  category_icon?: string | null;
 }
 
 interface CategoryTotal {
@@ -163,19 +164,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [bills]);
 
-  // Update the transactions generation to include icon information
+  // Update the transactions generation logic
   const transactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
-
-    // Validate date range
-    if (dayjs(date.to).isBefore(date.from)) {
-      setDate({
-        from: date.from,
-        to: date.from
-      });
-      setDateError("End date cannot be before start date");
-      return [];
-    }
 
     let filteredBills = bills;
 
@@ -194,7 +185,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     const endDate = dayjs(date.to);
     const result: Transaction[] = [];
 
-    // Generate transactions for each bill with proper category information
     filteredBills.forEach(bill => {
       const billAmount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
       if (isNaN(billAmount)) {
@@ -215,10 +205,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             description: bill.name,
             amount: billAmount,
             occurred: currentDate.isSameOrBefore(today),
-            category: bill.category_name,
-            category_name: bill.category_name,
-            category_color: bill.category_color,
-            category_icon: bill.category?.icon,
+            category: bill.category_name || 'Uncategorized',
+            category_name: bill.category_name || 'Uncategorized',
+            category_color: bill.category_color || '#D3D3D3',
+            category_icon: bill.category?.icon || bill.category_icon || null,
             type: 'expense'
           });
         }
@@ -554,7 +544,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   interface CategoryDisplayProps {
     category: string;
     color: string;
-    icon?: string | null;
+    icon: string | null;
   }
 
   function CategoryDisplay({ category, color, icon }: CategoryDisplayProps) {
@@ -908,7 +898,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
                                             {formatCurrency(transaction.amount)}
                                           </TableCell>
-                                          <TableCell className={`${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
+                                          <TableCell className={`${transaction.occurred? 'text-red-600' : 'text-orange-500'}`}>
                                             {transaction.occurred ? 'Paid' : 'Pending'}
                                           </TableCell>
                                         </>
