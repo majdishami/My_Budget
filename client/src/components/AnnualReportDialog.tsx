@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { Income, Bill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { incomeSchema } from "@/lib/validation";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +33,6 @@ import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 
 dayjs.extend(isSameOrBefore);
 
-// Move constants to top level to prevent recreation
 const FIXED_DATE = "2025-02-13";
 const CURRENT_YEAR = 2025;
 
@@ -42,7 +42,7 @@ interface AnnualReportDialogProps {
   selectedYear?: number;
 }
 
-const defaultIncomes: Income[] = [
+const defaultIncomes = [
   {
     id: "majdi-salary",
     source: "Majdi's Salary",
@@ -67,13 +67,19 @@ export default function AnnualReportDialog({
   selectedYear,
 }: AnnualReportDialogProps) {
   const [year, setYear] = useState<number>(selectedYear ?? CURRENT_YEAR);
+  const [incomes, setIncomes] = useState<Income[]>(() => {
+    try {
+      return defaultIncomes.map(income => incomeSchema.parse(income));
+    } catch (error) {
+      console.error('Error parsing default incomes:', error);
+      return [];
+    }
+  });
 
   const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
   });
-
-  const [incomes] = useState<Income[]>(defaultIncomes);
 
   useEffect(() => {
     if (selectedYear != null) {
@@ -97,45 +103,51 @@ export default function AnnualReportDialog({
       const today = dayjs(FIXED_DATE);
       const startOfYear = today.year(year).startOf('year');
 
+      // Initialize all months
       for (let month = 0; month < 12; month++) {
         const monthDate = startOfYear.add(month, 'month');
         monthlyIncomes[monthDate.format('MMMM')] = { occurred: 0, pending: 0 };
       }
 
       incomes.forEach(income => {
-        if (income.source === "Majdi's Salary" && income.occurrenceType === "twice-monthly") {
-          for (let month = 0; month < 12; month++) {
-            const monthDate = startOfYear.add(month, 'month');
-            const monthKey = monthDate.format('MMMM');
+        switch (income.occurrenceType) {
+          case "twice-monthly": {
+            for (let month = 0; month < 12; month++) {
+              const monthDate = startOfYear.add(month, 'month');
+              const monthKey = monthDate.format('MMMM');
 
-            const firstPayday = monthDate.date(income.firstDate || 1);
-            if (firstPayday.isSameOrBefore(today)) {
-              monthlyIncomes[monthKey].occurred += income.amount;
-            } else {
-              monthlyIncomes[monthKey].pending += income.amount;
-            }
+              const firstPayday = monthDate.date(income.firstDate || 1);
+              if (firstPayday.isSameOrBefore(today)) {
+                monthlyIncomes[monthKey].occurred += income.amount;
+              } else {
+                monthlyIncomes[monthKey].pending += income.amount;
+              }
 
-            const secondPayday = monthDate.date(income.secondDate || 15);
-            if (secondPayday.isSameOrBefore(today)) {
-              monthlyIncomes[monthKey].occurred += income.amount;
-            } else {
-              monthlyIncomes[monthKey].pending += income.amount;
-            }
-          }
-        } else if (income.source === "Ruba's Salary" && income.occurrenceType === "biweekly") {
-          let payDate = dayjs(FIXED_DATE).year(year).month(0).date(10);
-          const endDate = startOfYear.endOf('year');
-
-          while (payDate.isSameOrBefore(endDate)) {
-            if (payDate.year() === year) {
-              const monthKey = payDate.format('MMMM');
-              if (payDate.isSameOrBefore(today)) {
+              const secondPayday = monthDate.date(income.secondDate || 15);
+              if (secondPayday.isSameOrBefore(today)) {
                 monthlyIncomes[monthKey].occurred += income.amount;
               } else {
                 monthlyIncomes[monthKey].pending += income.amount;
               }
             }
-            payDate = payDate.add(14, 'days');
+            break;
+          }
+          case "biweekly": {
+            let payDate = dayjs(FIXED_DATE).year(year).month(0).date(10);
+            const endDate = startOfYear.endOf('year');
+
+            while (payDate.isSameOrBefore(endDate)) {
+              if (payDate.year() === year) {
+                const monthKey = payDate.format('MMMM');
+                if (payDate.isSameOrBefore(today)) {
+                  monthlyIncomes[monthKey].occurred += income.amount;
+                } else {
+                  monthlyIncomes[monthKey].pending += income.amount;
+                }
+              }
+              payDate = payDate.add(14, 'days');
+            }
+            break;
           }
         }
       });
