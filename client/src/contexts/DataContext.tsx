@@ -340,15 +340,15 @@ export function DataProvider({ children }: DataProviderProps) {
     }
   };
 
-  const contextValue: DataContextType = {
+  const contextValue = {
     incomes: getMonthlyIncomeOccurrences(),
     bills,
-    saveIncomes: async (newIncomes) => {
+    saveIncomes: async (newIncomes: Income[]) => {
       const validatedIncomes = validateData(newIncomes, incomeSchema, "income");
       setIncomes(validatedIncomes);
       await saveToStorage("budgetIncomes", validatedIncomes);
     },
-    saveBills: async (newBills) => {
+    saveBills: async (newBills: Bill[]) => {
       const validatedBills = validateData(newBills, billSchema, "bill");
       setBills(validatedBills);
       await saveToStorage("budgetBills", validatedBills);
