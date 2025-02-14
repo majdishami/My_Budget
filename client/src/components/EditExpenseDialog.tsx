@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect, useCallback } from "react";
 import { Bill } from "@/types";
 import { ReminderDialog } from "@/components/ReminderDialog";
-import { Bell, AlertCircle, Calendar as CalendarIcon } from "lucide-react";
+import { Bell, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -75,19 +75,10 @@ export default function EditExpenseDialog({
 
   useEffect(() => {
     if (expense && isOpen) {
-      logger.info('Initializing expense form with:', expense);
-
-      setName(expense.name);
-      setAmount(expense.amount.toString());
-      setDay(expense.day.toString());
-
-      if (expense.category_id) {
-        logger.info('Setting category ID:', expense.category_id.toString());
-        setCategoryId(expense.category_id.toString());
-      } else {
-        setCategoryId('');
-      }
-
+      setName(expense.name || '');
+      setAmount(expense.amount?.toString() || '');
+      setDay(expense.day?.toString() || '');
+      setCategoryId(expense.category_id?.toString() || '');
       setReminderEnabled(Boolean(expense.reminderEnabled));
       setReminderDays(expense.reminderDays || 7);
       setErrors({});
@@ -129,26 +120,23 @@ export default function EditExpenseDialog({
 
     setIsSubmitting(true);
     try {
-      logger.info('Saving expense with category ID:', categoryId);
-      const selectedCategory = categoryId ? categories?.find((cat: Category) => cat.id.toString() === categoryId) : null;
+      const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
       const parsedCategoryId = categoryId ? parseInt(categoryId, 10) : null;
 
-      const updatedBill: Bill = {
+      const updatedBill: Partial<Bill> = {
         ...expense,
         name: name.trim(),
         amount: parseFloat(amount),
+        day: parseInt(day, 10),
         category_id: parsedCategoryId,
-        category_name: selectedCategory?.name || null,
-        category_color: selectedCategory?.color || null,
+        category_name: selectedCategory?.name || 'Uncategorized',
+        category_color: selectedCategory?.color || '#D3D3D3',
         reminderEnabled,
         reminderDays,
-        isOneTime: false,
-        day: parseInt(day, 10),
-        date: null
+        isOneTime: false
       };
 
-      logger.info('Updating bill with:', updatedBill);
-      onUpdate(updatedBill);
+      onUpdate(updatedBill as Bill);
       toast({
         title: "Success",
         description: "Expense updated successfully",
@@ -171,16 +159,9 @@ export default function EditExpenseDialog({
   };
 
   const handleReminderSave = (enabled: boolean, days: number) => {
-    if (days < 1 || days > 30) {
-      setErrors(prev => ({
-        ...prev,
-        reminderDays: 'Reminder days must be between 1 and 30'
-      }));
-      return;
-    }
     setReminderEnabled(enabled);
     setReminderDays(days);
-    setErrors(prev => ({ ...prev, reminderDays: undefined }));
+    setShowReminderDialog(false);
     toast({
       title: "Reminder Updated",
       description: enabled 
