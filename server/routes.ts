@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { categories, transactions, insertTransactionSchema } from "@db/schema";
+import { categories, transactions, insertTransactionSchema, bills } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import { sql } from 'drizzle-orm';
 import pkg from 'pg';
@@ -30,6 +30,45 @@ export function registerRoutes(app: Express): Server {
       console.error('[Categories API] Error:', error);
       return res.status(500).json({
         message: 'Failed to load categories',
+        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
+      });
+    }
+  });
+
+  // Bills Routes
+  app.get('/api/bills', async (req, res) => {
+    try {
+      console.log('[Bills API] Fetching bills...');
+      const allBills = await db.select({
+        id: bills.id,
+        name: bills.name,
+        amount: bills.amount,
+        day: bills.day,
+        category_id: bills.category_id,
+        category: categories
+      })
+      .from(bills)
+      .leftJoin(categories, eq(bills.category_id, categories.id))
+      .orderBy(desc(bills.amount));
+
+      console.log('[Bills API] Found bills:', allBills.length);
+
+      const formattedBills = allBills.map(bill => ({
+        id: bill.id,
+        name: bill.name,
+        amount: Number(bill.amount),
+        day: bill.day,
+        category_id: bill.category_id,
+        category_name: bill.category?.name || 'Uncategorized',
+        category_color: bill.category?.color || '#D3D3D3',
+        category_icon: bill.category?.icon || null
+      }));
+
+      return res.json(formattedBills);
+    } catch (error) {
+      console.error('[Bills API] Error:', error);
+      return res.status(500).json({
+        message: 'Failed to load bills',
         error: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
       });
     }
