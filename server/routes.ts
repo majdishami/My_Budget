@@ -112,16 +112,16 @@ export function registerRoutes(app: Express): Server {
         date: transactions.date,
         type: transactions.type,
         category_id: transactions.category_id,
-        category_name: categories.name,
-        category_color: categories.color,
-        category_icon: categories.icon
+        category_name: sql<string>`COALESCE(${categories.name}, 'Uncategorized')`,
+        category_color: sql<string>`COALESCE(${categories.color}, '#D3D3D3')`,
+        category_icon: sql<string>`COALESCE(${categories.icon}, 'more-horizontal')`
       })
       .from(transactions)
       .leftJoin(categories, eq(transactions.category_id, categories.id))
       .orderBy(desc(transactions.date));
 
       if (type) {
-        query = query.where(eq(transactions.type, type));
+        query = query.where(eq(transactions.type, type as any));
       }
 
       const allTransactions = await query;
@@ -134,10 +134,15 @@ export function registerRoutes(app: Express): Server {
         date: dayjs(transaction.date).format('YYYY-MM-DD'),
         type: transaction.type,
         category_id: transaction.category_id,
-        category_name: transaction.category_name || 'Uncategorized',
-        category_color: transaction.category_color || '#D3D3D3',
-        category_icon: transaction.category_icon || null
+        category_name: transaction.category_name,
+        category_color: transaction.category_color,
+        category_icon: transaction.category_icon
       }));
+
+      // Add cache control headers to prevent stale data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
 
       return res.json(formattedTransactions);
     } catch (error) {
@@ -196,6 +201,12 @@ export function registerRoutes(app: Express): Server {
         .returning();
 
       console.log('[Transactions API] Successfully updated transaction:', updatedTransaction);
+
+      // Add cache control headers
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+
       res.json(updatedTransaction);
     } catch (error) {
       console.error('[Transactions API] Error updating transaction:', error);

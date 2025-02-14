@@ -129,6 +129,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     enabled: isOpen,
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Reset state when dialog closes
@@ -906,18 +910,18 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                     </TableRow>
                                   ))}
                                 </TableBody>
-                              </Table>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
+                            </Table>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

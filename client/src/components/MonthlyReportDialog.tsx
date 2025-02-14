@@ -61,6 +61,10 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
   const { data: transactions = [] } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions'],
     enabled: isOpen,
+    staleTime: 0, // Always consider data stale
+    cacheTime: 0, // Don't cache the data
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 
   // Filter transactions for the current month
