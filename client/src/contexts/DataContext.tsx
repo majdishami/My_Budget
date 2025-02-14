@@ -47,16 +47,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const transactions = await response.json();
       console.log('[DataContext] Raw transactions:', transactions);
 
-      // Process incomes
+      // Process incomes with consistent date handling
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
         .map((t: any) => {
-          const parsedDate = dayjs(t.date).startOf('day');
           const income = {
             id: t.id.toString(),
             source: t.description,
             amount: parseFloat(t.amount),
-            date: parsedDate.toISOString(),
+            date: dayjs(t.date).format('YYYY-MM-DD'),
             occurrenceType: t.recurring_id ? 'recurring' : 'once'
           };
           console.log('[DataContext] Processed income:', income);
@@ -66,27 +65,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       console.log('[DataContext] All processed incomes:', loadedIncomes);
       setIncomes(loadedIncomes);
 
-      // Process bills/expenses
+      // Process bills/expenses with consistent date handling
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
         .map((t: any) => {
-          const parsedDate = dayjs(t.date).startOf('day');
+          const date = dayjs(t.date);
           console.log('[DataContext] Processing bill transaction:', {
             raw: t,
-            parsedDate: parsedDate.format(),
-            dayOfMonth: parsedDate.date(),
-            month: parsedDate.month(),
-            year: parsedDate.year()
+            parsedDate: date.format('YYYY-MM-DD'),
+            dayOfMonth: date.date(),
+            month: date.month(),
+            year: date.year()
           });
 
           const bill = {
             id: t.id.toString(),
             name: t.description,
             amount: parseFloat(t.amount),
-            date: parsedDate.toISOString(),
+            date: date.format('YYYY-MM-DD'),
             isOneTime: !t.recurring_id,
-            day: parsedDate.date(),
-            category_id: t.category_id
+            day: date.date(),
+            category_id: t.category_id,
+            category_name: t.category_name,
+            category_color: t.category_color,
+            category_icon: t.category_icon
           };
           console.log('[DataContext] Processed bill:', bill);
           return bill;
@@ -157,10 +159,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         recurring_id: !isIncome && !transaction.isOneTime ? 1 : null
       };
 
-      logger.info("Editing transaction - Input:", { 
+      logger.info("Editing transaction - Input:", {
         transaction,
         isIncome,
-        payload 
+        payload
       });
 
       const response = await fetch(`/api/transactions/${transaction.id}`, {
