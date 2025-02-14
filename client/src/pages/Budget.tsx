@@ -165,7 +165,7 @@ export function Budget() {
       { name: "NV Energy Electrical ($100 winter months)", amount: 250, day: 7 },
       { name: "Cox Internet", amount: 81, day: 6 },
       { name: "Sling TV (CC 9550)", amount: 75, day: 3 },
-      { name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1 },
+      { name: "AT&T Phone Bill ($115 Rund Roaming)", amount: 429, day: 1 },
       { name: "Maid's 1st payment", amount: 120, day: 1 },
       { name: "Monthly Rent", amount: 3750, day: 1 }
     ];
