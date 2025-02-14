@@ -85,7 +85,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             amount: parseFloat(t.amount),
             date: parsedDate.toISOString(),
             isOneTime: !t.recurring_id,
-            day: parsedDate.date()
+            day: parsedDate.date(),
+            category_id: t.category_id
           };
           console.log('[DataContext] Processed bill:', bill);
           return bill;
@@ -140,6 +141,57 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const editTransaction = async (transaction: Income | Bill) => {
+    try {
+      setError(null);
+      const isIncome = 'source' in transaction;
+
+      // Create the request payload
+      const payload = {
+        description: isIncome ? transaction.source : transaction.name,
+        amount: typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount,
+        date: transaction.date,
+        type: isIncome ? 'income' : 'expense',
+        category_id: !isIncome && transaction.category_id ? Number(transaction.category_id) : null,
+        day: !isIncome ? Number(transaction.day) : undefined,
+        recurring_id: !isIncome && !transaction.isOneTime ? 1 : null
+      };
+
+      // Log the transaction and payload being sent
+      logger.info("Editing transaction - Input:", { 
+        transaction,
+        isIncome,
+        payload 
+      });
+
+      const response = await fetch(`/api/transactions/${transaction.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        logger.error("Edit transaction failed:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        throw new Error(`Failed to edit transaction: ${errorData.message || response.statusText}`);
+      }
+
+      await loadData(); // Refresh data after editing
+      logger.info("Successfully edited transaction");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
+      logger.error("Error in editTransaction:", { error });
+      setError(new Error(errorMessage));
+      throw error;
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       incomes,
@@ -176,38 +228,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
       },
-      editTransaction: async (transaction) => {
-        try {
-          setError(null);
-          const isIncome = 'source' in transaction;
-          const response = await fetch(`/api/transactions/${transaction.id}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              description: isIncome ? transaction.source : transaction.name,
-              amount: transaction.amount,
-              date: transaction.date,
-              type: isIncome ? 'income' : 'expense',
-              recurring_type: isIncome ? transaction.occurrenceType : undefined,
-              first_date: isIncome ? transaction.firstDate : undefined,
-              second_date: isIncome ? transaction.secondDate : undefined
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to edit transaction');
-          }
-
-          await loadData(); // Refresh data after editing
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
-          logger.error("Error in editTransaction:", { error });
-          setError(new Error(errorMessage));
-          throw error;
-        }
-      },
+      editTransaction,
       resetData: async () => {
         try {
           setError(null);
