@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Bill } from "@/types";
 import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle, Calendar as CalendarIcon } from "lucide-react";
@@ -97,25 +97,23 @@ export default function EditExpenseDialog({
       logger.info("Initializing form with expense:", expense);
 
       // Basic fields
-      setName(expense.name || '');
-      setAmount(expense.amount?.toString() || '');
+      setName(expense.name);
+      setAmount(expense.amount.toString());
 
       // Date handling
-      if (expense.isOneTime) {
-        logger.info("Setting up one-time expense date:", expense.date);
+      if (expense.date) {
+        // If there's a date, it's a one-time expense
         setDateType('specific');
-        if (expense.date) {
-          setSpecificDate(new Date(expense.date));
-        }
+        setSpecificDate(new Date(expense.date));
       } else {
-        logger.info("Setting up monthly expense day:", expense.day);
         setDateType('monthly');
-        setDay(expense.day?.toString() || '1');
+        if (expense.day) {
+          setDay(expense.day.toString());
+        }
       }
 
-      // Category
+      // Category handling
       if (expense.category_id !== null && expense.category_id !== undefined) {
-        logger.info("Setting category:", expense.category_id);
         setCategoryId(expense.category_id.toString());
       } else {
         setCategoryId('');
@@ -179,23 +177,14 @@ export default function EditExpenseDialog({
     setIsSubmitting(true);
     let selectedCategory = categoryId ? categories?.find((cat: Category) => cat.id.toString() === categoryId) : null;
 
-    // If no category is selected, use default uncategorized values
-    if (!selectedCategory) {
-      selectedCategory = {
-        id: 0,
-        name: 'Uncategorized',
-        color: '#D3D3D3'
-      };
-    }
-
     try {
       const baseUpdates = {
         ...expense,
         name: name.trim(),
         amount: parseFloat(amount),
-        category_id: selectedCategory.id || null,
-        category_name: selectedCategory.name,
-        category_color: selectedCategory.color,
+        category_id: selectedCategory?.id || null,
+        category_name: selectedCategory?.name || 'Uncategorized',
+        category_color: selectedCategory?.color || '#D3D3D3',
         reminderEnabled,
         reminderDays,
       };
