@@ -98,13 +98,13 @@ export default function EditExpenseDialog({
       setName(expense.name);
       setAmount(expense.amount.toString());
 
-      // Handle the day value, ensuring we use the correct day from the expense
-      // For recurring monthly expenses, we want the exact day value without timezone adjustment
-      setDay(expense.day.toString());
+      // Always monthly recurring and use the exact day from the database
       setDateType('monthly');
+      // For recurring monthly expenses, use the exact day from the database without any timezone adjustment
+      setDay(expense.day.toString());
 
-      // Set category from expense
-      setCategoryId(expense.category_id ? expense.category_id.toString() : '');
+      // Set category directly from the expense's category_id
+      setCategoryId(expense.category_id?.toString() || '');
 
       // Reminders
       setReminderEnabled(Boolean(expense.reminderEnabled));
