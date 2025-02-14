@@ -35,7 +35,11 @@ export interface Bill {
   created_at?: string;
   isOneTime: boolean;
   date?: string | null;
-  category?: string;
+  category?: {
+    name?: string;
+    color?: string;
+    icon?: string | null;
+  };
   category_name?: string;
   category_color?: string;
   category_icon?: string | null;

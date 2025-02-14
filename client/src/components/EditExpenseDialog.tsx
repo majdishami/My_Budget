@@ -56,14 +56,12 @@ export default function EditExpenseDialog({
 
   const { 
     data: categories = [], 
-    isError: isCategoriesError, 
+    isError: isCategoriesError,
     error: categoriesError,
     isLoading: isCategoriesLoading 
   } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     retry: 3,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000
   });
 
   const [errors, setErrors] = useState<{
@@ -76,16 +74,26 @@ export default function EditExpenseDialog({
 
   useEffect(() => {
     if (expense && isOpen) {
-      setName(expense.name || '');
-      setAmount(expense.amount?.toString() || '');
-      setDay(expense.day?.toString() || '');
-      setCategoryId(expense.category_id?.toString() || '');
-      setReminderEnabled(Boolean(expense.reminderEnabled));
-      setReminderDays(expense.reminderDays || 7);
-      setErrors({});
-      setIsSubmitting(false);
+      try {
+        logger.info('Initializing form with expense:', { expense });
+        setName(expense.name || '');
+        setAmount(expense.amount?.toString() || '');
+        setDay(expense.day?.toString() || '');
+        setCategoryId(expense.category_id?.toString() || '');
+        setReminderEnabled(!!expense.reminderEnabled);
+        setReminderDays(expense.reminderDays || 7);
+        setErrors({});
+        setIsSubmitting(false);
+      } catch (error) {
+        logger.error('Error initializing form:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load expense details. Please try again.",
+        });
+      }
     }
-  }, [expense, isOpen]);
+  }, [expense, isOpen, toast]);
 
   const validateForm = useCallback((): boolean => {
     const newErrors: typeof errors = {};
@@ -121,9 +129,19 @@ export default function EditExpenseDialog({
 
     setIsSubmitting(true);
     try {
+      logger.info('Starting expense update with values:', {
+        name,
+        amount,
+        day,
+        categoryId,
+        reminderEnabled,
+        reminderDays
+      });
+
       const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
       const parsedCategoryId = categoryId ? parseInt(categoryId, 10) : null;
 
+      // Create a clean copy of the original expense
       const updatedBill: Bill = {
         ...expense,
         name: name.trim(),
@@ -133,12 +151,19 @@ export default function EditExpenseDialog({
         category_name: selectedCategory?.name || 'Uncategorized',
         category_color: selectedCategory?.color || '#D3D3D3',
         category_icon: selectedCategory?.icon || null,
+        category: {
+          name: selectedCategory?.name || 'Uncategorized',
+          color: selectedCategory?.color || '#D3D3D3',
+          icon: selectedCategory?.icon || null
+        },
         reminderEnabled,
         reminderDays,
         isOneTime: false
       };
 
+      logger.info('Updating bill with:', updatedBill);
       onUpdate(updatedBill);
+
       toast({
         title: "Success",
         description: "Expense updated successfully",
