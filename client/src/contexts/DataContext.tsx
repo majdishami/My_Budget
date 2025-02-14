@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Income, Bill } from "@/types";
 import { generateId } from "@/lib/utils";
 import dayjs from "dayjs";
@@ -21,7 +21,21 @@ export interface DataContextType {
   error: Error | null;
 }
 
+// Move context creation and export to top level
 export const DataContext = createContext<DataContextType | undefined>(undefined);
+
+// Export the useData hook directly from DataContext
+export function useDataContext(): DataContextType {
+  const context = useContext(DataContext);
+  if (!context) {
+    throw new Error('useData must be used within a DataProvider');
+  }
+  return context;
+}
+
+interface DataProviderProps {
+  children: ReactNode;
+}
 
 const defaultIncomes: Income[] = [
   {
@@ -42,7 +56,7 @@ const defaultIncomes: Income[] = [
   }
 ];
 
-export function DataProvider({ children }: { children: React.ReactNode }) {
+export function DataProvider({ children }: DataProviderProps) {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
