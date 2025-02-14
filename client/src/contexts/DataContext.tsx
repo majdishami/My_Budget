@@ -26,17 +26,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Restore the useEffect for initial data loading
-  useEffect(() => {
-    loadData();
-  }, []);
-
+  // Load transactions from the API
   const loadData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      logger.info('[DataContext] Starting to fetch transactions...');
+      console.log('[DataContext] Starting to fetch transactions...');
       const response = await fetch('/api/transactions', {
         method: 'GET',
         headers: {
@@ -49,9 +45,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       const transactions = await response.json();
-      logger.info('[DataContext] Raw transactions:', transactions);
+      console.log('[DataContext] Raw transactions:', transactions);
 
-      // Process incomes and bills
+      // Process incomes
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
         .map((t: any) => {
@@ -63,14 +59,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             date: parsedDate.toISOString(),
             occurrenceType: t.recurring_id ? 'recurring' : 'once'
           };
-          logger.info('[DataContext] Processed income:', income);
+          console.log('[DataContext] Processed income:', income);
           return income;
         });
 
+      console.log('[DataContext] All processed incomes:', loadedIncomes);
+      setIncomes(loadedIncomes);
+
+      // Process bills/expenses
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
         .map((t: any) => {
           const parsedDate = dayjs(t.date).startOf('day');
+          console.log('[DataContext] Processing bill transaction:', {
+            raw: t,
+            parsedDate: parsedDate.format(),
+            dayOfMonth: parsedDate.date(),
+            month: parsedDate.month(),
+            year: parsedDate.year()
+          });
+
           const bill = {
             id: t.id.toString(),
             name: t.description,
@@ -80,14 +88,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             day: parsedDate.date(),
             category_id: t.category_id
           };
-          logger.info('[DataContext] Processed bill:', bill);
+          console.log('[DataContext] Processed bill:', bill);
           return bill;
         });
 
-      logger.info('[DataContext] All processed incomes:', loadedIncomes);
-      logger.info('[DataContext] All processed bills:', loadedBills);
-
-      setIncomes(loadedIncomes);
+      console.log('[DataContext] All processed bills:', loadedBills);
       setBills(loadedBills);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
@@ -98,36 +103,66 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Add a new income
+  const addIncome = async (income: Income) => {
+    try {
+      setError(null);
+      const response = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          description: income.source,
+          amount: income.amount,
+          date: income.date,
+          type: 'income',
+          recurring_type: income.occurrenceType,
+          first_date: income.firstDate,
+          second_date: income.secondDate
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add income');
+      }
+
+      await loadData(); // Refresh data after adding
+      logger.info("Successfully added income", { income });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to add income";
+      logger.error("Error in addIncome:", { error });
+      setError(new Error(errorMessage));
+      throw error;
+    }
+  };
+
   const editTransaction = async (transaction: Income | Bill) => {
     try {
       setError(null);
       const isIncome = 'source' in transaction;
-      logger.info('[DataContext] Editing transaction:', { transaction, isIncome });
 
-      // Special handling for recurring occurrences
-      let occurrencePayload = {};
-      if (isIncome && transaction.occurrenceType !== 'once') {
-        occurrencePayload = {
-          recurring_id: 1,
-          occurrence_type: transaction.occurrenceType
-        };
-      } else if (!isIncome && !transaction.isOneTime) {
-        occurrencePayload = {
-          recurring_id: 1,
-          day: transaction.day
-        };
-      }
-
+      // Create the request payload
       const payload = {
         description: isIncome ? transaction.source : transaction.name,
         amount: typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount,
         date: transaction.date,
         type: isIncome ? 'income' : 'expense',
         category_id: !isIncome && transaction.category_id ? Number(transaction.category_id) : null,
-        ...occurrencePayload
+        day: !isIncome ? Number(transaction.day) : undefined,
+        recurring_id: !isIncome && !transaction.isOneTime ? 1 : null
       };
 
-      logger.info('[DataContext] Edit transaction payload:', payload);
+      // Log the transaction and payload being sent
+      logger.info("Editing transaction - Input:", { 
+        transaction,
+        isIncome,
+        payload 
+      });
 
       const response = await fetch(`/api/transactions/${transaction.id}`, {
         method: 'PATCH',
@@ -139,7 +174,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        logger.error("[DataContext] Edit transaction failed:", {
+        logger.error("Edit transaction failed:", {
           status: response.status,
           statusText: response.statusText,
           errorData
@@ -147,180 +182,68 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to edit transaction: ${errorData.message || response.statusText}`);
       }
 
-      // Get the updated transaction from the server
-      const updatedTransaction = await response.json();
-      logger.info('[DataContext] Server response after edit:', updatedTransaction);
-
-      // Update local state with the server response data to ensure consistency
-      if (isIncome) {
-        setIncomes(prevIncomes => 
-          prevIncomes.map(inc => {
-            // For recurring incomes, update all instances with the same source
-            if (inc.source === transaction.source && inc.occurrenceType !== 'once') {
-              return {
-                ...inc,
-                source: updatedTransaction.description,
-                amount: parseFloat(updatedTransaction.amount),
-                occurrenceType: updatedTransaction.occurrence_type || inc.occurrenceType
-              };
-            }
-            // For one-time incomes or different sources, only update the matching ID
-            return inc.id === transaction.id ? {
-              ...inc,
-              source: updatedTransaction.description,
-              amount: parseFloat(updatedTransaction.amount),
-              date: dayjs(updatedTransaction.date).startOf('day').toISOString()
-            } : inc;
-          })
-        );
-      } else {
-        setBills(prevBills => 
-          prevBills.map(bill => {
-            // For recurring bills, update all instances with the same name
-            if ((bill.name === transaction.name || bill.name === updatedTransaction.description) && !bill.isOneTime) {
-              logger.info('[DataContext] Updating recurring bill:', {
-                oldName: bill.name,
-                newName: updatedTransaction.description,
-                billId: bill.id
-              });
-              return {
-                ...bill,
-                name: updatedTransaction.description,
-                amount: parseFloat(updatedTransaction.amount),
-                day: dayjs(updatedTransaction.date).date(),
-                category_id: updatedTransaction.category_id || bill.category_id
-              };
-            }
-            // For one-time bills or different names, only update the matching ID
-            if (bill.id === transaction.id) {
-              logger.info('[DataContext] Updating specific bill:', {
-                oldName: bill.name,
-                newName: updatedTransaction.description,
-                billId: bill.id
-              });
-              return {
-                ...bill,
-                name: updatedTransaction.description,
-                amount: parseFloat(updatedTransaction.amount),
-                date: dayjs(updatedTransaction.date).startOf('day').toISOString(),
-                day: dayjs(updatedTransaction.date).date(),
-                category_id: updatedTransaction.category_id || bill.category_id
-              };
-            }
-            return bill;
-          })
-        );
-      }
-
-      // Force a complete data refresh to ensure consistency
-      await loadData();
+      await loadData(); // Refresh data after editing
+      logger.info("Successfully edited transaction");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
-      logger.error("[DataContext] Error in editTransaction:", { error });
+      logger.error("Error in editTransaction:", { error });
       setError(new Error(errorMessage));
       throw error;
     }
   };
 
   return (
-    <DataContext.Provider
-      value={{
-        incomes,
-        bills,
-        saveIncomes: async (newIncomes) => {
-          setIncomes(newIncomes);
-          await loadData();
-        },
-        saveBills: async (newBills) => {
-          setBills(newBills);
-          await loadData();
-        },
-        addIncome: async (income) => {
-          try {
-            const response = await fetch('/api/transactions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                description: income.source,
-                amount: income.amount,
-                date: income.date,
-                type: 'income'
-              }),
-            });
-
-            if (!response.ok) throw new Error('Failed to add income');
-            await loadData();
-          } catch (error) {
-            logger.error("Error adding income:", { error });
-            throw error;
-          }
-        },
-        addBill: async (bill) => {
-          try {
-            const response = await fetch('/api/transactions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                description: bill.name,
-                amount: bill.amount,
-                date: bill.date,
-                type: 'expense',
-                category_id: bill.category_id
-              }),
-            });
-
-            if (!response.ok) throw new Error('Failed to add bill');
-            await loadData();
-          } catch (error) {
-            logger.error("Error adding bill:", { error });
-            throw error;
-          }
-        },
-        deleteTransaction: async (transaction) => {
-          try {
-            setError(null);
-            const response = await fetch(`/api/transactions/${transaction.id}`, {
-              method: 'DELETE',
-              headers: {
-                'Content-Type': 'application/json'
-              }
-            });
-
-            if (!response.ok) {
-              throw new Error('Failed to delete transaction');
+    <DataContext.Provider value={{
+      incomes,
+      bills,
+      saveIncomes: async (newIncomes) => {
+        await Promise.all(newIncomes.map(income => addIncome(income)));
+      },
+      saveBills: async (newBills) => {
+        // Implement if needed
+      },
+      addIncome,
+      addBill: async () => {
+        // Implement if needed
+      },
+      deleteTransaction: async (transaction) => {
+        try {
+          setError(null);
+          const response = await fetch(`/api/transactions/${transaction.id}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
             }
+          });
 
-            if ('source' in transaction) {
-              setIncomes(prev => prev.filter(i => i.id !== transaction.id));
-            } else {
-              setBills(prev => prev.filter(b => b.id !== transaction.id));
-            }
+          if (!response.ok) {
+            throw new Error('Failed to delete transaction');
+          }
 
-            await loadData();
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
-            logger.error("Error in deleteTransaction:", { error });
-            setError(new Error(errorMessage));
-            throw error;
-          }
-        },
-        editTransaction,
-        resetData: async () => {
-          try {
-            setError(null);
-            await loadData();
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Failed to reset data";
-            logger.error("Error in resetData:", { error });
-            setError(new Error(errorMessage));
-            throw error;
-          }
-        },
-        refresh: loadData,
-        isLoading,
-        error
-      }}
-    >
+          await loadData(); // Refresh data after deleting
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
+          logger.error("Error in deleteTransaction:", { error });
+          setError(new Error(errorMessage));
+          throw error;
+        }
+      },
+      editTransaction,
+      resetData: async () => {
+        try {
+          setError(null);
+          await loadData();
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to reset data";
+          logger.error("Error in resetData:", { error });
+          setError(new Error(errorMessage));
+          throw error;
+        }
+      },
+      refresh: loadData,
+      isLoading,
+      error
+    }}>
       {children}
     </DataContext.Provider>
   );

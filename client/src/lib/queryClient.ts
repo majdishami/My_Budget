@@ -3,8 +3,8 @@ import { toast } from "@/hooks/use-toast";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || res.statusText);
+    const text = (await res.text()) || res.statusText;
+    throw new Error(`${res.status}: ${text}`);
   }
 }
 
@@ -45,40 +45,32 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "returnNull" }), // Changed to returnNull by default
+      queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
-      retry: (failureCount, error: any) => {
-        // Don't retry on auth errors
-        if (error?.message?.includes('Authentication required') || error?.message?.includes('401')) {
-          return false;
-        }
-        return failureCount < 3;
-      },
+      retry: false,
+      // Add loading state timeout
+      suspense: true,
+      useErrorBoundary: true,
+      // Add global error handling
       onError: (error: Error) => {
-        const isAuthError = error.message.includes('Authentication required') || error.message.includes('401');
-        // Only show toast for non-auth errors
-        if (!isAuthError) {
-          toast({
-            title: "Error",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
       },
     },
     mutations: {
       retry: false,
+      // Add global error handling for mutations
       onError: (error: Error) => {
-        const isAuthError = error.message.includes('Authentication required') || error.message.includes('401');
-        if (!isAuthError) {
-          toast({
-            title: "Error",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
       },
     },
   },

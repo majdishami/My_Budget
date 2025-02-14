@@ -33,7 +33,7 @@ interface DailySummaryDialogProps {
   };
 }
 
-// Memoized TransactionCard component with debugging
+// Memoized TransactionCard component with mobile optimization
 const TransactionCard = memo(({ 
   title, 
   items, 
@@ -43,44 +43,32 @@ const TransactionCard = memo(({
   items: (Income | Bill)[]; 
   type: 'income' | 'bill' 
 }) => {
-  // Log the actual items being rendered
-  logger.info(`TransactionCard rendering ${type} items:`, items.map(item => ({
-    id: item.id,
-    name: type === 'income' ? (item as Income).source : (item as Bill).name,
-    amount: item.amount
-  })));
-
   return (
     <div className="mb-2 md:mb-4">
       <h4 className="text-xs md:text-sm font-medium text-muted-foreground mb-1 md:mb-2">{title}</h4>
       {items.length > 0 ? (
         <div className="space-y-1 md:space-y-2">
-          {items.map((item) => {
-            const displayName = type === 'income' ? (item as Income).source : (item as Bill).name;
-            logger.info(`Rendering transaction:`, { id: item.id, displayName, amount: item.amount });
-
-            return (
-              <div 
-                key={item.id} 
-                className={`flex justify-between items-center text-[10px] md:text-sm ${
-                  type === 'income' 
-                    ? 'bg-green-50 dark:bg-green-950/30' 
-                    : 'bg-red-50 dark:bg-red-950/30'
-                } p-1 md:p-2 rounded`}
-              >
-                <span className="truncate max-w-[60%]">
-                  {displayName}
-                </span>
-                <span className={`font-medium ${
-                  type === 'income' 
-                    ? 'text-green-600 dark:text-green-400' 
-                    : 'text-red-600 dark:text-red-400'
-                }`}>
-                  {formatCurrency(item.amount)}
-                </span>
-              </div>
-            );
-          })}
+          {items.map((item) => (
+            <div 
+              key={item.id} 
+              className={`flex justify-between items-center text-[10px] md:text-sm ${
+                type === 'income' 
+                  ? 'bg-green-50 dark:bg-green-950/30' 
+                  : 'bg-red-50 dark:bg-red-950/30'
+              } p-1 md:p-2 rounded`}
+            >
+              <span className="truncate max-w-[60%]">
+                {type === 'income' ? (item as Income).source : (item as Bill).name}
+              </span>
+              <span className={`font-medium ${
+                type === 'income' 
+                  ? 'text-green-600 dark:text-green-400' 
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                {formatCurrency(item.amount)}
+              </span>
+            </div>
+          ))}
         </div>
       ) : (
         <p className="text-[10px] md:text-sm text-muted-foreground">No {type} transactions today</p>

@@ -128,7 +128,7 @@ DayCell.displayName = 'DayCell';
 
 export function Budget() {
   const { incomes, bills, isLoading, error } = useData();
-  const today = useMemo(() => dayjs(), []); 
+  const today = useMemo(() => dayjs('2025-02-13'), []); 
   const [selectedDay, setSelectedDay] = useState(today.date());
   const [selectedMonth, setSelectedMonth] = useState(today.month()); // 0-based month
   const [selectedYear, setSelectedYear] = useState(today.year());
@@ -149,7 +149,7 @@ export function Budget() {
     })), 
   [today]); 
 
-  // Update getBillsForDay to include all required Bill fields
+  // Update getBillsForDay to handle recurring monthly bills
   const getBillsForDay = useCallback((day: number) => {
     // Define the bill occurrences with their correct days
     const monthlyBills = [
@@ -165,89 +165,77 @@ export function Budget() {
       { name: "NV Energy Electrical ($100 winter months)", amount: 250, day: 7 },
       { name: "Cox Internet", amount: 81, day: 6 },
       { name: "Sling TV (CC 9550)", amount: 75, day: 3 },
-      { name: "AT&T Phone Bill ($115 Rund Roaming)", amount: 429, day: 1 },
+      { name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429, day: 1 },
       { name: "Maid's 1st payment", amount: 120, day: 1 },
       { name: "Monthly Rent", amount: 3750, day: 1 }
     ];
 
-    // Return bills that occur on the specified day with all required fields
+    // Return bills that occur on the specified day
     return monthlyBills
       .filter(bill => bill.day === day)
       .map((bill, index) => ({
         ...bill,
         id: `${bill.name}-${selectedYear}-${selectedMonth+1}-${day}-${index}`,
-        date: dayjs().year(selectedYear).month(selectedMonth).date(day).toISOString(),
-        category_id: null,  // Add required fields
-        user_id: null,
-        created_at: new Date().toISOString(),
-        isOneTime: false,
-        category_name: 'Uncategorized',
-        category_color: '#D3D3D3',
-        category_icon: null
+        date: dayjs().year(selectedYear).month(selectedMonth).date(day).toISOString()
       }));
   }, [selectedYear, selectedMonth]);
 
-  // Update the getIncomeForDay function to include occurrenceType
+  // Update getIncomeForDay to handle both recurring and one-time incomes with uniqueness
   const getIncomeForDay = useCallback((day: number) => {
-      if (day <= 0) return [];
+    if (day <= 0) return [];
 
-      const uniqueIncomes = new Set();
-      const result: Income[] = [];
+    const uniqueIncomes = new Set();
+    const result: Income[] = [];
 
-      // Handle Majdi's salary (1st and 15th)
-      if (day === 1 || day === 15) {
-        const majdiSalary: Income = {
-          id: `majdi-${day}`,
-          source: "Majdi's Salary",
-          amount: 4739,
-          date: dayjs().year(selectedYear).month(selectedMonth).date(day).toISOString(),
-          occurrenceType: 'recurring'
+    // Handle Majdi's salary (1st and 15th)
+    if (day === 1 || day === 15) {
+      const majdiSalary = {
+        id: `majdi-${day}`,
+        source: "Majdi's Salary",
+        amount: 4739,
+        date: dayjs().year(selectedYear).month(selectedMonth).date(day).toISOString()
+      };
+      uniqueIncomes.add("Majdi's Salary");
+      result.push(majdiSalary);
+    }
+
+    // Handle Ruba's bi-weekly salary
+    const currentDate = dayjs()
+      .year(selectedYear)
+      .month(selectedMonth)
+      .date(day);
+
+    if (currentDate.day() === 5) { // Only Fridays
+      const startDate = dayjs('2025-01-10');
+      const weeksDiff = currentDate.diff(startDate, 'week');
+      if (weeksDiff >= 0 && weeksDiff % 2 === 0 && !uniqueIncomes.has("Ruba's Salary")) {
+        const rubaSalary = {
+          id: `ruba-${currentDate.format('YYYY-MM-DD')}`,
+          source: "Ruba's Salary",
+          amount: 2168,
+          date: currentDate.toISOString()
         };
-        uniqueIncomes.add("Majdi's Salary");
-        result.push(majdiSalary);
+        uniqueIncomes.add("Ruba's Salary");
+        result.push(rubaSalary);
       }
+    }
 
-      // Handle Ruba's bi-weekly salary
-      const currentDate = dayjs()
-        .year(selectedYear)
-        .month(selectedMonth)
-        .date(day);
-
-      if (currentDate.day() === 5) { // Only Fridays
-        const startDate = dayjs('2025-01-10');
-        const weeksDiff = currentDate.diff(startDate, 'week');
-        if (weeksDiff >= 0 && weeksDiff % 2 === 0 && !uniqueIncomes.has("Ruba's Salary")) {
-          const rubaSalary: Income = {
-            id: `ruba-${currentDate.format('YYYY-MM-DD')}`,
-            source: "Ruba's Salary",
-            amount: 2168,
-            date: currentDate.toISOString(),
-            occurrenceType: 'recurring'
-          };
-          uniqueIncomes.add("Ruba's Salary");
-          result.push(rubaSalary);
+    // Handle one-time incomes
+    incomes.forEach(income => {
+      if (income.source !== "Majdi's Salary" && income.source !== "Ruba's Salary") {
+        const incomeDate = dayjs(income.date);
+        if (incomeDate.date() === day && 
+            incomeDate.month() === selectedMonth && 
+            incomeDate.year() === selectedYear &&
+            !uniqueIncomes.has(income.source)) {
+          uniqueIncomes.add(income.source);
+          result.push(income);
         }
       }
+    });
 
-      // Handle one-time incomes
-      incomes.forEach(income => {
-        if (income.source !== "Majdi's Salary" && income.source !== "Ruba's Salary") {
-          const incomeDate = dayjs(income.date);
-          if (incomeDate.date() === day && 
-              incomeDate.month() === selectedMonth && 
-              incomeDate.year() === selectedYear &&
-              !uniqueIncomes.has(income.source)) {
-            uniqueIncomes.add(income.source);
-            result.push({
-              ...income,
-              occurrenceType: income.occurrenceType || 'once'
-            });
-          }
-        }
-      });
-
-      return result;
-    }, [incomes, selectedYear, selectedMonth]);
+    return result;
+  }, [incomes, selectedYear, selectedMonth]);
 
   // Update monthly totals calculation to handle recurring bills
   const monthlyTotals = useMemo(() => {

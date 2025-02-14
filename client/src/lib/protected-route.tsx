@@ -7,6 +7,6 @@ export function ProtectedRoute({
   path: string;
   component: () => React.JSX.Element;
 }) {
-  // Simply render the component without any auth checks
+  // Directly render the route and component without auth checks
   return <Route path={path} component={Component} />;
 }

@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2, Menu, BarChart4,
   Download, Database, Tags, ChevronDown,
-  RotateCw, Plus, Edit, Trash, FileText, Bell, PlusCircle
+  RotateCw, Plus, Edit, Trash, FileText, Bell
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -63,6 +63,7 @@ import { Badge } from "@/components/ui/badge";
 import { logger } from './lib/logger';
 
 
+
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
   const [location] = useLocation();
@@ -80,8 +81,6 @@ function Router() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedIncome, setSelectedIncome] = useState<Income | null>(null);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
-  // Force re-render on transaction updates
-  const [updateTrigger, setUpdateTrigger] = useState(0);
 
   const handleDeleteTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
     if (type === 'income') {
@@ -92,7 +91,7 @@ function Router() {
     setShowDeleteDialog(true);
   };
 
-  const handleEditTransaction = async (type: 'income' | 'bill', transaction: Income | Bill) => {
+  const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
     if (type === 'income') {
       const income = transaction as Income;
       // Set correct occurrence type based on source
@@ -108,18 +107,6 @@ function Router() {
     } else {
       setSelectedBill(transaction as Bill);
       setShowEditExpenseDialog(true);
-    }
-  };
-
-  const handleUpdateTransaction = async (transaction: Income | Bill) => {
-    try {
-      await editTransaction(transaction);
-      // Force calendar re-render
-      setUpdateTrigger(prev => prev + 1);
-      // Refresh data
-      await refresh();
-    } catch (error) {
-      console.error('Failed to update transaction:', error);
     }
   };
 
@@ -191,16 +178,25 @@ function Router() {
 
   if (dataError) {
     return (
-      <Alert variant="destructive" className="fixed top-4 right-4 w-auto z-50">
+      <Alert
+        variant="destructive"
+        className="fixed top-4 right-4 w-auto z-50 animate-in fade-in slide-in-from-top-2"
+        role="alert"
+      >
         <AlertDescription className="flex items-center gap-2">
           {dataError.message}
-          <button onClick={refresh} className="p-1 hover:bg-accent rounded">
+          <button
+            onClick={() => refresh()}
+            className="p-1 hover:bg-accent rounded"
+            aria-label="Retry loading data"
+          >
             <RotateCw className="h-4 w-4" />
           </button>
         </AlertDescription>
       </Alert>
     );
   }
+
 
   return (
     <ErrorBoundary name="MainRouter">
@@ -563,7 +559,7 @@ function Router() {
             onOpenChange={setShowEditIncomeDialog}
             income={selectedIncome}
             onUpdate={(updatedIncome) => {
-              handleUpdateTransaction(updatedIncome);
+              editTransaction(updatedIncome);
               setShowEditIncomeDialog(false);
               setSelectedIncome(null);
             }}
@@ -573,8 +569,8 @@ function Router() {
               isOpen={showEditExpenseDialog}
               onOpenChange={setShowEditExpenseDialog}
               expense={selectedBill}
-              onUpdate={async (updatedBill) => {
-                await handleUpdateTransaction(updatedBill);
+              onUpdate={(updatedBill) => {
+                editTransaction(updatedBill);
                 setShowEditExpenseDialog(false);
                 setSelectedBill(null);
               }}
@@ -631,6 +627,7 @@ function App() {
       <ErrorBoundary
         name="RootErrorBoundary"
         onReset={() => {
+          // Clear any cached data and reload the app
           queryClient.clear();
           window.location.reload();
         }}

@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Bill, Income } from "@/types";
 import { Dot } from "lucide-react";
-import { logger } from "@/lib/logger";
 
 interface DayContentProps {
   day: Date;
@@ -10,13 +9,6 @@ interface DayContentProps {
 }
 
 export function DayContent({ day, bills = [], incomes = [] }: DayContentProps) {
-  // Log the actual transaction data received
-  logger.info('DayContent received transactions:', {
-    day: day.toISOString(),
-    bills: bills.map(b => ({ id: b.id, name: b.name })),
-    incomes: incomes.map(i => ({ id: i.id, source: i.source }))
-  });
-
   // Get unique incomes by source for this day
   const uniqueIncomes = incomes.reduce((acc: Income[], income) => {
     const exists = acc.find(i => i.source === income.source);

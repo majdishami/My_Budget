@@ -4,7 +4,6 @@ import { DayPicker } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { Bill, Income } from "@/types"
 import { DayContent } from "@/components/DayContent"
-import { logger } from "@/lib/logger"
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   bills?: Bill[];
@@ -19,27 +18,11 @@ function Calendar({
   incomes = [],
   ...props
 }: CalendarProps) {
-  // Generate a more detailed key that changes when transaction details change
-  const transactionKey = React.useMemo(() => {
-    const billsKey = bills.map(b => `${b.id}-${b.name}-${b.amount}-${b.date}`).join('|');
-    const incomesKey = incomes.map(i => `${i.id}-${i.source}-${i.amount}-${i.date}`).join('|');
-    const key = `${billsKey}:${incomesKey}`;
-    logger.info('Calendar transaction key updated:', { key });
-    return key;
-  }, [bills, incomes]);
-
-  // Log when the calendar renders with new transactions
-  React.useEffect(() => {
-    logger.info('Calendar rendered with transactions:', { 
-      billsCount: bills.length,
-      incomesCount: incomes.length,
-      transactionKey
-    });
-  }, [bills, incomes, transactionKey]);
+  console.log('Calendar rendered with bills:', bills);
+  console.log('Calendar rendered with incomes:', incomes);
 
   return (
     <DayPicker
-      key={transactionKey}
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
       classNames={{
@@ -86,13 +69,7 @@ function Calendar({
         IconLeft: () => <ChevronLeft className="h-4 w-4" />,
         IconRight: () => <ChevronRight className="h-4 w-4" />,
         DayContent: ({ date, ...contentProps }) => (
-          <DayContent 
-            key={`${date.toISOString()}-${transactionKey}`}
-            day={date} 
-            bills={bills} 
-            incomes={incomes} 
-            {...contentProps} 
-          />
+          <DayContent day={date} bills={bills} incomes={incomes} {...contentProps} />
         ),
       }}
       {...props}

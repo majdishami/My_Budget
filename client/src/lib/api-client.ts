@@ -1,16 +1,10 @@
 import { QueryClient } from '@tanstack/react-query';
-import { toast } from "@/hooks/use-toast";
 
+// Default fetcher for the Query Client
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: (failureCount, error: any) => {
-        // Don't retry on 401/403 auth errors
-        if (error?.status === 401 || error?.status === 403) {
-          return false;
-        }
-        return failureCount < 3;
-      },
+      retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
       staleTime: 1000,
       refetchOnWindowFocus: true,
@@ -20,19 +14,19 @@ export const queryClient = new QueryClient({
   },
 });
 
+// Helper function for making API requests
 export const apiRequest = async (
   endpoint: string,
   options: RequestInit = {}
 ): Promise<any> => {
   try {
+    // Check network connectivity
     if (!navigator.onLine) {
-      toast({
-        title: "Error",
-        description: "No internet connection",
-        variant: "destructive",
-      });
+      console.error('[API Error] No internet connection');
       throw new Error('No internet connection');
     }
+
+    console.log(`[API Request] ${options.method || 'GET'} ${endpoint}`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -44,26 +38,38 @@ export const apiRequest = async (
         'Accept': 'application/json',
         ...options.headers,
       },
-      credentials: 'include',
       signal: controller.signal,
+      mode: 'cors',
     });
 
     clearTimeout(timeoutId);
 
-    // For 401 errors, don't redirect if we're already on the auth page
-    if (response.status === 401 && !window.location.pathname.includes('/auth')) {
-      window.location.href = '/auth';
-      throw new Error('Authentication required');
+    // Get the response text first for debugging
+    const responseText = await response.text();
+    console.log('[API Response] Status:', response.status);
+    console.log('[API Response] Raw response:', responseText);
+
+    // Try to parse as JSON if possible
+    let data;
+    try {
+      data = responseText ? JSON.parse(responseText) : null;
+      console.log('[API Response] Parsed data:', data);
+    } catch (parseError) {
+      console.error('[API Error] Failed to parse response as JSON:', parseError);
+      throw new Error('Invalid JSON response from server');
     }
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: response.statusText
-      }));
-      throw new Error(errorData.message || 'Request failed');
+      const errorMessage = data?.message || response.statusText || 'An unknown error occurred';
+      console.error('[API Error] Response not OK:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorMessage
+      });
+      throw new Error(errorMessage);
     }
 
-    return await response.json();
+    return data;
   } catch (error) {
     console.error('[API Error] Request failed:', error);
     if (error instanceof Error) {
