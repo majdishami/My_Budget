@@ -287,12 +287,17 @@ export function registerRoutes(app: Express): Server {
       console.log('[Transactions API] Raw transactions:', allTransactions);
 
       const formattedTransactions = allTransactions.map(transaction => {
+        const transactionDate = dayjs(transaction.date);
         const formatted = {
-          ...transaction,
+          id: transaction.id,
+          description: transaction.description,
+          amount: Number(transaction.amount), // Ensure amount is a number
+          date: transactionDate.format(), // Use ISO format
+          type: transaction.type,
+          category_id: transaction.category_id,
           category_name: transaction.category?.name || 'Uncategorized',
           category_color: transaction.category?.color || '#D3D3D3',
           category_icon: transaction.category?.icon || null,
-          date: dayjs(transaction.date).format() // Ensure consistent date format
         };
         console.log('[Transactions API] Formatted transaction:', formatted);
         return formatted;
@@ -305,7 +310,6 @@ export function registerRoutes(app: Express): Server {
       return res.status(500).json({
         message: 'Failed to load transactions',
         error: process.env.NODE_ENV === 'development' ? error : 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error : undefined
       });
     }
   });

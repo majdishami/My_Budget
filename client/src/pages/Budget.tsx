@@ -221,30 +221,47 @@ export function Budget() {
 
   // Memoize monthly totals calculation
   const monthlyTotals = useMemo(() => {
-    // Calculate total income from all income occurrences
-    const totalIncome = monthlyIncomeOccurrences.reduce((sum, income) => sum + income.amount, 0);
+    console.log('Calculating monthly totals:', {
+      selectedMonth,
+      selectedYear,
+      incomes,
+      bills
+    });
 
-    // Calculate total expenses, handling both one-time and recurring bills
-    const totalExpenses = bills.reduce((sum, bill) => {
-      if (bill.isOneTime) {
-        const billDate = dayjs(bill.date);
-        if (billDate &&
-            billDate.month() === selectedMonth && 
-            billDate.year() === selectedYear) {
-          return sum + bill.amount;
-        }
-        return sum;
+    // Calculate total income
+    const totalIncome = incomes.reduce((sum, income) => {
+      const incomeDate = dayjs(income.date);
+      if (incomeDate.month() === (selectedMonth - 1) && 
+          incomeDate.year() === selectedYear) {
+        console.log('Adding income:', income);
+        return sum + income.amount;
       }
-      // For recurring bills, always include them in the monthly total
-      return sum + bill.amount;
+      return sum;
     }, 0);
+
+    // Calculate total expenses
+    const totalExpenses = bills.reduce((sum, bill) => {
+      const billDate = dayjs(bill.date);
+      if (billDate.month() === (selectedMonth - 1) && 
+          billDate.year() === selectedYear) {
+        console.log('Adding bill:', bill);
+        return sum + bill.amount;
+      }
+      return sum;
+    }, 0);
+
+    console.log('Monthly totals calculated:', {
+      totalIncome,
+      totalExpenses,
+      net: totalIncome - totalExpenses
+    });
 
     return {
       income: totalIncome,
       expenses: totalExpenses,
       net: totalIncome - totalExpenses
     };
-  }, [monthlyIncomeOccurrences, bills, selectedMonth, selectedYear]);
+  }, [incomes, bills, selectedMonth, selectedYear]);
 
   // Add memoized running totals calculation
   const calculateRunningTotals = useCallback((day: number) => {
