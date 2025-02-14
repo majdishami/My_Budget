@@ -8,13 +8,3 @@ export const useData = (): DataContextType => {
   }
   return context;
 };
-
-export const useIncomes = () => {
-  const { incomes } = useData();
-  return { data: incomes };
-};
-
-export const useBills = () => {
-  const { bills } = useData();
-  return { data: bills };
-};
