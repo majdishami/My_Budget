@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { Income, Bill } from "@/types";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 dayjs.extend(isBetween);
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(isSameOrAfter);
 
 // Set default timezone to local
 dayjs.tz.setDefault(dayjs.tz.guess());
