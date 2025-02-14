@@ -102,7 +102,7 @@ export default function EditExpenseDialog({
       setAmount(expense.amount.toString());
       setDay(expense.day.toString());
       setDateType(expense.isOneTime ? 'specific' : 'monthly');
-      setCategoryId(expense.category_id.toString());
+      setCategoryId(expense.category_id != null ? expense.category_id.toString() : "");
       setReminderEnabled(expense.reminderEnabled || false);
       setReminderDays(expense.reminderDays || 7);
       if (expense.date) {
@@ -155,10 +155,8 @@ export default function EditExpenseDialog({
       newErrors.date = 'Please select a specific date for this expense';
     }
 
-    // Category validation
-    if (!categoryId) {
-      newErrors.category = 'Please select a category for this expense';
-    } else if (!categories?.some((cat: Category) => cat.id.toString() === categoryId)) {
+    // Category validation - make it optional
+    if (categoryId && !categories?.some((cat: Category) => cat.id.toString() === categoryId)) {
       newErrors.category = 'Selected category is invalid';
     }
 
@@ -170,12 +168,15 @@ export default function EditExpenseDialog({
     if (!expense || !validateForm() || isSubmitting) return;
 
     setIsSubmitting(true);
-    const selectedCategory = categories?.find((cat: Category) => cat.id.toString() === categoryId);
+    let selectedCategory = categoryId ? categories?.find((cat: Category) => cat.id.toString() === categoryId) : null;
 
+    // If no category is selected, use default uncategorized values
     if (!selectedCategory) {
-      setErrors(prev => ({ ...prev, category: 'Invalid category selected' }));
-      setIsSubmitting(false);
-      return;
+      selectedCategory = {
+        id: 0,
+        name: 'Uncategorized',
+        color: '#D3D3D3'
+      };
     }
 
     try {
@@ -183,7 +184,7 @@ export default function EditExpenseDialog({
         name: name.trim(),
         amount: parseFloat(amount),
         day: parseInt(day),
-        category_id: parseInt(categoryId),
+        category_id: selectedCategory.id || null,
         category_name: selectedCategory.name,
         category_color: selectedCategory.color,
         reminderEnabled,
