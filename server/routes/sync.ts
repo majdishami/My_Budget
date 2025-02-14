@@ -34,9 +34,9 @@ router.get('/api/sync/download/:filename', (req, res) => {
     const { filename } = req.params;
     const filePath = path.join(process.cwd(), 'tmp', filename);
 
-    if (!fs.existsSync(filePath) || !filename.toLowerCase().endsWith('.json')) {
-      console.error('Invalid or missing backup file:', filePath);
-      return res.status(404).json({ error: 'Invalid or missing backup file' });
+    if (!fs.existsSync(filePath)) {
+      console.error('Missing backup file:', filePath);
+      return res.status(404).json({ error: 'Backup file not found' });
     }
 
     res.download(filePath, filename, (err) => {
@@ -69,14 +69,17 @@ router.post('/api/sync/restore', async (req, res) => {
 
   try {
     if (!req.files?.backup || Array.isArray(req.files.backup)) {
-      return res.status(400).json({ error: 'Invalid backup file provided' });
+      return res.status(400).json({ error: 'No backup file provided' });
     }
 
     const uploadedFile = req.files.backup as UploadedFile;
 
-    // Validate file type
-    if (!uploadedFile.name.toLowerCase().endsWith('.json')) {
-      return res.status(400).json({ error: 'Invalid file type. Only JSON files are allowed.' });
+    // Validate file content
+    try {
+      const fileContent = uploadedFile.data.toString('utf-8');
+      JSON.parse(fileContent); // Verify it's valid JSON
+    } catch (parseError) {
+      return res.status(400).json({ error: 'Invalid JSON file content' });
     }
 
     // Create tmp directory if it doesn't exist
