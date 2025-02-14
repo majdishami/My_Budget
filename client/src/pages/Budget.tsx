@@ -330,30 +330,39 @@ export function Budget() {
 
   // Update the calendarData calculation
   const calendarData = useMemo(() => {
-    const firstDayOfMonth = dayjs()
-      .year(selectedYear)
-      .month(selectedMonth)
-      .startOf("month");
-    const lastDayOfMonth = firstDayOfMonth.endOf("month");
-    const firstDayIndex = firstDayOfMonth.day(); // 0-6, where 0 is Sunday
-    const totalDaysInMonth = lastDayOfMonth.date();
+    // Create date for first day of selected month
+    const firstDay = dayjs().year(selectedYear).month(selectedMonth).date(1);
+    const daysInMonth = firstDay.daysInMonth();
+    const firstDayWeekday = firstDay.day(); // 0-6, Sunday-Saturday
 
-    // Create array with empty slots for days before the first day of month
-    const days = Array(firstDayIndex).fill(null);
+    console.log('Calendar Calculation:', {
+      firstDay: firstDay.format('YYYY-MM-DD'),
+      firstDayWeekday,
+      daysInMonth,
+      selectedMonth,
+      selectedYear
+    });
 
-    // Add the actual days of the month
-    for (let day = 1; day <= totalDaysInMonth; day++) {
+    // Create array for all days
+    const days: (number | null)[] = [];
+
+    // Add empty cells for days before the first day of month
+    for (let i = 0; i < firstDayWeekday; i++) {
+      days.push(null);
+    }
+
+    // Add actual days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
       days.push(day);
     }
 
-    // Add remaining empty slots to complete the grid (5 rows * 7 days = 35 slots)
+    // Add empty cells to complete the 5-week grid
     while (days.length < 35) {
       days.push(null);
     }
 
-    // If we need more than 35 days (5 weeks) to display the month, expand the array
-    if (firstDayIndex + totalDaysInMonth > 35) {
-      console.warn('Month requires 6 rows to display properly');
+    // If the month needs 6 weeks, expand to accommodate
+    if (firstDayWeekday + daysInMonth > 35) {
       while (days.length < 42) {
         days.push(null);
       }
