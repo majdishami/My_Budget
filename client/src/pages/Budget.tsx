@@ -316,6 +316,13 @@ export function Budget() {
     });
   }, [selectedYear, selectedMonth]);
 
+  // Update the current day detection
+  const isCurrentDay = useCallback((dayNumber: number) => {
+    return dayNumber === today.date() && 
+           selectedMonth === today.month() && 
+           selectedYear === today.year();
+  }, [today, selectedMonth, selectedYear]);
+
 
   // Loading state
   if (isLoading) {
@@ -425,16 +432,11 @@ export function Budget() {
                       return <td key={dayIndex} className="border border-yellow-100/50 p-0.5 lg:p-2 bg-muted/10 h-12 md:h-24 lg:h-48" />;
                     }
 
-                    const isCurrentDay = 
-                      dayNumber === today.date() && 
-                      selectedMonth === today.month() && 
-                      selectedYear === today.year();
-
                     return (
                       <DayCell
                         key={dayIndex}
                         day={dayNumber}
-                        isCurrentDay={isCurrentDay}
+                        isCurrentDay={isCurrentDay(dayNumber)}
                         selectedDay={selectedDay}
                         dayIncomes={getIncomeForDay(dayNumber)}
                         dayBills={getBillsForDay(dayNumber)}
