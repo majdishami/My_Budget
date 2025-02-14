@@ -14,7 +14,6 @@ import { Bell, AlertCircle, Calendar as CalendarIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { generateId } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -66,7 +65,6 @@ export default function EditExpenseDialog({
   const [reminderDays, setReminderDays] = useState(7);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch categories with proper error handling and retry logic
   const { 
     data: categories = [], 
     isError: isCategoriesError, 
@@ -76,14 +74,7 @@ export default function EditExpenseDialog({
     queryKey: ['/api/categories'],
     retry: 3,
     staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    onError: (err: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Error loading categories",
-        description: err.message || "Failed to load categories. Please try again.",
-      });
-    }
+    gcTime: 10 * 60 * 1000
   });
 
   const [errors, setErrors] = useState<{
@@ -98,16 +89,28 @@ export default function EditExpenseDialog({
 
   const resetForm = useCallback(() => {
     if (expense) {
+      // Set basic fields
       setName(expense.name);
       setAmount(expense.amount.toString());
-      setDay(expense.day.toString());
-      setDateType(expense.isOneTime ? 'specific' : 'monthly');
+
+      // Handle date type and specific date
+      if (expense.isOneTime) {
+        setDateType('specific');
+        // If it's a one-time expense, set the specific date
+        if (expense.date) {
+          setSpecificDate(new Date(expense.date));
+        }
+      } else {
+        setDateType('monthly');
+        setDay(expense.day.toString());
+      }
+
+      // Set category (handle null case)
       setCategoryId(expense.category_id != null ? expense.category_id.toString() : "");
+
+      // Set reminder settings
       setReminderEnabled(expense.reminderEnabled || false);
       setReminderDays(expense.reminderDays || 7);
-      if (expense.date) {
-        setSpecificDate(new Date(expense.date));
-      }
     }
     setErrors({});
     setIsSubmitting(false);
@@ -122,14 +125,12 @@ export default function EditExpenseDialog({
   const validateForm = useCallback((): boolean => {
     const newErrors: typeof errors = {};
 
-    // Name validation with better error messages
     if (!name.trim()) {
       newErrors.name = 'Please enter an expense name';
     } else if (name.length > 100) {
       newErrors.name = `Name is too long (${name.length}/100 characters)`;
     }
 
-    // Amount validation with specific error messages
     const amountNum = parseFloat(amount);
     if (!amount) {
       newErrors.amount = 'Please enter an amount';
@@ -141,7 +142,6 @@ export default function EditExpenseDialog({
       newErrors.amount = 'Amount cannot exceed 1,000,000';
     }
 
-    // Date validation with improved error messages
     if (dateType === 'monthly') {
       const dayNum = parseInt(day);
       if (!day) {
@@ -362,7 +362,7 @@ export default function EditExpenseDialog({
                 </Alert>
               )}
               {isCategoriesLoading && (
-                <Alert variant="info" className="py-2">
+                <Alert variant="default" className="py-2">
                   <Loader2 className="h-4 w-4 animate-spin mr-2"/>
                   Loading categories...
                 </Alert>
