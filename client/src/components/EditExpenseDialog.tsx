@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Bill } from "@/types";
 import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle, Calendar as CalendarIcon } from "lucide-react";
@@ -61,7 +61,7 @@ export default function EditExpenseDialog({
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [day, setDay] = useState('1');
-  const [dateType, setDateType] = useState<'monthly' | 'specific'>('specific');
+  const [dateType, setDateType] = useState<'monthly' | 'specific'>('monthly');
   const [specificDate, setSpecificDate] = useState<Date | undefined>(undefined);
   const [categoryId, setCategoryId] = useState<string>('');
   const [showReminderDialog, setShowReminderDialog] = useState(false);
@@ -100,16 +100,10 @@ export default function EditExpenseDialog({
       setName(expense.name);
       setAmount(expense.amount.toString());
 
-      // Date handling
-      if (expense.date) {
-        // If there's a date, it's a one-time expense
-        setDateType('specific');
-        setSpecificDate(new Date(expense.date));
-      } else {
-        setDateType('monthly');
-        if (expense.day) {
-          setDay(expense.day.toString());
-        }
+      // Date handling - set to monthly recurring by default
+      setDateType('monthly');
+      if (expense.day) {
+        setDay(expense.day.toString());
       }
 
       // Category handling
@@ -134,8 +128,6 @@ export default function EditExpenseDialog({
 
     if (!name.trim()) {
       newErrors.name = 'Please enter an expense name';
-    } else if (name.length > 100) {
-      newErrors.name = `Name is too long (${name.length}/100 characters)`;
     }
 
     const amountNum = parseFloat(amount);
@@ -145,8 +137,6 @@ export default function EditExpenseDialog({
       newErrors.amount = 'Please enter a valid number';
     } else if (amountNum <= 0) {
       newErrors.amount = 'Amount must be greater than 0';
-    } else if (amountNum > 1000000) {
-      newErrors.amount = 'Amount cannot exceed 1,000,000';
     }
 
     if (dateType === 'monthly') {
@@ -162,14 +152,9 @@ export default function EditExpenseDialog({
       newErrors.date = 'Please select a specific date for this expense';
     }
 
-    // Category validation - make it optional
-    if (categoryId && !categories?.some((cat: Category) => cat.id.toString() === categoryId)) {
-      newErrors.category = 'Selected category is invalid';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [name, amount, dateType, day, specificDate, categoryId, categories]);
+  }, [name, amount, dateType, day, specificDate]);
 
   const handleConfirm = async () => {
     if (!expense || !validateForm() || isSubmitting) return;
@@ -280,7 +265,6 @@ export default function EditExpenseDialog({
                 }}
                 aria-invalid={!!errors.name}
                 aria-describedby={errors.name ? "name-error" : undefined}
-                maxLength={100}
                 disabled={isSubmitting}
               />
               {errors.name && (
@@ -304,8 +288,6 @@ export default function EditExpenseDialog({
                 }}
                 aria-invalid={!!errors.amount}
                 aria-describedby={errors.amount ? "amount-error" : undefined}
-                min="0"
-                max="1000000"
                 disabled={isSubmitting}
               />
               {errors.amount && (
