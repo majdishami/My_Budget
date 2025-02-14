@@ -1,6 +1,3 @@
-/**
- * EditExpenseDialog component handles editing an existing expense
- */
 import {
   Dialog,
   DialogContent,
@@ -16,7 +13,6 @@ import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle, Calendar as CalendarIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
-import dayjs from "dayjs";
 import {
   Select,
   SelectContent,
@@ -62,7 +58,6 @@ export default function EditExpenseDialog({
   const [amount, setAmount] = useState('');
   const [day, setDay] = useState('');
   const [dateType, setDateType] = useState<'monthly' | 'specific'>('monthly');
-  const [specificDate, setSpecificDate] = useState<Date | undefined>(undefined);
   const [categoryId, setCategoryId] = useState<string>('');
   const [showReminderDialog, setShowReminderDialog] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
@@ -94,7 +89,7 @@ export default function EditExpenseDialog({
   // Initialize form when expense prop changes
   useEffect(() => {
     if (expense && isOpen) {
-      logger.info('Initializing expense form with:', expense);
+      logger.info({ message: 'Initializing expense form', expense });
 
       // Basic fields
       setName(expense.name);
@@ -104,12 +99,11 @@ export default function EditExpenseDialog({
       setDateType('monthly');
 
       // For recurring monthly expenses, ensure we use the correct day
-      // If it's day 1 and appears as 31, we need to use the actual day from the expense
       setDay(expense.day.toString());
 
       // Set category directly from the expense's category_id
       if (expense.category_id) {
-        logger.info('Setting category ID:', expense.category_id.toString());
+        logger.info({ message: 'Setting category ID', categoryId: expense.category_id.toString() });
         setCategoryId(expense.category_id.toString());
       } else {
         setCategoryId('');
@@ -150,51 +144,38 @@ export default function EditExpenseDialog({
       } else if (dayNum < 1 || dayNum > 31) {
         newErrors.day = 'Day must be between 1 and 31';
       }
-    } else if (!specificDate) {
-      newErrors.date = 'Please select a specific date for this expense';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [name, amount, dateType, day, specificDate]);
+  }, [name, amount, dateType, day]);
 
   const handleConfirm = async () => {
     if (!expense || !validateForm() || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
-      logger.info('Saving expense with category ID:', categoryId);
+      logger.info({ message: 'Saving expense', categoryId });
       const selectedCategory = categoryId ? categories?.find((cat: Category) => cat.id.toString() === categoryId) : null;
 
       // Convert categoryId to number or null
       const parsedCategoryId = categoryId ? parseInt(categoryId, 10) : null;
 
-      const baseUpdates = {
+      const updatedBill: Bill = {
         ...expense,
         name: name.trim(),
         amount: parseFloat(amount),
         category_id: parsedCategoryId,
-        category_name: selectedCategory?.name || 'Uncategorized',
-        category_color: selectedCategory?.color || '#D3D3D3',
+        category_name: selectedCategory?.name || null,
+        category_color: selectedCategory?.color || null,
         reminderEnabled,
         reminderDays,
+        isOneTime: false,
+        day: parseInt(day, 10),
+        date: null
       };
 
-      let updatedBill: Bill;
-
-      if (dateType === 'monthly') {
-        const parsedDay = parseInt(day, 10);
-        updatedBill = {
-          ...baseUpdates,
-          isOneTime: false,
-          day: parsedDay,
-          date: undefined
-        };
-      } else {
-        throw new Error('Only monthly expenses are supported at this time');
-      }
-
-      logger.info('Updating bill with:', updatedBill);
+      logger.info({ message: 'Updating bill', updatedBill });
       onUpdate(updatedBill);
       toast({
         title: "Success",
@@ -202,7 +183,7 @@ export default function EditExpenseDialog({
       });
       onOpenChange(false);
     } catch (error) {
-      logger.error('Error updating expense:', error);
+      logger.error({ message: 'Error updating expense', error });
       setErrors(prev => ({
         ...prev,
         general: error instanceof Error ? error.message : 'Failed to update expense. Please try again.'
@@ -300,79 +281,26 @@ export default function EditExpenseDialog({
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Date Options</label>
-              <RadioGroup
-                value={dateType}
-                onValueChange={(value: 'monthly' | 'specific') => setDateType(value)}
-                className="grid gap-2"
+              <label htmlFor="day" className="text-sm font-medium">Day of Month</label>
+              <Input
+                id="day"
+                type="number"
+                min="1"
+                max="31"
+                value={day}
+                onChange={(e) => {
+                  setDay(e.target.value);
+                  setErrors(prev => ({ ...prev, day: undefined }));
+                }}
+                aria-invalid={!!errors.day}
+                aria-describedby={errors.day ? "day-error" : undefined}
                 disabled={isSubmitting}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="monthly" id="monthly" />
-                  <label htmlFor="monthly" className="text-sm">Monthly recurring expense</label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="specific" id="specific" />
-                  <label htmlFor="specific" className="text-sm">One-time expense</label>
-                </div>
-              </RadioGroup>
-
-              {dateType === 'monthly' ? (
-                <div className="grid gap-2">
-                  <label htmlFor="day" className="text-sm font-medium">Day of Month</label>
-                  <Input
-                    id="day"
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={day}
-                    onChange={(e) => {
-                      setDay(e.target.value);
-                      setErrors(prev => ({ ...prev, day: undefined }));
-                    }}
-                    aria-invalid={!!errors.day}
-                    aria-describedby={errors.day ? "day-error" : undefined}
-                    disabled={isSubmitting}
-                  />
-                  {errors.day && (
-                    <Alert variant="destructive" className="py-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription id="day-error">{errors.day}</AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={`w-full justify-start text-left font-normal ${!specificDate && "text-muted-foreground"}`}
-                        disabled={isSubmitting}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {specificDate ? dayjs(specificDate).format('MMM D, YYYY') : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={specificDate}
-                        onSelect={(date) => {
-                          setSpecificDate(date);
-                          setErrors(prev => ({ ...prev, date: undefined }));
-                        }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  {errors.date && (
-                    <Alert variant="destructive" className="py-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription id="date-error">{errors.date}</AlertDescription>
-                    </Alert>
-                  )}
-                </div>
+              />
+              {errors.day && (
+                <Alert variant="destructive" className="py-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription id="day-error">{errors.day}</AlertDescription>
+                </Alert>
               )}
             </div>
 
