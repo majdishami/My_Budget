@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { categories, users, bills, insertUserSchema, insertCategorySchema } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { categories, users, insertUserSchema, insertCategorySchema, transactions, insertTransactionSchema } from "@db/schema";
+import { eq, desc, and } from "drizzle-orm";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import session from "express-session";
@@ -132,7 +132,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Initialize a database pool for raw queries
-  const pool = new Pool({ 
+  const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? {
       rejectUnauthorized: false
@@ -257,43 +257,117 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Bills Routes
-  app.get('/api/bills', async (req, res) => {
+  // Transactions Routes
+  app.get('/api/transactions', requireAuth, async (req, res) => {
     try {
-      console.log('[Bills API] Fetching bills with categories...');
-
-      const billsWithCategories = await db.query.bills.findMany({
+      const userId = (req.user as any).id;
+      const allTransactions = await db.query.transactions.findMany({
+        where: eq(transactions.user_id, userId),
+        orderBy: [desc(transactions.date)],
         with: {
           category: true
-        },
-        orderBy: (bills, { asc }) => [asc(bills.created_at)]
+        }
       });
 
-      console.log('[Bills API] Found bills:', billsWithCategories.length);
-
-      // Transform the data to include category information directly
-      const formattedBills = billsWithCategories.map(bill => ({
-        ...bill,
-        category_name: bill.category?.name || 'Uncategorized',
-        category_color: bill.category?.color || '#D3D3D3',
-        category_icon: bill.category?.icon || null
+      const formattedTransactions = allTransactions.map(transaction => ({
+        ...transaction,
+        category_name: transaction.category?.name || 'Uncategorized',
+        category_color: transaction.category?.color || '#D3D3D3',
+        category_icon: transaction.category?.icon || null
       }));
 
-      return res.json(formattedBills);
+      return res.json(formattedTransactions);
     } catch (error) {
-      console.error('[Bills API] Error:', error);
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Unknown database error';
-
+      console.error('[Transactions API] Error:', error);
       return res.status(500).json({
-        message: 'Failed to load bills',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error : undefined
+        message: 'Failed to load transactions',
+        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
       });
     }
   });
 
+  app.post('/api/transactions', requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const transactionData = await insertTransactionSchema.parseAsync({
+        ...req.body,
+        user_id: userId,
+      });
+
+      const [newTransaction] = await db.insert(transactions)
+        .values(transactionData)
+        .returning();
+
+      res.status(201).json(newTransaction);
+    } catch (error) {
+      console.error('Error creating transaction:', error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Invalid request data'
+      });
+    }
+  });
+
+  app.patch('/api/transactions/:id', requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const transactionId = parseInt(req.params.id);
+
+      const transaction = await db.query.transactions.findFirst({
+        where: and(
+          eq(transactions.id, transactionId),
+          eq(transactions.user_id, userId)
+        ),
+      });
+
+      if (!transaction) {
+        return res.status(404).json({ message: 'Transaction not found' });
+      }
+
+      const [updatedTransaction] = await db.update(transactions)
+        .set(req.body)
+        .where(and(
+          eq(transactions.id, transactionId),
+          eq(transactions.user_id, userId)
+        ))
+        .returning();
+
+      res.json(updatedTransaction);
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Invalid request data'
+      });
+    }
+  });
+
+  app.delete('/api/transactions/:id', requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const transactionId = parseInt(req.params.id);
+
+      const transaction = await db.query.transactions.findFirst({
+        where: and(
+          eq(transactions.id, transactionId),
+          eq(transactions.user_id, userId)
+        ),
+      });
+
+      if (!transaction) {
+        return res.status(404).json({ message: 'Transaction not found' });
+      }
+
+      await db.delete(transactions)
+        .where(and(
+          eq(transactions.id, transactionId),
+          eq(transactions.user_id, userId)
+        ));
+
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      res.status(500).json({ message: 'Server error deleting transaction' });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
