@@ -171,42 +171,26 @@ export function registerRoutes(app: Express): Server {
 
   // Categories Routes with simplified implementation
   app.get('/api/categories', async (req, res) => {
-    // Set CORS headers for all environments
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    res.header('Content-Type', 'application/json');
-
-    // Handle preflight request
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-
-    let client;
     try {
-      client = await pool.connect();
-      console.log('[Categories API] Database connection established');
+      console.log('[Categories API] Fetching categories...');
 
-      const result = await client.query('SELECT * FROM categories ORDER BY id');
-      console.log('[Categories API] Found categories:', result.rows.length);
+      // Verify database connection
+      const testQuery = await db.execute(sql`SELECT NOW()`);
+      console.log('[Categories API] Database connection test successful');
 
-      return res.json(result.rows);
+      const allCategories = await db.query.categories.findMany({
+        orderBy: [categories.name],
+      });
+
+      console.log('[Categories API] Found categories:', allCategories.length);
+      return res.json(allCategories);
     } catch (error) {
       console.error('[Categories API] Error:', error);
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Unknown database error';
-
       return res.status(500).json({
         message: 'Failed to load categories',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error',
         details: process.env.NODE_ENV === 'development' ? error : undefined
       });
-    } finally {
-      if (client) {
-        client.release();
-        console.log('[Categories API] Database connection released');
-      }
     }
   });
 
