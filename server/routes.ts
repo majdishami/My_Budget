@@ -16,13 +16,9 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/categories', async (req, res) => {
     try {
       console.log("Fetching categories...");
-
       const userCategories = await db.query.categories.findMany({
         orderBy: (categories, { asc }) => [asc(categories.name)],
       });
-
-      console.log("Database Output:", JSON.stringify(userCategories, null, 2));
-
       return res.json(userCategories || []);
     } catch (error) {
       console.error("Error in /api/categories:", error);
@@ -124,9 +120,9 @@ export function registerRoutes(app: Express): Server {
         category_id: transactions.category_id,
         category: categories
       })
-        .from(transactions)
-        .leftJoin(categories, eq(transactions.category_id, categories.id))
-        .orderBy(desc(transactions.date));
+      .from(transactions)
+      .leftJoin(categories, eq(transactions.category_id, categories.id))
+      .orderBy(desc(transactions.date));
 
       const formattedTransactions = allTransactions.map(transaction => ({
         id: transaction.id,
@@ -185,13 +181,13 @@ export function registerRoutes(app: Express): Server {
     try {
       const transactionId = parseInt(req.params.id);
 
-      // Validate and convert date
+      // Validate date format
       const parsedDate = dayjs(req.body.date);
       if (!parsedDate.isValid()) {
         return res.status(400).json({ message: 'Invalid date format' });
       }
 
-      // Get the transaction to update
+      // Get existing transaction
       const transaction = await db.query.transactions.findFirst({
         where: eq(transactions.id, transactionId),
       });
@@ -200,20 +196,19 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Transaction not found' });
       }
 
-      // Convert date string to Date object for database
-      const dateObject = parsedDate.toDate();
-
+      // Update transaction with new values
       const [updatedTransaction] = await db.update(transactions)
         .set({
           description: req.body.description,
           amount: req.body.amount,
-          date: dateObject,
+          date: parsedDate.toDate(), // Convert to Date object for storage
           type: req.body.type,
           category_id: req.body.category_id
         })
         .where(eq(transactions.id, transactionId))
         .returning();
 
+      // Format response
       const response = {
         ...updatedTransaction,
         date: dayjs(updatedTransaction.date).format('YYYY-MM-DD'),
