@@ -77,7 +77,7 @@ const DayCell = memo(({
     <td
       onClick={() => onDayClick(day)}
       className={cn(
-        "border p-0.5 lg:p-2 align-top cursor-pointer transition-colors h-12 md:h-24 lg:h-48 relative touch-manipulation",
+        "border border-yellow-100/50 p-0.5 lg:p-2 align-top cursor-pointer transition-colors h-12 md:h-24 lg:h-48 relative touch-manipulation",
         "hover:bg-accent active:bg-accent/70",
         isCurrentDay && "ring-2 ring-primary ring-offset-2",
         selectedDay === day && "bg-accent/50",
@@ -408,19 +408,19 @@ export function Budget() {
             <thead className="sticky top-0 bg-background z-10">
               <tr>
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                  <th key={day} className="p-0.5 lg:p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
+                  <th key={day} className="p-0.5 lg:p-2 text-center font-medium text-muted-foreground border border-yellow-100/50 w-[14.28%]">
                     {day}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-yellow-100/50">
               {Array.from({ length: 5 }, (_, weekIndex) => (
-                <tr key={weekIndex} className="divide-x">
+                <tr key={weekIndex} className="divide-x divide-yellow-100/50">
                   {Array.from({ length: 7 }, (_, dayIndex) => {
                     const dayNumber = calendarData[weekIndex * 7 + dayIndex];
                     if (dayNumber === null) {
-                      return <td key={dayIndex} className="border p-0.5 lg:p-2 bg-muted/10 h-12 md:h-24 lg:h-48" />;
+                      return <td key={dayIndex} className="border border-yellow-100/50 p-0.5 lg:p-2 bg-muted/10 h-12 md:h-24 lg:h-48" />;
                     }
 
                     const isCurrentDay = 
