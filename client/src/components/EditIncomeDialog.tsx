@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { logger } from "@/lib/logger";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface EditIncomeDialogProps {
   income: Income | null;
@@ -40,42 +42,76 @@ export function EditIncomeDialog({
   const [firstDate, setFirstDate] = useState<number>(1);
   const [secondDate, setSecondDate] = useState<number>(15);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Update form values when income changes
   useEffect(() => {
     if (income) {
       setSource(income.source);
       setAmount(income.amount.toString());
-      setDate(dayjs(income.date).format('YYYY-MM-DD'));
 
-      // Set the correct occurrence type based on the source
+      // Set the correct occurrence type and dates based on the source
       if (income.source === "Majdi's Salary") {
         setOccurrenceType('twice-monthly');
         setFirstDate(1);
         setSecondDate(15);
+        setDate(dayjs().format('YYYY-MM-DD')); // Current date as we don't track specific dates for Majdi
       } else if (income.source === "Ruba's Salary") {
         setOccurrenceType('biweekly');
+        // Find the next bi-weekly Friday from Jan 10, 2025
+        const startDate = dayjs('2025-01-10');
+        const currentDate = dayjs();
+        const weeksDiff = currentDate.diff(startDate, 'week');
+        const nextPayDate = startDate.add(Math.ceil(weeksDiff / 2) * 2, 'week');
+        setDate(nextPayDate.format('YYYY-MM-DD'));
       } else {
         setOccurrenceType(income.occurrenceType || 'monthly');
         if (income.firstDate) setFirstDate(income.firstDate);
         if (income.secondDate) setSecondDate(income.secondDate);
+        setDate(dayjs(income.date).format('YYYY-MM-DD'));
       }
     }
   }, [income]);
 
   const handleOccurrenceTypeChange = (value: 'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly') => {
     setOccurrenceType(value);
+    setError(null);
+
     if (value === 'twice-monthly') {
       const today = dayjs();
       setDate(today.format('YYYY-MM-DD'));
+      setFirstDate(1);
+      setSecondDate(15);
     }
   };
 
+  const validateForm = () => {
+    if (!source.trim()) {
+      setError('Income source is required');
+      return false;
+    }
+
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setError('Please enter a valid amount greater than 0');
+      return false;
+    }
+
+    if (!date && occurrenceType !== 'twice-monthly') {
+      setError('Please select a date');
+      return false;
+    }
+
+    return true;
+  };
+
   const handleConfirm = async () => {
-    if (!income) return;
+    if (!income || !validateForm()) return;
 
     try {
       setIsSubmitting(true);
+      setError(null);
+
       const updatedIncome: Income = {
         ...income,
         source,
@@ -94,6 +130,7 @@ export function EditIncomeDialog({
       logger.info("Successfully updated income", { income: updatedIncome });
     } catch (error) {
       logger.error("Error updating income:", { error });
+      setError('Failed to update income. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -123,10 +160,14 @@ export function EditIncomeDialog({
             <Input
               id="source"
               value={source}
-              onChange={(e) => setSource(e.target.value)}
+              onChange={(e) => {
+                setSource(e.target.value);
+                setError(null);
+              }}
               readOnly={source === "Majdi's Salary" || source === "Ruba's Salary"}
             />
           </div>
+
           <div className="grid gap-2">
             <Label htmlFor="amount">Amount</Label>
             <Input
@@ -134,9 +175,13 @@ export function EditIncomeDialog({
               type="number"
               step="0.01"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setError(null);
+              }}
             />
           </div>
+
           <div className="grid gap-2">
             <Label htmlFor="occurrenceType">Frequency</Label>
             <Select
@@ -156,14 +201,14 @@ export function EditIncomeDialog({
               </SelectContent>
             </Select>
           </div>
-          {occurrenceType === 'twice-monthly' ? (
+
+          {occurrenceType === 'twice-monthly' && !["Majdi's Salary", "Ruba's Salary"].includes(source) ? (
             <div className="space-y-4">
               <div className="grid gap-2">
                 <Label>First payment day of the month</Label>
                 <Select
                   value={firstDate.toString()}
                   onValueChange={(value) => setFirstDate(parseInt(value))}
-                  disabled={source === "Majdi's Salary"}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select day" />
@@ -178,7 +223,6 @@ export function EditIncomeDialog({
                 <Select
                   value={secondDate.toString()}
                   onValueChange={(value) => setSecondDate(parseInt(value))}
-                  disabled={source === "Majdi's Salary"}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select day" />
@@ -189,7 +233,7 @@ export function EditIncomeDialog({
                 </Select>
               </div>
             </div>
-          ) : (
+          ) : source !== "Majdi's Salary" && (
             <div className="grid gap-2">
               <Label htmlFor="date">
                 {occurrenceType === 'once' ? 'Date' : 'Start Date'}
@@ -198,11 +242,28 @@ export function EditIncomeDialog({
                 id="date"
                 type="date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  setError(null);
+                }}
+                disabled={source === "Ruba's Salary"}
               />
+              {source === "Ruba's Salary" && (
+                <p className="text-sm text-muted-foreground">
+                  Bi-weekly on Fridays starting from January 10, 2025
+                </p>
+              )}
             </div>
           )}
+
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
         </div>
+
         <DialogFooter>
           <Button
             variant="outline"
