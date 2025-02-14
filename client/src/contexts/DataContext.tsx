@@ -21,15 +21,7 @@ export interface DataContextType {
   error: Error | null;
 }
 
-const DataContext = createContext<DataContextType | null>(null);
-
-export function useDataContext() {
-  const context = useContext(DataContext);
-  if (!context) {
-    throw new Error("useDataContext must be used within a DataProvider");
-  }
-  return context;
-}
+export const DataContext = createContext<DataContextType | null>(null);
 
 interface DataProviderProps {
   children: ReactNode;
