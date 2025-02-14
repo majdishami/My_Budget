@@ -146,18 +146,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const isIncome = 'source' in transaction;
 
-      // Create the request payload
+      // Create the request payload with proper type handling
       const payload = {
         description: isIncome ? transaction.source : transaction.name,
-        amount: typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount,
-        date: transaction.date,
+        amount: Number(transaction.amount),
+        date: dayjs(transaction.date).format('YYYY-MM-DD'),
         type: isIncome ? 'income' : 'expense',
         category_id: !isIncome && transaction.category_id ? Number(transaction.category_id) : null,
         day: !isIncome ? Number(transaction.day) : undefined,
         recurring_id: !isIncome && !transaction.isOneTime ? 1 : null
       };
 
-      // Log the transaction and payload being sent
       logger.info("Editing transaction - Input:", { 
         transaction,
         isIncome,
@@ -179,7 +178,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           statusText: response.statusText,
           errorData
         });
-        throw new Error(`Failed to edit transaction: ${errorData.message || response.statusText}`);
+        throw new Error(errorData.message || `Failed to edit transaction: ${response.statusText}`);
       }
 
       await loadData(); // Refresh data after editing
