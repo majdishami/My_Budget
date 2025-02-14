@@ -60,7 +60,7 @@ const formatCurrency = (amount: number) => {
 const App = () => {
   // Set today to February 2nd, 2025 for testing purposes
   const today = dayjs('2025-02-02');
-  
+
   // State hooks for managing selection and data
   const [selectedYear, setSelectedYear] = useState(today.year()); // Year selection
   const [selectedMonth, setSelectedMonth] = useState(today.month()); // Month selection
@@ -80,7 +80,7 @@ const App = () => {
   const [showDeleteIncomeDialog, setShowDeleteIncomeDialog] = useState(false); // Dialog state for deleting income confirmation
   const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date()); // State for adding income date
   const [showDailySummary, setShowDailySummary] = useState(false); // Dialog state for daily summary
-  
+
   // Function to close the daily summary dialog
   const closeSummary = () => {
     setShowDayDialog(false);
@@ -146,7 +146,7 @@ const App = () => {
 
     return incomes.filter(income => {
       const incomeDate = dayjs(income.date); // Parse income date
-      
+
       // Special case for Ruba's salary which is bi-weekly
       if (income.source === "Ruba's Salary") {
         // Check if it's a Friday (5 in dayjs)
@@ -533,10 +533,10 @@ const App = () => {
                                       className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1"
                                     >
                                       <span className="truncate max-w-[60%]">
-                                        {index + 1}. {income.source} {/* Display income source */}
+                                        {index + 1}. {income.source}
                                       </span>
                                       <span className="font-medium shrink-0">
-                                        {formatCurrency(income.amount)} {/* Display income amount */}
+                                        {formatCurrency(income.amount)}
                                       </span>
                                     </div>
                                   ))}
@@ -545,19 +545,21 @@ const App = () => {
                               {dayBills.length > 0 && (
                                 <div className="space-y-0.5">
                                   <p className="font-medium text-red-600 dark:text-red-400">Expenses</p>
-                                  {dayBills.map((bill, index) => (
-                                    <div 
-                                      key={bill.id} 
-                                      className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
-                                    >
-                                      <span className="truncate max-w-[60%]">
-                                        {index + 1}. {bill.name} {/* Display bill name */}
-                                      </span>
-                                      <span className="font-medium shrink-0">
-                                        {formatCurrency(bill.amount)} {/* Display bill amount */}
-                                      </span>
-                                    </div>
-                                  ))}
+                                  {[...dayBills]
+                                    .sort((a, b) => b.amount - a.amount) // Sort bills by amount in descending order
+                                    .map((bill, index) => (
+                                      <div 
+                                        key={bill.id} 
+                                        className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
+                                      >
+                                        <span className="truncate max-w-[60%]">
+                                          {index + 1}. {bill.name}
+                                        </span>
+                                        <span className="font-medium shrink-0">
+                                          {formatCurrency(bill.amount)}
+                                        </span>
+                                      </div>
+                                    ))}
                                 </div>
                               )}
                             </div>
