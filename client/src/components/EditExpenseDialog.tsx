@@ -1,3 +1,6 @@
+/**
+ * EditExpenseDialog component handles editing an existing expense
+ */
 import {
   Dialog,
   DialogContent,
