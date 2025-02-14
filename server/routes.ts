@@ -8,7 +8,7 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import dayjs from 'dayjs';
 import { bills, insertBillSchema } from "@db/schema";
-import { setupAuth, requireAuth } from './auth';
+import { setupAuth } from './auth';
 
 // Import other routes
 import syncRoutes from './routes/sync';
@@ -16,25 +16,18 @@ import syncRoutes from './routes/sync';
 export function registerRoutes(app: Express): Server {
   console.log('[Server] Starting route registration...');
 
-  // Set up authentication first
+  // Set up authentication but don't enforce it yet
   setupAuth(app);
 
   // Register sync routes
   app.use(syncRoutes);
 
-  // Protected Routes
-  app.get('/api/transactions', requireAuth, async (req, res) => {
+  // Transactions Routes - no auth required temporarily
+  app.get('/api/transactions', async (req, res) => {
     try {
       console.log('[Transactions API] Fetching transactions...');
-      const type = req.query.type as string | undefined;
-      const userId = (req.user as any).id;
-
-      console.log('[Transactions API] User ID:', userId);
-      console.log('[Transactions API] Type filter:', type);
-
       const allTransactions = await db.select()
         .from(transactions)
-        .where(eq(transactions.user_id, userId))
         .orderBy(desc(transactions.date));
 
       console.log('[Transactions API] Found transactions:', allTransactions.length);
@@ -48,8 +41,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Categories Routes with authentication
-  app.get('/api/categories', requireAuth, async (req, res) => {
+  // Categories Routes - no auth required temporarily
+  app.get('/api/categories', async (req, res) => {
     try {
       console.log('[Categories API] Fetching categories...');
       const allCategories = await db.query.categories.findMany({
@@ -65,13 +58,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
-  app.post('/api/transactions', requireAuth, async (req, res) => {
+  app.post('/api/transactions', async (req, res) => {
     try {
-      const userId = (req.user as any).id;
       const transactionData = await insertTransactionSchema.parseAsync({
         ...req.body,
-        user_id: userId,
+        user_id: 1, // Temporary default user ID
       });
 
       const [newTransaction] = await db.insert(transactions)
@@ -87,26 +78,15 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch('/api/transactions/:id', requireAuth, async (req, res) => {
+  app.patch('/api/transactions/:id', async (req, res) => {
     try {
-      const userId = (req.user as any).id;
       const transactionId = parseInt(req.params.id);
 
-      console.log('[Transactions API] Updating transaction:', {
-        id: transactionId,
-        userId,
-        body: req.body
-      });
-
       const transaction = await db.query.transactions.findFirst({
-        where: and(
-          eq(transactions.id, transactionId),
-          eq(transactions.user_id, userId)
-        ),
+        where: eq(transactions.id, transactionId),
       });
 
       if (!transaction) {
-        console.log('[Transactions API] Transaction not found:', { transactionId, userId });
         return res.status(404).json({ message: 'Transaction not found' });
       }
 
@@ -116,40 +96,29 @@ export function registerRoutes(app: Express): Server {
         date: req.body.date,
         type: req.body.type,
         category_id: req.body.category_id ? parseInt(req.body.category_id) : null,
-        user_id: userId
+        user_id: 1 // Temporary default user ID
       };
-
-      console.log('[Transactions API] Update data:', updateData);
 
       const [updatedTransaction] = await db.update(transactions)
         .set(updateData)
-        .where(and(
-          eq(transactions.id, transactionId),
-          eq(transactions.user_id, userId)
-        ))
+        .where(eq(transactions.id, transactionId))
         .returning();
 
-      console.log('[Transactions API] Updated transaction:', updatedTransaction);
       res.json(updatedTransaction);
     } catch (error) {
-      console.error('[Transactions API] Error updating transaction:', error);
+      console.error('Error updating transaction:', error);
       res.status(400).json({
-        message: error instanceof Error ? error.message : 'Invalid request data',
-        details: error instanceof Error ? error.stack : undefined
+        message: error instanceof Error ? error.message : 'Invalid request data'
       });
     }
   });
 
-  app.delete('/api/transactions/:id', requireAuth, async (req, res) => {
+  app.delete('/api/transactions/:id', async (req, res) => {
     try {
-      const userId = (req.user as any).id;
       const transactionId = parseInt(req.params.id);
 
       const transaction = await db.query.transactions.findFirst({
-        where: and(
-          eq(transactions.id, transactionId),
-          eq(transactions.user_id, userId)
-        ),
+        where: eq(transactions.id, transactionId),
       });
 
       if (!transaction) {
@@ -157,10 +126,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       await db.delete(transactions)
-        .where(and(
-          eq(transactions.id, transactionId),
-          eq(transactions.user_id, userId)
-        ));
+        .where(eq(transactions.id, transactionId));
 
       res.status(204).send();
     } catch (error) {
@@ -169,9 +135,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
-  // Bills Routes
-  app.get('/api/bills', requireAuth, async (req, res) => {
+  // Bills Routes - no auth required temporarily
+  app.get('/api/bills', async (req, res) => {
     try {
       console.log('[Bills API] Fetching bills...');
 
@@ -210,12 +175,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post('/api/bills', requireAuth, async (req, res) => {
+  app.post('/api/bills', async (req, res) => {
     try {
-      const userId = (req.user as any).id;
       const billData = await insertBillSchema.parseAsync({
         ...req.body,
-        user_id: userId,
+        user_id: 1 // Temporary default user ID
       });
 
       const [newBill] = await db.insert(bills)
