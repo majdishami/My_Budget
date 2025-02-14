@@ -128,9 +128,9 @@ DayCell.displayName = 'DayCell';
 
 export function Budget() {
   const { incomes, bills, isLoading, error } = useData();
-  const today = useMemo(() => dayjs(), []); // Memoize today's date
+  const today = useMemo(() => dayjs('2025-02-13'), []); 
   const [selectedDay, setSelectedDay] = useState(today.date());
-  const [selectedMonth, setSelectedMonth] = useState(today.month());
+  const [selectedMonth, setSelectedMonth] = useState(today.month() + 1); 
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [showDailySummary, setShowDailySummary] = useState(false);
 
@@ -140,20 +140,20 @@ export function Budget() {
       value: i,
       label: dayjs().month(i).format('MMMM')
     })), 
-  []); // Empty dependency array as this never changes
+  []); 
 
   const years = useMemo(() => 
     Array.from({ length: 11 }, (_, i) => ({
       value: today.year() - 5 + i,
       label: (today.year() - 5 + i).toString()
     })), 
-  [today]); // Only depends on today
+  [today]); 
 
   // Optimize calendar data calculation
   const calendarData = useMemo(() => {
     const firstDayOfMonth = dayjs()
       .year(selectedYear)
-      .month(selectedMonth)
+      .month(selectedMonth -1)
       .startOf("month");
     const lastDayOfMonth = firstDayOfMonth.endOf("month");
     const firstDayIndex = firstDayOfMonth.day();
@@ -163,11 +163,11 @@ export function Budget() {
       const day = index - firstDayIndex + 1;
       return day >= 1 && day <= totalDaysInMonth ? day : null;
     });
-  }, [selectedYear, selectedMonth]); // Only recalculate when month or year changes
+  }, [selectedYear, selectedMonth]); 
 
   // Memoize monthly income occurrences calculation
   const monthlyIncomeOccurrences = useMemo(() => {
-    const currentDate = dayjs().year(selectedYear).month(selectedMonth - 1); // Adjust for 0-based months
+    const currentDate = dayjs().year(selectedYear).month(selectedMonth - 1); 
     const startOfMonth = currentDate.startOf('month');
     const endOfMonth = currentDate.endOf('month');
     const occurrences: Income[] = [];
@@ -198,21 +198,23 @@ export function Budget() {
     return occurrences;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // Update the getIncomeForDay and getBillsForDay functions
+  // Update the getIncomeForDay function
   const getIncomeForDay = useCallback((day: number) => {
     console.log('Getting income for day:', { day, selectedMonth, selectedYear });
     const incomeForDay = incomes.filter(income => {
-      const incomeDate = dayjs(income.date);
-      const matches = incomeDate.date() === day && 
-             incomeDate.month() === (selectedMonth - 1) && 
-             incomeDate.year() === selectedYear;
+      const incomeDate = dayjs(income.date).startOf('day');
+      const targetDate = dayjs()
+        .year(selectedYear)
+        .month(selectedMonth - 1)
+        .date(day)
+        .startOf('day');
+
+      const matches = incomeDate.isSame(targetDate, 'day');
 
       console.log('Income date check:', {
         income,
-        date: incomeDate.format(),
-        day: incomeDate.date(),
-        month: incomeDate.month(),
-        year: incomeDate.year(),
+        incomeDate: incomeDate.format(),
+        targetDate: targetDate.format(),
         matches
       });
 
@@ -222,20 +224,23 @@ export function Budget() {
     return incomeForDay;
   }, [incomes, selectedYear, selectedMonth]);
 
+  // Update the getBillsForDay function
   const getBillsForDay = useCallback((day: number) => {
     console.log('Getting bills for day:', { day, selectedMonth, selectedYear });
     const billsForDay = bills.filter(bill => {
-      const billDate = dayjs(bill.date);
-      const matches = billDate.date() === day && 
-             billDate.month() === (selectedMonth - 1) && 
-             billDate.year() === selectedYear;
+      const billDate = dayjs(bill.date).startOf('day');
+      const targetDate = dayjs()
+        .year(selectedYear)
+        .month(selectedMonth - 1)
+        .date(day)
+        .startOf('day');
+
+      const matches = billDate.isSame(targetDate, 'day');
 
       console.log('Bill date check:', {
         bill,
-        date: billDate.format(),
-        day: billDate.date(),
-        month: billDate.month(),
-        year: billDate.year(),
+        billDate: billDate.format(),
+        targetDate: targetDate.format(),
         matches
       });
 
@@ -294,7 +299,7 @@ export function Budget() {
     let totalIncome = 0;
     let totalBills = 0;
 
-    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
+    const targetDate = dayjs().year(selectedYear).month(selectedMonth -1).date(day);
 
     monthlyIncomeOccurrences.forEach(income => {
       const incomeDate = dayjs(income.date);
@@ -320,13 +325,13 @@ export function Budget() {
   // Handle month and year changes with validation
   const handleMonthChange = useCallback((month: number) => {
     setSelectedMonth(month);
-    const days = dayjs().year(selectedYear).month(month).daysInMonth();
+    const days = dayjs().year(selectedYear).month(month -1).daysInMonth();
     setSelectedDay(Math.min(selectedDay, days));
   }, [selectedYear, selectedDay]);
 
   const handleYearChange = useCallback((year: number) => {
     setSelectedYear(year);
-    const days = dayjs().year(year).month(selectedMonth).daysInMonth();
+    const days = dayjs().year(year).month(selectedMonth -1).daysInMonth();
     setSelectedDay(Math.min(selectedDay, days));
   }, [selectedMonth, selectedDay]);
 
@@ -364,7 +369,7 @@ export function Budget() {
           <div className="flex items-center gap-1 md:gap-2">
             <select 
               value={selectedMonth}
-              onChange={(e) => handleMonthChange(parseInt(e.target.value))}
+              onChange={(e) => handleMonthChange(parseInt(e.target.value) + 1)}
               className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w-[120px] text-xs md:text-base"
               aria-label="Select month"
             >
@@ -388,7 +393,7 @@ export function Budget() {
               ))}
             </select>
 
-            {selectedMonth === today.month() && selectedYear === today.year() && (
+            {selectedMonth === today.month() + 1 && selectedYear === today.year() && (
               <span className="text-[10px] md:text-sm text-muted-foreground ml-1 md:ml-2">
                 {today.format('ddd')}, {today.format('D')}
               </span>
@@ -447,7 +452,7 @@ export function Budget() {
 
                     const isCurrentDay = 
                       dayNumber === today.date() && 
-                      selectedMonth === today.month() && 
+                      selectedMonth === today.month() + 1 && 
                       selectedYear === today.year();
 
                     return (

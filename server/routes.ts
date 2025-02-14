@@ -287,12 +287,12 @@ export function registerRoutes(app: Express): Server {
       console.log('[Transactions API] Raw transactions:', allTransactions);
 
       const formattedTransactions = allTransactions.map(transaction => {
-        const transactionDate = dayjs(transaction.date);
+        const transactionDate = dayjs(transaction.date).startOf('day');
         const formatted = {
           id: transaction.id,
           description: transaction.description,
-          amount: Number(transaction.amount), // Ensure amount is a number
-          date: transactionDate.format(), // Use ISO format
+          amount: Number(transaction.amount),
+          date: transactionDate.toISOString(), // Use ISO string for consistent timezone handling
           type: transaction.type,
           category_id: transaction.category_id,
           category_name: transaction.category?.name || 'Uncategorized',

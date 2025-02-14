@@ -51,12 +51,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
         .map((t: any) => {
-          const parsedDate = dayjs(t.date);
+          const parsedDate = dayjs(t.date).startOf('day');
           const income = {
             id: t.id.toString(),
             source: t.description,
             amount: parseFloat(t.amount),
-            date: parsedDate.toISOString(), // Use ISO string for consistent timezone handling
+            date: parsedDate.toISOString(),
             occurrenceType: t.recurring_id ? 'recurring' : 'once'
           };
           console.log('[DataContext] Processed income:', income);
@@ -70,12 +70,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
         .map((t: any) => {
-          const parsedDate = dayjs(t.date);
+          const parsedDate = dayjs(t.date).startOf('day');
           const bill = {
             id: t.id.toString(),
             name: t.description,
             amount: parseFloat(t.amount),
-            date: parsedDate.toISOString(), // Use ISO string for consistent timezone handling
+            date: parsedDate.toISOString(),
             isOneTime: !t.recurring_id,
             day: parsedDate.date()
           };
