@@ -8,9 +8,6 @@ import path from "path";
 import fileUpload from 'express-fileupload';
 import cors from 'cors';
 import morgan from 'morgan';
-import { db } from "@db";
-import { categories } from "@db/schema";
-import { sql } from "drizzle-orm";
 
 const app = express();
 
@@ -59,9 +56,10 @@ app.use(fileUpload({
   abortOnLimit: true,
   uploadTimeout: 30000, // 30 seconds
   createParentPath: true,
+  // Additional security settings
   defParamCharset: 'utf8',
   responseOnLimit: 'File size limit has been reached',
-  parseNested: false
+  parseNested: false // Prevent deeply nested form data
 }));
 
 // Enable trust proxy for secure cookies when behind Replit's proxy
@@ -71,6 +69,14 @@ app.enable('trust proxy');
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+
+  if (req.files) {
+    const fileInfo = Object.entries(req.files).map(([key, file]) => ({
+      fieldName: key,
+      originalName: Array.isArray(file) ? file.map(f => f.name) : file.name
+    }));
+    log(`Files received: ${JSON.stringify(fileInfo)}`);
+  }
 
   log(`[${req.method}] ${path} from ${req.ip}`);
   if (Object.keys(req.query).length > 0) {
@@ -94,20 +100,6 @@ app.use(syncRouter);
 (async () => {
   try {
     console.log('Starting server initialization...');
-
-    // Test database connection before starting server
-    try {
-      // Check if we can query the database
-      const categoryCount = await db.select({
-        count: sql<number>`count(*)`.mapWith(Number)
-      }).from(categories);
-
-      console.log('Database connection established successfully');
-      console.log('Categories table contains', categoryCount[0]?.count || 0, 'rows');
-    } catch (dbError) {
-      console.error('Database connection error:', dbError);
-      process.exit(1);
-    }
 
     // Initialize routes
     const server = registerRoutes(app);
@@ -139,6 +131,11 @@ app.use(syncRouter);
     const isReplit = process.env.REPL_ID !== undefined;
     const PORT = parseInt(process.env.PORT || (isReplit ? '5000' : '5001'));
     const HOST = '0.0.0.0';
+
+    // Add graceful startup logging
+    console.log('Environment:', app.get("env"));
+    console.log('Trust proxy:', app.get('trust proxy'));
+    console.log(`Starting server on ${HOST}:${PORT}`);
 
     server.listen(PORT, HOST, () => {
       console.log(`Server is running at http://${HOST}:${PORT}`);

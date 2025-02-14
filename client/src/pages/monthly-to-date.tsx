@@ -40,25 +40,6 @@ export default function MonthlyToDateReport() {
       setError(null);
       const mockTransactions: Transaction[] = [];
 
-      // Add Monthly Expenses for February
-      const monthlyExpenses = [
-        { description: 'ATT Phone Bill', amount: 429, date: 1 },
-        { description: "Maid's 1st payment", amount: 120, date: 1 },
-        { description: 'Monthly Rent', amount: 3750, date: 1 },
-        { description: 'Sling TV', amount: 75, date: 3 },
-        { description: 'Cox Internet', amount: 81, date: 6 },
-        { description: 'Water Bill', amount: 80, date: 7 },
-        { description: 'NV Energy Electrical', amount: 250, date: 7 },
-        { description: 'TransAmerica Life Insurance', amount: 77, date: 9 },
-        { description: 'Credit Card minimum payments', amount: 225, date: 14 },
-        { description: 'Apple/Google/YouTube', amount: 130, date: 14 },
-        { description: 'Expenses & Groceries', amount: 3000, date: 16 },
-        { description: "Maid's 2nd Payment", amount: 120, date: 17 },
-        { description: 'SoFi Personal Loan', amount: 1915, date: 17 },
-        { description: 'Southwest Gas', amount: 75, date: 17 },
-        { description: 'Car Insurance for 3 cars', amount: 704, date: 28 }
-      ];
-
       // Add Majdi's salary occurrences
       const majdiPayDates = ['01', '15'];
       majdiPayDates.forEach(day => {
@@ -82,6 +63,25 @@ export default function MonthlyToDateReport() {
           type: 'income'
         });
       }
+
+      // Add Monthly Expenses for February
+      const monthlyExpenses = [
+        { description: 'ATT Phone Bill', amount: 429, date: 1 },
+        { description: "Maid's 1st payment", amount: 120, date: 1 },
+        { description: 'Monthly Rent', amount: 3750, date: 1 },
+        { description: 'Sling TV', amount: 75, date: 3 },
+        { description: 'Cox Internet', amount: 81, date: 6 },
+        { description: 'Water Bill', amount: 80, date: 7 },
+        { description: 'NV Energy Electrical', amount: 250, date: 7 },
+        { description: 'TransAmerica Life Insurance', amount: 77, date: 9 },
+        { description: 'Credit Card minimum payments', amount: 225, date: 14 },
+        { description: 'Apple/Google/YouTube', amount: 130, date: 14 },
+        { description: 'Expenses & Groceries', amount: 3000, date: 16 },
+        { description: "Maid's 2nd Payment", amount: 120, date: 17 },
+        { description: 'SoFi Personal Loan', amount: 1915, date: 17 },
+        { description: 'Southwest Gas', amount: 75, date: 17 },
+        { description: 'Car Insurance for 3 cars', amount: 704, date: 28 }
+      ];
 
       monthlyExpenses.forEach(expense => {
         if (today.date() >= expense.date) {
@@ -136,9 +136,9 @@ export default function MonthlyToDateReport() {
       <div className="container mx-auto p-4 text-center">
         <div className="bg-red-50 text-red-800 p-4 rounded-md">
           <p>{error}</p>
-          <Button
-            onClick={() => window.location.reload()}
-            variant="outline"
+          <Button 
+            onClick={() => window.location.reload()} 
+            variant="outline" 
             className="mt-4"
           >
             Retry

@@ -189,8 +189,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
     }
 
-    const startDate = dayjs(date.from).startOf('day');
-    const endDate = dayjs(date.to).endOf('day');
+    const startDate = dayjs(date.from);
+    const endDate = dayjs(date.to);
     const result: Transaction[] = [];
 
     // Generate transactions for each bill
@@ -202,9 +202,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
 
       // Generate all occurrences within the date range
-      let currentDate = startDate.clone().startOf('month').set('date', bill.day);
+      let currentDate = startDate.clone().startOf('month').date(bill.day);
 
-      // Adjust for timezone to prevent date shifting
+      // If the first occurrence is before the start date, move to next month
       if (currentDate.isBefore(startDate)) {
         currentDate = currentDate.add(1, 'month');
       }
@@ -213,7 +213,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         // Only add if the occurrence falls within the date range
         if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
           result.push({
-            id: `${bill.id}-${currentDate.format('YYYY-MM-DD')}`,
+            id: `${bill.id}-${currentDate.format('YYYY-MM-DD')}`, // Added unique ID
             date: currentDate.format('YYYY-MM-DD'),
             description: bill.name,
             amount: billAmount,
