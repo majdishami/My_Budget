@@ -50,48 +50,38 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Process incomes
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
-        .map((t: any) => {
-          const parsedDate = dayjs(t.date).startOf('day');
-          const income = {
-            id: t.id.toString(),
-            source: t.description,
-            amount: parseFloat(t.amount),
-            date: parsedDate.toISOString(),
-            occurrenceType: t.recurring_type || 'once',
-            firstDate: t.first_date,
-            secondDate: t.second_date
-          };
-          return income;
-        });
+        .map((t: any) => ({
+          id: t.id.toString(),
+          source: t.description,
+          amount: parseFloat(t.amount),
+          date: dayjs(t.date).format('YYYY-MM-DD'),
+          occurrenceType: t.recurring_type || 'once',
+          firstDate: t.first_date,
+          secondDate: t.second_date
+        }));
 
       setIncomes(loadedIncomes);
 
       // Process bills/expenses
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
-        .map((t: any) => {
-          const parsedDate = dayjs(t.date).startOf('day');
-          const bill = {
-            id: t.id.toString(),
-            name: t.description,
-            amount: parseFloat(t.amount),
-            date: parsedDate.toISOString(),
-            isOneTime: !t.recurring_id,
-            day: parsedDate.date(),
-            category_id: t.category_id,
-            category_name: t.category_name,
-            category_color: t.category_color,
-            category_icon: t.category_icon,
-            category: t.category_id ? {
-              name: t.category_name,
-              color: t.category_color,
-              icon: t.category_icon
-            } : undefined,
-            reminderEnabled: t.reminder_enabled,
-            reminderDays: t.reminder_days
-          };
-          return bill;
-        });
+        .map((t: any) => ({
+          id: t.id.toString(),
+          name: t.description,
+          amount: parseFloat(t.amount),
+          date: dayjs(t.date).format('YYYY-MM-DD'),
+          isOneTime: !t.recurring_id,
+          day: dayjs(t.date).date(),
+          category_id: t.category_id,
+          category_name: t.category_name,
+          category_color: t.category_color,
+          category_icon: t.category_icon,
+          category: t.category_id ? {
+            name: t.category_name,
+            color: t.category_color,
+            icon: t.category_icon
+          } : undefined
+        }));
 
       setBills(loadedBills);
     } catch (error) {
@@ -117,11 +107,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           description: income.source,
           amount: income.amount,
-          date: income.date,
-          type: 'income',
-          recurring_type: income.occurrenceType,
-          first_date: income.firstDate,
-          second_date: income.secondDate
+          date: dayjs(income.date).format('YYYY-MM-DD'),
+          type: 'income'
         }),
       });
 
@@ -154,11 +141,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           description: bill.name,
           amount: bill.amount,
-          date: bill.date,
+          date: dayjs(bill.date).format('YYYY-MM-DD'),
           type: 'expense',
-          category_id: bill.category_id,
-          reminder_enabled: bill.reminderEnabled,
-          reminder_days: bill.reminderDays
+          category_id: bill.category_id
         }),
       });
 
@@ -215,23 +200,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         type: isIncome ? 'income' : 'expense'
       });
 
+      // Format the transaction data
+      const transactionData = {
+        description: isIncome ? transaction.source : transaction.name,
+        amount: transaction.amount,
+        date: dayjs(transaction.date).format('YYYY-MM-DD'),
+        type: isIncome ? 'income' : 'expense',
+        category_id: !isIncome ? (transaction as Bill).category_id : undefined
+      };
+
+      logger.info("[DataContext] Formatted transaction data:", transactionData);
+
       const response = await fetch(`/api/transactions/${transaction.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          description: isIncome ? transaction.source : transaction.name,
-          amount: transaction.amount,
-          date: transaction.date,
-          type: isIncome ? 'income' : 'expense',
-          recurring_type: isIncome ? transaction.occurrenceType : undefined,
-          first_date: isIncome ? transaction.firstDate : undefined,
-          second_date: isIncome ? transaction.secondDate : undefined,
-          category_id: !isIncome ? (transaction as Bill).category_id : undefined,
-          reminder_enabled: !isIncome ? (transaction as Bill).reminderEnabled : undefined,
-          reminder_days: !isIncome ? (transaction as Bill).reminderDays : undefined
-        }),
+        body: JSON.stringify(transactionData),
       });
 
       const responseData = await response.json().catch(() => ({}));
