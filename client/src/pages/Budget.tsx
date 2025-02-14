@@ -356,7 +356,7 @@ export function Budget() {
 
   // Update the current day detection
   const isCurrentDay = useCallback((dayNumber: number) => {
-    const now = dayjs('2025-02-14');
+    const now = dayjs(); //Corrected to get the current date.
     return dayNumber === now.date() && 
            selectedMonth === now.month() && 
            selectedYear === now.year();
