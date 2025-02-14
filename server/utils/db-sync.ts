@@ -91,7 +91,8 @@ export async function restoreDatabaseBackup(backupFile: string) {
       }
 
       // Process tables in a specific order to handle foreign key constraints
-      const tableOrder = ['categories', 'transactions', 'bills'];
+      const tableOrder = ['categories', 'bills'];
+      const processedCategories = new Set<number>();
 
       for (const tablename of tableOrder) {
         if (!backupData[tablename]) {
@@ -124,6 +125,27 @@ export async function restoreDatabaseBackup(backupFile: string) {
               }));
 
             console.log(`Table ${tablename} columns:`, columns.map(c => c.name));
+
+            // For categories table, store the IDs for foreign key validation
+            if (tablename === 'categories') {
+              backupData[tablename].forEach((record: any) => {
+                if (record.id) {
+                  processedCategories.add(record.id);
+                }
+              });
+            }
+
+            // Filter out bills with invalid category_ids
+            if (tablename === 'bills') {
+              const validBills = backupData[tablename].filter((bill: any) => {
+                const isValid = processedCategories.has(bill.category_id);
+                if (!isValid) {
+                  console.log(`Skipping bill with invalid category_id: ${bill.category_id}`);
+                }
+                return isValid;
+              });
+              backupData[tablename] = validBills;
+            }
 
             // Insert records in batches
             const batchSize = 100;
