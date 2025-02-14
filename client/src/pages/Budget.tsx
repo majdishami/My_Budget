@@ -182,12 +182,16 @@ export function Budget() {
       .month(selectedMonth)
       .date(day);
 
-    if (currentDate.day() === 5) { // Only Fridays
-      const startDate = dayjs('2025-01-10'); // Reference start date
-      const weeksDiff = currentDate.diff(startDate, 'week');
+    // Only process if it's a Friday
+    if (currentDate.day() === 5) {
+      const startDate = dayjs('2025-01-10'); // First payment date
 
-      // Only include if it's a valid payday (every other Friday from the start date)
-      if (weeksDiff >= 0 && weeksDiff % 2 === 0 && !uniqueIncomes.has("Ruba's Salary")) {
+      // Calculate if this is a valid payday by checking the exact number of weeks
+      // from the start date
+      const weeksDiff = Math.floor(currentDate.diff(startDate, 'days') / 7);
+
+      // Only include if the date is on or after start date and matches biweekly pattern
+      if (currentDate.isSameOrAfter(startDate) && weeksDiff % 2 === 0) {
         const rubaSalary = {
           id: `ruba-${currentDate.format('YYYY-MM-DD')}`,
           source: "Ruba's Salary",
