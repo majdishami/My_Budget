@@ -61,7 +61,9 @@ const DayCell = memo(({
   selectedDay,
   dayIncomes,
   dayBills,
-  onDayClick 
+  onDayClick,
+  selectedMonth,
+  selectedYear 
 }: { 
   day: number;
   isCurrentDay: boolean;
@@ -69,9 +71,12 @@ const DayCell = memo(({
   dayIncomes: Income[];
   dayBills: Bill[];
   onDayClick: (day: number) => void;
+  selectedMonth: number;
+  selectedYear: number;
 }) => {
   const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
-  const dayOfWeek = dayjs().date(day).format('ddd');
+  const dayDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
+  const dayOfWeek = dayDate.format('ddd');
 
   return (
     <td
@@ -493,6 +498,8 @@ export function Budget() {
                         dayIncomes={getIncomeForDay(dayNumber)}
                         dayBills={getBillsForDay(dayNumber)}
                         onDayClick={handleDayClick}
+                        selectedMonth={selectedMonth}
+                        selectedYear={selectedYear}
                       />
                     );
                   })}
