@@ -330,8 +330,8 @@ export function Budget() {
 
   // Update the calendarData calculation
   const calendarData = useMemo(() => {
-    // Create date object for the first of the selected month
-    const firstDayDate = dayjs(`${selectedYear}-${selectedMonth + 1}-01`);
+    // Create date object for the first of the selected month using proper dayjs methods
+    const firstDayDate = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
     const daysInMonth = firstDayDate.daysInMonth();
     const startWeekday = firstDayDate.day(); // 0-6, Sunday-Saturday
 
