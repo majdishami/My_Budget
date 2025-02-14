@@ -69,12 +69,14 @@ export async function restoreDatabaseBackup(backupFile: string) {
       }
 
       const backupContent = fs.readFileSync(backupFile, 'utf-8');
-      console.log('Reading backup file content...');
-
       let backupData: Record<string, any[]>;
+
       try {
         backupData = JSON.parse(backupContent);
-        console.log('Tables found in backup:', Object.keys(backupData));
+        if (!backupData.categories || !backupData.bills) {
+          throw new Error('Invalid backup structure');
+        }
+        console.log('Backup data validated successfully');
       } catch (parseError) {
         throw new Error(`Invalid backup file format: ${parseError instanceof Error ? parseError.message : 'Parse error'}`);
       }
@@ -96,32 +98,33 @@ export async function restoreDatabaseBackup(backupFile: string) {
 
         // Insert categories and collect their new IDs
         for (const category of backupData.categories) {
-          const result = await tx.execute(sql`
-            INSERT INTO categories (name, color, icon, user_id, created_at)
-            VALUES (
-              ${category.name},
-              ${category.color},
-              ${category.icon || null},
-              ${category.user_id || null},
-              ${category.created_at}::timestamp
-            )
-            RETURNING id
-          `);
+          try {
+            const result = await tx.execute(sql`
+              INSERT INTO categories (name, color, icon, user_id, created_at)
+              VALUES (
+                ${category.name},
+                ${category.color},
+                ${category.icon || null},
+                ${category.user_id || null},
+                ${category.created_at}::timestamp
+              )
+              RETURNING id
+            `);
 
-          // Handle different result formats
-          let newId: number | undefined;
-          if (Array.isArray(result) && result[0]) {
-            newId = result[0].id;
-          } else if (result.rows?.[0]) {
-            newId = result.rows[0].id;
+            const newId = Array.isArray(result) && result[0]?.id
+              ? result[0].id
+              : result.rows?.[0]?.id;
+
+            if (typeof newId !== 'number') {
+              throw new Error(`Failed to get new ID for category ${category.id}`);
+            }
+
+            categoryIdMap.set(category.id, newId);
+            console.log(`Mapped category ${category.id} to ${newId}`);
+          } catch (insertError) {
+            console.error('Error inserting category:', category, insertError);
+            throw insertError;
           }
-
-          if (typeof newId !== 'number') {
-            throw new Error(`Failed to get new ID for category ${category.id}`);
-          }
-
-          categoryIdMap.set(category.id, newId);
-          console.log(`Mapped category ${category.id} to ${newId}`);
         }
 
         // Process bills next
@@ -139,17 +142,22 @@ export async function restoreDatabaseBackup(backupFile: string) {
               continue;
             }
 
-            await tx.execute(sql`
-              INSERT INTO bills (name, amount, day, category_id, user_id, created_at)
-              VALUES (
-                ${bill.name},
-                ${bill.amount}::numeric,
-                ${bill.day},
-                ${newCategoryId},
-                ${bill.user_id || null},
-                ${bill.created_at}::timestamp
-              )
-            `);
+            try {
+              await tx.execute(sql`
+                INSERT INTO bills (name, amount, day, category_id, user_id, created_at)
+                VALUES (
+                  ${bill.name},
+                  ${bill.amount}::numeric,
+                  ${bill.day},
+                  ${newCategoryId},
+                  ${bill.user_id || null},
+                  ${bill.created_at}::timestamp
+                )
+              `);
+            } catch (insertError) {
+              console.error('Error inserting bill:', bill, insertError);
+              throw insertError;
+            }
           }
         }
 

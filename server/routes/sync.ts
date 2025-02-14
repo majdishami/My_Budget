@@ -77,8 +77,18 @@ router.post('/api/sync/restore', async (req, res) => {
     // Validate file content
     try {
       const fileContent = uploadedFile.data.toString('utf-8');
-      JSON.parse(fileContent); // Verify it's valid JSON
+      const parsedData = JSON.parse(fileContent);
+
+      // Validate backup structure
+      if (!parsedData.categories || !Array.isArray(parsedData.categories)) {
+        return res.status(400).json({ error: 'Invalid backup format: missing categories array' });
+      }
+
+      if (!parsedData.bills || !Array.isArray(parsedData.bills)) {
+        return res.status(400).json({ error: 'Invalid backup format: missing bills array' });
+      }
     } catch (parseError) {
+      console.error('JSON parse error:', parseError);
       return res.status(400).json({ error: 'Invalid JSON file content' });
     }
 
