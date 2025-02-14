@@ -37,17 +37,30 @@ export function EditIncomeDialog({
 }: EditIncomeDialogProps) {
   const [source, setSource] = useState('');
   const [amount, setAmount] = useState('');
+  const [date, setDate] = useState('');
   const [occurrenceType, setOccurrenceType] = useState<'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly'>('once');
   const [firstDate, setFirstDate] = useState<number>(1);
   const [secondDate, setSecondDate] = useState<number>(15);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Format the date display for incomes
+  const formatIncomeDisplay = (income: Income) => {
+    if (income.source === "Majdi's Salary") {
+      return "Twice Monthly";
+    }
+    if (income.source === "Ruba's Salary") {
+      return "Bi-Weekly";
+    }
+    return dayjs(income.date).format('MMM D, YYYY');
+  };
+
   // Update form values when income changes
   useEffect(() => {
     if (income) {
       setSource(income.source);
       setAmount(income.amount.toString());
+      setDate(dayjs(income.date).format('YYYY-MM-DD'));
 
       if (income.source === "Majdi's Salary") {
         setOccurrenceType('twice-monthly');
@@ -55,13 +68,7 @@ export function EditIncomeDialog({
         setSecondDate(15);
       } else if (income.source === "Ruba's Salary") {
         setOccurrenceType('biweekly');
-        // Calculate next bi-weekly Friday from 2025-01-10
-        const startDate = dayjs('2025-01-10');
-        const currentDate = dayjs();
-        const weeksDiff = currentDate.diff(startDate, 'week');
-        const nextBiWeeklyFriday = startDate.add(Math.ceil(weeksDiff / 2) * 2, 'week');
       } else {
-        // For other incomes, use their actual occurrence type
         setOccurrenceType(income.occurrenceType || 'once');
         if (income.firstDate) setFirstDate(income.firstDate);
         if (income.secondDate) setSecondDate(income.secondDate);
@@ -95,30 +102,19 @@ export function EditIncomeDialog({
         ...income,
         source,
         amount: parseFloat(amount),
+        date: dayjs(date).toISOString(),
+        occurrenceType
       };
 
-      // For Majdi's salary, keep the fixed dates
       if (source === "Majdi's Salary") {
         updatedIncome.firstDate = 1;
         updatedIncome.secondDate = 15;
         updatedIncome.occurrenceType = 'twice-monthly';
-      } 
-      // For Ruba's salary, calculate next bi-weekly Friday
-      else if (source === "Ruba's Salary") {
-        const startDate = dayjs('2025-01-10');
-        const currentDate = dayjs();
-        const weeksDiff = currentDate.diff(startDate, 'week');
-        const nextBiWeeklyFriday = startDate.add(Math.ceil(weeksDiff / 2) * 2, 'week');
-        updatedIncome.date = nextBiWeeklyFriday.toISOString();
+      } else if (source === "Ruba's Salary") {
         updatedIncome.occurrenceType = 'biweekly';
-      }
-      // For other incomes
-      else {
-        updatedIncome.occurrenceType = occurrenceType;
-        if (occurrenceType === 'twice-monthly') {
-          updatedIncome.firstDate = firstDate;
-          updatedIncome.secondDate = secondDate;
-        }
+      } else if (occurrenceType === 'twice-monthly') {
+        updatedIncome.firstDate = firstDate;
+        updatedIncome.secondDate = secondDate;
       }
 
       await onUpdate(updatedIncome);
@@ -138,6 +134,7 @@ export function EditIncomeDialog({
         <DialogHeader>
           <DialogTitle>Edit Income</DialogTitle>
         </DialogHeader>
+
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="source">Source</Label>
@@ -150,6 +147,11 @@ export function EditIncomeDialog({
               }}
               readOnly={source === "Majdi's Salary" || source === "Ruba's Salary"}
             />
+            {income && (
+              <p className="text-sm text-muted-foreground">
+                {formatIncomeDisplay(income)} ({dayjs(income.date).format("MMM D")})
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">
@@ -168,11 +170,11 @@ export function EditIncomeDialog({
 
           {source === "Majdi's Salary" ? (
             <p className="text-sm text-muted-foreground">
-              This income is automatically paid twice monthly on the 1st and 15th of each month
+              This income is automatically paid twice monthly on the 1st and 15th
             </p>
           ) : source === "Ruba's Salary" ? (
             <p className="text-sm text-muted-foreground">
-              This income is automatically paid bi-weekly on Fridays starting from January 10, 2025
+              This income is automatically paid bi-weekly on Fridays
             </p>
           ) : (
             <>
@@ -180,7 +182,7 @@ export function EditIncomeDialog({
                 <Label htmlFor="occurrenceType">Frequency</Label>
                 <Select
                   value={occurrenceType}
-                  onValueChange={(value) => setOccurrenceType(value as any)}
+                  onValueChange={(value: any) => setOccurrenceType(value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select frequency" />
@@ -195,7 +197,7 @@ export function EditIncomeDialog({
                 </Select>
               </div>
 
-              {occurrenceType === 'twice-monthly' && (
+              {occurrenceType === 'twice-monthly' ? (
                 <div className="space-y-4">
                   <div className="grid gap-2">
                     <Label>First payment day of the month</Label>
@@ -217,6 +219,19 @@ export function EditIncomeDialog({
                       onChange={(e) => setSecondDate(parseInt(e.target.value))}
                     />
                   </div>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => {
+                      setDate(e.target.value);
+                      setError(null);
+                    }}
+                  />
                 </div>
               )}
             </>
