@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 interface Category {
   id: number;
@@ -90,44 +91,45 @@ export default function EditExpenseDialog({
     general?: string;
   }>({});
 
-  const resetForm = useCallback(() => {
-    if (!expense) return;
-
-    // Basic fields
-    setName(expense.name || '');
-    setAmount(expense.amount?.toString() || '');
-
-    // Date handling
-    if (expense.isOneTime) {
-      setDateType('specific');
-      setSpecificDate(expense.date ? new Date(expense.date) : undefined);
-      // For one-time expenses, also set the day from the date
-      if (expense.date) {
-        setDay(new Date(expense.date).getDate().toString());
-      }
-    } else {
-      setDateType('monthly');
-      setDay(expense.day?.toString() || '1');
-    }
-
-    // Category handling - default to empty string if null
-    setCategoryId(expense.category_id != null ? expense.category_id.toString() : '');
-
-    // Reminder settings
-    setReminderEnabled(Boolean(expense.reminderEnabled));
-    setReminderDays(expense.reminderDays || 7);
-
-    // Clear any existing errors
-    setErrors({});
-    setIsSubmitting(false);
-  }, [expense]);
-
-  // Trigger reset when dialog opens or expense changes
+  // Initialize form when expense prop changes
   useEffect(() => {
-    if (isOpen && expense) {
-      resetForm();
+    if (expense && isOpen) {
+      logger.info("Initializing form with expense:", expense);
+
+      // Basic fields
+      setName(expense.name || '');
+      setAmount(expense.amount?.toString() || '');
+
+      // Date handling
+      if (expense.isOneTime) {
+        logger.info("Setting up one-time expense date:", expense.date);
+        setDateType('specific');
+        if (expense.date) {
+          setSpecificDate(new Date(expense.date));
+        }
+      } else {
+        logger.info("Setting up monthly expense day:", expense.day);
+        setDateType('monthly');
+        setDay(expense.day?.toString() || '1');
+      }
+
+      // Category
+      if (expense.category_id !== null && expense.category_id !== undefined) {
+        logger.info("Setting category:", expense.category_id);
+        setCategoryId(expense.category_id.toString());
+      } else {
+        setCategoryId('');
+      }
+
+      // Reminders
+      setReminderEnabled(Boolean(expense.reminderEnabled));
+      setReminderDays(expense.reminderDays || 7);
+
+      // Clear errors
+      setErrors({});
+      setIsSubmitting(false);
     }
-  }, [isOpen, expense, resetForm]);
+  }, [expense, isOpen]);
 
   const validateForm = useCallback((): boolean => {
     const newErrors: typeof errors = {};
@@ -225,7 +227,7 @@ export default function EditExpenseDialog({
       });
       onOpenChange(false);
     } catch (error) {
-      console.error('Error updating expense:', error);
+      logger.error('Error updating expense:', error);
       setErrors(prev => ({
         ...prev,
         general: error instanceof Error ? error.message : 'Failed to update expense. Please try again.'
@@ -326,60 +328,6 @@ export default function EditExpenseDialog({
             </div>
 
             <div className="grid gap-2">
-              <label htmlFor="category" className="text-sm font-medium">Category</label>
-              <Select
-                value={categoryId}
-                onValueChange={(value) => {
-                  setCategoryId(value);
-                  setErrors(prev => ({ ...prev, category: undefined }));
-                }}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger
-                  id="category"
-                  aria-invalid={!!errors.category}
-                  aria-describedby={errors.category ? "category-error" : undefined}
-                >
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px] overflow-y-auto">
-                  {categories.map((category: Category) => (
-                    <SelectItem
-                      key={category.id}
-                      value={category.id.toString()}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        />
-                        {category.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.category && (
-                <Alert variant="destructive" className="py-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription id="category-error">{errors.category}</AlertDescription>
-                </Alert>
-              )}
-              {isCategoriesLoading && (
-                <Alert variant="default" className="py-2">
-                  <Loader2 className="h-4 w-4 animate-spin mr-2"/>
-                  Loading categories...
-                </Alert>
-              )}
-              {isCategoriesError && (
-                <Alert variant="destructive" className="py-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>Failed to load categories. Please try again.</AlertDescription>
-                </Alert>
-              )}
-            </div>
-
-            <div className="grid gap-2">
               <label className="text-sm font-medium">Date Options</label>
               <RadioGroup
                 value={dateType}
@@ -443,7 +391,6 @@ export default function EditExpenseDialog({
                           setErrors(prev => ({ ...prev, date: undefined }));
                         }}
                         initialFocus
-                        disabled={(date) => date < new Date('2024-01-01')}
                       />
                     </PopoverContent>
                   </Popover>
@@ -454,6 +401,48 @@ export default function EditExpenseDialog({
                     </Alert>
                   )}
                 </div>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <label htmlFor="category" className="text-sm font-medium">Category</label>
+              <Select
+                value={categoryId}
+                onValueChange={(value) => {
+                  setCategoryId(value);
+                  setErrors(prev => ({ ...prev, category: undefined }));
+                }}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger
+                  id="category"
+                  aria-invalid={!!errors.category}
+                  aria-describedby={errors.category ? "category-error" : undefined}
+                >
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category: Category) => (
+                    <SelectItem
+                      key={category.id}
+                      value={category.id.toString()}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        {category.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.category && (
+                <Alert variant="destructive" className="py-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription id="category-error">{errors.category}</AlertDescription>
+                </Alert>
               )}
             </div>
 
