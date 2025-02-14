@@ -53,7 +53,7 @@ const formatCurrency = (amount: number) => {
 };
 
 const App = () => {
-  const today = dayjs('2025-02-09'); 
+  const today = dayjs('2025-02-09');
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedDay, setSelectedDay] = useState<number>(today.date());
@@ -92,7 +92,7 @@ const App = () => {
       const sampleIncomes: Income[] = [
         { id: "1", source: "Majdi's Salary", amount: 4739.00, date: today.date(1).toISOString() },
         { id: "2", source: "Majdi's Salary", amount: 4739.00, date: today.date(15).toISOString() },
-        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" } 
+        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" }
       ];
       setIncomes(sampleIncomes);
       localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
@@ -165,7 +165,7 @@ const App = () => {
 
   const firstDayOfWeek = useMemo(() => {
     const day = firstDayOfMonth.day();
-    return day === 0 ? 6 : day - 1; 
+    return day === 0 ? 6 : day - 1;
   }, [firstDayOfMonth]);
 
   const calculateTotalsUpToDay = (day: number) => {
@@ -198,7 +198,7 @@ const App = () => {
   };
 
   const calendarDays = useMemo(() => {
-    const totalDays = 42; 
+    const totalDays = 42;
     return Array.from({ length: totalDays }, (_, index) => {
       const adjustedIndex = index - firstDayOfWeek;
       return adjustedIndex >= 0 && adjustedIndex < daysInMonth ? adjustedIndex + 1 : null;
@@ -219,7 +219,7 @@ const App = () => {
 
         let currentDate = firstDayOfMonth;
         while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
-          if (currentDate.day() === 5) { 
+          if (currentDate.day() === 5) {
             const weeksDiff = currentDate.diff(startDate, 'week');
             if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
               totalIncome += income.amount;
@@ -322,12 +322,12 @@ const App = () => {
 
   const handleMonthChange = (newMonth: number) => {
     setSelectedMonth(newMonth);
-    setSelectedDay(1); 
+    setSelectedDay(1);
   };
 
   const handleYearChange = (newYear: number) => {
     setSelectedYear(newYear);
-    setSelectedDay(1); 
+    setSelectedDay(1);
   };
 
   return (
@@ -352,26 +352,26 @@ const App = () => {
                 My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
               </h1>
               <div className="flex items-center gap-2">
-                <Select value={months[selectedMonth]} onValueChange={handleMonthChange}>
+                <Select value={selectedMonth.toString()} onValueChange={(value) => handleMonthChange(parseInt(value))}>
                   <SelectTrigger>
-                  <span className="p-2 border rounded bg-background min-w-[120px]">{months[selectedMonth].label}</span>
+                    <span className="p-2 border rounded bg-background min-w-[120px]">{months[selectedMonth].label}</span>
                   </SelectTrigger>
                   <SelectContent>
                     {months.map((month) => (
-                      <SelectItem key={month.value} value={month}>
+                      <SelectItem key={month.value} value={month.value.toString()}>
                         {month.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
 
-                <Select value={years.find(year => year===selectedYear)} onValueChange={handleYearChange}>
+                <Select value={selectedYear.toString()} onValueChange={(value) => handleYearChange(parseInt(value))}>
                   <SelectTrigger>
-                  <span className="p-2 border rounded bg-background min-w-[100px]">{selectedYear}</span>
+                    <span className="p-2 border rounded bg-background min-w-[100px]">{selectedYear}</span>
                   </SelectTrigger>
                   <SelectContent>
                     {years.map((year) => (
-                      <SelectItem key={year} value={year}>
+                      <SelectItem key={year} value={year.toString()}>
                         {year}
                       </SelectItem>
                     ))}
