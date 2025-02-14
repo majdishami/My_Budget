@@ -410,12 +410,23 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log('[Bills API] Fetching bills...');
 
+      // Test database connection first
+      await db.execute(sql`SELECT 1`);
+      console.log('[Bills API] Database connection successful');
+
+      // Get raw bills data first
+      const rawBills = await db.select().from(bills);
+      console.log('[Bills API] Raw bills count:', rawBills.length);
+      console.log('[Bills API] Raw bills data:', JSON.stringify(rawBills, null, 2));
+
+      // Then get with relations
       const allBills = await db.query.bills.findMany({
         orderBy: [bills.day],
         with: {
           category: true
         }
       });
+      console.log('[Bills API] Bills with categories count:', allBills.length);
 
       const formattedBills = allBills.map(bill => ({
         id: bill.id,
@@ -428,13 +439,14 @@ export function registerRoutes(app: Express): Server {
         category_icon: bill.category?.icon || null,
       }));
 
-      console.log('[Bills API] Found bills:', formattedBills.length);
+      console.log('[Bills API] Formatted bills:', JSON.stringify(formattedBills, null, 2));
       return res.json(formattedBills);
     } catch (error) {
       console.error('[Bills API] Error:', error);
       return res.status(500).json({
         message: 'Failed to load bills',
         error: process.env.NODE_ENV === 'development' ? error : 'Internal server error',
+        details: error instanceof Error ? error.stack : undefined
       });
     }
   });
