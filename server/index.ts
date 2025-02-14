@@ -9,6 +9,7 @@ import fileUpload from 'express-fileupload';
 import cors from 'cors';
 import morgan from 'morgan';
 
+// Initialize express app
 const app = express();
 
 // Create tmp directory if it doesn't exist
@@ -20,30 +21,17 @@ if (!fs.existsSync(tmpDir)) {
 // Basic middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// Enhanced logging middleware using morgan
 app.use(morgan('combined'));
 
-// Configure CORS with enhanced security
+// Configure CORS
 app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      /\.replit\.dev$/,
-      "http://localhost:5000",
-      "http://localhost:5001"
-    ];
-    if (!origin || allowedOrigins.some(o => origin.match(o))) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: true,
   credentials: true,
-  methods: "GET,POST,PUT,DELETE,OPTIONS",
+  methods: "GET,POST,PUT,DELETE,OPTIONS,PATCH",
   allowedHeaders: "Content-Type, Authorization"
 }));
 
-// Configure file upload middleware with improved security
+// Configure file upload middleware
 app.use(fileUpload({
   limits: { 
     fileSize: 50 * 1024 * 1024 // 50MB max file size
@@ -54,40 +42,22 @@ app.use(fileUpload({
   safeFileNames: true,
   preserveExtension: true,
   abortOnLimit: true,
-  uploadTimeout: 30000, // 30 seconds
+  uploadTimeout: 30000,
   createParentPath: true,
-  // Additional security settings
   defParamCharset: 'utf8',
   responseOnLimit: 'File size limit has been reached',
-  parseNested: false // Prevent deeply nested form data
+  parseNested: false
 }));
 
-// Enable trust proxy for secure cookies when behind Replit's proxy
-app.enable('trust proxy');
-
-// Enhanced request logging middleware
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
-  const path = req.path;
-
-  if (req.files) {
-    const fileInfo = Object.entries(req.files).map(([key, file]) => ({
-      fieldName: key,
-      originalName: Array.isArray(file) ? file.map(f => f.name) : file.name
-    }));
-    log(`Files received: ${JSON.stringify(fileInfo)}`);
-  }
-
-  log(`[${req.method}] ${path} from ${req.ip}`);
-  if (Object.keys(req.query).length > 0) {
-    log(`Query params: ${JSON.stringify(req.query)}`);
-  }
+  log(`[${req.method}] ${req.path}`);
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    const size = res.get('content-length');
-    if (path.startsWith("/api")) {
-      log(`${req.method} ${path} ${res.statusCode} ${size || 0}b in ${duration}ms`);
+    if (req.path.startsWith("/api")) {
+      log(`${req.method} ${req.path} ${res.statusCode} in ${duration}ms`);
     }
   });
 
@@ -99,24 +69,20 @@ app.use(syncRouter);
 
 (async () => {
   try {
-    console.log('Starting server initialization...');
+    log('Starting server initialization...');
 
     // Initialize routes
     const server = registerRoutes(app);
 
-    // Enhanced error handler with better error details
+    // Error handler
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Server error:', {
         message: err.message,
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-        code: err.code,
-        status: err.status || err.statusCode
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
       });
 
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ 
-        message,
+      res.status(err.status || 500).json({ 
+        message: err.message || "Internal Server Error",
         error: process.env.NODE_ENV === 'development' ? err.stack : undefined
       });
     });
@@ -127,30 +93,35 @@ app.use(syncRouter);
       serveStatic(app);
     }
 
-    // Use different ports for Replit vs local development
-    const isReplit = process.env.REPL_ID !== undefined;
-    const PORT = parseInt(process.env.PORT || (isReplit ? '5000' : '5001'));
+    // Server startup configuration
+    const PORT = process.env.PORT || 5000;
     const HOST = '0.0.0.0';
 
-    // Add graceful startup logging
-    console.log('Environment:', app.get("env"));
-    console.log('Trust proxy:', app.get('trust proxy'));
-    console.log(`Starting server on ${HOST}:${PORT}`);
+    // Add error handler for the server
+    server.on('error', (error: any) => {
+      if (error.syscall !== 'listen') {
+        throw error;
+      }
 
-    server.listen(PORT, HOST, () => {
-      console.log(`Server is running at http://${HOST}:${PORT}`);
-      console.log(`Server environment: ${app.get("env")}`);
-      console.log(`Trust proxy enabled: ${app.get('trust proxy')}`);
-      console.log(`CORS and API endpoints are configured for ${isReplit ? 'Replit' : 'local'} development`);
+      switch (error.code) {
+        case 'EACCES':
+          console.error(`Port ${PORT} requires elevated privileges`);
+          process.exit(1);
+          break;
+        case 'EADDRINUSE':
+          console.error(`Port ${PORT} is already in use`);
+          process.exit(1);
+          break;
+        default:
+          throw error;
+      }
     });
 
-    // Handle graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM signal received: closing HTTP server');
-      server.close(() => {
-        console.log('HTTP server closed');
-        process.exit(0);
-      });
+    // Start the server
+    server.listen(PORT, HOST, () => {
+      log(`Server running at http://${HOST}:${PORT}`);
+      log(`Environment: ${app.get("env")}`);
+      log('Server initialization completed successfully');
     });
 
   } catch (error) {

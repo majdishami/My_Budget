@@ -1,19 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { categories, users, insertUserSchema, insertCategorySchema, transactions, insertTransactionSchema } from "@db/schema";
+import { categories, insertCategorySchema, transactions, insertTransactionSchema } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
-import crypto from "crypto";
-import { sql } from 'drizzle-orm';
-import pkg from 'pg';
-const { Pool } = pkg;
 import dayjs from 'dayjs';
-import { bills, insertBillSchema } from "@db/schema";
-
-// Hash password using SHA-256
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
 
 export function registerRoutes(app: Express): Server {
   // Test route
@@ -22,18 +12,23 @@ export function registerRoutes(app: Express): Server {
     res.json({ status: 'ok' });
   });
 
-  // Categories Routes with simplified implementation
+  // Categories Routes
   app.get('/api/categories', async (req, res) => {
     try {
-      const allCategories = await db.query.categories.findMany({
-        orderBy: [categories.name],
+      console.log("Fetching categories...");
+
+      const userCategories = await db.query.categories.findMany({
+        orderBy: (categories, { asc }) => [asc(categories.name)],
       });
-      return res.json(allCategories);
+
+      console.log("Database Output:", JSON.stringify(userCategories, null, 2));
+
+      return res.json(userCategories || []);
     } catch (error) {
-      console.error('[Categories API] Error:', error);
-      return res.status(500).json({
-        message: 'Failed to load categories',
-        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
+      console.error("Error in /api/categories:", error);
+      return res.status(500).json({ 
+        message: "Failed to load categories.",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -61,12 +56,66 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.patch('/api/categories/:id', async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      const category = await db.query.categories.findFirst({
+        where: eq(categories.id, categoryId),
+      });
+
+      if (!category) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+
+      const categoryData = await insertCategorySchema.partial().parseAsync({
+        name: req.body.name,
+        color: req.body.color,
+        icon: req.body.icon === null ? undefined : req.body.icon,
+      });
+
+      const [updatedCategory] = await db.update(categories)
+        .set(categoryData)
+        .where(eq(categories.id, categoryId))
+        .returning();
+
+      res.json(updatedCategory);
+    } catch (error) {
+      console.error('Error updating category:', error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(400).json({ message: 'Invalid request data' });
+      }
+    }
+  });
+
+  app.delete('/api/categories/:id', async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      const category = await db.query.categories.findFirst({
+        where: eq(categories.id, categoryId),
+      });
+
+      if (!category) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+
+      await db.delete(categories)
+        .where(eq(categories.id, categoryId));
+
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      res.status(500).json({ message: 'Server error deleting category' });
+    }
+  });
+
   // Transactions Routes
   app.get('/api/transactions', async (req, res) => {
     try {
       console.log('[Transactions API] Fetching transactions...');
 
-      const query = db.select({
+      const allTransactions = await db.select({
         id: transactions.id,
         description: transactions.description,
         amount: transactions.amount,
@@ -78,8 +127,6 @@ export function registerRoutes(app: Express): Server {
         .from(transactions)
         .leftJoin(categories, eq(transactions.category_id, categories.id))
         .orderBy(desc(transactions.date));
-
-      const allTransactions = await query;
 
       const formattedTransactions = allTransactions.map(transaction => ({
         id: transaction.id,
@@ -105,15 +152,27 @@ export function registerRoutes(app: Express): Server {
 
   app.post('/api/transactions', async (req, res) => {
     try {
+      const parsedDate = dayjs(req.body.date);
+      if (!parsedDate.isValid()) {
+        return res.status(400).json({ message: 'Invalid date format' });
+      }
+
       const transactionData = await insertTransactionSchema.parseAsync({
         ...req.body,
+        date: parsedDate.toDate()
       });
 
       const [newTransaction] = await db.insert(transactions)
         .values(transactionData)
         .returning();
 
-      res.status(201).json(newTransaction);
+      const response = {
+        ...newTransaction,
+        date: dayjs(newTransaction.date).format('YYYY-MM-DD'),
+        amount: Number(newTransaction.amount)
+      };
+
+      res.status(201).json(response);
     } catch (error) {
       console.error('Error creating transaction:', error);
       res.status(400).json({
@@ -125,10 +184,9 @@ export function registerRoutes(app: Express): Server {
   app.patch('/api/transactions/:id', async (req, res) => {
     try {
       const transactionId = parseInt(req.params.id);
-      const { description, amount, date, type, category_id, day, recurring_id } = req.body;
 
       // Validate and convert date
-      const parsedDate = dayjs(date);
+      const parsedDate = dayjs(req.body.date);
       if (!parsedDate.isValid()) {
         return res.status(400).json({ message: 'Invalid date format' });
       }
@@ -147,18 +205,15 @@ export function registerRoutes(app: Express): Server {
 
       const [updatedTransaction] = await db.update(transactions)
         .set({
-          description,
-          amount,
+          description: req.body.description,
+          amount: req.body.amount,
           date: dateObject,
-          type,
-          category_id,
-          day: day || null,
-          recurring_id: recurring_id || null
+          type: req.body.type,
+          category_id: req.body.category_id
         })
         .where(eq(transactions.id, transactionId))
         .returning();
 
-      // Format the response
       const response = {
         ...updatedTransaction,
         date: dayjs(updatedTransaction.date).format('YYYY-MM-DD'),
@@ -192,56 +247,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Error deleting transaction:', error);
       res.status(500).json({ message: 'Server error deleting transaction' });
-    }
-  });
-
-  // Bills Routes
-  app.get('/api/bills', async (req, res) => {
-    try {
-      const allBills = await db.query.bills.findMany({
-        orderBy: [bills.day],
-        with: {
-          category: true
-        }
-      });
-
-      const formattedBills = allBills.map(bill => ({
-        id: bill.id,
-        name: bill.name,
-        amount: Number(bill.amount),
-        day: bill.day,
-        category_id: bill.category_id,
-        category_name: bill.category?.name || 'Uncategorized',
-        category_color: bill.category?.color || '#D3D3D3',
-        category_icon: bill.category?.icon || null,
-      }));
-
-      return res.json(formattedBills);
-    } catch (error) {
-      console.error('[Bills API] Error:', error);
-      return res.status(500).json({
-        message: 'Failed to load bills',
-        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
-      });
-    }
-  });
-
-  app.post('/api/bills', async (req, res) => {
-    try {
-      const billData = await insertBillSchema.parseAsync({
-        ...req.body,
-      });
-
-      const [newBill] = await db.insert(bills)
-        .values(billData)
-        .returning();
-
-      res.status(201).json(newBill);
-    } catch (error) {
-      console.error('Error creating bill:', error);
-      res.status(400).json({
-        message: error instanceof Error ? error.message : 'Invalid request data'
-      });
     }
   });
 
