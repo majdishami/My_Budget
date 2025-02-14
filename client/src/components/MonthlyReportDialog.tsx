@@ -24,12 +24,37 @@ interface Transaction {
   description: string;
   amount: number;
   type: 'income' | 'expense';
+  category_name?: string;
+  category_color?: string;
+  category_icon?: string | null;
 }
 
 interface MonthlyReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const DynamicIcon = ({ iconName }: { iconName: string }) => {
+  // Placeholder for dynamic icon import - replace with your actual icon import logic
+  switch (iconName) {
+    case 'wallet': return <span>💼</span>;
+    case 'phone': return <span>📞</span>;
+    case 'home': return <span>🏠</span>;
+    case 'tv': return <span>📺</span>;
+    case 'wifi': return <span>📶</span>;
+    case 'droplet': return <span>💧</span>;
+    case 'zap': return <span>⚡</span>;
+    case 'shield': return <span>🛡️</span>;
+    case 'credit-card': return <span>💳</span>;
+    case 'repeat': return <span>🔄</span>;
+    case 'shopping-cart': return <span>🛒</span>;
+    case 'banknote': return <span>💵</span>;
+    case 'flame': return <span>🔥</span>;
+    case 'car': return <span>🚗</span>;
+    default: return <span>?</span>;
+  }
+};
+
 
 export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyReportDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -45,117 +70,174 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
         date: today.date(1).format('YYYY-MM-DD'),
         description: "Majdi's Salary",
         amount: 4739,
-        type: 'income'
+        type: 'income',
+        category_name: 'Income',
+        category_color: '#22C55E',
+        category_icon: 'wallet'
       },
       {
         date: today.date(15).format('YYYY-MM-DD'),
         description: "Majdi's Salary",
         amount: 4739,
-        type: 'income'
+        type: 'income',
+        category_name: 'Income',
+        category_color: '#22C55E',
+        category_icon: 'wallet'
       },
       // Income transactions - Ruba's bi-weekly salary
       {
         date: today.date(7).format('YYYY-MM-DD'),
         description: "Ruba's Salary",
         amount: 2168,
-        type: 'income'
+        type: 'income',
+        category_name: 'Income',
+        category_color: '#22C55E',
+        category_icon: 'wallet'
       },
       {
         date: today.date(21).format('YYYY-MM-DD'),
         description: "Ruba's Salary",
         amount: 2168,
-        type: 'income'
+        type: 'income',
+        category_name: 'Income',
+        category_color: '#22C55E',
+        category_icon: 'wallet'
       },
       // Monthly expenses
       {
         date: today.date(1).format('YYYY-MM-DD'),
         description: 'ATT Phone Bill',
         amount: 429,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Utilities',
+        category_color: '#F97316',
+        category_icon: 'phone'
       },
       {
         date: today.date(1).format('YYYY-MM-DD'),
         description: "Maid's 1st payment",
         amount: 120,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Services',
+        category_color: '#8B5CF6',
+        category_icon: 'home'
       },
       {
         date: today.date(1).format('YYYY-MM-DD'),
         description: 'Monthly Rent',
         amount: 3750,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Housing',
+        category_color: '#EC4899',
+        category_icon: 'home'
       },
       {
         date: today.date(3).format('YYYY-MM-DD'),
         description: 'Sling TV',
         amount: 75,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Entertainment',
+        category_color: '#6366F1',
+        category_icon: 'tv'
       },
       {
         date: today.date(6).format('YYYY-MM-DD'),
         description: 'Cox Internet',
         amount: 81,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Utilities',
+        category_color: '#F97316',
+        category_icon: 'wifi'
       },
       {
         date: today.date(7).format('YYYY-MM-DD'),
         description: 'Water Bill',
         amount: 80,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Utilities',
+        category_color: '#F97316',
+        category_icon: 'droplet'
       },
       {
         date: today.date(7).format('YYYY-MM-DD'),
         description: 'NV Energy Electrical',
         amount: 250,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Utilities',
+        category_color: '#F97316',
+        category_icon: 'zap'
       },
       {
         date: today.date(9).format('YYYY-MM-DD'),
         description: 'TransAmerica Life Insurance',
         amount: 77,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Insurance',
+        category_color: '#14B8A6',
+        category_icon: 'shield'
       },
       {
         date: today.date(14).format('YYYY-MM-DD'),
         description: 'Credit Card minimum payments',
         amount: 225,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Debt',
+        category_color: '#DC2626',
+        category_icon: 'credit-card'
       },
       {
         date: today.date(14).format('YYYY-MM-DD'),
         description: 'Apple/Google/YouTube',
         amount: 130,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Subscriptions',
+        category_color: '#A855F7',
+        category_icon: 'repeat'
       },
       {
         date: today.date(16).format('YYYY-MM-DD'),
         description: 'Expenses & Groceries',
         amount: 3000,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Groceries',
+        category_color: '#059669',
+        category_icon: 'shopping-cart'
       },
       {
         date: today.date(17).format('YYYY-MM-DD'),
         description: "Maid's 2nd Payment",
         amount: 120,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Services',
+        category_color: '#8B5CF6',
+        category_icon: 'home'
       },
       {
         date: today.date(17).format('YYYY-MM-DD'),
         description: 'SoFi Personal Loan',
         amount: 1915,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Debt',
+        category_color: '#DC2626',
+        category_icon: 'banknote'
       },
       {
         date: today.date(17).format('YYYY-MM-DD'),
         description: 'Southwest Gas',
         amount: 75,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Utilities',
+        category_color: '#F97316',
+        category_icon: 'flame'
       },
       {
         date: today.date(28).format('YYYY-MM-DD'),
         description: 'Car Insurance for 3 cars',
         amount: 704,
-        type: 'expense'
+        type: 'expense',
+        category_name: 'Insurance',
+        category_color: '#14B8A6',
+        category_icon: 'car'
       }
     ];
 
@@ -291,6 +373,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Description</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -299,6 +382,16 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                         <TableRow key={i}>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: t.category_color }}
+                              />
+                              {t.category_icon && <DynamicIcon iconName={t.category_icon} />}
+                              <span>{t.category_name}</span>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right text-green-600 font-medium">
                             ✓ {formatCurrency(t.amount)}
                           </TableCell>
@@ -322,6 +415,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Description</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -330,6 +424,16 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                         <TableRow key={i}>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: t.category_color }}
+                              />
+                              {t.category_icon && <DynamicIcon iconName={t.category_icon} />}
+                              <span>{t.category_name}</span>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right text-red-600 font-medium">
                             ✓ {formatCurrency(t.amount)}
                           </TableCell>
@@ -361,6 +465,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Description</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -369,6 +474,16 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                         <TableRow key={i}>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: t.category_color }}
+                              />
+                              {t.category_icon && <DynamicIcon iconName={t.category_icon} />}
+                              <span>{t.category_name}</span>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right text-green-400 font-medium">
                             ⌛ {formatCurrency(t.amount)}
                           </TableCell>
@@ -392,6 +507,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Description</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -400,6 +516,16 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                         <TableRow key={i}>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: t.category_color }}
+                              />
+                              {t.category_icon && <DynamicIcon iconName={t.category_icon} />}
+                              <span>{t.category_name}</span>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right text-red-400 font-medium">
                             ⌛ {formatCurrency(t.amount)}
                           </TableCell>
