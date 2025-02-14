@@ -1,2 +1,3 @@
-// This file is now just a re-export for backward compatibility
-export { useDataContext as useData } from '@/contexts/DataContext';
+import { useDataContext } from "@/contexts/DataContext";
+export default useDataContext;
+export const useData = useDataContext;

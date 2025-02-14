@@ -21,12 +21,12 @@ export interface DataContextType {
   error: Error | null;
 }
 
-const DataContext = createContext<DataContextType | undefined>(undefined);
+const DataContext = createContext<DataContextType | null>(null);
 
-export function useDataContext(): DataContextType {
+export function useDataContext() {
   const context = useContext(DataContext);
   if (!context) {
-    throw new Error('useDataContext must be used within a DataProvider');
+    throw new Error("useDataContext must be used within a DataProvider");
   }
   return context;
 }
@@ -340,7 +340,7 @@ export function DataProvider({ children }: DataProviderProps) {
     }
   };
 
-  const contextValue = {
+  const contextValue: DataContextType = {
     incomes: getMonthlyIncomeOccurrences(),
     bills,
     saveIncomes: async (newIncomes: Income[]) => {
