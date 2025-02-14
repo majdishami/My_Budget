@@ -52,11 +52,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
         .map((t: any) => {
+          const parsedDate = dayjs(t.date);
           const income = {
             id: t.id.toString(),
             source: t.description,
             amount: parseFloat(t.amount),
-            date: dayjs(t.date).format('YYYY-MM-DDTHH:mm:ss[Z]'),
+            date: parsedDate.format('YYYY-MM-DDTHH:mm:ss[Z]'),
             occurrenceType: t.recurring_id ? 'recurring' : 'once'
           };
           console.log('[DataContext] Processed income:', income);
@@ -70,13 +71,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
         .map((t: any) => {
+          const parsedDate = dayjs(t.date);
           const bill = {
             id: t.id.toString(),
             name: t.description,
             amount: parseFloat(t.amount),
-            date: dayjs(t.date).format('YYYY-MM-DDTHH:mm:ss[Z]'),
+            date: parsedDate.format('YYYY-MM-DDTHH:mm:ss[Z]'),
             isOneTime: !t.recurring_id,
-            day: dayjs(t.date).date()
+            day: parsedDate.date()
           };
           console.log('[DataContext] Processed bill:', bill);
           return bill;

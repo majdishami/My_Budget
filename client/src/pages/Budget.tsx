@@ -167,7 +167,7 @@ export function Budget() {
 
   // Memoize monthly income occurrences calculation
   const monthlyIncomeOccurrences = useMemo(() => {
-    const currentDate = dayjs().year(selectedYear).month(selectedMonth);
+    const currentDate = dayjs().year(selectedYear).month(selectedMonth - 1); // Adjust for 0-based months
     const startOfMonth = currentDate.startOf('month');
     const endOfMonth = currentDate.endOf('month');
     const occurrences: Income[] = [];
@@ -182,32 +182,16 @@ export function Budget() {
             id: `${income.id}-${dateStr}`,
             source: income.source,
             amount: amount,
-            date: date.toISOString(),
+            date: date.format('YYYY-MM-DDTHH:mm:ss[Z]'),
             occurrenceType
           });
         }
       };
 
-      // Handle different income types
-      if (income.occurrenceType === 'twice-monthly') {
-        // Add occurrences on 1st and 15th
-        addIncomeIfNotExists(startOfMonth.date(1), income.amount, 'twice-monthly');
-        addIncomeIfNotExists(startOfMonth.date(15), income.amount, 'twice-monthly');
-      } else if (income.occurrenceType === 'biweekly') {
-        // Calculate bi-weekly dates
-        let checkDate = dayjs(income.date);
-        while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
-          if ((checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth))) {
-            addIncomeIfNotExists(checkDate, income.amount, 'biweekly');
-            checkDate = checkDate.add(14, 'day');
-          }
-        }
-      } else {
-        // Handle one-time or monthly incomes
-        const incomeDate = dayjs(income.date);
-        if (incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear) {
-          addIncomeIfNotExists(incomeDate, income.amount, income.occurrenceType || 'once');
-        }
+      // Add the actual income occurrence
+      const incomeDate = dayjs(income.date);
+      if (incomeDate.month() === selectedMonth - 1 && incomeDate.year() === selectedYear) {
+        addIncomeIfNotExists(incomeDate, income.amount, income.occurrenceType || 'once');
       }
     });
 
@@ -217,45 +201,21 @@ export function Budget() {
   // Memoize functions for getting day specific data
   const getIncomeForDay = useCallback((day: number) => {
     const incomeForDay = incomes.filter(income => {
-      const incomeDate = dayjs.tz(income.date);
-      console.log(`Checking income for day ${day}:`, {
-        income,
-        incomeDay: incomeDate.date(),
-        incomeMonth: incomeDate.month(),
-        incomeYear: incomeDate.year(),
-        selectedDay: day,
-        selectedMonth,
-        selectedYear,
-        rawDate: income.date
-      });
-      // Month in selectedMonth is 1-based, convert it to 0-based for comparison
+      const incomeDate = dayjs(income.date);
       return incomeDate.date() === day && 
              incomeDate.month() === (selectedMonth - 1) && 
              incomeDate.year() === selectedYear;
     });
-    console.log(`Income for day ${day}:`, incomeForDay);
     return incomeForDay;
   }, [incomes, selectedYear, selectedMonth]);
 
   const getBillsForDay = useCallback((day: number) => {
     const billsForDay = bills.filter(bill => {
-      const billDate = dayjs.tz(bill.date);
-      console.log(`Checking bill for day ${day}:`, {
-        bill,
-        billDay: billDate.date(),
-        billMonth: billDate.month(),
-        billYear: billDate.year(),
-        selectedDay: day,
-        selectedMonth,
-        selectedYear,
-        rawDate: bill.date
-      });
-      // Month in selectedMonth is 1-based, convert it to 0-based for comparison
+      const billDate = dayjs(bill.date);
       return billDate.date() === day && 
              billDate.month() === (selectedMonth - 1) && 
              billDate.year() === selectedYear;
     });
-    console.log(`Bills for day ${day}:`, billsForDay);
     return billsForDay;
   }, [bills, selectedYear, selectedMonth]);
 
