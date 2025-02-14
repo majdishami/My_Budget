@@ -281,16 +281,12 @@ export function Budget() {
     // Calculate total expenses
     let totalExpenses = 0;
 
-    // Add recurring bills
+    // Add all bills to every month (matches the calendar display logic)
+    const uniqueBills = new Set();
     bills.forEach(bill => {
-      if (!bill.isOneTime) {
+      if (!uniqueBills.has(bill.name)) {
         totalExpenses += bill.amount;
-      } else {
-        // For one-time bills, only include if they fall in this month/year
-        const billDate = dayjs(bill.date);
-        if (billDate.month() === selectedMonth && billDate.year() === selectedYear) {
-          totalExpenses += bill.amount;
-        }
+        uniqueBills.add(bill.name);
       }
     });
 
