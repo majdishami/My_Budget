@@ -18,6 +18,8 @@ function Calendar({
   incomes = [],
   ...props
 }: CalendarProps) {
+  console.log('Calendar rendered with bills:', bills, 'incomes:', incomes);
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
