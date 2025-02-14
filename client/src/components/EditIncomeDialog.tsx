@@ -44,6 +44,23 @@ export function EditIncomeDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Calculate the next occurrence date based on occurrence type
+  const calculateNextDate = (currentDate: dayjs.Dayjs, type: string): string => {
+    switch (type) {
+      case 'weekly':
+        return currentDate.add(7, 'day').format('YYYY-MM-DD');
+      case 'biweekly':
+        return currentDate.add(14, 'day').format('YYYY-MM-DD');
+      case 'monthly':
+        return currentDate.add(1, 'month').format('YYYY-MM-DD');
+      case 'twice-monthly':
+        // For twice-monthly, we'll keep the existing firstDate and secondDate logic
+        return currentDate.format('YYYY-MM-DD');
+      default:
+        return currentDate.format('YYYY-MM-DD');
+    }
+  };
+
   // Format the date display for incomes
   const formatIncomeDisplay = (income: Income) => {
     if (income.source === "Majdi's Salary") {
@@ -56,6 +73,19 @@ export function EditIncomeDialog({
            income.occurrenceType === 'biweekly' ? 'Bi-Weekly' :
            income.occurrenceType === 'monthly' ? 'Monthly' :
            income.occurrenceType === 'weekly' ? 'Weekly' : 'One Time';
+  };
+
+  // Handle occurrence type change
+  const handleOccurrenceTypeChange = (newType: string) => {
+    setOccurrenceType(newType as any);
+
+    // Calculate the next date based on the new occurrence type
+    const currentDate = dayjs(date || dayjs().format('YYYY-MM-DD'));
+    const newDate = calculateNextDate(currentDate, newType);
+    setDate(newDate);
+
+    // Reset error when changing type
+    setError(null);
   };
 
   // Update form values when income changes
@@ -89,6 +119,18 @@ export function EditIncomeDialog({
     if (isNaN(amountNum) || amountNum <= 0) {
       setError('Please enter a valid amount greater than 0');
       return false;
+    }
+
+    // Validate dates based on occurrence type
+    if (occurrenceType === 'twice-monthly') {
+      if (firstDate === secondDate) {
+        setError('First and second dates must be different');
+        return false;
+      }
+      if (firstDate < 1 || firstDate > 31 || secondDate < 1 || secondDate > 31) {
+        setError('Dates must be between 1 and 31');
+        return false;
+      }
     }
 
     return true;
@@ -185,7 +227,7 @@ export function EditIncomeDialog({
                 <Label htmlFor="occurrenceType">Frequency</Label>
                 <Select
                   value={occurrenceType}
-                  onValueChange={(value: any) => setOccurrenceType(value)}
+                  onValueChange={handleOccurrenceTypeChange}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select frequency" />
@@ -225,7 +267,7 @@ export function EditIncomeDialog({
                 </div>
               ) : (
                 <div className="grid gap-2">
-                  <Label htmlFor="date">Date</Label>
+                  <Label htmlFor="date">Next Payment Date</Label>
                   <Input
                     id="date"
                     type="date"
