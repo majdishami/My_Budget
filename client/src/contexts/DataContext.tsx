@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import { logger } from "@/lib/logger";
 import { incomeSchema, billSchema } from "@/lib/validation";
 
+// Explicitly export the context type
 export interface DataContextType {
   incomes: Income[];
   bills: Bill[];
@@ -21,6 +22,7 @@ export interface DataContextType {
   error: Error | null;
 }
 
+// Export the context
 export const DataContext = createContext<DataContextType | undefined>(undefined);
 
 const defaultIncomes: Income[] = [
@@ -28,7 +30,7 @@ const defaultIncomes: Income[] = [
     id: generateId(),
     source: "Majdi's Salary",
     amount: 4739,
-    date: dayjs('2025-02-01').toISOString(), // Set to start of current month
+    date: dayjs().startOf('month').toISOString(), // Set to start of current month
     occurrenceType: 'twice-monthly',
     firstDate: 1,
     secondDate: 15
@@ -37,7 +39,7 @@ const defaultIncomes: Income[] = [
     id: generateId(),
     source: "Ruba's Salary",
     amount: 2168,
-    date: dayjs('2025-01-10').toISOString(), // Set to first occurrence
+    date: dayjs().startOf('month').add(9, 'days').toISOString(), // Set to 10th of current month
     occurrenceType: 'biweekly'
   }
 ];
@@ -147,82 +149,91 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const startOfMonth = currentDate.startOf('month');
     const endDate = currentDate.add(12, 'months').endOf('month');
 
-    switch (income.occurrenceType) {
-      case 'once':
-        occurrences.push(income);
-        break;
+    try {
+      switch (income.occurrenceType) {
+        case 'once':
+          occurrences.push(income);
+          break;
 
-      case 'weekly':
-        let weeklyDate = dayjs(income.date);
-        while (weeklyDate.isBefore(endDate) || weeklyDate.isSame(endDate)) {
-          occurrences.push({
-            ...income,
-            id: `${income.id}-${weeklyDate.format('YYYY-MM-DD')}`,
-            date: weeklyDate.toISOString()
-          });
-          weeklyDate = weeklyDate.add(7, 'days');
-        }
-        break;
+        case 'weekly':
+          let weeklyDate = dayjs(income.date);
+          while (weeklyDate.isBefore(endDate)) {
+            occurrences.push({
+              ...income,
+              id: `${income.id}-${weeklyDate.format('YYYY-MM-DD')}`,
+              date: weeklyDate.toISOString()
+            });
+            weeklyDate = weeklyDate.add(7, 'days');
+          }
+          break;
 
-      case 'biweekly':
-        let biweeklyDate = dayjs(income.date);
-        while (biweeklyDate.isBefore(endDate) || biweeklyDate.isSame(endDate)) {
-          if (biweeklyDate.isAfter(startOfMonth) || biweeklyDate.isSame(startOfMonth)) {
+        case 'biweekly':
+          let biweeklyDate = dayjs(income.date);
+          while (biweeklyDate.isBefore(endDate)) {
             occurrences.push({
               ...income,
               id: `${income.id}-${biweeklyDate.format('YYYY-MM-DD')}`,
               date: biweeklyDate.toISOString()
             });
+            biweeklyDate = biweeklyDate.add(14, 'days');
           }
-          biweeklyDate = biweeklyDate.add(14, 'days');
-        }
-        break;
+          break;
 
-      case 'monthly':
-        let monthlyDate = dayjs(income.date);
-        while (monthlyDate.isBefore(endDate) || monthlyDate.isSame(endDate)) {
-          occurrences.push({
-            ...income,
-            id: `${income.id}-${monthlyDate.format('YYYY-MM-DD')}`,
-            date: monthlyDate.toISOString()
-          });
-          monthlyDate = monthlyDate.add(1, 'month');
-        }
-        break;
-
-      case 'twice-monthly':
-        let currentMonth = startOfMonth;
-        while (currentMonth.isBefore(endDate) || currentMonth.isSame(endDate)) {
-          // First occurrence on the first date (default to 1st if not specified)
-          if (income.firstDate) {
-            const firstOccurrence = currentMonth.date(income.firstDate);
-            if (firstOccurrence.isValid()) {
+        case 'twice-monthly':
+          let currentMonth = startOfMonth;
+          while (currentMonth.isBefore(endDate)) {
+            // First occurrence of the month
+            if (income.firstDate) {
+              const firstOccurrence = currentMonth.date(income.firstDate);
               occurrences.push({
                 ...income,
                 id: `${income.id}-1-${firstOccurrence.format('YYYY-MM-DD')}`,
                 date: firstOccurrence.toISOString()
               });
             }
-          }
 
-          // Second occurrence on the second date (default to 15th if not specified)
-          if (income.secondDate) {
-            const secondOccurrence = currentMonth.date(income.secondDate);
-            if (secondOccurrence.isValid()) {
+            // Second occurrence of the month
+            if (income.secondDate) {
+              const secondOccurrence = currentMonth.date(income.secondDate);
               occurrences.push({
                 ...income,
                 id: `${income.id}-2-${secondOccurrence.format('YYYY-MM-DD')}`,
                 date: secondOccurrence.toISOString()
               });
             }
+
+            currentMonth = currentMonth.add(1, 'month');
           }
+          break;
 
-          currentMonth = currentMonth.add(1, 'month');
-        }
-        break;
+        case 'monthly':
+          let monthlyDate = dayjs(income.date);
+          while (monthlyDate.isBefore(endDate)) {
+            occurrences.push({
+              ...income,
+              id: `${income.id}-${monthlyDate.format('YYYY-MM-DD')}`,
+              date: monthlyDate.toISOString()
+            });
+            monthlyDate = monthlyDate.add(1, 'month');
+          }
+          break;
+      }
+
+      logger.info('Generated income occurrences', { 
+        source: income.source, 
+        count: occurrences.length,
+        firstOccurrence: occurrences[0]?.date,
+        lastOccurrence: occurrences[occurrences.length - 1]?.date 
+      });
+
+      return occurrences;
+    } catch (error) {
+      logger.error('Error generating income occurrences', { 
+        error, 
+        income 
+      });
+      return [income];
     }
-
-    return occurrences;
   };
 
   const getMonthlyIncomeOccurrences = () => {
@@ -331,6 +342,98 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
 
+  const saveBills = async (newBills) => {
+    try {
+      setError(null);
+      const validatedBills = validateData(newBills, billSchema, "bill");
+      setBills(validatedBills);
+      await saveToStorage("budgetBills", validatedBills);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to save bills";
+      logger.error("Error in saveBills:", { error });
+      setError(new Error(errorMessage));
+      throw error;
+    }
+  };
+
+  const deleteTransaction = (transaction: Income | Bill) => {
+    try {
+      setError(null);
+      if ('source' in transaction) {
+        // It's an income
+        let newIncomes: Income[];
+        if (transaction.occurrenceType !== 'once') {
+          // For recurring incomes, remove all occurrences with the same source
+          newIncomes = incomes.filter(i => i.source !== transaction.source);
+        } else {
+          // For one-time incomes, remove by ID
+          newIncomes = incomes.filter(i => i.id !== transaction.id);
+        }
+        setIncomes(newIncomes);
+        saveToStorage("budgetIncomes", newIncomes);
+        logger.info("Successfully deleted income", { income: transaction });
+      } else {
+        // It's a bill
+        const newBills = bills.filter(b => b.id !== transaction.id);
+        setBills(newBills);
+        saveToStorage("budgetBills", newBills);
+        logger.info("Successfully deleted bill", { bill: transaction });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
+      logger.error("Error in deleteTransaction:", { error });
+      setError(new Error(errorMessage));
+      throw error;
+    }
+  };
+
+  const editTransaction = (transaction: Income | Bill) => {
+    try {
+      setError(null);
+      if ('source' in transaction) {
+        // It's an income
+        const validatedIncome = incomeSchema.safeParse(transaction);
+        if (!validatedIncome.success) {
+          throw new Error(`Invalid income data: ${validatedIncome.error.message}`);
+        }
+        const newIncomes = incomes.map(i => i.id === transaction.id ? transaction : i);
+        setIncomes(newIncomes);
+        saveToStorage("budgetIncomes", newIncomes);
+        logger.info("Successfully edited income", { income: transaction });
+      } else {
+        // It's a bill
+        const validatedBill = billSchema.safeParse(transaction);
+        if (!validatedBill.success) {
+          throw new Error(`Invalid bill data: ${validatedBill.error.message}`);
+        }
+        const newBills = bills.map(b => b.id === transaction.id ? transaction : b);
+        setBills(newBills);
+        saveToStorage("budgetBills", newBills);
+        logger.info("Successfully edited bill", { bill: transaction });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
+      logger.error("Error in editTransaction:", { error });
+      setError(new Error(errorMessage));
+      throw error;
+    }
+  };
+
+  const resetData = async () => {
+    try {
+      setError(null);
+      localStorage.removeItem("budgetIncomes");
+      localStorage.removeItem("budgetBills");
+      logger.info("Successfully cleared data");
+      await initializeDefaultData();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to reset data";
+      logger.error("Error in resetData:", { error });
+      setError(new Error(errorMessage));
+      throw error;
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       incomes: getMonthlyIncomeOccurrences(),
@@ -348,96 +451,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
       },
-      saveBills: async (newBills) => {
-        try {
-          setError(null);
-          const validatedBills = validateData(newBills, billSchema, "bill");
-          setBills(validatedBills);
-          await saveToStorage("budgetBills", validatedBills);
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Failed to save bills";
-          logger.error("Error in saveBills:", { error });
-          setError(new Error(errorMessage));
-          throw error;
-        }
-      },
+      saveBills,
       addIncome: addIncomeToData,
       addBill,
-      deleteTransaction: (transaction: Income | Bill) => {
-        try {
-          setError(null);
-          if ('source' in transaction) {
-            // It's an income
-            let newIncomes: Income[];
-            if (transaction.occurrenceType !== 'once') {
-              // For recurring incomes, remove all occurrences with the same source
-              newIncomes = incomes.filter(i => i.source !== transaction.source);
-            } else {
-              // For one-time incomes, remove by ID
-              newIncomes = incomes.filter(i => i.id !== transaction.id);
-            }
-            setIncomes(newIncomes);
-            saveToStorage("budgetIncomes", newIncomes);
-            logger.info("Successfully deleted income", { income: transaction });
-          } else {
-            // It's a bill
-            const newBills = bills.filter(b => b.id !== transaction.id);
-            setBills(newBills);
-            saveToStorage("budgetBills", newBills);
-            logger.info("Successfully deleted bill", { bill: transaction });
-          }
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
-          logger.error("Error in deleteTransaction:", { error });
-          setError(new Error(errorMessage));
-          throw error;
-        }
-      },
-      editTransaction: (transaction: Income | Bill) => {
-        try {
-          setError(null);
-          if ('source' in transaction) {
-            // It's an income
-            const validatedIncome = incomeSchema.safeParse(transaction);
-            if (!validatedIncome.success) {
-              throw new Error(`Invalid income data: ${validatedIncome.error.message}`);
-            }
-            const newIncomes = incomes.map(i => i.id === transaction.id ? transaction : i);
-            setIncomes(newIncomes);
-            saveToStorage("budgetIncomes", newIncomes);
-            logger.info("Successfully edited income", { income: transaction });
-          } else {
-            // It's a bill
-            const validatedBill = billSchema.safeParse(transaction);
-            if (!validatedBill.success) {
-              throw new Error(`Invalid bill data: ${validatedBill.error.message}`);
-            }
-            const newBills = bills.map(b => b.id === transaction.id ? transaction : b);
-            setBills(newBills);
-            saveToStorage("budgetBills", newBills);
-            logger.info("Successfully edited bill", { bill: transaction });
-          }
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
-          logger.error("Error in editTransaction:", { error });
-          setError(new Error(errorMessage));
-          throw error;
-        }
-      },
-      resetData: async () => {
-        try {
-          setError(null);
-          localStorage.removeItem("budgetIncomes");
-          localStorage.removeItem("budgetBills");
-          logger.info("Successfully cleared data");
-          await initializeDefaultData();
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Failed to reset data";
-          logger.error("Error in resetData:", { error });
-          setError(new Error(errorMessage));
-          throw error;
-        }
-      },
+      deleteTransaction,
+      editTransaction,
+      resetData,
       refresh: loadData,
       addIncomeToData,
       isLoading,
