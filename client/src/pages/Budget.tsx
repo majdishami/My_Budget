@@ -161,36 +161,61 @@ export function Budget() {
     });
   }, [bills]);
 
-  // Update getIncomeForDay to handle both recurring and one-time incomes
+  // Update getIncomeForDay to handle both recurring and one-time incomes with uniqueness
   const getIncomeForDay = useCallback((day: number) => {
     if (day <= 0) return [];
 
-    return incomes.filter(income => {
-      // For Ruba's bi-weekly salary
-      if (income.source === "Ruba's Salary") {
-        const currentDate = dayjs()
-          .year(selectedYear)
-          .month(selectedMonth)
-          .date(day);
+    const uniqueIncomes = new Set();
+    const result: Income[] = [];
 
-        if (currentDate.day() !== 5) return false; // Only Fridays
+    // Handle Majdi's salary (1st and 15th)
+    if (day === 1 || day === 15) {
+      const majdiSalary = {
+        id: `majdi-${day}`,
+        source: "Majdi's Salary",
+        amount: 4739,
+        date: dayjs().year(selectedYear).month(selectedMonth).date(day).toISOString()
+      };
+      uniqueIncomes.add("Majdi's Salary");
+      result.push(majdiSalary);
+    }
 
-        const startDate = dayjs('2025-01-10');
-        const weeksDiff = currentDate.diff(startDate, 'week');
-        return weeksDiff >= 0 && weeksDiff % 2 === 0;
+    // Handle Ruba's bi-weekly salary
+    const currentDate = dayjs()
+      .year(selectedYear)
+      .month(selectedMonth)
+      .date(day);
+
+    if (currentDate.day() === 5) { // Only Fridays
+      const startDate = dayjs('2025-01-10');
+      const weeksDiff = currentDate.diff(startDate, 'week');
+      if (weeksDiff >= 0 && weeksDiff % 2 === 0 && !uniqueIncomes.has("Ruba's Salary")) {
+        const rubaSalary = {
+          id: `ruba-${currentDate.format('YYYY-MM-DD')}`,
+          source: "Ruba's Salary",
+          amount: 2168,
+          date: currentDate.toISOString()
+        };
+        uniqueIncomes.add("Ruba's Salary");
+        result.push(rubaSalary);
       }
+    }
 
-      // For Majdi's salary (1st and 15th of every month)
-      if (income.source === "Majdi's Salary") {
-        return day === 1 || day === 15;
+    // Handle one-time incomes
+    incomes.forEach(income => {
+      if (income.source !== "Majdi's Salary" && income.source !== "Ruba's Salary") {
+        const incomeDate = dayjs(income.date);
+        if (incomeDate.date() === day && 
+            incomeDate.month() === selectedMonth && 
+            incomeDate.year() === selectedYear &&
+            !uniqueIncomes.has(income.source)) {
+          uniqueIncomes.add(income.source);
+          result.push(income);
+        }
       }
-
-      // For one-time incomes, check exact date match
-      const incomeDate = dayjs(income.date);
-      return incomeDate.date() === day && 
-             incomeDate.month() === selectedMonth && 
-             incomeDate.year() === selectedYear;
     });
+
+    return result;
   }, [incomes, selectedYear, selectedMonth]);
 
   // Update monthly totals calculation to handle recurring bills
