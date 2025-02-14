@@ -21,7 +21,6 @@ import { Label } from "@/components/ui/label";
 import { logger } from "@/lib/logger";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 interface EditIncomeDialogProps {
   income: Income | null;
@@ -47,29 +46,14 @@ export function EditIncomeDialog({
 
   // Format the date display for incomes
   const formatIncomeDisplay = (income: Income) => {
-    if (!income) return '';
-
-    // Get occurrence type label
-    let occurrenceTypeLabel = income.occurrenceType;
+    const date = dayjs(income.date);
     if (income.source === "Majdi's Salary") {
-      occurrenceTypeLabel = "twice-monthly";
-    } else if (income.source === "Ruba's Salary") {
-      occurrenceTypeLabel = "biweekly";
+      return `Twice Monthly (${date.format("MMM D")})`;
     }
-
-    return (
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="ml-2">
-          {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
-           occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
-           occurrenceTypeLabel === 'monthly' ? 'Monthly' :
-           occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
-        </Badge>
-        <span className="text-muted-foreground text-sm">
-          ({dayjs(income.date).format('MMM D')})
-        </span>
-      </div>
-    );
+    if (income.source === "Ruba's Salary") {
+      return `Bi-Weekly (${date.format("MMM D")})`;
+    }
+    return dayjs(income.date).format('MMM D, YYYY');
   };
 
   // Update form values when income changes
@@ -164,7 +148,11 @@ export function EditIncomeDialog({
               }}
               readOnly={source === "Majdi's Salary" || source === "Ruba's Salary"}
             />
-            {income && formatIncomeDisplay(income)}
+            {income && (
+              <p className="text-sm text-muted-foreground">
+                {formatIncomeDisplay(income)}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">
