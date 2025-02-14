@@ -330,10 +330,17 @@ export function Budget() {
 
   // Update the calendarData calculation
   const calendarData = useMemo(() => {
-    // Create date object for the first of the selected month using proper dayjs methods
-    const firstDayDate = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
+    // Ensure timezone consistency and proper month initialization
+    const firstDayDate = dayjs.tz(`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`, dayjs.tz.guess());
     const daysInMonth = firstDayDate.daysInMonth();
     const startWeekday = firstDayDate.day(); // 0-6, Sunday-Saturday
+
+    console.log('Calendar debug:', {
+      date: firstDayDate.format('YYYY-MM-DD'),
+      weekday: firstDayDate.format('dddd'),
+      startWeekday,
+      daysInMonth
+    });
 
     // Create array for all days
     const days: (number | null)[] = [];
