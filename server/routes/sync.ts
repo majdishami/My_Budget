@@ -77,7 +77,10 @@ router.post('/api/sync/restore', async (req, res) => {
     // Validate file content
     try {
       const fileContent = uploadedFile.data.toString('utf-8');
+      console.log('File content length:', fileContent.length);
+
       const parsedData = JSON.parse(fileContent);
+      console.log('Data parsed successfully, validating structure...');
 
       // Validate backup structure
       if (!parsedData.categories || !Array.isArray(parsedData.categories)) {

@@ -68,16 +68,27 @@ export async function restoreDatabaseBackup(backupFile: string) {
         throw new Error('Backup file not found');
       }
 
+      console.log('Reading backup file:', backupFile);
       const backupContent = fs.readFileSync(backupFile, 'utf-8');
+      console.log('Backup content length:', backupContent.length);
+
       let backupData: Record<string, any[]>;
 
       try {
         backupData = JSON.parse(backupContent);
-        if (!backupData.categories || !backupData.bills) {
-          throw new Error('Invalid backup structure');
+        console.log('Backup data parsed successfully');
+
+        if (!backupData.categories || !Array.isArray(backupData.categories)) {
+          throw new Error('Invalid backup structure: missing categories array');
         }
-        console.log('Backup data validated successfully');
+
+        if (!backupData.bills || !Array.isArray(backupData.bills)) {
+          throw new Error('Invalid backup structure: missing bills array');
+        }
+
+        console.log(`Found ${backupData.categories.length} categories and ${backupData.bills.length} bills`);
       } catch (parseError) {
+        console.error('Error parsing backup data:', parseError);
         throw new Error(`Invalid backup file format: ${parseError instanceof Error ? parseError.message : 'Parse error'}`);
       }
 
@@ -92,6 +103,7 @@ export async function restoreDatabaseBackup(backupFile: string) {
 
         // Clear existing data
         await tx.execute(sql`TRUNCATE TABLE categories RESTART IDENTITY CASCADE`);
+        console.log('Cleared existing categories');
 
         // Map to store old category IDs to new ones
         const categoryIdMap = new Map<number, number>();
@@ -99,6 +111,7 @@ export async function restoreDatabaseBackup(backupFile: string) {
         // Insert categories and collect their new IDs
         for (const category of backupData.categories) {
           try {
+            console.log('Inserting category:', category.name);
             const result = await tx.execute(sql`
               INSERT INTO categories (name, color, icon, user_id, created_at)
               VALUES (
@@ -133,6 +146,7 @@ export async function restoreDatabaseBackup(backupFile: string) {
 
           // Clear existing bills
           await tx.execute(sql`TRUNCATE TABLE bills RESTART IDENTITY`);
+          console.log('Cleared existing bills');
 
           // Insert bills with mapped category IDs
           for (const bill of backupData.bills) {
@@ -143,6 +157,7 @@ export async function restoreDatabaseBackup(backupFile: string) {
             }
 
             try {
+              console.log('Inserting bill:', bill.name);
               await tx.execute(sql`
                 INSERT INTO bills (name, amount, day, category_id, user_id, created_at)
                 VALUES (
