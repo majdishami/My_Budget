@@ -3,12 +3,12 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { users, insertUserSchema, type SelectUser } from "@db/schema";
 import { db, pool } from "@db";
 import { eq } from "drizzle-orm";
 import { fromZodError } from "zod-validation-error";
-import bcrypt from "bcrypt";
 
 declare global {
   namespace Express {
@@ -16,15 +16,20 @@ declare global {
   }
 }
 
-const SALT_ROUNDS = 12;
+const scryptAsync = promisify(scrypt);
 const PostgresSessionStore = connectPg(session);
 
 async function hashPassword(password: string) {
-  return bcrypt.hash(password, SALT_ROUNDS);
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  return bcrypt.compare(supplied, stored);
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
 async function getUserByUsername(username: string) {
@@ -38,6 +43,10 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    }
   };
 
   if (app.get("env") === "production") {

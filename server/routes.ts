@@ -14,6 +14,14 @@ const { Pool } = pkg;
 import dayjs from 'dayjs';
 import { bills, insertBillSchema } from "@db/schema";
 
+// Middleware to check if user is authenticated
+const requireAuth = (req: any, res: any, next: any) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: 'Unauthorized' });
+};
+
 // Hash password using SHA-256
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -108,13 +116,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Middleware to check if user is authenticated
-  const requireAuth = (req: any, res: any, next: any) => {
-    if (req.isAuthenticated()) {
-      return next();
-    }
-    res.status(401).json({ message: 'Unauthorized' });
-  };
 
   // Test route
   app.get('/api/health', (req, res) => {
@@ -172,31 +173,22 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Categories Routes with simplified implementation
-  app.get('/api/categories', async (req, res) => {
+  app.get('/api/categories', requireAuth, async (req, res) => {
     try {
-      console.log('[Categories API] Fetching categories...');
-
-      // Verify database connection
-      const testQuery = await db.execute(sql`SELECT NOW()`);
-      console.log('[Categories API] Database connection test successful');
-
       const allCategories = await db.query.categories.findMany({
         orderBy: [categories.name],
       });
-
-      console.log('[Categories API] Found categories:', allCategories.length);
       return res.json(allCategories);
     } catch (error) {
       console.error('[Categories API] Error:', error);
       return res.status(500).json({
         message: 'Failed to load categories',
-        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error : undefined
+        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
       });
     }
   });
 
-  app.post('/api/categories', async (req, res) => {
+  app.post('/api/categories', requireAuth, async (req, res) => {
     try {
       const categoryData = await insertCategorySchema.parseAsync({
         name: req.body.name,
@@ -219,7 +211,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch('/api/categories/:id', async (req, res) => {
+  app.patch('/api/categories/:id', requireAuth, async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
       const category = await db.query.categories.findFirst({
@@ -252,7 +244,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.delete('/api/categories/:id', async (req, res) => {
+  app.delete('/api/categories/:id', requireAuth, async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
       const category = await db.query.categories.findFirst({
@@ -274,12 +266,13 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Transactions Routes
-  app.get('/api/transactions', async (req, res) => {
+  app.get('/api/transactions', requireAuth, async (req, res) => {
     try {
       console.log('[Transactions API] Fetching transactions...');
+      const userId = (req.user as any).id;
       const type = req.query.type as string | undefined;
 
-      let query = db.select({
+      const query = db.select({
         id: transactions.id,
         description: transactions.description,
         amount: transactions.amount,
@@ -288,16 +281,12 @@ export function registerRoutes(app: Express): Server {
         category_id: transactions.category_id,
         category: categories
       })
-      .from(transactions)
-      .leftJoin(categories, eq(transactions.category_id, categories.id))
-      .orderBy(desc(transactions.date));
-
-      if (type) {
-        query = query.where(eq(transactions.type, type));
-      }
+        .from(transactions)
+        .leftJoin(categories, eq(transactions.category_id, categories.id))
+        .where(eq(transactions.user_id, userId))
+        .orderBy(desc(transactions.date));
 
       const allTransactions = await query;
-      console.log('[Transactions API] Found transactions:', allTransactions.length);
 
       const formattedTransactions = allTransactions.map(transaction => ({
         id: transaction.id,
@@ -311,14 +300,12 @@ export function registerRoutes(app: Express): Server {
         category_icon: transaction.category?.icon || null,
       }));
 
-      console.log('[Transactions API] Formatted transactions:', formattedTransactions);
       return res.json(formattedTransactions);
     } catch (error) {
       console.error('[Transactions API] Error:', error);
       return res.status(500).json({
         message: 'Failed to load transactions',
-        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error',
-        details: error instanceof Error ? error.stack : undefined
+        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
       });
     }
   });
@@ -408,7 +395,7 @@ export function registerRoutes(app: Express): Server {
 
 
   // Bills Routes
-  app.get('/api/bills', async (req, res) => {
+  app.get('/api/bills', requireAuth, async (req, res) => {
     try {
       console.log('[Bills API] Fetching bills...');
 
