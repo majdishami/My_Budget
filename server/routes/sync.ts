@@ -73,6 +73,11 @@ router.post('/api/sync/restore', async (req, res) => {
     }
 
     const uploadedFile = req.files.backup as UploadedFile;
+    console.log('Received file:', {
+      name: uploadedFile.name,
+      size: uploadedFile.size,
+      mimetype: uploadedFile.mimetype
+    });
 
     // Create tmp directory if it doesn't exist
     const tmpDir = path.join(process.cwd(), 'tmp');
@@ -93,7 +98,11 @@ router.post('/api/sync/restore', async (req, res) => {
       const fileContent = fs.readFileSync(tempPath, 'utf8');
       console.log('File content length:', fileContent.length);
 
+      // Log the first 100 characters to check content
+      console.log('File content preview:', fileContent.substring(0, 100));
+
       try {
+        // Parse and validate the JSON content
         const parsedData = JSON.parse(fileContent);
         console.log('Data parsed successfully, validating structure...');
 
@@ -116,9 +125,14 @@ router.post('/api/sync/restore', async (req, res) => {
         }
 
         res.json({ message: result.message });
-      } catch (parseError) {
-        console.error('Error processing backup:', parseError);
-        throw new Error('Invalid JSON file content');
+      } catch (parseError: any) {
+        console.error('Error processing backup data:', parseError);
+        res.status(400).json({ 
+          error: 'Invalid JSON file content',
+          details: parseError.message || 'Unknown parse error',
+          parseError: parseError.toString()
+        });
+        return;
       }
     } finally {
       // Clean up the temporary file
@@ -127,11 +141,15 @@ router.post('/api/sync/restore', async (req, res) => {
         console.log('Temporary file cleaned up');
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in restore endpoint:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Unknown error occurred' 
-    });
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        details: error instanceof Error ? error.stack : undefined,
+        errorType: error.constructor.name
+      });
+    }
   }
 });
 
