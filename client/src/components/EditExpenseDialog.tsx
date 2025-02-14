@@ -117,10 +117,10 @@ export default function EditExpenseDialog({
   }, [expense]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && expense) {
       resetForm();
     }
-  }, [isOpen, resetForm]);
+  }, [isOpen, expense, resetForm]);
 
   const validateForm = useCallback((): boolean => {
     const newErrors: typeof errors = {};
