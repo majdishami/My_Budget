@@ -80,6 +80,8 @@ function Router() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedIncome, setSelectedIncome] = useState<Income | null>(null);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+  // Force re-render on transaction updates
+  const [updateTrigger, setUpdateTrigger] = useState(0);
 
   const handleDeleteTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
     if (type === 'income') {
@@ -90,7 +92,7 @@ function Router() {
     setShowDeleteDialog(true);
   };
 
-  const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
+  const handleEditTransaction = async (type: 'income' | 'bill', transaction: Income | Bill) => {
     if (type === 'income') {
       const income = transaction as Income;
       // Set correct occurrence type based on source
@@ -106,6 +108,18 @@ function Router() {
     } else {
       setSelectedBill(transaction as Bill);
       setShowEditExpenseDialog(true);
+    }
+  };
+
+  const handleUpdateTransaction = async (transaction: Income | Bill) => {
+    try {
+      await editTransaction(transaction);
+      // Force calendar re-render
+      setUpdateTrigger(prev => prev + 1);
+      // Refresh data
+      await refresh();
+    } catch (error) {
+      console.error('Failed to update transaction:', error);
     }
   };
 
@@ -549,7 +563,7 @@ function Router() {
             onOpenChange={setShowEditIncomeDialog}
             income={selectedIncome}
             onUpdate={(updatedIncome) => {
-              editTransaction(updatedIncome);
+              handleUpdateTransaction(updatedIncome);
               setShowEditIncomeDialog(false);
               setSelectedIncome(null);
             }}
@@ -559,8 +573,8 @@ function Router() {
               isOpen={showEditExpenseDialog}
               onOpenChange={setShowEditExpenseDialog}
               expense={selectedBill}
-              onUpdate={(updatedBill) => {
-                editTransaction(updatedBill);
+              onUpdate={async (updatedBill) => {
+                await handleUpdateTransaction(updatedBill);
                 setShowEditExpenseDialog(false);
                 setSelectedBill(null);
               }}
