@@ -91,34 +91,38 @@ export default function EditExpenseDialog({
   }>({});
 
   const resetForm = useCallback(() => {
-    if (expense) {
-      // Set basic fields
-      setName(expense.name);
-      setAmount(expense.amount.toString());
+    if (!expense) return;
 
-      // Handle date type and specific date
-      if (expense.isOneTime) {
-        setDateType('specific');
-        // If it's a one-time expense, set the specific date
-        if (expense.date) {
-          setSpecificDate(new Date(expense.date));
-        }
-      } else {
-        setDateType('monthly');
-        setDay(expense.day.toString());
+    // Basic fields
+    setName(expense.name || '');
+    setAmount(expense.amount?.toString() || '');
+
+    // Date handling
+    if (expense.isOneTime) {
+      setDateType('specific');
+      setSpecificDate(expense.date ? new Date(expense.date) : undefined);
+      // For one-time expenses, also set the day from the date
+      if (expense.date) {
+        setDay(new Date(expense.date).getDate().toString());
       }
-
-      // Set category (handle null case)
-      setCategoryId(expense.category_id != null ? expense.category_id.toString() : "");
-
-      // Set reminder settings
-      setReminderEnabled(expense.reminderEnabled || false);
-      setReminderDays(expense.reminderDays || 7);
+    } else {
+      setDateType('monthly');
+      setDay(expense.day?.toString() || '1');
     }
+
+    // Category handling - default to empty string if null
+    setCategoryId(expense.category_id != null ? expense.category_id.toString() : '');
+
+    // Reminder settings
+    setReminderEnabled(Boolean(expense.reminderEnabled));
+    setReminderDays(expense.reminderDays || 7);
+
+    // Clear any existing errors
     setErrors({});
     setIsSubmitting(false);
   }, [expense]);
 
+  // Trigger reset when dialog opens or expense changes
   useEffect(() => {
     if (isOpen && expense) {
       resetForm();
@@ -184,34 +188,31 @@ export default function EditExpenseDialog({
 
     try {
       const baseUpdates = {
+        ...expense,
         name: name.trim(),
         amount: parseFloat(amount),
-        day: parseInt(day),
         category_id: selectedCategory.id || null,
         category_name: selectedCategory.name,
         category_color: selectedCategory.color,
         reminderEnabled,
         reminderDays,
-        user_id: expense.user_id,
-        created_at: expense.created_at
       };
 
       let updatedBill: Bill;
 
       if (dateType === 'monthly') {
         updatedBill = {
-          ...expense,
           ...baseUpdates,
           isOneTime: false,
+          day: parseInt(day),
           date: undefined
         };
       } else if (specificDate) {
         updatedBill = {
-          id: expense.id,
           ...baseUpdates,
+          isOneTime: true,
           day: dayjs(specificDate).date(),
-          date: dayjs(specificDate).toISOString(),
-          isOneTime: true
+          date: dayjs(specificDate).toISOString()
         };
       } else {
         throw new Error('Invalid date configuration');
