@@ -96,7 +96,7 @@ const DayCell = memo(({
             {dayOfWeek}
           </span>
           {isCurrentDay && (
-            <span className="text-[8px] md:text-xs font-medium text-primary ml-0.5 animate-pulse px-0.5 rounded">
+            <span className="text-[8px] md:text-xs font-medium text-primary ml-0.5 animate-pulse px-0.5 rounded bg-primary/10">
               Today
             </span>
           )}
