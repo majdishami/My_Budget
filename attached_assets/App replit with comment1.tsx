@@ -526,17 +526,16 @@ const App = () => {
                             <div className="space-y-0.5 text-xs">
                               {dayIncomes.length > 0 && (
                                 <div className="space-y-0.5">
-                                  <p className="font-medium text-green-600 dark:text-green-400">Income</p>
                                   {dayIncomes.map((income, index) => (
                                     <div
                                       key={income.id}
-                                      className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1"
+                                      className="flex justify-between items-center text-green-600 dark:text-green-400"
                                     >
-                                      <span className="truncate max-w-[60%]">
-                                        {index + 1}. {income.source}
+                                      <span className="truncate max-w-[70%]">
+                                        {(index + 1)}. {income.source}
                                       </span>
                                       <span className="font-medium shrink-0">
-                                        {formatCurrency(income.amount)}
+                                        ${income.amount.toLocaleString()}
                                       </span>
                                     </div>
                                   ))}
@@ -544,19 +543,18 @@ const App = () => {
                               )}
                               {dayBills.length > 0 && (
                                 <div className="space-y-0.5">
-                                  <p className="font-medium text-red-600 dark:text-red-400">Expenses</p>
                                   {[...dayBills]
-                                    .sort((a, b) => b.amount - a.amount) // Sort bills by amount in descending order
+                                    .sort((a, b) => b.amount - a.amount)
                                     .map((bill, index) => (
                                       <div
                                         key={bill.id}
-                                        className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
+                                        className="flex justify-between items-center text-red-600 dark:text-red-400"
                                       >
-                                        <span className="truncate max-w-[60%]">
+                                        <span className="truncate max-w-[70%]">
                                           {(index + 1)}. {bill.name}
                                         </span>
                                         <span className="font-medium shrink-0">
-                                          {formatCurrency(bill.amount)}
+                                          ${bill.amount.toLocaleString()}
                                         </span>
                                       </div>
                                     ))}
