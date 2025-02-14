@@ -94,10 +94,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const editTransaction = async (transaction: Income | Bill) => {
     try {
       setError(null);
@@ -134,14 +130,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to edit transaction: ${errorData.message || response.statusText}`);
       }
 
-      // Update local state immediately
+      // Get the updated data from response
+      const updatedTransaction = await response.json();
+      logger.info('[DataContext] Server response after edit:', updatedTransaction);
+
+      // Update local state immediately with the server response data
       if (isIncome) {
         setIncomes(prevIncomes => 
-          prevIncomes.map(inc => inc.id === transaction.id ? transaction as Income : inc)
+          prevIncomes.map(inc => inc.id === transaction.id ? {
+            ...inc,
+            source: updatedTransaction.description,
+            amount: parseFloat(updatedTransaction.amount)
+          } : inc)
         );
       } else {
         setBills(prevBills => 
-          prevBills.map(bill => bill.id === transaction.id ? transaction as Bill : bill)
+          prevBills.map(bill => bill.id === transaction.id ? {
+            ...bill,
+            name: updatedTransaction.description,
+            amount: parseFloat(updatedTransaction.amount)
+          } : bill)
         );
       }
 
