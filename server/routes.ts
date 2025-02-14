@@ -58,6 +58,22 @@ export function registerRoutes(app: Express): Server {
       console.log('[Bills API] Raw query results:', allBills);
 
       const formattedBills = allBills.map(bill => {
+        // Get default icon based on category name if not set
+        let defaultIcon = 'more-horizontal'; // Default for uncategorized
+        if (bill.category_name === 'Rent') defaultIcon = 'home';
+        if (bill.category_name === 'Utilities - Electricity') defaultIcon = 'zap';
+        if (bill.category_name === 'Utilities - Gas') defaultIcon = 'flame';
+        if (bill.category_name === 'Utilities - Water') defaultIcon = 'droplet';
+        if (bill.category_name === 'Internet') defaultIcon = 'wifi';
+        if (bill.category_name === 'TV Service') defaultIcon = 'tv';
+        if (bill.category_name === 'Phone') defaultIcon = 'phone';
+        if (bill.category_name === 'Car Insurance') defaultIcon = 'car';
+        if (bill.category_name === 'Life Insurance') defaultIcon = 'heart';
+        if (bill.category_name === 'Credit Card Payments') defaultIcon = 'credit-card';
+        if (bill.category_name === 'Personal Loan') defaultIcon = 'credit-card';
+        if (bill.category_name === 'Online Services') defaultIcon = 'globe';
+        if (bill.category_name === 'Maid\'s Service') defaultIcon = 'home';
+
         const formatted = {
           id: bill.id,
           name: bill.name,
@@ -66,7 +82,7 @@ export function registerRoutes(app: Express): Server {
           category_id: bill.category_id,
           category_name: bill.category_name,
           category_color: bill.category_color,
-          category_icon: bill.category_icon || 'home' // Default icon for rent category
+          category_icon: bill.category_icon || defaultIcon
         };
         console.log('[Bills API] Formatted bill:', formatted);
         return formatted;
