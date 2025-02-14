@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import { logger } from "@/lib/logger";
 import { incomeSchema, billSchema } from "@/lib/validation";
 
-interface DataContextType {
+export interface DataContextType {
   incomes: Income[];
   bills: Bill[];
   saveIncomes: (newIncomes: Income[]) => Promise<void>;
@@ -21,22 +21,22 @@ interface DataContextType {
   error: Error | null;
 }
 
-const DataContext = createContext<DataContextType | undefined>(undefined);
+export const DataContext = createContext<DataContextType | undefined>(undefined);
 
 const defaultIncomes: Income[] = [
-  { 
-    id: generateId(), 
-    source: "Majdi's Salary", 
-    amount: 4739, 
+  {
+    id: generateId(),
+    source: "Majdi's Salary",
+    amount: 4739,
     date: dayjs('2025-02-01').toISOString(), // Set to start of current month
     occurrenceType: 'twice-monthly',
     firstDate: 1,
     secondDate: 15
   },
-  { 
-    id: generateId(), 
-    source: "Ruba's Salary", 
-    amount: 2168, 
+  {
+    id: generateId(),
+    source: "Ruba's Salary",
+    amount: 2168,
     date: dayjs('2025-01-10').toISOString(), // Set to first occurrence
     occurrenceType: 'biweekly'
   }
@@ -240,14 +240,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const loadFromStorage = async <T extends Income | Bill>(
         key: string,
-        validator: (item: any) => boolean,
+        schema: typeof incomeSchema | typeof billSchema,
         type: string
       ): Promise<T[]> => {
         const data = localStorage.getItem(key);
         if (!data) return [];
         try {
           const parsed = JSON.parse(data);
-          return validateData(parsed, validator, type);
+          return validateData(parsed, schema, type);
         } catch (error) {
           logger.warn(`Invalid stored ${type}, initializing defaults`, { error });
           return [];
@@ -255,8 +255,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       };
 
       const [storedIncomes, storedBills] = await Promise.all([
-        loadFromStorage<Income>("budgetIncomes", isValidIncome, "income"),
-        loadFromStorage<Bill>("budgetBills", isValidBill, "bill")
+        loadFromStorage<Income>("budgetIncomes", incomeSchema, "income"),
+        loadFromStorage<Bill>("budgetBills", billSchema, "bill")
       ]);
 
       if (!storedIncomes.length && !storedBills.length) {
@@ -446,12 +446,4 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       {children}
     </DataContext.Provider>
   );
-}
-
-export function useData() {
-  const context = useContext(DataContext);
-  if (context === undefined) {
-    throw new Error("useData must be used within a DataProvider");
-  }
-  return context;
 }
