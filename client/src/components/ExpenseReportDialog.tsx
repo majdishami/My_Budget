@@ -208,7 +208,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             category: bill.category_name || 'Uncategorized',
             category_name: bill.category_name || 'Uncategorized',
             category_color: bill.category_color || '#D3D3D3',
-            category_icon: bill.category?.icon || bill.category_icon || null,
+            category_icon: bill.category_icon || null,
             type: 'expense'
           });
         }
@@ -885,7 +885,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                             {formatCurrency(transaction.amount)}
                                           </TableCell>
                                           <TableCell className={`${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
-                                            {transaction.occurred ? 'Paid' : 'Pending'}
+                                            {transaction.occurred ? '✓' : '⌛'}
                                           </TableCell>
                                         </>
                                       ) : (
@@ -898,26 +898,26 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
                                             {formatCurrency(transaction.amount)}
                                           </TableCell>
-                                          <TableCell className={`${transaction.occurred? 'text-red-600' : 'text-orange-500'}`}>
-                                            {transaction.occurred ? 'Paid' : 'Pending'}
+                                          <TableCell className={`${transaction.occurred ? 'text-red600' : 'text-orange-500'}`}>
+                                            {transaction.occurred ? '✓' : '⌛'}
                                           </TableCell>
                                         </>
                                       )}
                                     </TableRow>
                                   ))}
-                              </TableBody>
-                            </Table>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+                                </TableBody>
+                              </Table>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
 }
