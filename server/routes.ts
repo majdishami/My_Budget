@@ -12,6 +12,7 @@ import { sql } from 'drizzle-orm';
 import pkg from 'pg';
 const { Pool } = pkg;
 import dayjs from 'dayjs';
+import { bills, insertBillSchema } from "@db/schema";
 
 // Hash password using SHA-256
 function hashPassword(password: string): string {
@@ -276,42 +277,40 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/transactions', async (req, res) => {
     try {
       console.log('[Transactions API] Fetching transactions...');
+      const type = req.query.type as string | undefined;
 
-      const allTransactions = await db.query.transactions.findMany({
+      let query = db.query.transactions.findMany({
         orderBy: [desc(transactions.date)],
         with: {
           category: true
         }
       });
 
-      console.log('[Transactions API] Raw transactions:', JSON.stringify(allTransactions, null, 2));
-
-      const formattedTransactions = allTransactions.map(transaction => {
-        const transactionDate = dayjs(transaction.date).startOf('day');
-        console.log('[Transactions API] Processing transaction:', {
-          original: transaction,
-          parsedDate: transactionDate.format(),
-          dayOfMonth: transactionDate.date(),
-          month: transactionDate.month(),
-          year: transactionDate.year()
+      if (type) {
+        query = db.query.transactions.findMany({
+          where: eq(transactions.type, type),
+          orderBy: [desc(transactions.date)],
+          with: {
+            category: true
+          }
         });
+      }
 
-        const formatted = {
-          id: transaction.id,
-          description: transaction.description,
-          amount: Number(transaction.amount),
-          date: transactionDate.toISOString(),
-          type: transaction.type,
-          category_id: transaction.category_id,
-          category_name: transaction.category?.name || 'Uncategorized',
-          category_color: transaction.category?.color || '#D3D3D3',
-          category_icon: transaction.category?.icon || null,
-        };
-        console.log('[Transactions API] Formatted transaction:', formatted);
-        return formatted;
-      });
+      const allTransactions = await query;
+      console.log('[Transactions API] Found transactions:', allTransactions.length);
 
-      console.log('[Transactions API] All formatted transactions:', formattedTransactions);
+      const formattedTransactions = allTransactions.map(transaction => ({
+        id: transaction.id,
+        description: transaction.description,
+        amount: Number(transaction.amount),
+        date: dayjs(transaction.date).toISOString(),
+        type: transaction.type,
+        category_id: transaction.category_id,
+        category_name: transaction.category?.name || 'Uncategorized',
+        category_color: transaction.category?.color || '#D3D3D3',
+        category_icon: transaction.category?.icon || null,
+      }));
+
       return res.json(formattedTransactions);
     } catch (error) {
       console.error('[Transactions API] Error:', error);
@@ -402,6 +401,62 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Error deleting transaction:', error);
       res.status(500).json({ message: 'Server error deleting transaction' });
+    }
+  });
+
+
+  // Bills Routes
+  app.get('/api/bills', async (req, res) => {
+    try {
+      console.log('[Bills API] Fetching bills...');
+
+      const allBills = await db.query.bills.findMany({
+        orderBy: [bills.day],
+        with: {
+          category: true
+        }
+      });
+
+      const formattedBills = allBills.map(bill => ({
+        id: bill.id,
+        name: bill.name,
+        amount: Number(bill.amount),
+        day: bill.day,
+        category_id: bill.category_id,
+        category_name: bill.category?.name || 'Uncategorized',
+        category_color: bill.category?.color || '#D3D3D3',
+        category_icon: bill.category?.icon || null,
+      }));
+
+      console.log('[Bills API] Found bills:', formattedBills.length);
+      return res.json(formattedBills);
+    } catch (error) {
+      console.error('[Bills API] Error:', error);
+      return res.status(500).json({
+        message: 'Failed to load bills',
+        error: process.env.NODE_ENV === 'development' ? error : 'Internal server error',
+      });
+    }
+  });
+
+  app.post('/api/bills', requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const billData = await insertBillSchema.parseAsync({
+        ...req.body,
+        user_id: userId,
+      });
+
+      const [newBill] = await db.insert(bills)
+        .values(billData)
+        .returning();
+
+      res.status(201).json(newBill);
+    } catch (error) {
+      console.error('Error creating bill:', error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Invalid request data'
+      });
     }
   });
 
