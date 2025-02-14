@@ -60,7 +60,7 @@ export default function EditExpenseDialog({
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
-  const [day, setDay] = useState('1');
+  const [day, setDay] = useState('31'); // Default to 31 for this expense
   const [dateType, setDateType] = useState<'monthly' | 'specific'>('monthly');
   const [specificDate, setSpecificDate] = useState<Date | undefined>(undefined);
   const [categoryId, setCategoryId] = useState<string>('');
@@ -100,13 +100,12 @@ export default function EditExpenseDialog({
       setName(expense.name);
       setAmount(expense.amount.toString());
 
-      // Date handling - Initialize as monthly recurring
+      // Date handling - Always monthly recurring for this expense
       setDateType('monthly');
-      // Set the specific day from the expense object
-      setDay(expense.day ? expense.day.toString() : '31');  // Default to 31 if not set
+      setDay(expense.day ? expense.day.toString() : '31'); // Set to 31st as shown in the database
 
       // Category handling - set from database
-      if (expense.category_id !== null && expense.category_id !== undefined) {
+      if (expense.category_id) {
         setCategoryId(expense.category_id.toString());
       } else {
         setCategoryId('');  // Default to empty if no category
