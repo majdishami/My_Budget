@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, decimal, date } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
@@ -20,6 +20,18 @@ export const categories = pgTable("categories", {
   created_at: timestamp("created_at").defaultNow(),
 });
 
+// Transactions table
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  description: text("description").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  date: timestamp("date").notNull(),
+  type: text("type").notNull(), // 'income' or 'expense'
+  category_id: integer("category_id").references(() => categories.id),
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  created_at: timestamp("created_at").defaultNow(),
+});
+
 // Bills table
 export const bills = pgTable("bills", {
   id: serial("id").primaryKey(),
@@ -35,6 +47,7 @@ export const bills = pgTable("bills", {
 export const userRelations = relations(users, ({ many }) => ({
   categories: many(categories),
   bills: many(bills),
+  transactions: many(transactions),
 }));
 
 export const categoryRelations = relations(categories, ({ one, many }) => ({
@@ -43,6 +56,7 @@ export const categoryRelations = relations(categories, ({ one, many }) => ({
     references: [users.id],
   }),
   bills: many(bills),
+  transactions: many(transactions),
 }));
 
 export const billRelations = relations(bills, ({ one }) => ({
@@ -56,14 +70,27 @@ export const billRelations = relations(bills, ({ one }) => ({
   }),
 }));
 
+export const transactionRelations = relations(transactions, ({ one }) => ({
+  user: one(users, {
+    fields: [transactions.user_id],
+    references: [users.id],
+  }),
+  category: one(categories, {
+    fields: [transactions.category_id],
+    references: [categories.id],
+  }),
+}));
+
 // Create Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertCategorySchema = createInsertSchema(categories);
 export const insertBillSchema = createInsertSchema(bills);
+export const insertTransactionSchema = createInsertSchema(transactions);
 
 // Export types
 export type InsertUser = typeof users.$inferInsert;
 export type SelectUser = typeof users.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type Bill = typeof bills.$inferSelect;
+export type Transaction = typeof transactions.$inferSelect;

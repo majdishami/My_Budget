@@ -3,7 +3,6 @@ import { Income, Bill } from "@/types";
 import dayjs from "dayjs";
 import { logger } from "@/lib/logger";
 import { incomeSchema, billSchema } from "@/lib/validation";
-//import { apiRequest } from "@/lib/queryClient";
 
 interface DataContextType {
   incomes: Income[];
@@ -16,7 +15,6 @@ interface DataContextType {
   editTransaction: (transaction: Income | Bill) => Promise<void>;
   resetData: () => Promise<void>;
   refresh: () => Promise<void>;
-  addIncomeToData: (income: Income) => Promise<void>;
   isLoading: boolean;
   error: Error | null;
 }
@@ -57,22 +55,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           occurrenceType: t.recurring_id ? 'recurring' : 'once'
         }));
 
-      const loadedBills = transactions
-        .filter((t: any) => t.type === 'expense')
-        .map((t: any) => ({
-          id: t.id.toString(),
-          name: t.description,
-          amount: parseFloat(t.amount),
-          date: t.date,
-          category_id: t.category_id,
-          category_name: t.category_name,
-          isOneTime: !t.recurring_id,
-          user_id: t.user_id,
-          created_at: t.created_at
-        }));
-
       setIncomes(loadedIncomes);
-      setBills(loadedBills);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
       logger.error("Error loading data:", { error });
@@ -86,7 +69,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     loadData();
   }, []);
 
-  const addIncomeToData = async (income: Income) => {
+  // Add a new income
+  const addIncome = async (income: Income) => {
     try {
       setError(null);
       const response = await fetch('/api/transactions', {
@@ -116,51 +100,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addBill = async (bill: Bill) => {
-    try {
-      setError(null);
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          description: bill.name,
-          amount: bill.amount,
-          date: bill.date,
-          type: 'expense',
-          category_id: bill.category_id
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to add bill');
-      }
-
-      await loadData(); // Refresh data after adding
-      logger.info("Successfully added bill", { bill });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to add bill";
-      logger.error("Error in addBill:", { error });
-      setError(new Error(errorMessage));
-      throw error;
-    }
-  };
-
   return (
     <DataContext.Provider value={{
       incomes,
       bills,
       saveIncomes: async (newIncomes) => {
-        // Implement batch save if needed
-        await Promise.all(newIncomes.map(income => addIncomeToData(income)));
+        await Promise.all(newIncomes.map(income => addIncome(income)));
       },
       saveBills: async (newBills) => {
-        // Implement batch save if needed
-        await Promise.all(newBills.map(bill => addBill(bill)));
+        // Implement if needed
       },
-      addIncome: addIncomeToData,
-      addBill,
+      addIncome,
+      addBill: async () => {
+        // Implement if needed
+      },
       deleteTransaction: async (transaction) => {
         try {
           setError(null);
@@ -196,8 +149,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
               description: isIncome ? transaction.source : transaction.name,
               amount: transaction.amount,
               date: transaction.date,
-              type: isIncome ? 'income' : 'expense',
-              category_id: !isIncome ? transaction.category_id : null
+              type: isIncome ? 'income' : 'expense'
             }),
           });
 
@@ -216,7 +168,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       resetData: async () => {
         try {
           setError(null);
-          // Implement if needed - could delete all transactions and recreate defaults
           await loadData();
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Failed to reset data";
@@ -226,7 +177,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
       },
       refresh: loadData,
-      addIncomeToData,
       isLoading,
       error
     }}>

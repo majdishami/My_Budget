@@ -188,25 +188,22 @@ export function Budget() {
         }
       };
 
-      if (income.source === "Majdi's Salary") {
-        // Add first occurrence on the 1st
-        addIncomeIfNotExists(startOfMonth.date(1), 4739, 'twice-monthly');
-        // Add second occurrence on the 15th
-        addIncomeIfNotExists(startOfMonth.date(15), 4739, 'twice-monthly');
-      } else if (income.source === "Ruba's Salary") {
-        // Calculate bi-weekly dates starting from Jan 10, 2025
-        let checkDate = dayjs('2025-01-10');
+      // Handle different income types
+      if (income.occurrenceType === 'twice-monthly') {
+        // Add occurrences on 1st and 15th
+        addIncomeIfNotExists(startOfMonth.date(1), income.amount, 'twice-monthly');
+        addIncomeIfNotExists(startOfMonth.date(15), income.amount, 'twice-monthly');
+      } else if (income.occurrenceType === 'biweekly') {
+        // Calculate bi-weekly dates
+        let checkDate = dayjs(income.date);
         while (checkDate.isBefore(endOfMonth) || checkDate.isSame(endOfMonth)) {
-          if ((checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth)) && 
-              checkDate.day() === 5) { // Friday
-            const weeksDiff = checkDate.diff(dayjs('2025-01-10'), 'week');
-            if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
-              addIncomeIfNotExists(checkDate, income.amount, 'biweekly');
-            }
+          if ((checkDate.isAfter(startOfMonth) || checkDate.isSame(startOfMonth))) {
+            addIncomeIfNotExists(checkDate, income.amount, 'biweekly');
+            checkDate = checkDate.add(14, 'day');
           }
-          checkDate = checkDate.add(1, 'day');
         }
       } else {
+        // Handle one-time or monthly incomes
         const incomeDate = dayjs(income.date);
         if (incomeDate.month() === selectedMonth && incomeDate.year() === selectedYear) {
           addIncomeIfNotExists(incomeDate, income.amount, income.occurrenceType || 'once');

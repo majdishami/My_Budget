@@ -18,8 +18,33 @@ function hashPassword(password: string): string {
 }
 
 export function registerRoutes(app: Express): Server {
+  console.log('[Server] Starting route registration...');
+
   // Initialize PostgreSQL session store
   const PgSession = ConnectPgSimple(session);
+  console.log('[Server] Initialized PgSession');
+
+  // Test database connection
+  try {
+    console.log('[Server] Testing database connection...');
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? {
+        rejectUnauthorized: false
+      } : undefined
+    });
+
+    pool.query('SELECT NOW()', (err, res) => {
+      if (err) {
+        console.error('[Server] Database connection test failed:', err);
+        throw err;
+      }
+      console.log('[Server] Database connection test successful');
+    });
+  } catch (error) {
+    console.error('[Server] Failed to create database pool:', error);
+    throw error;
+  }
 
   // Set up session middleware
   app.use(session({
@@ -36,10 +61,12 @@ export function registerRoutes(app: Express): Server {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     },
   }));
+  console.log('[Server] Session middleware configured');
 
-  // Initialize Passport and restore authentication state from session
+  // Initialize Passport
   app.use(passport.initialize());
   app.use(passport.session());
+  console.log('[Server] Passport initialized');
 
   // Set up Passport Local Strategy
   passport.use(new LocalStrategy(async (username, password, done) => {
@@ -62,6 +89,7 @@ export function registerRoutes(app: Express): Server {
       return done(err);
     }
   }));
+  console.log('[Server] Passport strategy configured');
 
   passport.serializeUser((user: any, done) => {
     done(null, user.id);
@@ -86,12 +114,18 @@ export function registerRoutes(app: Express): Server {
     res.status(401).json({ message: 'Unauthorized' });
   };
 
+  // Test route
+  app.get('/api/health', (req, res) => {
+    console.log('[Server] Health check endpoint called');
+    res.json({ status: 'ok' });
+  });
+
   // Authentication Routes
   app.post('/api/auth/register', async (req, res) => {
     try {
+      console.log('[Server] Processing registration request');
       const { username, password } = await insertUserSchema.parseAsync(req.body);
 
-      // Check if username already exists
       const existingUser = await db.query.users.findFirst({
         where: eq(users.username, username),
       });
@@ -100,43 +134,39 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: 'Username already exists' });
       }
 
-      // Create new user
       const hashedPassword = hashPassword(password);
       const [newUser] = await db.insert(users).values({
         username,
         password: hashedPassword,
       }).returning();
 
+      console.log('[Server] User registered successfully');
       res.status(201).json({ message: 'User created successfully', id: newUser.id });
     } catch (error) {
+      console.error('[Server] Registration error:', error);
       res.status(400).json({ message: 'Invalid request' });
     }
   });
 
   app.post('/api/auth/login', passport.authenticate('local'), (req, res) => {
+    console.log('[Server] User logged in successfully');
     res.json({ message: 'Logged in successfully' });
   });
 
   app.post('/api/auth/logout', (req, res) => {
     req.logout(() => {
+      console.log('[Server] User logged out successfully');
       res.json({ message: 'Logged out successfully' });
     });
   });
 
   // Test route for auth status
   app.get('/api/auth/status', (req, res) => {
+    console.log('[Server] Auth status check');
     res.json({
       isAuthenticated: req.isAuthenticated(),
       user: req.user ? { id: (req.user as any).id } : null
     });
-  });
-
-  // Initialize a database pool for raw queries
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? {
-      rejectUnauthorized: false
-    } : undefined
   });
 
   // Categories Routes with simplified implementation
@@ -369,6 +399,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  console.log('[Server] Route registration completed');
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -29,20 +29,6 @@ export const categories = pgTable("categories", {
 
 export const insertCategorySchema = createInsertSchema(categories);
 
-// Recurring transactions table must be defined before transactions
-// to avoid circular reference
-export const recurring_transactions = pgTable("recurring_transactions", {
-  id: serial("id").primaryKey(),
-  description: text("description").notNull(),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  frequency: text("frequency").notNull(), // 'daily', 'weekly', 'biweekly', 'monthly', 'yearly'
-  start_date: date("start_date").notNull(),
-  end_date: date("end_date"),
-  last_generated: timestamp("last_generated"),
-  category_id: integer("category_id").references(() => categories.id),
-  user_id: integer("user_id").references(() => users.id).notNull(),
-  created_at: timestamp("created_at").defaultNow(),
-});
 
 // Transactions table
 export const transactions = pgTable("transactions", {
@@ -53,11 +39,11 @@ export const transactions = pgTable("transactions", {
   type: text("type").notNull(), // 'income' or 'expense'
   category_id: integer("category_id").references(() => categories.id),
   user_id: integer("user_id").references(() => users.id).notNull(),
-  recurring_id: integer("recurring_id").references(() => recurring_transactions.id),
   created_at: timestamp("created_at").defaultNow(),
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions);
+
 
 // Tags table
 export const tags = pgTable("tags", {
@@ -107,14 +93,9 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
     fields: [transactions.user_id],
     references: [users.id],
   }),
-  recurring: one(recurring_transactions, {
-    fields: [transactions.recurring_id],
-    references: [recurring_transactions.id],
-  }),
 }));
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
   transactions: many(transactions),
   goals: many(goals),
-  recurring_transactions: many(recurring_transactions),
 }));
