@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import dayjs from "dayjs";
 import MonthlyReportDialog from "@/components/MonthlyReportDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Income, Bill } from "@/types";
-import { formatCurrency, getCurrentDate } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { useLocation } from "wouter";
+import { useIncomes, useBills } from "@/hooks/useData";
 
 export default function MonthlyReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
+  const today = dayjs('2025-02-14'); // Current date
   const [monthlyData, setMonthlyData] = useState<{
     incomes: Income[];
     bills: Bill[];
@@ -18,7 +21,54 @@ export default function MonthlyReport() {
     };
   } | null>(null);
 
-  const today = getCurrentDate();
+  // Get incomes and bills from context
+  const { data: incomes = [] } = useIncomes();
+  const { data: bills = [] } = useBills();
+
+  useEffect(() => {
+    // Calculate monthly income totals
+    let totalIncome = 0;
+
+    // Process Majdi's salary (twice monthly)
+    const majdiSalary = incomes.find(income => income.source === "Majdi's Salary");
+    if (majdiSalary) {
+      // Add both payments for the month
+      totalIncome += majdiSalary.amount * 2;
+    }
+
+    // Process Ruba's salary (biweekly)
+    const rubaSalary = incomes.find(income => income.source === "Ruba's Salary");
+    if (rubaSalary) {
+      // Calculate biweekly payments for Ruba starting from Jan 10, 2025
+      const startDate = dayjs('2025-01-10');
+      const monthStart = today.startOf('month');
+      const monthEnd = today.endOf('month');
+      let currentDate = startDate;
+
+      while (currentDate.isBefore(monthEnd) || currentDate.isSame(monthEnd, 'day')) {
+        if (currentDate.day() === 5 && // Friday
+            (currentDate.isAfter(monthStart) || currentDate.isSame(monthStart, 'day')) &&
+            (currentDate.isBefore(monthEnd) || currentDate.isSame(monthEnd, 'day'))) {
+          totalIncome += rubaSalary.amount;
+        }
+        currentDate = currentDate.add(14, 'day'); // Move to next biweekly Friday
+      }
+    }
+
+    // Calculate monthly bill totals
+    const totalExpenses = bills.reduce((sum, bill) => sum + bill.amount, 0);
+
+    // Update monthly data
+    setMonthlyData({
+      incomes,
+      bills,
+      totals: {
+        income: totalIncome,
+        expenses: totalExpenses,
+        net: totalIncome - totalExpenses
+      }
+    });
+  }, [incomes, bills, today]);
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isBetween from 'dayjs/plugin/isBetween';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 
 // UI Components
 import {
@@ -32,6 +33,7 @@ import { logger } from '@/lib/logger';
 // Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isBetween);
+dayjs.extend(isSameOrAfter);
 
 interface Transaction {
   date: string;
@@ -44,12 +46,19 @@ interface IncomeReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   incomes: Income[];
+  totalMonthlyIncome: number;
+  currentDate: dayjs.Dayjs;
 }
 
-export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: IncomeReportDialogProps) {
-  const today = useMemo(() => dayjs(), []);
+export default function IncomeReportDialog({ 
+  isOpen, 
+  onOpenChange, 
+  incomes,
+  totalMonthlyIncome,
+  currentDate
+}: IncomeReportDialogProps) {
   const [date, setDate] = useState<DateRange | undefined>({
-    from: today.toDate(),
+    from: currentDate.toDate(),
     to: undefined
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -63,14 +72,14 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
   useEffect(() => {
     if (!isOpen) {
       setDate({
-        from: today.toDate(),
+        from: currentDate.toDate(),
         to: undefined
       });
       setShowReport(false);
       setTransactions([]);
       setSummaryTotals({ occurred: 0, pending: 0 });
     }
-  }, [isOpen, today]);
+  }, [isOpen, currentDate]);
 
   // Generate transactions when date range is selected
   useEffect(() => {
@@ -85,99 +94,63 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
 
       // Helper function to check if a date has occurred
       const hasDateOccurred = (checkDate: dayjs.Dayjs) => {
-        return checkDate.isSameOrBefore(today, 'day');
+        return checkDate.isSameOrBefore(currentDate, 'day');
       };
 
       incomes.forEach(income => {
-        const incomeStartDate = dayjs(income.date);
-
-        if (income.occurrenceType === 'once') {
-          // Handle one-time income
-          if (incomeStartDate.isBetween(startDate, endDate, 'day', '[]')) {
-            mockTransactions.push({
-              date: incomeStartDate.format('YYYY-MM-DD'),
-              description: income.source,
-              amount: income.amount,
-              occurred: hasDateOccurred(incomeStartDate)
-            });
-          }
-        } else if (income.occurrenceType === 'weekly') {
-          // Weekly income
-          let currentDate = startDate.startOf('day');
-          while (currentDate.isSameOrBefore(endDate)) {
-            if (currentDate.isSameOrAfter(incomeStartDate)) {
-              mockTransactions.push({
-                date: currentDate.format('YYYY-MM-DD'),
-                description: income.source,
-                amount: income.amount,
-                occurred: hasDateOccurred(currentDate)
-              });
-            }
-            currentDate = currentDate.add(1, 'week');
-          }
-        } else if (income.occurrenceType === 'biweekly') {
-          // Bi-weekly income (every two weeks)
-          let currentDate = startDate.startOf('day');
-          while (currentDate.isSameOrBefore(endDate)) {
-            if (currentDate.isSameOrAfter(incomeStartDate)) {
-              mockTransactions.push({
-                date: currentDate.format('YYYY-MM-DD'),
-                description: income.source,
-                amount: income.amount,
-                occurred: hasDateOccurred(currentDate)
-              });
-            }
-            currentDate = currentDate.add(2, 'week');
-          }
-        } else if (income.occurrenceType === 'monthly') {
-          // Monthly income
-          let currentDate = startDate.startOf('month');
-          while (currentDate.isSameOrBefore(endDate)) {
-            const paymentDate = currentDate.date(incomeStartDate.date());
-            if (paymentDate.isBetween(startDate, endDate, 'day', '[]') && 
-                paymentDate.isSameOrAfter(incomeStartDate)) {
-              mockTransactions.push({
-                date: paymentDate.format('YYYY-MM-DD'),
-                description: income.source,
-                amount: income.amount,
-                occurred: hasDateOccurred(paymentDate)
-              });
-            }
-            currentDate = currentDate.add(1, 'month');
-          }
-        } else if (income.occurrenceType === 'twice-monthly') {
-          // Twice monthly income (e.g., 1st and 15th)
-          let currentDate = startDate.startOf('month');
-          while (currentDate.isSameOrBefore(endDate)) {
+        if (income.source === "Majdi's Salary") {
+          // Handle Majdi's twice-monthly salary
+          let currentMonth = startDate.startOf('month');
+          while (currentMonth.isSameOrBefore(endDate)) {
             // First payment of the month
-            if (income.firstDate) {
-              const firstPayment = currentDate.date(income.firstDate);
-              if (firstPayment.isBetween(startDate, endDate, 'day', '[]') && 
-                  firstPayment.isSameOrAfter(incomeStartDate)) {
-                mockTransactions.push({
-                  date: firstPayment.format('YYYY-MM-DD'),
-                  description: income.source,
-                  amount: income.amount,
-                  occurred: hasDateOccurred(firstPayment)
-                });
-              }
+            const firstPaymentDate = currentMonth.date(income.firstDate || 1);
+            if (firstPaymentDate.isBetween(startDate, endDate, 'day', '[]')) {
+              mockTransactions.push({
+                date: firstPaymentDate.format('YYYY-MM-DD'),
+                description: `${income.source} (1st payment)`,
+                amount: income.amount,
+                occurred: hasDateOccurred(firstPaymentDate)
+              });
             }
 
             // Second payment of the month
-            if (income.secondDate) {
-              const secondPayment = currentDate.date(income.secondDate);
-              if (secondPayment.isBetween(startDate, endDate, 'day', '[]') && 
-                  secondPayment.isSameOrAfter(incomeStartDate)) {
-                mockTransactions.push({
-                  date: secondPayment.format('YYYY-MM-DD'),
-                  description: income.source,
-                  amount: income.amount,
-                  occurred: hasDateOccurred(secondPayment)
-                });
-              }
+            const secondPaymentDate = currentMonth.date(income.secondDate || 15);
+            if (secondPaymentDate.isBetween(startDate, endDate, 'day', '[]')) {
+              mockTransactions.push({
+                date: secondPaymentDate.format('YYYY-MM-DD'),
+                description: `${income.source} (2nd payment)`,
+                amount: income.amount,
+                occurred: hasDateOccurred(secondPaymentDate)
+              });
             }
 
-            currentDate = currentDate.add(1, 'month');
+            currentMonth = currentMonth.add(1, 'month');
+          }
+        } else if (income.source === "Ruba's Salary") {
+          // Handle Ruba's biweekly salary
+          let currentDate = dayjs('2025-01-10'); // Start date for Ruba's salary
+          while (currentDate.isSameOrBefore(endDate)) {
+            if (currentDate.isSameOrAfter(startDate) && 
+                currentDate.day() === 5) { // Only Fridays
+              mockTransactions.push({
+                date: currentDate.format('YYYY-MM-DD'),
+                description: income.source,
+                amount: income.amount,
+                occurred: hasDateOccurred(currentDate)
+              });
+            }
+            currentDate = currentDate.add(14, 'day'); // Move to next biweekly Friday
+          }
+        } else if (income.occurrenceType === 'once') {
+          // Handle one-time income
+          const incomeDate = dayjs(income.date);
+          if (incomeDate.isBetween(startDate, endDate, 'day', '[]')) {
+            mockTransactions.push({
+              date: incomeDate.format('YYYY-MM-DD'),
+              description: income.source,
+              amount: income.amount,
+              occurred: hasDateOccurred(incomeDate)
+            });
           }
         }
       });
@@ -203,7 +176,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
 
     setTransactions(newTransactions);
     setSummaryTotals(totals);
-  }, [showReport, date?.from, date?.to, incomes, today]);
+  }, [showReport, date?.from, date?.to, incomes, currentDate]);
 
   if (!showReport) {
     return (
@@ -219,7 +192,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
                 selected={date}
                 onSelect={setDate}
                 numberOfMonths={1}
-                defaultMonth={today.toDate()}
+                defaultMonth={currentDate.toDate()}
                 className="rounded-md"
               />
             </div>
@@ -283,7 +256,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               <CardTitle className="text-sm font-medium">Expected Income</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-100">{formatCurrency(summaryTotals.pending)}</div>
+              <div className="text-2xl font-bold text-blue-600">{formatCurrency(summaryTotals.pending)}</div>
             </CardContent>
           </Card>
         </div>
@@ -302,13 +275,13 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               {transactions.map((transaction, index) => (
                 <TableRow key={`${transaction.date}-${index}`}>
                   <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                  <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-100'}>
-                    {transaction.description}
+                  <TableCell>{transaction.description}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(transaction.amount)}</TableCell>
+                  <TableCell>
+                    <span className={transaction.occurred ? 'text-green-600' : 'text-blue-600'}>
+                      {transaction.occurred ? 'Received' : 'Expected'}
+                    </span>
                   </TableCell>
-                  <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-100'}`}>
-                    {formatCurrency(transaction.amount)}</TableCell>
-                  <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-100'}>
-                    {transaction.occurred ? 'Received' : 'Expected'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
