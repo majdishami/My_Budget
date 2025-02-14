@@ -94,17 +94,26 @@ export default function EditExpenseDialog({
   // Initialize form when expense prop changes
   useEffect(() => {
     if (expense && isOpen) {
+      logger.info('Initializing expense form with:', expense);
+
       // Basic fields
       setName(expense.name);
       setAmount(expense.amount.toString());
 
       // Always monthly recurring and use the exact day from the database
       setDateType('monthly');
-      // For recurring monthly expenses, use the exact day from the database without any timezone adjustment
+
+      // For recurring monthly expenses, ensure we use the correct day
+      // If it's day 1 and appears as 31, we need to use the actual day from the expense
       setDay(expense.day.toString());
 
       // Set category directly from the expense's category_id
-      setCategoryId(expense.category_id?.toString() || '');
+      if (expense.category_id) {
+        logger.info('Setting category ID:', expense.category_id.toString());
+        setCategoryId(expense.category_id.toString());
+      } else {
+        setCategoryId('');
+      }
 
       // Reminders
       setReminderEnabled(Boolean(expense.reminderEnabled));
@@ -154,6 +163,7 @@ export default function EditExpenseDialog({
 
     setIsSubmitting(true);
     try {
+      logger.info('Saving expense with category ID:', categoryId);
       const selectedCategory = categoryId ? categories?.find((cat: Category) => cat.id.toString() === categoryId) : null;
 
       // Convert categoryId to number or null
@@ -180,18 +190,11 @@ export default function EditExpenseDialog({
           day: parsedDay,
           date: undefined
         };
-      } else if (specificDate) {
-        const parsedDay = dayjs(specificDate).date();
-        updatedBill = {
-          ...baseUpdates,
-          isOneTime: true,
-          day: parsedDay,
-          date: dayjs(specificDate).toISOString()
-        };
       } else {
-        throw new Error('Invalid date configuration');
+        throw new Error('Only monthly expenses are supported at this time');
       }
 
+      logger.info('Updating bill with:', updatedBill);
       onUpdate(updatedBill);
       toast({
         title: "Success",
