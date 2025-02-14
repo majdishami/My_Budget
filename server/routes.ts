@@ -16,33 +16,37 @@ import syncRoutes from './routes/sync';
 export function registerRoutes(app: Express): Server {
   console.log('[Server] Starting route registration...');
 
-  // Set up authentication
+  // Set up authentication first
   setupAuth(app);
-
-  // Test database connection
-  try {
-    console.log('[Server] Testing database connection...');
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? {
-        rejectUnauthorized: false
-      } : undefined
-    });
-
-    pool.query('SELECT NOW()', (err, res) => {
-      if (err) {
-        console.error('[Server] Database connection test failed:', err);
-        throw err;
-      }
-      console.log('[Server] Database connection test successful');
-    });
-  } catch (error) {
-    console.error('[Server] Failed to create database pool:', error);
-    throw error;
-  }
 
   // Register sync routes
   app.use(syncRoutes);
+
+  // Protected Routes
+  app.get('/api/transactions', requireAuth, async (req, res) => {
+    try {
+      console.log('[Transactions API] Fetching transactions...');
+      const type = req.query.type as string | undefined;
+      const userId = (req.user as any).id;
+
+      console.log('[Transactions API] User ID:', userId);
+      console.log('[Transactions API] Type filter:', type);
+
+      const allTransactions = await db.select()
+        .from(transactions)
+        .where(eq(transactions.user_id, userId))
+        .orderBy(desc(transactions.date));
+
+      console.log('[Transactions API] Found transactions:', allTransactions.length);
+      return res.json(allTransactions);
+    } catch (error) {
+      console.error('[Transactions API] Error:', error);
+      return res.status(500).json({
+        message: 'Failed to load transactions',
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    }
+  });
 
   // Categories Routes with authentication
   app.get('/api/categories', requireAuth, async (req, res) => {
@@ -61,32 +65,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Protected transaction routes
-  app.get('/api/transactions', requireAuth, async (req, res) => {
-    try {
-      console.log('[Transactions API] Fetching transactions...');
-      const type = req.query.type as string | undefined;
-      const userId = (req.user as any).id;
-
-      let query = db.select()
-        .from(transactions)
-        .where(eq(transactions.user_id, userId))
-        .orderBy(desc(transactions.date));
-
-      if (type) {
-        query = query.where(eq(transactions.type, type));
-      }
-
-      const allTransactions = await query;
-      return res.json(allTransactions);
-    } catch (error) {
-      console.error('[Transactions API] Error:', error);
-      return res.status(500).json({
-        message: 'Failed to load transactions',
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      });
-    }
-  });
 
   app.post('/api/transactions', requireAuth, async (req, res) => {
     try {
