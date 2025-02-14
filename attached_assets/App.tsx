@@ -53,8 +53,7 @@ const formatCurrency = (amount: number) => {
 };
 
 const App = () => {
-  // Update the today constant at the top of the file
-  const today = dayjs('2025-02-09'); // Set to February 9, 2025
+  const today = dayjs('2025-02-09'); 
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedDay, setSelectedDay] = useState<number>(today.date());
@@ -79,7 +78,6 @@ const App = () => {
   };
 
   useEffect(() => {
-    // Clear existing data first
     localStorage.removeItem("incomes");
     localStorage.removeItem("bills");
 
@@ -91,7 +89,7 @@ const App = () => {
       const sampleIncomes: Income[] = [
         { id: "1", source: "Majdi's Salary", amount: 4739.00, date: today.date(1).toISOString() },
         { id: "2", source: "Majdi's Salary", amount: 4739.00, date: today.date(15).toISOString() },
-        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" } // Only need one entry for Ruba's salary
+        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" } 
       ];
       setIncomes(sampleIncomes);
       localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
@@ -136,20 +134,15 @@ const App = () => {
       const incomeDate = dayjs(income.date);
 
       if (income.source === "Ruba's Salary") {
-        // Check if it's a Friday (5 in dayjs)
         if (currentDate.day() !== 5) return false;
 
-        // Start from January 10, 2025
         const startDate = dayjs('2025-01-10');
 
-        // Calculate weeks difference
         const weeksDiff = currentDate.diff(startDate, 'week');
 
-        // Return true if it's a bi-weekly Friday from the start date
         return weeksDiff >= 0 && weeksDiff % 2 === 0;
       }
 
-      // For other incomes, check the day of month
       return incomeDate.date() === day;
     });
   };
@@ -168,22 +161,18 @@ const App = () => {
   }, [firstDayOfMonth]);
 
   const firstDayOfWeek = useMemo(() => {
-    // Convert Sunday=0 to Monday=0 by shifting the day number
     const day = firstDayOfMonth.day();
-    return day === 0 ? 6 : day - 1; // Sunday becomes 6, other days shift down by 1
+    return day === 0 ? 6 : day - 1; 
   }, [firstDayOfMonth]);
 
   const calculateTotalsUpToDay = (day: number) => {
     let totalIncome = 0;
     let totalBills = 0;
 
-    // Calculate for each day up to the selected day
     for (let currentDay = 1; currentDay <= day; currentDay++) {
-      // Add incomes for the day
       const dayIncomes = getIncomeForDay(currentDay);
       totalIncome += dayIncomes.reduce((sum, income) => sum + income.amount, 0);
 
-      // Add bills for the day
       const dayBills = getBillsForDay(currentDay);
       totalBills += dayBills.reduce((sum, bill) => sum + bill.amount, 0);
     }
@@ -206,7 +195,7 @@ const App = () => {
   };
 
   const calendarDays = useMemo(() => {
-    const totalDays = 42; // 6 weeks × 7 days
+    const totalDays = 42; 
     return Array.from({ length: totalDays }, (_, index) => {
       const adjustedIndex = index - firstDayOfWeek;
       return adjustedIndex >= 0 && adjustedIndex < daysInMonth ? adjustedIndex + 1 : null;
@@ -217,21 +206,17 @@ const App = () => {
     let totalIncome = 0;
     let totalBills = 0;
 
-    // Calculate total income for the selected month
     incomes.forEach(income => {
       const incomeDate = dayjs(income.date);
 
       if (income.source === "Ruba's Salary") {
-        // For bi-weekly salary, check each Friday in the month
         const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
         const lastDayOfMonth = firstDayOfMonth.endOf('month');
         const startDate = dayjs('2025-01-10');
 
-        // Iterate through each day in the month
         let currentDate = firstDayOfMonth;
         while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
-          // Check if it's a Friday and matches bi-weekly schedule
-          if (currentDate.day() === 5) { // Friday
+          if (currentDate.day() === 5) { 
             const weeksDiff = currentDate.diff(startDate, 'week');
             if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
               totalIncome += income.amount;
@@ -240,25 +225,21 @@ const App = () => {
           currentDate = currentDate.add(1, 'day');
         }
       } else {
-        // For regular monthly incomes
         const incomeYear = incomeDate.year();
         const incomeMonth = incomeDate.month();
         const incomeDay = incomeDate.date();
 
-        // Create a new date with the selected year/month but same day
         const adjustedDate = dayjs()
           .year(selectedYear)
           .month(selectedMonth)
           .date(incomeDay);
 
-        // Only count if the day exists in the current month
         if (adjustedDate.month() === selectedMonth) {
           totalIncome += income.amount;
         }
       }
     });
 
-    // Calculate total bills for the selected month
     bills.forEach(bill => {
       totalBills += bill.amount;
     });
@@ -338,12 +319,12 @@ const App = () => {
 
   const handleMonthChange = (newMonth: number) => {
     setSelectedMonth(newMonth);
-    setSelectedDay(1); // Reset to first day of new month
+    setSelectedDay(1); 
   };
 
   const handleYearChange = (newYear: number) => {
     setSelectedYear(newYear);
-    setSelectedDay(1); // Reset to first day of new year
+    setSelectedDay(1); 
   };
 
   return (
@@ -368,42 +349,32 @@ const App = () => {
                 My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
               </h1>
               <div className="flex items-center gap-2">
-                <select 
-                  value={selectedMonth}
-                  onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-                  className="p-2 border rounded bg-background min-w-[120px]"
-                  aria-label="Select month"
-                >
-                  {months.map(month => (
-                    <option key={month.value} value={month.value}>
-                      {month.label}
-                    </option>
-                  ))}
-                </select>
+                <Select value={months[selectedMonth]} onValueChange={handleMonthChange}>
+                  <SelectTrigger>
+                  <span className="p-2 border rounded bg-background min-w-[120px]">{months[selectedMonth].label}</span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month) => (
+                      <SelectItem key={month.value} value={month}>
+                        {month.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-                <select
-                  value={selectedYear}
-                  onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                  className="p-2 border rounded bg-background min-w-[100px]"
-                  aria-label="Select year"
-                >
-                  {years.map(year => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-
-                <select
-                  value={selectedDay}
-                  onChange={(e) => setSelectedDay(parseInt(e.target.value))}
-                  className="p-2 border rounded bg-background min-w-[80px]"
-                  aria-label="Select day"
-                >
-                  {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
-                    <option key={day} value={day}>
-                      {day.toString().padStart(2, '0')}
-                    </option>
-                  ))}
-                </select>
+                <Select value={years.find(year => year===selectedYear)} onValueChange={handleYearChange}>
+                  <SelectTrigger>
+                  <span className="p-2 border rounded bg-background min-w-[100px]">{selectedYear}</span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/*Removed day select*/}
               </div>
             </div>
 
@@ -436,111 +407,21 @@ const App = () => {
         <div className="flex-1 overflow-y-auto">
           <Card className="m-4">
             <div className="overflow-hidden">
-              <table className="w-full border-collapse">
-                <thead className="sticky top-0 bg-background z-10">
-                  <tr>
-                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
-                      <th key={day} className="p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
-                        {day}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {Array.from({ length: 6 }, (_, weekIndex) => (
-                    <tr key={weekIndex} className="divide-x">
-                      {Array.from({ length: 7 }, (_, dayIndex) => {
-                        const dayNumber = calendarDays[weekIndex * 7 + dayIndex];
-                        if (dayNumber === null) {
-                          return <td key={dayIndex} className="border p-2 bg-muted/10 h-48 w-[14.28%]" />;
-                        }
-
-                        const dayIncomes = getIncomeForDay(dayNumber);
-                        const dayBills = getBillsForDay(dayNumber);
-                        const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
-
-                        return (
-                          <td
-                            key={dayIndex}
-                            onClick={() => handleDayClick(dayNumber)}
-                            className={cn(
-                              "border p-2 align-top cursor-pointer transition-colors h-48 w-[14.28%]",
-                              "hover:bg-accent",
-                              isCurrentDay(dayNumber) && "ring-2 ring-primary ring-offset-2 border-primary",
-                              selectedDay === dayNumber && "bg-accent/50 font-semibold",
-                              hasTransactions && "shadow-sm"
-                            )}
-                          >
-                            <div className="flex justify-between items-start mb-1">
-                              <div className="flex flex-col">
-                                <span className={cn(
-                                  "font-medium text-lg",
-                                  isCurrentDay(dayNumber) && "text-primary font-bold"
-                                )}>
-                                  {dayNumber}
-                                </span>
-                                {isCurrentDay(dayNumber) && (
-                                  <span className="text-xs font-medium text-primary">
-                                    Today
-                                  </span>
-                                )}
-                              </div>
-                              {hasTransactions && (
-                                <div className="flex gap-1">
-                                  {dayIncomes.length > 0 && (
-                                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                                  )}
-                                  {dayBills.length > 0 && (
-                                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <div className="space-y-0.5 text-xs">
-                              {dayIncomes.length > 0 && (
-                                <div className="space-y-0.5">
-                                  <p className="font-medium text-green-600 dark:text-green-400">Income</p>
-                                  {dayIncomes.map((income, index) => (
-                                    <div 
-                                      key={income.id} 
-                                      className="flex justify-between items-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 rounded px-1"
-                                    >
-                                      <span className="truncate max-w-[60%]">
-                                        {index + 1}. {income.source}
-                                      </span>
-                                      <span className="font-medium shrink-0">
-                                        {formatCurrency(income.amount)}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              {dayBills.length > 0 && (
-                                <div className="space-y-0.5">
-                                  <p className="font-medium text-red-600 dark:text-red-400">Expenses</p>
-                                  {dayBills.map((bill, index) => (
-                                    <div 
-                                      key={bill.id} 
-                                      className="flex justify-between items-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-1"
-                                    >
-                                      <span className="truncate max-w-[60%]">
-                                        {index + 1}. {bill.name}
-                                      </span>
-                                      <span className="font-medium shrink-0">
-                                        {formatCurrency(bill.amount)}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Calendar
+                mode="single"
+                selected={new Date(selectedYear, selectedMonth, selectedDay)}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDay(date.getDate());
+                    setSelectedMonth(date.getMonth());
+                    setSelectedYear(date.getFullYear());
+                    setShowDailySummary(true);
+                  }
+                }}
+                bills={bills}
+                incomes={incomes}
+                className="rounded-md"
+              />
             </div>
           </Card>
         </div>
