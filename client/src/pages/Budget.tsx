@@ -318,10 +318,11 @@ export function Budget() {
 
   // Update the current day detection
   const isCurrentDay = useCallback((dayNumber: number) => {
-    return dayNumber === today.date() && 
-           selectedMonth === today.month() && 
-           selectedYear === today.year();
-  }, [today, selectedMonth, selectedYear]);
+    const todayDate = dayjs();
+    return dayNumber === todayDate.date() && 
+           selectedMonth === todayDate.month() && 
+           selectedYear === todayDate.year();
+  }, [selectedMonth, selectedYear]);
 
 
   // Loading state
