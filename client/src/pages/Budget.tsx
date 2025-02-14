@@ -379,10 +379,9 @@ export function Budget() {
 
   // Update the current day detection
   const isCurrentDay = useCallback((dayNumber: number) => {
-    const now = dayjs(); 
-    return dayNumber === now.date() && 
-           selectedMonth === now.month() && 
-           selectedYear === now.year();
+    const now = dayjs();
+    const currentDate = dayjs().year(selectedYear).month(selectedMonth).date(dayNumber);
+    return currentDate.isSame(now, 'day');
   }, [selectedMonth, selectedYear]);
 
 
