@@ -30,14 +30,15 @@ export interface Bill {
   name: string;
   amount: number;
   day: number;
-  category_id: number;
-  user_id: number;
-  created_at: string;
+  category_id: number | null;
+  user_id?: number;
+  created_at?: string;
   isOneTime: boolean;
-  date?: string;
+  date?: string | null;
   category?: string;
-  category_name: string;
+  category_name?: string;
   category_color?: string;
+  category_icon?: string | null;
   reminderEnabled?: boolean;
   reminderDays?: number;
 }

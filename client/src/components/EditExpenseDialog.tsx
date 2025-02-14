@@ -28,6 +28,7 @@ interface Category {
   id: number;
   name: string;
   color: string;
+  icon?: string | null;
 }
 
 interface EditExpenseDialogProps {
@@ -123,7 +124,7 @@ export default function EditExpenseDialog({
       const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
       const parsedCategoryId = categoryId ? parseInt(categoryId, 10) : null;
 
-      const updatedBill: Partial<Bill> = {
+      const updatedBill: Bill = {
         ...expense,
         name: name.trim(),
         amount: parseFloat(amount),
@@ -131,12 +132,13 @@ export default function EditExpenseDialog({
         category_id: parsedCategoryId,
         category_name: selectedCategory?.name || 'Uncategorized',
         category_color: selectedCategory?.color || '#D3D3D3',
+        category_icon: selectedCategory?.icon || null,
         reminderEnabled,
         reminderDays,
         isOneTime: false
       };
 
-      onUpdate(updatedBill as Bill);
+      onUpdate(updatedBill);
       toast({
         title: "Success",
         description: "Expense updated successfully",
@@ -264,7 +266,7 @@ export default function EditExpenseDialog({
                   setCategoryId(value);
                   setErrors(prev => ({ ...prev, category: undefined }));
                 }}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isCategoriesLoading}
               >
                 <SelectTrigger
                   id="category"
@@ -274,7 +276,7 @@ export default function EditExpenseDialog({
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category: Category) => (
+                  {categories.map((category) => (
                     <SelectItem
                       key={category.id}
                       value={category.id.toString()}
