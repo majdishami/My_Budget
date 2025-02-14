@@ -20,13 +20,20 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// Common headers for all API requests
+const defaultHeaders = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  // Add CSRF token if needed
+  'X-Requested-With': 'XMLHttpRequest'
+};
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Load transactions from the API
   const loadData = async () => {
     try {
       setIsLoading(true);
@@ -34,9 +41,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const response = await fetch('/api/transactions', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: defaultHeaders,
+        credentials: 'include' // Include credentials like cookies
       });
 
       if (!response.ok) {
@@ -111,9 +117,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setError(null);
           const response = await fetch('/api/transactions', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: defaultHeaders,
+            credentials: 'include',
             body: JSON.stringify({
               description: income.source,
               amount: income.amount,
@@ -146,9 +151,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setError(null);
           const response = await fetch(`/api/transactions/${transaction.id}`, {
             method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json'
-            }
+            headers: defaultHeaders,
+            credentials: 'include'
           });
 
           if (!response.ok) {
@@ -175,18 +179,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             type: isIncome ? 'income' : 'expense',
             category_id: !isIncome ? Number(transaction.category_id) : null,
             day: !isIncome ? Number(transaction.day) : undefined,
-            recurring_id: !isIncome && !transaction.isOneTime ? 1 : null
+            recurring_id: !isIncome && !transaction.isOneTime ? 1 : null,
+            // Include any missing fields that might be needed
+            user_id: transaction.user_id,
+            category_name: !isIncome ? transaction.category_name : undefined,
+            category_color: !isIncome ? transaction.category_color : undefined,
+            reminder_enabled: !isIncome ? transaction.reminderEnabled : undefined,
+            reminder_days: !isIncome ? transaction.reminderDays : undefined
           };
+
+          logger.info("Editing transaction - Payload:", { payload });
 
           const response = await fetch(`/api/transactions/${transaction.id}`, {
             method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: defaultHeaders,
+            credentials: 'include', // Include credentials like cookies
             body: JSON.stringify(payload),
           });
 
           if (!response.ok) {
+            // Try to get detailed error message
             const errorData = await response.json().catch(() => ({}));
             logger.error("Edit transaction failed:", {
               status: response.status,
