@@ -160,15 +160,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setError(null);
           const isIncome = 'source' in transaction;
 
+          const formattedDate = dayjs(transaction.date).format('YYYY-MM-DD');
+
           const payload = {
             description: isIncome ? transaction.source : transaction.name,
             amount: Number(transaction.amount),
-            date: dayjs(transaction.date).format('YYYY-MM-DD'),
+            date: formattedDate,
             type: isIncome ? 'income' : 'expense',
             category_id: !isIncome ? Number(transaction.category_id) : null,
             day: !isIncome ? Number(transaction.day) : undefined,
             recurring_id: !isIncome && !transaction.isOneTime ? 1 : null
           };
+
+          logger.info("Editing transaction with payload:", payload);
 
           const response = await fetch(`/api/transactions/${transaction.id}`, {
             method: 'PATCH',
