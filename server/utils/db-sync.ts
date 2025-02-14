@@ -64,7 +64,6 @@ export async function restoreDatabaseBackup(backupFile: string) {
 
   return db.transaction(async (tx) => {
     try {
-      // Read and parse backup file
       if (!fs.existsSync(backupFile)) {
         throw new Error('Backup file not found');
       }
@@ -75,78 +74,100 @@ export async function restoreDatabaseBackup(backupFile: string) {
       let backupData: Record<string, any[]>;
       try {
         backupData = JSON.parse(backupContent);
+        console.log('Tables found in backup:', Object.keys(backupData));
       } catch (parseError) {
         throw new Error(`Invalid backup file format: ${parseError instanceof Error ? parseError.message : 'Parse error'}`);
       }
 
-      // Reset all sequences first
-      const sequences = ['categories_id_seq', 'bills_id_seq'];
-      for (const seq of sequences) {
-        await tx.execute(sql.raw(`ALTER SEQUENCE "${seq}" RESTART WITH 1`));
-        console.log(`Reset sequence ${seq}`);
-      }
+      // Reset sequences
+      await tx.execute(sql`ALTER SEQUENCE categories_id_seq RESTART WITH 1`);
+      await tx.execute(sql`ALTER SEQUENCE bills_id_seq RESTART WITH 1`);
+      console.log('Reset sequences');
 
-      // Step 1: Restore categories and create ID mapping
-      const categoryMap = new Map<number, number>(); // old ID -> new ID
-
+      // Process categories first
       if (backupData.categories?.length > 0) {
-        console.log('Restoring categories...');
-        await tx.execute(sql.raw('TRUNCATE TABLE categories RESTART IDENTITY CASCADE'));
+        console.log(`Processing ${backupData.categories.length} categories`);
 
+        // Clear existing data
+        await tx.execute(sql`TRUNCATE TABLE categories RESTART IDENTITY CASCADE`);
+
+        // Map to store old category IDs to new ones
+        const categoryIdMap = new Map<number, number>();
+
+        // Insert categories and collect their new IDs
         for (const category of backupData.categories) {
-          const oldId = category.id;
-          const result = await tx.execute(sql.raw(`
+          const result = await tx.execute(sql`
             INSERT INTO categories (name, color, icon, user_id, created_at)
             VALUES (
-              '${category.name.replace(/'/g, "''")}',
-              '${category.color.replace(/'/g, "''")}',
-              '${category.icon.replace(/'/g, "''")}',
-              ${category.user_id === null ? 'NULL' : category.user_id},
-              '${category.created_at}'::timestamp
+              ${category.name},
+              ${category.color},
+              ${category.icon || null},
+              ${category.user_id || null},
+              ${category.created_at}::timestamp
             )
             RETURNING id
-          `));
+          `);
 
-          const newId = result[0].id;
-          categoryMap.set(oldId, newId);
-          console.log(`Mapped category ID ${oldId} -> ${newId}`);
+          // Handle different result formats
+          let newId: number | undefined;
+          if (Array.isArray(result) && result[0]) {
+            newId = result[0].id;
+          } else if (result.rows?.[0]) {
+            newId = result.rows[0].id;
+          }
+
+          if (typeof newId !== 'number') {
+            throw new Error(`Failed to get new ID for category ${category.id}`);
+          }
+
+          categoryIdMap.set(category.id, newId);
+          console.log(`Mapped category ${category.id} to ${newId}`);
         }
 
-        // Step 2: Restore bills with updated category IDs
+        // Process bills next
         if (backupData.bills?.length > 0) {
-          console.log('Restoring bills...');
-          await tx.execute(sql.raw('TRUNCATE TABLE bills RESTART IDENTITY'));
+          console.log(`Processing ${backupData.bills.length} bills`);
 
+          // Clear existing bills
+          await tx.execute(sql`TRUNCATE TABLE bills RESTART IDENTITY`);
+
+          // Insert bills with mapped category IDs
           for (const bill of backupData.bills) {
-            const newCategoryId = categoryMap.get(bill.category_id);
-            if (!newCategoryId) {
+            const newCategoryId = categoryIdMap.get(bill.category_id);
+            if (typeof newCategoryId !== 'number') {
               console.log(`Skipping bill with invalid category_id: ${bill.category_id}`);
               continue;
             }
 
-            await tx.execute(sql.raw(`
+            await tx.execute(sql`
               INSERT INTO bills (name, amount, day, category_id, user_id, created_at)
               VALUES (
-                '${bill.name.replace(/'/g, "''")}',
-                ${bill.amount},
+                ${bill.name},
+                ${bill.amount}::numeric,
                 ${bill.day},
                 ${newCategoryId},
-                ${bill.user_id === null ? 'NULL' : bill.user_id},
-                '${bill.created_at}'::timestamp
+                ${bill.user_id || null},
+                ${bill.created_at}::timestamp
               )
-            `));
+            `);
           }
         }
 
         // Update sequences
-        await tx.execute(sql.raw("SELECT setval('categories_id_seq', (SELECT COALESCE(MAX(id), 1) FROM categories))"));
-        await tx.execute(sql.raw("SELECT setval('bills_id_seq', (SELECT COALESCE(MAX(id), 1) FROM bills))"));
-      }
+        await tx.execute(sql`
+          SELECT setval('categories_id_seq', (SELECT COALESCE(MAX(id), 1) FROM categories))
+        `);
+        await tx.execute(sql`
+          SELECT setval('bills_id_seq', (SELECT COALESCE(MAX(id), 1) FROM bills))
+        `);
 
-      return {
-        success: true,
-        message: 'Database restored successfully'
-      };
+        return {
+          success: true,
+          message: 'Database restored successfully'
+        };
+      } else {
+        throw new Error('No categories found in backup file');
+      }
     } catch (error) {
       console.error('Error in restore process:', error);
       return {

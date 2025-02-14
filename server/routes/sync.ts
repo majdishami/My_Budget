@@ -34,7 +34,6 @@ router.get('/api/sync/download/:filename', (req, res) => {
     const { filename } = req.params;
     const filePath = path.join(process.cwd(), 'tmp', filename);
 
-    // Validate that the file exists and has the correct extension
     if (!fs.existsSync(filePath) || !filename.toLowerCase().endsWith('.json')) {
       console.error('Invalid or missing backup file:', filePath);
       return res.status(404).json({ error: 'Invalid or missing backup file' });
@@ -66,17 +65,19 @@ router.get('/api/sync/download/:filename', (req, res) => {
 });
 
 router.post('/api/sync/restore', async (req, res) => {
+  let tempPath = '';
+
   try {
-    if (!req.files || !req.files.backup) {
-      return res.status(400).json({ error: 'No backup file provided' });
+    if (!req.files?.backup || Array.isArray(req.files.backup)) {
+      return res.status(400).json({ error: 'Invalid backup file provided' });
     }
 
     const uploadedFile = req.files.backup as UploadedFile;
-    console.log('Processing uploaded file:', {
-      name: uploadedFile.name,
-      size: uploadedFile.size,
-      mimetype: uploadedFile.mimetype
-    });
+
+    // Validate file type
+    if (!uploadedFile.name.toLowerCase().endsWith('.json')) {
+      return res.status(400).json({ error: 'Invalid file type. Only JSON files are allowed.' });
+    }
 
     // Create tmp directory if it doesn't exist
     const tmpDir = path.join(process.cwd(), 'tmp');
@@ -86,31 +87,27 @@ router.post('/api/sync/restore', async (req, res) => {
 
     // Generate a unique filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const tempPath = path.join(tmpDir, `restore_${timestamp}.json`);
+    tempPath = path.join(tmpDir, `restore_${timestamp}.json`);
 
     try {
       // Move the uploaded file to tmp directory
       await uploadedFile.mv(tempPath);
-      console.log('File moved to temporary location:', tempPath);
+      console.log('Backup file saved to:', tempPath);
 
       // Restore the database
       const result = await restoreDatabaseBackup(tempPath);
-
-      // Clean up the temporary file
-      fs.unlinkSync(tempPath);
-      console.log('Temporary file cleaned up');
 
       if (!result.success) {
         return res.status(500).json({ error: result.error });
       }
 
       res.json({ message: result.message });
-    } catch (error) {
-      // Clean up temp file if it exists
+    } finally {
+      // Always clean up the temporary file
       if (fs.existsSync(tempPath)) {
         fs.unlinkSync(tempPath);
+        console.log('Temporary file cleaned up');
       }
-      throw error;
     }
   } catch (error) {
     console.error('Error in restore endpoint:', error);
