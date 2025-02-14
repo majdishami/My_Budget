@@ -21,8 +21,14 @@ export default function ExpenseReport() {
   const [selectedYear, setSelectedYear] = useState(dayjs().format('YYYY'));
   const [, setLocation] = useLocation();
 
+  // Update the query configuration to handle errors properly
   const { data: bills = [], isLoading, error } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
+    retry: false, // Don't retry on failure
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    onError: () => {
+      setLocation("/"); // Navigate back to home on error
+    }
   });
 
   const handleOpenChange = (open: boolean) => {
@@ -125,7 +131,7 @@ export default function ExpenseReport() {
       <ExpenseReportDialog
         isOpen={isDialogOpen}
         onOpenChange={handleOpenChange}
-        bills={bills || []}
+        bills={bills}
       />
     </div>
   );
