@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Income, Bill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { useLocation } from "wouter";
-import { useIncomes, useBills } from "@/hooks/useData";
+import { useData } from "@/hooks/useData";
 
 export default function MonthlyReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
@@ -22,8 +22,7 @@ export default function MonthlyReport() {
   } | null>(null);
 
   // Get incomes and bills from context
-  const { data: incomes = [] } = useIncomes();
-  const { data: bills = [] } = useBills();
+  const { incomes = [], bills = [] } = useData();
 
   useEffect(() => {
     // Calculate monthly income totals
