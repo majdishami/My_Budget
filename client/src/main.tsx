@@ -2,7 +2,6 @@ import { createRoot } from "react-dom/client";
 import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { DataProvider } from "@/contexts/DataContext";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./index.css";
 
 // Lazy load the main App component
@@ -20,14 +19,12 @@ if (import.meta.hot) {
     if (newApp) {
       // Re-render the app when HMR update is received
       root.render(
-        <ErrorBoundary name="RootErrorBoundary">
-          <Suspense fallback={<div>Loading...</div>}>
-            <DataProvider>
-              <App />
-              <Toaster />
-            </DataProvider>
-          </Suspense>
-        </ErrorBoundary>
+        <Suspense fallback={<div>Loading...</div>}>
+          <DataProvider>
+            <App />
+            <Toaster />
+          </DataProvider>
+        </Suspense>
       );
     }
   });
@@ -35,12 +32,10 @@ if (import.meta.hot) {
 
 // Initial render
 root.render(
-  <ErrorBoundary name="RootErrorBoundary">
-    <Suspense fallback={<div>Loading...</div>}>
-      <DataProvider>
-        <App />
-        <Toaster />
-      </DataProvider>
-    </Suspense>
-  </ErrorBoundary>
+  <Suspense fallback={<div>Loading...</div>}>
+    <DataProvider>
+      <App />
+      <Toaster />
+    </DataProvider>
+  </Suspense>
 );

@@ -1,6 +1,5 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer, WebSocket } from 'ws';
 import { db } from "@db";
 import { categories, users, bills, insertUserSchema, insertCategorySchema } from "@db/schema";
 import { eq } from "drizzle-orm";
@@ -193,9 +192,6 @@ export function registerRoutes(app: Express): Server {
         .values(categoryData)
         .returning();
 
-      // Broadcast category update
-      broadcastUpdate('categories_update', await db.query.categories.findMany());
-
       res.status(201).json(newCategory);
     } catch (error) {
       console.error('Error creating category:', error);
@@ -229,9 +225,6 @@ export function registerRoutes(app: Express): Server {
         .where(eq(categories.id, categoryId))
         .returning();
 
-      // Broadcast category update
-      broadcastUpdate('categories_update', await db.query.categories.findMany());
-
       res.json(updatedCategory);
     } catch (error) {
       console.error('Error updating category:', error);
@@ -256,9 +249,6 @@ export function registerRoutes(app: Express): Server {
 
       await db.delete(categories)
         .where(eq(categories.id, categoryId));
-
-      // Broadcast category update
-      broadcastUpdate('categories_update', await db.query.categories.findMany());
 
       res.status(204).send();
     } catch (error) {
@@ -306,81 +296,5 @@ export function registerRoutes(app: Express): Server {
 
 
   const httpServer = createServer(app);
-
-  // Initialize WebSocket server on a distinct path
-  const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/ws',
-    clientTracking: true
-  });
-
-  // WebSocket connection handling
-  wss.on('connection', (ws: WebSocket) => {
-    console.log('New WebSocket connection established');
-
-    // Send initial connection success message
-    ws.send(JSON.stringify({ type: 'connection', status: 'connected' }));
-
-    // Handle incoming messages
-    ws.on('message', async (message: string) => {
-      try {
-        const data = JSON.parse(message.toString());
-
-        // Handle different message types
-        switch (data.type) {
-          case 'subscribe_categories':
-            if (ws.readyState === WebSocket.OPEN) {
-              const categories = await db.query.categories.findMany({
-                orderBy: (categories, { asc }) => [asc(categories.name)],
-              });
-              ws.send(JSON.stringify({ 
-                type: 'categories_update',
-                data: categories 
-              }));
-            }
-            break;
-
-          case 'subscribe_transactions':
-            if (ws.readyState === WebSocket.OPEN) {
-              const transactions = await db.query.bills.findMany({
-                with: { category: true },
-                orderBy: (bills, { desc }) => [desc(bills.created_at)],
-              });
-              ws.send(JSON.stringify({ 
-                type: 'transactions_update',
-                data: transactions 
-              }));
-            }
-            break;
-
-          default:
-            console.log('Unknown message type:', data.type);
-        }
-      } catch (error) {
-        console.error('WebSocket message handling error:', error);
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ 
-            type: 'error',
-            message: 'Error processing message'
-          }));
-        }
-      }
-    });
-
-    // Handle client disconnection
-    ws.on('close', () => {
-      console.log('Client disconnected');
-    });
-  });
-
-  // Broadcast updates to all connected clients
-  function broadcastUpdate(type: string, data: any) {
-    wss.clients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({ type, data }));
-      }
-    });
-  }
-
   return httpServer;
 }

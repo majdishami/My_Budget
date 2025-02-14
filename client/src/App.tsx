@@ -18,8 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2, Menu, BarChart4,
   Download, Database, Tags, ChevronDown,
-  RotateCw, Plus, Edit, Trash, FileText, Bell,
-  PlusCircle
+  RotateCw, Plus, Edit, Trash, FileText, Bell
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -62,7 +61,6 @@ import { Income, Bill } from "@/types";
 import crypto from 'crypto';
 import { Badge } from "@/components/ui/badge";
 import { logger } from './lib/logger';
-
 
 
 function Router() {

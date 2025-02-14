@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isBetween from 'dayjs/plugin/isBetween';
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 
 // UI Components
 import {
@@ -27,13 +26,11 @@ import {
 // Types and Utils
 import { DateRange } from "react-day-picker";
 import { Income } from "@/types";
-import { formatCurrency } from '@/lib/utils';
-import { logger } from '@/lib/logger';
+import { formatCurrency, getCurrentDate } from '@/lib/utils';
 
 // Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isBetween);
-dayjs.extend(isSameOrAfter);
 
 interface Transaction {
   date: string;
@@ -46,19 +43,12 @@ interface IncomeReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   incomes: Income[];
-  totalMonthlyIncome: number;
-  currentDate: dayjs.Dayjs;
 }
 
-export default function IncomeReportDialog({ 
-  isOpen, 
-  onOpenChange, 
-  incomes,
-  totalMonthlyIncome,
-  currentDate
-}: IncomeReportDialogProps) {
+export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: IncomeReportDialogProps) {
+  const today = useMemo(() => getCurrentDate(), []); // Use getCurrentDate utility
   const [date, setDate] = useState<DateRange | undefined>({
-    from: currentDate.toDate(),
+    from: today.toDate(),
     to: undefined
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -72,14 +62,14 @@ export default function IncomeReportDialog({
   useEffect(() => {
     if (!isOpen) {
       setDate({
-        from: currentDate.toDate(),
+        from: today.toDate(),
         to: undefined
       });
       setShowReport(false);
       setTransactions([]);
       setSummaryTotals({ occurred: 0, pending: 0 });
     }
-  }, [isOpen, currentDate]);
+  }, [isOpen, today]);
 
   // Generate transactions when date range is selected
   useEffect(() => {
@@ -87,70 +77,68 @@ export default function IncomeReportDialog({
 
     const startDate = dayjs(date.from);
     const endDate = dayjs(date.to);
-    logger.info("Generating transactions for range:", { startDate: startDate.format(), endDate: endDate.format() });
 
     const generateTransactions = () => {
       const mockTransactions: Transaction[] = [];
 
       // Helper function to check if a date has occurred
       const hasDateOccurred = (checkDate: dayjs.Dayjs) => {
-        return checkDate.isSameOrBefore(currentDate, 'day');
+        return checkDate.isBefore(today) || checkDate.isSame(today, 'day');
       };
 
       incomes.forEach(income => {
-        if (income.source === "Majdi's Salary") {
-          // Handle Majdi's twice-monthly salary
-          let currentMonth = startDate.startOf('month');
-          while (currentMonth.isSameOrBefore(endDate)) {
-            // First payment of the month
-            const firstPaymentDate = currentMonth.date(income.firstDate || 1);
-            if (firstPaymentDate.isBetween(startDate, endDate, 'day', '[]')) {
-              mockTransactions.push({
-                date: firstPaymentDate.format('YYYY-MM-DD'),
-                description: `${income.source} (1st payment)`,
-                amount: income.amount,
-                occurred: hasDateOccurred(firstPaymentDate)
-              });
-            }
+        const incomeDate = dayjs(income.date);
 
-            // Second payment of the month
-            const secondPaymentDate = currentMonth.date(income.secondDate || 15);
-            if (secondPaymentDate.isBetween(startDate, endDate, 'day', '[]')) {
-              mockTransactions.push({
-                date: secondPaymentDate.format('YYYY-MM-DD'),
-                description: `${income.source} (2nd payment)`,
-                amount: income.amount,
-                occurred: hasDateOccurred(secondPaymentDate)
-              });
-            }
+        if (income.source === "Ruba's Salary") {
+          // Start from January 10, 2025, for bi-weekly payments
+          let payDate = dayjs('2025-01-10');
 
-            currentMonth = currentMonth.add(1, 'month');
+          // Find the first payment date within or before the range
+          while (payDate.isBefore(startDate)) {
+            payDate = payDate.add(14, 'day');
           }
-        } else if (income.source === "Ruba's Salary") {
-          // Handle Ruba's biweekly salary
-          let currentDate = dayjs('2025-01-10'); // Start date for Ruba's salary
-          while (currentDate.isSameOrBefore(endDate)) {
-            if (currentDate.isSameOrAfter(startDate) && 
-                currentDate.day() === 5) { // Only Fridays
+
+          // Generate bi-weekly payments within the date range
+          while (payDate.isSameOrBefore(endDate)) {
+            if (payDate.day() === 5) { // Only on Fridays
               mockTransactions.push({
-                date: currentDate.format('YYYY-MM-DD'),
+                date: payDate.format('YYYY-MM-DD'),
                 description: income.source,
                 amount: income.amount,
-                occurred: hasDateOccurred(currentDate)
+                occurred: hasDateOccurred(payDate)
               });
             }
-            currentDate = currentDate.add(14, 'day'); // Move to next biweekly Friday
+            payDate = payDate.add(14, 'day');
           }
-        } else if (income.occurrenceType === 'once') {
-          // Handle one-time income
-          const incomeDate = dayjs(income.date);
-          if (incomeDate.isBetween(startDate, endDate, 'day', '[]')) {
-            mockTransactions.push({
-              date: incomeDate.format('YYYY-MM-DD'),
-              description: income.source,
-              amount: income.amount,
-              occurred: hasDateOccurred(incomeDate)
-            });
+        } else {
+          // For Majdi's salary and other regular incomes
+          // Calculate the actual date for each month in the range
+          let currentDate = startDate.clone().startOf('month');
+
+          while (currentDate.isSameOrBefore(endDate)) {
+            // Add salary on 1st and 15th of each month
+            const firstPayDay = currentDate.date(1);
+            const fifteenthPayDay = currentDate.date(15);
+
+            if (firstPayDay.isBetween(startDate, endDate, 'day', '[]')) {
+              mockTransactions.push({
+                date: firstPayDay.format('YYYY-MM-DD'),
+                description: income.source,
+                amount: income.amount,
+                occurred: hasDateOccurred(firstPayDay)
+              });
+            }
+
+            if (fifteenthPayDay.isBetween(startDate, endDate, 'day', '[]')) {
+              mockTransactions.push({
+                date: fifteenthPayDay.format('YYYY-MM-DD'),
+                description: income.source,
+                amount: income.amount,
+                occurred: hasDateOccurred(fifteenthPayDay)
+              });
+            }
+
+            currentDate = currentDate.add(1, 'month');
           }
         }
       });
@@ -159,7 +147,6 @@ export default function IncomeReportDialog({
     };
 
     const newTransactions = generateTransactions();
-    logger.info("Generated transactions:", { count: newTransactions.length });
 
     // Calculate summary totals
     const totals = newTransactions.reduce(
@@ -176,7 +163,7 @@ export default function IncomeReportDialog({
 
     setTransactions(newTransactions);
     setSummaryTotals(totals);
-  }, [showReport, date?.from, date?.to, incomes, currentDate]);
+  }, [showReport, date?.from, date?.to, incomes, today]);
 
   if (!showReport) {
     return (
@@ -192,7 +179,7 @@ export default function IncomeReportDialog({
                 selected={date}
                 onSelect={setDate}
                 numberOfMonths={1}
-                defaultMonth={currentDate.toDate()}
+                defaultMonth={today.toDate()}
                 className="rounded-md"
               />
             </div>
@@ -245,7 +232,7 @@ export default function IncomeReportDialog({
         <div className="grid grid-cols-2 gap-4 mt-4">
           <Card>
             <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Received Income</CardTitle>
+              <CardTitle className="text-sm font-medium">Paid Income</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">{formatCurrency(summaryTotals.occurred)}</div>
@@ -253,10 +240,10 @@ export default function IncomeReportDialog({
           </Card>
           <Card>
             <CardHeader className="py-4">
-              <CardTitle className="text-sm font-medium">Expected Income</CardTitle>
+              <CardTitle className="text-sm font-medium">Pending Income</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{formatCurrency(summaryTotals.pending)}</div>
+              <div className="text-2xl font-bold text-green-100">{formatCurrency(summaryTotals.pending)}</div>
             </CardContent>
           </Card>
         </div>
@@ -266,7 +253,7 @@ export default function IncomeReportDialog({
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
-                <TableHead>Source</TableHead>
+                <TableHead>Description</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -275,13 +262,13 @@ export default function IncomeReportDialog({
               {transactions.map((transaction, index) => (
                 <TableRow key={`${transaction.date}-${index}`}>
                   <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                  <TableCell>{transaction.description}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(transaction.amount)}</TableCell>
-                  <TableCell>
-                    <span className={transaction.occurred ? 'text-green-600' : 'text-blue-600'}>
-                      {transaction.occurred ? 'Received' : 'Expected'}
-                    </span>
+                  <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-100'}>
+                    {transaction.description}
                   </TableCell>
+                  <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-100'}`}>
+                    {formatCurrency(transaction.amount)}</TableCell>
+                  <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-100'}>
+                    {transaction.occurred ? 'Paid' : 'Pending'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

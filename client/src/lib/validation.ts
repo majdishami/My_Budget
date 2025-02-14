@@ -1,16 +1,13 @@
 import { z } from "zod";
 
-// Define income occurrence types
-const occurrenceTypes = ['once', 'weekly', 'monthly', 'biweekly', 'twice-monthly'] as const;
-
 export const incomeSchema = z.object({
   id: z.string(),
   source: z.string().min(1, "Source is required"),
   amount: z.number().positive("Amount must be positive"),
-  date: z.string().min(1, "Date is required"),
-  occurrenceType: z.enum(occurrenceTypes),
+  date: z.string(),
+  occurrenceType: z.enum(['once', 'weekly', 'monthly', 'biweekly', 'twice-monthly']),
   firstDate: z.number().min(1).max(31).optional(),
-  secondDate: z.number().min(1).max(31).optional()
+  secondDate: z.number().min(1).max(31).optional(),
 });
 
 export const billSchema = z.object({
