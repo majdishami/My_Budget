@@ -81,58 +81,46 @@ router.post('/api/sync/restore', async (req, res) => {
     console.log('Processing uploaded file:', {
       name: uploadedFile.name,
       size: uploadedFile.size,
-      mimetype: uploadedFile.mimetype,
-      tempFilePath: uploadedFile.tempFilePath
+      mimetype: uploadedFile.mimetype
     });
 
     // Create tmp directory if it doesn't exist
-    const backupPath = path.join(process.cwd(), 'tmp');
-    if (!fs.existsSync(backupPath)) {
-      fs.mkdirSync(backupPath, { recursive: true });
+    const tmpDir = path.join(process.cwd(), 'tmp');
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true });
     }
 
-    // Generate a new filename with .json extension
+    // Generate a unique filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const tempPath = path.join(backupPath, `restore_${timestamp}.json`);
-    console.log('Moving file to:', tempPath);
+    const tempPath = path.join(tmpDir, `restore_${timestamp}.json`);
 
     try {
-      // Move the uploaded file
+      // Move the uploaded file to tmp directory
       await uploadedFile.mv(tempPath);
-      console.log('File moved successfully');
+      console.log('File moved to temporary location:', tempPath);
 
-      // Verify that the moved file exists and is readable
-      if (!fs.existsSync(tempPath)) {
-        throw new Error('Failed to move uploaded file to temporary location');
-      }
-
-      // Try to read and parse the file to verify it's valid JSON
-      try {
-        const fileContent = fs.readFileSync(tempPath, 'utf-8');
-        JSON.parse(fileContent); // This will throw if not valid JSON
-        console.log('Verified file is valid JSON');
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        throw new Error('Invalid JSON format in backup file');
-      }
-
-      // Restore the database from the backup
+      // Restore the database
       console.log('Starting database restore...');
       const result = await restoreDatabaseBackup(tempPath);
-      console.log('Restore completed with result:', result);
+      console.log('Restore result:', result);
 
       // Clean up the temporary file
       fs.unlinkSync(tempPath);
       console.log('Temporary file cleaned up');
 
       if (!result.success) {
-        return res.status(500).json({ error: result.error || 'Failed to restore backup' });
+        return res.status(500).json({ 
+          error: result.error || 'Failed to restore backup' 
+        });
       }
 
-      res.json({ message: 'Database restored successfully' });
+      res.json({ 
+        message: 'Database restored successfully',
+        details: result.message 
+      });
     } catch (error) {
-      console.error('Error during file processing:', error);
-      // Clean up the temp file if it exists
+      console.error('Error processing restore:', error);
+      // Clean up temp file if it exists
       if (fs.existsSync(tempPath)) {
         fs.unlinkSync(tempPath);
       }

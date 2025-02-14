@@ -60,125 +60,148 @@ export async function generateDatabaseBackup() {
 }
 
 export async function restoreDatabaseBackup(backupFile: string) {
+  console.log('Starting database restore process...');
+
   // Start a transaction for the entire restore process
-  const transaction = db.transaction(async (tx) => {
+  return db.transaction(async (tx) => {
     try {
-      console.log('Starting restore process with file:', backupFile);
+      console.log('Reading backup file:', backupFile);
 
       // Verify backup file exists
       if (!fs.existsSync(backupFile)) {
         throw new Error('Backup file not found');
       }
 
-      // Verify it's a JSON file
-      if (!backupFile.toLowerCase().endsWith('.json')) {
-        throw new Error('Invalid backup file format. Please use a .json backup file');
-      }
-
       // Read and parse backup file
       let backupData: Record<string, any[]>;
       try {
-        console.log('Reading backup file...');
         const backupContent = fs.readFileSync(backupFile, 'utf-8');
-        console.log('Parsing JSON content...');
+        console.log('Backup file content length:', backupContent.length);
+        console.log('Sample of backup content:', backupContent.substring(0, 200));
         backupData = JSON.parse(backupContent);
-        console.log('Successfully parsed backup file');
+        console.log('Successfully parsed backup data. Tables found:', Object.keys(backupData));
       } catch (parseError) {
         console.error('Error parsing backup file:', parseError);
         throw new Error(`Invalid JSON format in backup file: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
       }
 
       // Validate backup data structure
-      if (typeof backupData !== 'object' || backupData === null || Object.keys(backupData).length === 0) {
-        throw new Error('Invalid backup file structure: missing table data');
+      if (!backupData || typeof backupData !== 'object' || Object.keys(backupData).length === 0) {
+        throw new Error('Invalid backup file structure');
       }
 
-      // Get existing tables from the database
-      const result = await tx.execute(sql`
-        SELECT tablename 
-        FROM pg_tables 
-        WHERE schemaname = 'public'
-      `);
-      const tables = (Array.isArray(result) ? result : result.rows || [])
-        .map(row => row.tablename);
+      // Process tables in a specific order to handle foreign key constraints
+      const tableOrder = ['categories', 'transactions', 'bills'];
 
-      console.log('Existing tables:', tables);
+      for (const tablename of tableOrder) {
+        if (!backupData[tablename]) {
+          console.log(`No data found for table ${tablename} in backup`);
+          continue;
+        }
 
-      // Restore each table
-      for (const tablename of tables) {
-        if (backupData[tablename]) {
-          try {
-            console.log(`Restoring table: ${tablename}`);
+        console.log(`Processing table ${tablename}, ${backupData[tablename].length} records found`);
 
-            // Clear existing data
-            await tx.execute(sql.raw(`TRUNCATE TABLE "${tablename}" CASCADE`));
+        try {
+          // Clear existing data
+          await tx.execute(sql.raw(`TRUNCATE TABLE "${tablename}" RESTART IDENTITY CASCADE`));
+          console.log(`Cleared existing data from ${tablename}`);
 
-            // Get table columns
+          if (backupData[tablename].length > 0) {
+            // Get column information
             const columnsResult = await tx.execute(sql`
-              SELECT column_name, data_type
-              FROM information_schema.columns
-              WHERE table_schema = 'public'
+              SELECT column_name, data_type, column_default 
+              FROM information_schema.columns 
+              WHERE table_schema = 'public' 
               AND table_name = ${tablename}
+              ORDER BY ordinal_position
             `);
 
             const columns = (Array.isArray(columnsResult) ? columnsResult : columnsResult.rows || [])
-              .map(col => col.column_name);
+              .filter(col => !col.column_default?.includes('nextval')) // Exclude auto-increment columns
+              .map(col => ({
+                name: col.column_name,
+                type: col.data_type
+              }));
 
-            console.log(`Columns for ${tablename}:`, columns);
+            console.log(`Table ${tablename} columns:`, columns.map(c => c.name));
 
-            // Insert backup data if there are rows to restore
-            if (Array.isArray(backupData[tablename]) && backupData[tablename].length > 0) {
-              for (const record of backupData[tablename]) {
-                // Filter record to only include existing columns
-                const filteredRecord: Record<string, any> = {};
-                for (const col of columns) {
-                  if (record.hasOwnProperty(col)) {
-                    filteredRecord[col] = record[col];
+            // Insert records in batches
+            const batchSize = 100;
+            for (let i = 0; i < backupData[tablename].length; i += batchSize) {
+              const batch = backupData[tablename].slice(i, i + batchSize);
+
+              const columnNames = columns.map(col => `"${col.name}"`).join(', ');
+              const values = batch.map(record => {
+                const rowValues = columns.map(col => {
+                  const value = record[col.name];
+                  if (value === null || value === undefined) return 'NULL';
+
+                  switch (col.type) {
+                    case 'integer':
+                    case 'numeric':
+                    case 'bigint':
+                      return value;
+                    case 'timestamp without time zone':
+                    case 'timestamp with time zone':
+                      return value ? `'${value}'::timestamp` : 'NULL';
+                    case 'boolean':
+                      return value ? 'true' : 'false';
+                    default:
+                      return `'${String(value).replace(/'/g, "''")}'`;
                   }
-                }
+                });
+                return `(${rowValues.join(', ')})`;
+              }).join(',\n');
 
-                const columnsList = Object.keys(filteredRecord).join('", "');
-                const values = Object.values(filteredRecord)
-                  .map(val => {
-                    if (val === null) return 'NULL';
-                    return typeof val === 'string' ? `'${val.replace(/'/g, "''")}'` : val;
-                  })
-                  .join(', ');
-
+              if (values) {
                 const insertQuery = sql.raw(
-                  `INSERT INTO "${tablename}" ("${columnsList}") VALUES (${values})`
+                  `INSERT INTO "${tablename}" (${columnNames}) VALUES ${values}`
                 );
                 await tx.execute(insertQuery);
+                console.log(`Inserted batch of ${batch.length} records into ${tablename}`);
               }
             }
 
-            console.log(`Restored ${backupData[tablename].length} records to ${tablename}`);
-          } catch (tableError: any) {
-            console.error(`Error restoring table ${tablename}:`, tableError);
-            throw new Error(`Failed to restore table ${tablename}: ${tableError.message}`);
+            // Reset sequences if they exist
+            const sequenceResult = await tx.execute(sql`
+              SELECT column_name, column_default
+              FROM information_schema.columns
+              WHERE table_schema = 'public'
+                AND table_name = ${tablename}
+                AND column_default LIKE 'nextval%'
+            `);
+
+            const sequences = (Array.isArray(sequenceResult) ? sequenceResult : sequenceResult.rows || []);
+            for (const seq of sequences) {
+              const sequenceName = seq.column_default.match(/nextval\('([^']+)'/)?.[1];
+              if (sequenceName) {
+                await tx.execute(sql.raw(`
+                  SELECT setval('${sequenceName}', COALESCE((SELECT MAX(${seq.column_name}) FROM "${tablename}"), 1))
+                `));
+                console.log(`Reset sequence ${sequenceName} for ${tablename}`);
+              }
+            }
           }
-        } else {
-          console.log(`Skipping table ${tablename}: no data in backup`);
+        } catch (error) {
+          console.error(`Error restoring table ${tablename}:`, error);
+          throw new Error(`Failed to restore table ${tablename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
 
+      console.log('Database restore completed successfully');
       return {
         success: true,
         message: 'Database restored successfully'
       };
     } catch (error) {
-      console.error('Error in restore transaction:', error);
-      throw error; // Re-throw to trigger rollback
+      console.error('Error in restore process:', error);
+      throw error;
     }
-  });
-
-  try {
-    return await transaction;
-  } catch (error) {
-    console.error('Error restoring database backup:', error);
+  }).catch(error => {
+    console.error('Transaction failed:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
     };
-  }
+  });
 }
