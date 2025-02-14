@@ -37,7 +37,6 @@ export function EditIncomeDialog({
 }: EditIncomeDialogProps) {
   const [source, setSource] = useState('');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [occurrenceType, setOccurrenceType] = useState<'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly'>('once');
   const [firstDate, setFirstDate] = useState<number>(1);
   const [secondDate, setSecondDate] = useState<number>(15);
@@ -54,57 +53,21 @@ export function EditIncomeDialog({
         setOccurrenceType('twice-monthly');
         setFirstDate(1);
         setSecondDate(15);
-        // For Majdi's salary, we'll show today's date since it's fixed on 1st and 15th
-        setDate(dayjs().format('YYYY-MM-DD'));
       } else if (income.source === "Ruba's Salary") {
         setOccurrenceType('biweekly');
-        // For Ruba's salary, find the next bi-weekly Friday
-        const today = dayjs();
+        // Calculate next bi-weekly Friday from 2025-01-10
         const startDate = dayjs('2025-01-10');
-        const weeksDiff = today.diff(startDate, 'week');
+        const currentDate = dayjs();
+        const weeksDiff = currentDate.diff(startDate, 'week');
         const nextBiWeeklyFriday = startDate.add(Math.ceil(weeksDiff / 2) * 2, 'week');
-        setDate(nextBiWeeklyFriday.format('YYYY-MM-DD'));
       } else {
-        // For other incomes, use their actual date and occurrence type
+        // For other incomes, use their actual occurrence type
         setOccurrenceType(income.occurrenceType || 'once');
-        setDate(dayjs(income.date).format('YYYY-MM-DD'));
         if (income.firstDate) setFirstDate(income.firstDate);
         if (income.secondDate) setSecondDate(income.secondDate);
       }
     }
-  }, [income, isOpen]); // Added isOpen to reset form when dialog opens
-
-  const handleSubmit = async () => {
-    if (!income || !validateForm()) return;
-
-    try {
-      setIsSubmitting(true);
-      setError(null);
-
-      const updatedIncome: Income = {
-        ...income,
-        source,
-        amount: parseFloat(amount),
-        date: dayjs(date).toISOString(),
-        occurrenceType,
-      };
-
-      // Only include firstDate and secondDate for twice-monthly incomes
-      if (occurrenceType === 'twice-monthly') {
-        updatedIncome.firstDate = firstDate;
-        updatedIncome.secondDate = secondDate;
-      }
-
-      await onUpdate(updatedIncome);
-      onOpenChange(false);
-      logger.info("Successfully updated income", { income: updatedIncome });
-    } catch (error) {
-      logger.error("Error updating income:", { error });
-      setError('Failed to update income. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  }, [income, isOpen]);
 
   const validateForm = () => {
     if (!source.trim()) {
@@ -118,24 +81,55 @@ export function EditIncomeDialog({
       return false;
     }
 
-    if (!date) {
-      setError('Please select a date');
-      return false;
-    }
-
     return true;
   };
 
-  const generateDayOptions = () => {
-    const days = [];
-    for (let i = 1; i <= 31; i++) {
-      days.push(
-        <SelectItem key={i} value={i.toString()}>
-          {i}
-        </SelectItem>
-      );
+  const handleSubmit = async () => {
+    if (!income || !validateForm()) return;
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const updatedIncome: Income = {
+        ...income,
+        source,
+        amount: parseFloat(amount),
+      };
+
+      // For Majdi's salary, keep the fixed dates
+      if (source === "Majdi's Salary") {
+        updatedIncome.firstDate = 1;
+        updatedIncome.secondDate = 15;
+        updatedIncome.occurrenceType = 'twice-monthly';
+      } 
+      // For Ruba's salary, calculate next bi-weekly Friday
+      else if (source === "Ruba's Salary") {
+        const startDate = dayjs('2025-01-10');
+        const currentDate = dayjs();
+        const weeksDiff = currentDate.diff(startDate, 'week');
+        const nextBiWeeklyFriday = startDate.add(Math.ceil(weeksDiff / 2) * 2, 'week');
+        updatedIncome.date = nextBiWeeklyFriday.toISOString();
+        updatedIncome.occurrenceType = 'biweekly';
+      }
+      // For other incomes
+      else {
+        updatedIncome.occurrenceType = occurrenceType;
+        if (occurrenceType === 'twice-monthly') {
+          updatedIncome.firstDate = firstDate;
+          updatedIncome.secondDate = secondDate;
+        }
+      }
+
+      await onUpdate(updatedIncome);
+      onOpenChange(false);
+      logger.info("Successfully updated income", { income: updatedIncome });
+    } catch (error) {
+      logger.error("Error updating income:", { error });
+      setError('Failed to update income. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-    return days;
   };
 
   return (
@@ -174,11 +168,11 @@ export function EditIncomeDialog({
 
           {source === "Majdi's Salary" ? (
             <p className="text-sm text-muted-foreground">
-              Paid twice monthly on the 1st and 15th of each month
+              This income is automatically paid twice monthly on the 1st and 15th of each month
             </p>
           ) : source === "Ruba's Salary" ? (
             <p className="text-sm text-muted-foreground">
-              Paid bi-weekly on Fridays starting from January 10, 2025
+              This income is automatically paid bi-weekly on Fridays starting from January 10, 2025
             </p>
           ) : (
             <>
@@ -201,51 +195,28 @@ export function EditIncomeDialog({
                 </Select>
               </div>
 
-              {occurrenceType === 'twice-monthly' ? (
+              {occurrenceType === 'twice-monthly' && (
                 <div className="space-y-4">
                   <div className="grid gap-2">
                     <Label>First payment day of the month</Label>
-                    <Select
-                      value={firstDate.toString()}
-                      onValueChange={(value) => setFirstDate(parseInt(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select day" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {generateDayOptions()}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={firstDate}
+                      onChange={(e) => setFirstDate(parseInt(e.target.value))}
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label>Second payment day of the month</Label>
-                    <Select
-                      value={secondDate.toString()}
-                      onValueChange={(value) => setSecondDate(parseInt(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select day" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {generateDayOptions()}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={secondDate}
+                      onChange={(e) => setSecondDate(parseInt(e.target.value))}
+                    />
                   </div>
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  <Label htmlFor="date">
-                    {occurrenceType === 'once' ? 'Date' : 'Start Date'}
-                  </Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => {
-                      setDate(e.target.value);
-                      setError(null);
-                    }}
-                  />
                 </div>
               )}
             </>

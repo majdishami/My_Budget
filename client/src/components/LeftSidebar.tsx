@@ -19,19 +19,17 @@ import {
   LayoutDashboard
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import dayjs from "dayjs";
 import { useState } from "react";
-import { ExportDialog } from "@/components/ExportDialog";
-import { ViewRemindersDialog } from "@/components/ViewRemindersDialog";
-import { DatabaseSyncDialog } from "@/components/DatabaseSyncDialog";
-import { clsx } from "clsx";
 
 interface LeftSidebarProps {
   incomes: Income[];
@@ -53,14 +51,19 @@ export function LeftSidebar({
   onReset,
 }: LeftSidebarProps) {
   const [location] = useLocation();
-  const [showExportDialog, setShowExportDialog] = useState(false);
-  const [showRemindersDialog, setShowRemindersDialog] = useState(false);
-  const [showDatabaseSyncDialog, setShowDatabaseSyncDialog] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [deletingTransaction, setDeletingTransaction] = useState<{ type: 'income' | 'bill', data: Income | Bill } | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Function to check if current route matches given path
-  const isActiveRoute = (path: string) => {
-    return location === path;
+  // Function to format the date display for incomes
+  const formatIncomeDate = (income: Income) => {
+    if (income.source === "Majdi's Salary") {
+      return "Paid twice monthly (1st and 15th)";
+    }
+    if (income.source === "Ruba's Salary") {
+      return "Paid bi-weekly on Fridays";
+    }
+    return dayjs(income.date).format('MMM D, YYYY');
   };
 
   // Function to format the occurrence type for display
@@ -76,6 +79,21 @@ export function LeftSidebar({
       'twice-monthly': 'Twice Monthly'
     };
     return types[income.occurrenceType || 'monthly'];
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = () => {
+    if (deletingTransaction) {
+      onDeleteTransaction(deletingTransaction.type, deletingTransaction.data);
+      setIsDeleteConfirmOpen(false);
+      setDeletingTransaction(null);
+    }
+  };
+
+  // Handle delete request
+  const handleDeleteRequest = (type: 'income' | 'bill', data: Income | Bill) => {
+    setDeletingTransaction({ type, data });
+    setIsDeleteConfirmOpen(true);
   };
 
   return (
@@ -133,7 +151,7 @@ export function LeftSidebar({
                       {income.source}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {formatOccurrenceType(income)} - {formatCurrency(income.amount)}
+                      {formatIncomeDate(income)} - {formatCurrency(income.amount)}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -149,7 +167,7 @@ export function LeftSidebar({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => onDeleteTransaction('income', income)}
+                      onClick={() => handleDeleteRequest('income', income)}
                     >
                       <Trash className="h-4 w-4" />
                     </Button>
@@ -339,6 +357,43 @@ export function LeftSidebar({
         isOpen={showDatabaseSyncDialog}
         onOpenChange={setShowDatabaseSyncDialog}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deletingTransaction?.type === 'income' ? 'Delete Income' : 'Delete Bill'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingTransaction?.type === 'income' ? (
+                <>
+                  Are you sure you want to delete this income?
+                  <div className="mt-2 text-sm">
+                    <p>Source: {(deletingTransaction.data as Income).source}</p>
+                    <p>Amount: {formatCurrency((deletingTransaction.data as Income).amount)}</p>
+                    <p>Date: {formatIncomeDate(deletingTransaction.data as Income)}</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  Are you sure you want to delete this bill?
+                  <div className="mt-2 text-sm">
+                    <p>Name: {(deletingTransaction.data as Bill).name}</p>
+                    <p>Amount: {formatCurrency((deletingTransaction.data as Bill).amount)}</p>
+                    <p>Due Date: Day {(deletingTransaction.data as Bill).day} of each month</p>
+                  </div>
+                </>
+              )}
+              <p className="mt-2 font-semibold">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
