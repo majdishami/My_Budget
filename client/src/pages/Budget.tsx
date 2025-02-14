@@ -85,18 +85,20 @@ const DayCell = memo(({
       )}
     >
       <div className="flex justify-between items-start mb-0.5">
-        <div className="flex items-center gap-0.5">
-          <span className={cn(
-            "font-medium text-xs md:text-base lg:text-lg",
-            isCurrentDay && "text-primary font-bold"
-          )}>
-            {day}
-          </span>
-          <span className="hidden md:inline text-[10px] text-muted-foreground">
-            {dayOfWeek}
-          </span>
+        <div className="flex flex-col items-start">
+          <div className="flex items-center gap-0.5">
+            <span className={cn(
+              "font-medium text-xs md:text-base lg:text-lg",
+              isCurrentDay && "text-primary font-bold"
+            )}>
+              {day}
+            </span>
+            <span className="hidden md:inline text-[10px] text-muted-foreground">
+              {dayOfWeek}
+            </span>
+          </div>
           {isCurrentDay && (
-            <span className="text-[8px] md:text-xs font-medium text-primary ml-0.5 animate-pulse px-0.5 rounded bg-primary/10">
+            <span className="text-[8px] md:text-xs font-medium text-primary animate-pulse bg-primary/10 px-1 rounded-sm">
               Today
             </span>
           )}
