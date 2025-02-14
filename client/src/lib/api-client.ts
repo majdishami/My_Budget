@@ -50,9 +50,8 @@ export const apiRequest = async (
 
     clearTimeout(timeoutId);
 
-    // Handle authentication errors
-    if (response.status === 401) {
-      // Redirect to auth page if not authenticated
+    // For 401 errors, don't redirect if we're already on the auth page
+    if (response.status === 401 && !window.location.pathname.includes('/auth')) {
       window.location.href = '/auth';
       throw new Error('Authentication required');
     }

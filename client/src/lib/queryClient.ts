@@ -2,12 +2,6 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 
 async function throwIfResNotOk(res: Response) {
-  if (res.status === 401) {
-    // Redirect to auth page if not authenticated
-    window.location.href = '/auth';
-    throw new Error('Authentication required');
-  }
-
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || res.statusText);
@@ -51,19 +45,21 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: "returnNull" }), // Changed to returnNull by default
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: (failureCount, error: any) => {
         // Don't retry on auth errors
-        if (error?.message?.includes('Authentication required')) {
+        if (error?.message?.includes('Authentication required') || error?.message?.includes('401')) {
           return false;
         }
         return failureCount < 3;
       },
       onError: (error: Error) => {
-        if (!error.message.includes('Authentication required')) {
+        const isAuthError = error.message.includes('Authentication required') || error.message.includes('401');
+        // Only show toast for non-auth errors
+        if (!isAuthError) {
           toast({
             title: "Error",
             description: error.message,
@@ -75,7 +71,8 @@ export const queryClient = new QueryClient({
     mutations: {
       retry: false,
       onError: (error: Error) => {
-        if (!error.message.includes('Authentication required')) {
+        const isAuthError = error.message.includes('Authentication required') || error.message.includes('401');
+        if (!isAuthError) {
           toast({
             title: "Error",
             description: error.message,
