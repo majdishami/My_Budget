@@ -51,7 +51,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const transactions = await response.json();
       logger.info('[DataContext] Raw transactions:', transactions);
 
-      // Process incomes
+      // Process incomes and bills
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
         .map((t: any) => {
@@ -67,10 +67,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           return income;
         });
 
-      logger.info('[DataContext] All processed incomes:', loadedIncomes);
-      setIncomes(loadedIncomes);
-
-      // Process bills/expenses
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
         .map((t: any) => {
@@ -88,7 +84,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           return bill;
         });
 
+      logger.info('[DataContext] All processed incomes:', loadedIncomes);
       logger.info('[DataContext] All processed bills:', loadedBills);
+
+      setIncomes(loadedIncomes);
       setBills(loadedBills);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
@@ -135,17 +134,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to edit transaction: ${errorData.message || response.statusText}`);
       }
 
-      // Get the updated data from response
+      // Get the updated transaction from the server
       const updatedTransaction = await response.json();
       logger.info('[DataContext] Server response after edit:', updatedTransaction);
 
-      // Update local state immediately with the server response data
+      // Update local state with the server response data to ensure consistency
       if (isIncome) {
         setIncomes(prevIncomes => 
           prevIncomes.map(inc => inc.id === transaction.id ? {
             ...inc,
             source: updatedTransaction.description,
-            amount: parseFloat(updatedTransaction.amount)
+            amount: parseFloat(updatedTransaction.amount),
+            date: dayjs(updatedTransaction.date).startOf('day').toISOString()
           } : inc)
         );
       } else {
@@ -153,14 +153,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           prevBills.map(bill => bill.id === transaction.id ? {
             ...bill,
             name: updatedTransaction.description,
-            amount: parseFloat(updatedTransaction.amount)
+            amount: parseFloat(updatedTransaction.amount),
+            date: dayjs(updatedTransaction.date).startOf('day').toISOString(),
+            day: dayjs(updatedTransaction.date).date()
           } : bill)
         );
       }
 
       // Refresh data to ensure consistency
       await loadData();
-      logger.info("[DataContext] Successfully edited transaction");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
       logger.error("[DataContext] Error in editTransaction:", { error });
@@ -237,14 +238,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
               throw new Error('Failed to delete transaction');
             }
 
-            // Update local state immediately
             if ('source' in transaction) {
               setIncomes(prev => prev.filter(i => i.id !== transaction.id));
             } else {
               setBills(prev => prev.filter(b => b.id !== transaction.id));
             }
 
-            await loadData(); // Refresh data after deleting
+            await loadData();
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
             logger.error("Error in deleteTransaction:", { error });
