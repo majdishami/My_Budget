@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
 import { Income } from "@/types";
 import dayjs from "dayjs";
 import {
@@ -37,7 +37,7 @@ export function EditIncomeDialog({
 }: EditIncomeDialogProps) {
   const [source, setSource] = useState('');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [occurrenceType, setOccurrenceType] = useState<'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly'>('once');
   const [firstDate, setFirstDate] = useState<number>(1);
   const [secondDate, setSecondDate] = useState<number>(15);
@@ -50,38 +50,59 @@ export function EditIncomeDialog({
       setSource(income.source);
       setAmount(income.amount.toString());
 
-      // Set the correct occurrence type and dates based on the source
       if (income.source === "Majdi's Salary") {
         setOccurrenceType('twice-monthly');
         setFirstDate(1);
         setSecondDate(15);
-        setDate(dayjs().format('YYYY-MM-DD')); // Current date as we don't track specific dates for Majdi
+        // For Majdi's salary, we'll show today's date since it's fixed on 1st and 15th
+        setDate(dayjs().format('YYYY-MM-DD'));
       } else if (income.source === "Ruba's Salary") {
         setOccurrenceType('biweekly');
-        // Find the next bi-weekly Friday from Jan 10, 2025
+        // For Ruba's salary, find the next bi-weekly Friday
+        const today = dayjs();
         const startDate = dayjs('2025-01-10');
-        const currentDate = dayjs();
-        const weeksDiff = currentDate.diff(startDate, 'week');
-        const nextPayDate = startDate.add(Math.ceil(weeksDiff / 2) * 2, 'week');
-        setDate(nextPayDate.format('YYYY-MM-DD'));
+        const weeksDiff = today.diff(startDate, 'week');
+        const nextBiWeeklyFriday = startDate.add(Math.ceil(weeksDiff / 2) * 2, 'week');
+        setDate(nextBiWeeklyFriday.format('YYYY-MM-DD'));
       } else {
-        setOccurrenceType(income.occurrenceType || 'monthly');
+        // For other incomes, use their actual date and occurrence type
+        setOccurrenceType(income.occurrenceType || 'once');
+        setDate(dayjs(income.date).format('YYYY-MM-DD'));
         if (income.firstDate) setFirstDate(income.firstDate);
         if (income.secondDate) setSecondDate(income.secondDate);
-        setDate(dayjs(income.date).format('YYYY-MM-DD'));
       }
     }
-  }, [income]);
+  }, [income, isOpen]); // Added isOpen to reset form when dialog opens
 
-  const handleOccurrenceTypeChange = (value: 'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly') => {
-    setOccurrenceType(value);
-    setError(null);
+  const handleSubmit = async () => {
+    if (!income || !validateForm()) return;
 
-    if (value === 'twice-monthly') {
-      const today = dayjs();
-      setDate(today.format('YYYY-MM-DD'));
-      setFirstDate(1);
-      setSecondDate(15);
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const updatedIncome: Income = {
+        ...income,
+        source,
+        amount: parseFloat(amount),
+        date: dayjs(date).toISOString(),
+        occurrenceType,
+      };
+
+      // Only include firstDate and secondDate for twice-monthly incomes
+      if (occurrenceType === 'twice-monthly') {
+        updatedIncome.firstDate = firstDate;
+        updatedIncome.secondDate = secondDate;
+      }
+
+      await onUpdate(updatedIncome);
+      onOpenChange(false);
+      logger.info("Successfully updated income", { income: updatedIncome });
+    } catch (error) {
+      logger.error("Error updating income:", { error });
+      setError('Failed to update income. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -97,43 +118,12 @@ export function EditIncomeDialog({
       return false;
     }
 
-    if (!date && occurrenceType !== 'twice-monthly') {
+    if (!date) {
       setError('Please select a date');
       return false;
     }
 
     return true;
-  };
-
-  const handleConfirm = async () => {
-    if (!income || !validateForm()) return;
-
-    try {
-      setIsSubmitting(true);
-      setError(null);
-
-      const updatedIncome: Income = {
-        ...income,
-        source,
-        amount: parseFloat(amount),
-        date: dayjs(date).toISOString(),
-        occurrenceType
-      };
-
-      if (occurrenceType === 'twice-monthly') {
-        updatedIncome.firstDate = firstDate;
-        updatedIncome.secondDate = secondDate;
-      }
-
-      await onUpdate(updatedIncome);
-      onOpenChange(false);
-      logger.info("Successfully updated income", { income: updatedIncome });
-    } catch (error) {
-      logger.error("Error updating income:", { error });
-      setError('Failed to update income. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const generateDayOptions = () => {
@@ -182,78 +172,83 @@ export function EditIncomeDialog({
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="occurrenceType">Frequency</Label>
-            <Select
-              value={occurrenceType}
-              onValueChange={handleOccurrenceTypeChange}
-              disabled={source === "Majdi's Salary" || source === "Ruba's Salary"}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select frequency" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="once">One time</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="biweekly">Bi-Weekly</SelectItem>
-                <SelectItem value="twice-monthly">Twice a month</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {source === "Majdi's Salary" ? (
+            <p className="text-sm text-muted-foreground">
+              Paid twice monthly on the 1st and 15th of each month
+            </p>
+          ) : source === "Ruba's Salary" ? (
+            <p className="text-sm text-muted-foreground">
+              Paid bi-weekly on Fridays starting from January 10, 2025
+            </p>
+          ) : (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="occurrenceType">Frequency</Label>
+                <Select
+                  value={occurrenceType}
+                  onValueChange={(value) => setOccurrenceType(value as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="once">One time</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="biweekly">Bi-Weekly</SelectItem>
+                    <SelectItem value="twice-monthly">Twice a month</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {occurrenceType === 'twice-monthly' && !["Majdi's Salary", "Ruba's Salary"].includes(source) ? (
-            <div className="space-y-4">
-              <div className="grid gap-2">
-                <Label>First payment day of the month</Label>
-                <Select
-                  value={firstDate.toString()}
-                  onValueChange={(value) => setFirstDate(parseInt(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select day" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {generateDayOptions()}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Second payment day of the month</Label>
-                <Select
-                  value={secondDate.toString()}
-                  onValueChange={(value) => setSecondDate(parseInt(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select day" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {generateDayOptions()}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ) : source !== "Majdi's Salary" && (
-            <div className="grid gap-2">
-              <Label htmlFor="date">
-                {occurrenceType === 'once' ? 'Date' : 'Start Date'}
-              </Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(e) => {
-                  setDate(e.target.value);
-                  setError(null);
-                }}
-                disabled={source === "Ruba's Salary"}
-              />
-              {source === "Ruba's Salary" && (
-                <p className="text-sm text-muted-foreground">
-                  Bi-weekly on Fridays starting from January 10, 2025
-                </p>
+              {occurrenceType === 'twice-monthly' ? (
+                <div className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label>First payment day of the month</Label>
+                    <Select
+                      value={firstDate.toString()}
+                      onValueChange={(value) => setFirstDate(parseInt(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select day" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {generateDayOptions()}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Second payment day of the month</Label>
+                    <Select
+                      value={secondDate.toString()}
+                      onValueChange={(value) => setSecondDate(parseInt(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select day" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {generateDayOptions()}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  <Label htmlFor="date">
+                    {occurrenceType === 'once' ? 'Date' : 'Start Date'}
+                  </Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => {
+                      setDate(e.target.value);
+                      setError(null);
+                    }}
+                  />
+                </div>
               )}
-            </div>
+            </>
           )}
 
           {error && (
@@ -272,7 +267,7 @@ export function EditIncomeDialog({
           >
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={isSubmitting}>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
