@@ -130,7 +130,7 @@ export function Budget() {
   const { incomes, bills, isLoading, error } = useData();
   const today = useMemo(() => dayjs('2025-02-13'), []); 
   const [selectedDay, setSelectedDay] = useState(today.date());
-  const [selectedMonth, setSelectedMonth] = useState(today.month() + 1); 
+  const [selectedMonth, setSelectedMonth] = useState(today.month()); // 0-based month
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [showDailySummary, setShowDailySummary] = useState(false);
 
@@ -149,105 +149,47 @@ export function Budget() {
     })), 
   [today]); 
 
-  // Optimize calendar data calculation
-  const calendarData = useMemo(() => {
-    const firstDayOfMonth = dayjs()
-      .year(selectedYear)
-      .month(selectedMonth -1)
-      .startOf("month");
-    const lastDayOfMonth = firstDayOfMonth.endOf("month");
-    const firstDayIndex = firstDayOfMonth.day();
-    const totalDaysInMonth = lastDayOfMonth.date();
-
-    return Array.from({ length: 35 }, (_, index) => {
-      const day = index - firstDayIndex + 1;
-      return day >= 1 && day <= totalDaysInMonth ? day : null;
-    });
-  }, [selectedYear, selectedMonth]); 
-
-  // Memoize monthly income occurrences calculation
-  const monthlyIncomeOccurrences = useMemo(() => {
-    const currentDate = dayjs().year(selectedYear).month(selectedMonth - 1); 
-    const startOfMonth = currentDate.startOf('month');
-    const endOfMonth = currentDate.endOf('month');
-    const occurrences: Income[] = [];
-    const addedDates = new Set<string>();
-
-    incomes.forEach(income => {
-      const addIncomeIfNotExists = (date: dayjs.Dayjs, amount: number, occurrenceType: Income['occurrenceType']) => {
-        const dateStr = date.format('YYYY-MM-DD');
-        if (!addedDates.has(`${income.source}-${dateStr}`)) {
-          addedDates.add(`${income.source}-${dateStr}`);
-          occurrences.push({
-            id: `${income.id}-${dateStr}`,
-            source: income.source,
-            amount: amount,
-            date: date.format('YYYY-MM-DDTHH:mm:ss[Z]'),
-            occurrenceType
-          });
-        }
-      };
-
-      // Add the actual income occurrence
-      const incomeDate = dayjs(income.date);
-      if (incomeDate.month() === selectedMonth - 1 && incomeDate.year() === selectedYear) {
-        addIncomeIfNotExists(incomeDate, income.amount, income.occurrenceType || 'once');
-      }
-    });
-
-    return occurrences;
-  }, [incomes, selectedYear, selectedMonth]);
-
-  // Update the getIncomeForDay function
+  // Update getIncomeForDay to properly handle recurring incomes
   const getIncomeForDay = useCallback((day: number) => {
-    console.log('Getting income for day:', { day, selectedMonth, selectedYear });
-    const incomeForDay = incomes.filter(income => {
-      const incomeDate = dayjs(income.date).startOf('day');
-      const targetDate = dayjs()
-        .year(selectedYear)
-        .month(selectedMonth - 1)
-        .date(day)
-        .startOf('day');
+    if (day <= 0) return [];
 
-      const matches = incomeDate.isSame(targetDate, 'day');
+    return incomes.filter(income => {
+      const incomeDate = dayjs(income.date);
 
-      console.log('Income date check:', {
-        income,
-        incomeDate: incomeDate.format(),
-        targetDate: targetDate.format(),
-        matches
-      });
+      // For Ruba's bi-weekly salary
+      if (income.source === "Ruba's Salary") {
+        const currentDate = dayjs()
+          .year(selectedYear)
+          .month(selectedMonth)
+          .date(day);
 
-      return matches;
+        if (currentDate.day() !== 5) return false; // Only Fridays
+
+        const startDate = dayjs('2025-01-10');
+        const weeksDiff = currentDate.diff(startDate, 'week');
+        return weeksDiff >= 0 && weeksDiff % 2 === 0;
+      }
+
+      // For Majdi's salary (1st and 15th of every month)
+      if (income.source === "Majdi's Salary") {
+        return day === 1 || day === 15;
+      }
+
+      // For other incomes, check exact date match
+      return incomeDate.date() === day && 
+             incomeDate.month() === selectedMonth && 
+             incomeDate.year() === selectedYear;
     });
-    console.log('Income for day result:', incomeForDay);
-    return incomeForDay;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // Update the getBillsForDay function
+  // Update getBillsForDay to handle monthly bills
   const getBillsForDay = useCallback((day: number) => {
-    console.log('Getting bills for day:', { day, selectedMonth, selectedYear });
-    const billsForDay = bills.filter(bill => {
-      const billDate = dayjs(bill.date).startOf('day');
-      const targetDate = dayjs()
-        .year(selectedYear)
-        .month(selectedMonth - 1)
-        .date(day)
-        .startOf('day');
-
-      const matches = billDate.isSame(targetDate, 'day');
-
-      console.log('Bill date check:', {
-        bill,
-        billDate: billDate.format(),
-        targetDate: targetDate.format(),
-        matches
-      });
-
-      return matches;
+    return bills.filter(bill => {
+      const billDate = dayjs(bill.date);
+      return billDate.date() === day && 
+             billDate.month() === selectedMonth && 
+             billDate.year() === selectedYear;
     });
-    console.log('Bills for day result:', billsForDay);
-    return billsForDay;
   }, [bills, selectedYear, selectedMonth]);
 
   // Memoize monthly totals calculation
@@ -262,7 +204,7 @@ export function Budget() {
     // Calculate total income
     const totalIncome = incomes.reduce((sum, income) => {
       const incomeDate = dayjs(income.date);
-      if (incomeDate.month() === (selectedMonth - 1) && 
+      if (incomeDate.month() === selectedMonth && 
           incomeDate.year() === selectedYear) {
         console.log('Adding income:', income);
         return sum + income.amount;
@@ -273,7 +215,7 @@ export function Budget() {
     // Calculate total expenses
     const totalExpenses = bills.reduce((sum, bill) => {
       const billDate = dayjs(bill.date);
-      if (billDate.month() === (selectedMonth - 1) && 
+      if (billDate.month() === selectedMonth && 
           billDate.year() === selectedYear) {
         console.log('Adding bill:', bill);
         return sum + bill.amount;
@@ -299,9 +241,9 @@ export function Budget() {
     let totalIncome = 0;
     let totalBills = 0;
 
-    const targetDate = dayjs().year(selectedYear).month(selectedMonth -1).date(day);
+    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
 
-    monthlyIncomeOccurrences.forEach(income => {
+    incomes.forEach(income => {
       const incomeDate = dayjs(income.date);
       if (incomeDate.isSameOrBefore(targetDate)) {
         totalIncome += income.amount;
@@ -320,18 +262,18 @@ export function Budget() {
     });
 
     return { totalIncome, totalBills };
-  }, [monthlyIncomeOccurrences, bills, selectedYear, selectedMonth]);
+  }, [incomes, bills, selectedYear, selectedMonth]);
 
   // Handle month and year changes with validation
   const handleMonthChange = useCallback((month: number) => {
     setSelectedMonth(month);
-    const days = dayjs().year(selectedYear).month(month -1).daysInMonth();
+    const days = dayjs().year(selectedYear).month(month).daysInMonth();
     setSelectedDay(Math.min(selectedDay, days));
   }, [selectedYear, selectedDay]);
 
   const handleYearChange = useCallback((year: number) => {
     setSelectedYear(year);
-    const days = dayjs().year(year).month(selectedMonth -1).daysInMonth();
+    const days = dayjs().year(year).month(selectedMonth).daysInMonth();
     setSelectedDay(Math.min(selectedDay, days));
   }, [selectedMonth, selectedDay]);
 
@@ -369,7 +311,7 @@ export function Budget() {
           <div className="flex items-center gap-1 md:gap-2">
             <select 
               value={selectedMonth}
-              onChange={(e) => handleMonthChange(parseInt(e.target.value) + 1)}
+              onChange={(e) => handleMonthChange(parseInt(e.target.value))}
               className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w-[120px] text-xs md:text-base"
               aria-label="Select month"
             >
@@ -393,13 +335,12 @@ export function Budget() {
               ))}
             </select>
 
-            {selectedMonth === today.month() + 1 && selectedYear === today.year() && (
+            {selectedMonth === today.month() && selectedYear === today.year() && (
               <span className="text-[10px] md:text-sm text-muted-foreground ml-1 md:ml-2">
                 {today.format('ddd')}, {today.format('D')}
               </span>
             )}
           </div>
-
           <div className="flex items-center">
             <ThemeToggle />
           </div>
@@ -452,7 +393,7 @@ export function Budget() {
 
                     const isCurrentDay = 
                       dayNumber === today.date() && 
-                      selectedMonth === today.month() + 1 && 
+                      selectedMonth === today.month() && 
                       selectedYear === today.year();
 
                     return (
@@ -478,7 +419,7 @@ export function Budget() {
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
         selectedDay={selectedDay}
-        selectedMonth={selectedMonth}
+        selectedMonth={selectedMonth +1}
         selectedYear={selectedYear}
         dayIncomes={getIncomeForDay(selectedDay)}
         dayBills={getBillsForDay(selectedDay)}
