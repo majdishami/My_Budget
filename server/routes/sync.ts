@@ -3,6 +3,8 @@ import { generateDatabaseBackup, restoreDatabaseBackup } from '../utils/db-sync'
 import path from 'path';
 import fs from 'fs';
 import type { UploadedFile } from 'express-fileupload';
+import { db } from '@db';
+import { bills, transactions, categories } from '@db/schema';
 
 const router = Router();
 
@@ -98,39 +100,60 @@ router.post('/api/sync/restore', async (req, res) => {
       const fileContent = fs.readFileSync(tempPath, 'utf8');
       console.log('File content length:', fileContent.length);
 
-      // Log the first 100 characters to check content
-      console.log('File content preview:', fileContent.substring(0, 100));
-
       try {
         // Parse and validate the JSON content
         const parsedData = JSON.parse(fileContent);
         console.log('Data parsed successfully, validating structure...');
 
         // Validate backup structure
-        if (!parsedData.categories || !Array.isArray(parsedData.categories)) {
-          throw new Error('Invalid backup format: missing categories array');
+        if (!Array.isArray(parsedData.categories)) {
+          throw new Error('Invalid backup format: missing or invalid categories array');
         }
 
-        if (!parsedData.bills || !Array.isArray(parsedData.bills)) {
-          throw new Error('Invalid backup format: missing bills array');
+        if (!Array.isArray(parsedData.bills)) {
+          throw new Error('Invalid backup format: missing or invalid bills array');
         }
 
-        console.log(`Found ${parsedData.categories.length} categories and ${parsedData.bills.length} bills`);
-
-        // Restore the database
-        const result = await restoreDatabaseBackup(tempPath);
-
-        if (!result.success) {
-          throw new Error(result.error);
+        if (!Array.isArray(parsedData.transactions)) {
+          throw new Error('Invalid backup format: missing or invalid transactions array');
         }
 
-        res.json({ message: result.message });
+        console.log(`Found ${parsedData.categories.length} categories, ${parsedData.bills.length} bills, and ${parsedData.transactions.length} transactions`);
+
+        // Start transaction for atomic restore
+        await db.transaction(async (tx) => {
+          // Restore categories first (if any new ones)
+          if (parsedData.categories.length > 0) {
+            await tx.insert(categories).values(parsedData.categories)
+              .onConflictDoNothing();
+          }
+
+          // Restore bills
+          if (parsedData.bills.length > 0) {
+            await tx.insert(bills).values(parsedData.bills)
+              .onConflictDoNothing();
+          }
+
+          // Restore transactions
+          if (parsedData.transactions.length > 0) {
+            await tx.insert(transactions).values(parsedData.transactions)
+              .onConflictDoNothing();
+          }
+        });
+
+        res.json({ 
+          message: 'Backup restored successfully',
+          summary: {
+            categories: parsedData.categories.length,
+            bills: parsedData.bills.length,
+            transactions: parsedData.transactions.length
+          }
+        });
       } catch (parseError: any) {
         console.error('Error processing backup data:', parseError);
         res.status(400).json({ 
           error: 'Invalid JSON file content',
-          details: parseError.message || 'Unknown parse error',
-          parseError: parseError.toString()
+          details: parseError.message || 'Unknown parse error'
         });
         return;
       }
@@ -146,8 +169,7 @@ router.post('/api/sync/restore', async (req, res) => {
     if (!res.headersSent) {
       res.status(500).json({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
-        details: error instanceof Error ? error.stack : undefined,
-        errorType: error.constructor.name
+        details: error instanceof Error ? error.stack : undefined
       });
     }
   }
