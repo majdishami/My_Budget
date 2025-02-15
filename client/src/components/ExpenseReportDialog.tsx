@@ -916,70 +916,49 @@ export default function ExpenseReportDialog({
                           />
                           <span className="text-foreground">
                             {formatCurrency(bills.find(b => b.id === selectedValue.replace('expense_', ''))?.amount || 0)} per month
-                          </span>
-                        </div>
+                          </span>                        </div>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent><div className="space-y-6">
-                        {/* Paid Transactions */}
-                        <div>
-                          <h3 className="text-lg font-semibold mb-4">Paid Transactions</h3>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Amount</TableHead>
-                                <TableHead>Description</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {itemTotals[0]?.transactions
-                                ?.filter(t => dayjs(t.date).isSameOrBefore(today))
-                                .map((transaction) => (
-                                  <TableRow key={`${transaction.date}-${transaction.description}`}>
-                                    <TableCell>
-                                      {dayjs(transaction.date).format('MMM D, YYYY')}
-                                    </TableCell>
-                                    <TableCell className="text-right font-medium text-red-600">
-                                      {formatCurrency(transaction.amount)}
-                                    </TableCell>
-                                    <TableCell>
-                                      {transaction.description}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-
-                        {/* Pending Transactions */}
-                        <div>
-                          <h3 className="text-lg font-semibold mb-4">Pending Transactions</h3>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Due Date</TableHead>
-                                <TableHead>Amount</TableHead>
-                                <TableHead>Status</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {itemTotals[0]?.transactions
-                                ?.filter(t => dayjs(t.date).isAfter(today))
-                                .map((transaction) => (
-                                  <TableRow key={`${transaction.date}-${transaction.description}`}>
-                                    <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                                    <TableCell className="text-right font-medium text-orange-500">
-                                      {formatCurrency(transaction.amount)}
-                                    </TableCell>
-                                    <TableCell>
-                                      <span className="text-orange-500">⌛ Pending</span>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                            </TableBody>
-                          </Table>
-                        </div>
+                    <CardContent>
+                      <div className="space-y-6">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Description</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {itemTotals[0]?.transactions
+                              ?.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf())
+                              .map((transaction) => (
+                                <TableRow key={`${transaction.date}-${transaction.description}`}>
+                                  <TableCell>
+                                    {dayjs(transaction.date).format('MMM D, YYYY')}
+                                  </TableCell>
+                                  <TableCell className={`text-right font-medium ${
+                                    dayjs(transaction.date).isSameOrBefore(today) 
+                                      ? 'text-red-600' 
+                                      : 'text-orange-500'
+                                  }`}>
+                                    {formatCurrency(transaction.amount)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {dayjs(transaction.date).isSameOrBefore(today) ? (
+                                      <span className="text-red-600">Paid</span>
+                                    ) : (
+                                      <span className="text-orange-500">Pending</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {transaction.description}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                          </TableBody>
+                        </Table>
                       </div>
                     </CardContent>
                   </Card>
