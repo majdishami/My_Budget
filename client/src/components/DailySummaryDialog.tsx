@@ -33,7 +33,7 @@ interface DailySummaryDialogProps {
   };
 }
 
-// Memoized TransactionCard component with mobile optimization
+// Rest of the component implementation remains the same
 const TransactionCard = memo(({ 
   title, 
   items, 
@@ -92,9 +92,8 @@ export default function DailySummaryDialog({
   monthlyTotals,
 }: DailySummaryDialogProps) {
   const selectedDate = useMemo(() => {
-    // Create date using the passed year, month, and day
-    // Note: month parameter is 0-based in dayjs
-    return dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
+    // Create the date directly from the provided values
+    return dayjs(`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`);
   }, [selectedYear, selectedMonth, selectedDay]);
 
   const currentDate = useMemo(() => 
