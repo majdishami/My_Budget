@@ -101,7 +101,7 @@ const DayCell = memo(({
         <div className="flex flex-col items-start">
           <div className="flex items-center gap-0.5">
             <span className={cn(
-              "font-medium text-xs md:text-base lg:text-lg",
+              "font-medium text-sm md:text-base lg:text-lg",
               isCurrentDay && "text-primary font-bold bg-primary/10 px-1 rounded animate-[pulse_2s_ease-in-out_infinite]"
             )}>
               {day}
