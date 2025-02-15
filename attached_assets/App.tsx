@@ -56,7 +56,7 @@ const App = () => {
   // Fixed reference date for the app
   const today = dayjs('2025-02-09');
   const [selectedYear, setSelectedYear] = useState(today.year());
-  const [selectedMonth, setSelectedMonth] = useState(today.month()); // February (1)
+  const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedDay, setSelectedDay] = useState<number>(today.date());
   const [showDayDialog, setShowDayDialog] = useState(false);
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -334,9 +334,11 @@ const App = () => {
   // Update the calendar selection handler
   const handleCalendarSelect = (date: Date | undefined) => {
     if (date) {
-      setSelectedDay(date.getDate());
-      setSelectedMonth(date.getMonth());
-      setSelectedYear(date.getFullYear());
+      // Use the selected date directly from the calendar
+      const selectedDate = dayjs(date);
+      setSelectedDay(selectedDate.date());
+      setSelectedMonth(selectedDate.month());
+      setSelectedYear(selectedDate.year());
       setShowDailySummary(true);
     }
   };
@@ -388,7 +390,6 @@ const App = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                {/*Removed day select*/}
               </div>
             </div>
 
