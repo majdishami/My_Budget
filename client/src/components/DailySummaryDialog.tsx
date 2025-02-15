@@ -91,7 +91,10 @@ export default function DailySummaryDialog({
   monthlyTotals,
 }: DailySummaryDialogProps) {
   const selectedDate = useMemo(() => {
-    return dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
+    return dayjs()
+      .year(selectedYear)
+      .month(selectedMonth)
+      .date(selectedDay);
   }, [selectedYear, selectedMonth, selectedDay]);
 
   const formattedDate = useMemo(() => 

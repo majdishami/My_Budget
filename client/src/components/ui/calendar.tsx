@@ -18,9 +18,6 @@ function Calendar({
   incomes = [],
   ...props
 }: CalendarProps) {
-  console.log('Calendar rendered with bills:', bills);
-  console.log('Calendar rendered with incomes:', incomes);
-
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -73,6 +70,9 @@ function Calendar({
         ),
       }}
       {...props}
+      mode="single"
+      fromMonth={props.month}
+      toMonth={props.month}
     />
   )
 }

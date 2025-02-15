@@ -578,10 +578,16 @@ const App = () => {
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
         selectedDay={selectedDay}
-        dayIncomes={getIncomeForDay(selectedDay)} // Pass incomes for the selected day
-        dayBills={getBillsForDay(selectedDay)} // Pass bills for the selected day
-        totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome} // Pass income total up to today
-        totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills} // Pass bills total up to today
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        dayIncomes={getIncomeForDay(selectedDay)}
+        dayBills={getBillsForDay(selectedDay)}
+        totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
+        totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
+        monthlyTotals={{
+          income: monthlyTotals.totalIncome,
+          expenses: monthlyTotals.totalBills
+        }}
       />
     </div>
   );
