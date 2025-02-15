@@ -253,7 +253,7 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id.toString() === billId);
       if (!bill) return [];
 
-      // Calculate all possible occurrences within date range
+      // Calculate all possible occurrence dates within the date range
       const occurrences: { date: string; isPaid: boolean }[] = [];
       let currentDate = dayjs(date.from).clone().startOf('month').date(bill.day);
 
@@ -264,30 +264,28 @@ export default function ExpenseReportDialog({
 
       // Generate all occurrence dates within range
       while (currentDate.isSameOrBefore(dayjs(date.to))) {
-        if (currentDate.isSameOrAfter(dayjs(date.from))) {
-          occurrences.push({
-            date: currentDate.format('YYYY-MM-DD'),
-            isPaid: currentDate.isSameOrBefore(today)
-          });
-        }
+        occurrences.push({
+          date: currentDate.format('YYYY-MM-DD'),
+          isPaid: currentDate.isSameOrBefore(today)
+        });
         currentDate = currentDate.add(1, 'month');
       }
 
-      // Count occurrences
+      // Count occurrences and calculate amounts
       const occurredCount = occurrences.filter(o => o.isPaid).length;
-      const pendingCount = occurrences.length - occurredCount;
+      const pendingCount = occurrences.filter(o => !o.isPaid).length;
 
-      // Calculate amounts
-      const totalAmount = bill.amount * occurrences.length;
+      // Calculate amounts based on bill amount and occurrences
       const occurredAmount = bill.amount * occurredCount;
       const pendingAmount = bill.amount * pendingCount;
+      const totalAmount = occurredAmount + pendingAmount;
 
       // Get actual transactions for display
       const billTransactions = transactions.filter(t =>
         t.description === bill.name &&
         dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
         dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
-      );
+      ).sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
 
       return [{
         category: bill.name,
@@ -298,9 +296,7 @@ export default function ExpenseReportDialog({
         pendingCount,
         color: bill.category_color || '#D3D3D3',
         icon: bill.category_icon || bill.category?.icon || null,
-        transactions: billTransactions.sort((a, b) =>
-          dayjs(a.date).valueOf() - dayjs(b.date).valueOf()
-        )
+        transactions: billTransactions
       }];
     }
     // Handle category selection
