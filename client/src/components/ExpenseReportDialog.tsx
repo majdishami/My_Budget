@@ -246,7 +246,7 @@ export default function ExpenseReportDialog({
 
   // Item totals including transactions
   const itemTotals = useMemo(() => {
-    if (!date?.from || !date?.to || !filteredTransactions.length) return [];
+    if (!date?.from || !date?.to) return [];
 
     // Handle individual expense view
     if (selectedValue.startsWith('expense_')) {
@@ -254,13 +254,18 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id === billId);
       if (!bill) return [];
 
-      const expenseTransactions = filteredTransactions.filter(t => t.description === bill.name);
+      // Filter transactions by date range and bill name
+      const billTransactions = transactions.filter(t =>
+        t.description === bill.name &&
+        dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
+        dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
+      );
 
-      const occurred = expenseTransactions
+      const occurred = billTransactions
         .filter(t => dayjs(t.date).isSameOrBefore(today))
         .reduce((sum, t) => sum + t.amount, 0);
 
-      const pending = expenseTransactions
+      const pending = billTransactions
         .filter(t => dayjs(t.date).isAfter(today))
         .reduce((sum, t) => sum + t.amount, 0);
 
@@ -269,11 +274,11 @@ export default function ExpenseReportDialog({
         total: occurred + pending,
         occurred,
         pending,
-        occurredCount: expenseTransactions.filter(t => dayjs(t.date).isSameOrBefore(today)).length,
-        pendingCount: expenseTransactions.filter(t => dayjs(t.date).isAfter(today)).length,
+        occurredCount: billTransactions.filter(t => dayjs(t.date).isSameOrBefore(today)).length,
+        pendingCount: billTransactions.filter(t => dayjs(t.date).isAfter(today)).length,
         color: bill.category_color,
         icon: bill.category_icon || null,
-        transactions: expenseTransactions.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf())
+        transactions: billTransactions.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf())
       }];
     }
     // Handle category selection
@@ -370,7 +375,7 @@ export default function ExpenseReportDialog({
     }
 
     return [];
-  }, [bills, selectedValue, date, today, filteredTransactions]);
+  }, [bills, selectedValue, date, today, transactions]);
 
   // Update summary calculations
   const summary = useMemo(() => {
