@@ -933,8 +933,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableHead className="text-right">Pending Occurrences</TableHead>
                           </TableRow>
                         </TableHeader>
-                        <TableBody>
-                          {itemTotals.map((item: any) => (
+                        <TableBody>{itemTotals.map((item: any) => (
                             <TableRow key={item.description}>
                               <TableCell>{item.description}</TableCell>
                               <TableCell>
