@@ -502,9 +502,9 @@ export default function AnnualReportDialog({
                                 style={{ backgroundColor: categoryBill?.category_color || '#D3D3D3' }}
                               />
                               {categoryBill?.category?.icon && (
-                                <DynamicIcon iconName={categoryBill?.category?.icon} />
+                                <DynamicIcon iconName={categoryBill.category.icon} />
                               )}
-                              {categoryName}
+                              <span>{categoryName}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-right text-red-600">
