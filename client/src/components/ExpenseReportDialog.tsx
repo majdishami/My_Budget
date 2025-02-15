@@ -135,6 +135,22 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     refetchOnWindowFocus: true,
   });
 
+  // Update the useQuery hook to prevent caching
+  const { data: billsData = [] } = useQuery<Bill[]>({
+    queryKey: ['/api/bills'],
+    enabled: isOpen,
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+
+  // Add logging to track data updates
+  useEffect(() => {
+    console.log('Bills data updated:', billsData);
+  }, [billsData]);
+
+
   // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
@@ -148,7 +164,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
   // Group bills by category and prepare dropdown options
   const dropdownOptions = useMemo(() => {
-    const categorizedBills = bills.reduce<Record<string, (Bill & { categoryColor: string })[]>>((acc, bill) => {
+    const categorizedBills = billsData.reduce<Record<string, (Bill & { categoryColor: string })[]>>((acc, bill) => {
       const categoryName = bill.category_name || 'Uncategorized';
       if (!acc[categoryName]) {
         acc[categoryName] = [];
@@ -166,22 +182,22 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       ),
       categorizedBills
     };
-  }, [bills]);
+  }, [billsData]);
 
   // Update the transactions generation logic
   const transactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
-    let filteredBills = bills;
+    let filteredBills = billsData;
 
     // Filter based on selection
     if (selectedValue !== "all" && selectedValue !== "all_categories") {
       if (selectedValue.startsWith('expense_')) {
         const expenseId = selectedValue.replace('expense_', '');
-        filteredBills = bills.filter(bill => bill.id === expenseId);
+        filteredBills = billsData.filter(bill => bill.id === expenseId);
       } else if (selectedValue.startsWith('category_')) {
         const categoryName = selectedValue.replace('category_', '');
-        filteredBills = bills.filter(bill => bill.category_name === categoryName);
+        filteredBills = billsData.filter(bill => bill.category_name === categoryName);
       }
     }
 
@@ -221,7 +237,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     });
 
     return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
-  }, [showReport, selectedValue, date, bills, today]);
+  }, [showReport, selectedValue, date, billsData, today]);
 
   // Group transactions by expense name for the "all" view
   const groupedExpenses = useMemo(() => {
@@ -418,7 +434,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
 
   // Update the bill finding logic
-  const getBillById = (id: string) => bills.find(b => b.id === id);
+  const getBillById = (id: string) => billsData.find(b => b.id === id);
 
   // Update where we handle the bill ID in the dialog title
   const getDialogTitle = () => {
@@ -483,7 +499,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                   {/* Individual Expenses */}
                   <SelectGroup>
                     <SelectLabel>Individual Expenses</SelectLabel>
-                    {bills.map((bill) => (
+                    {billsData.map((bill) => (
                       <SelectItem key={`expense_${bill.id}`} value={`expense_${bill.id}`}>
                         {bill.name} ({formatCurrency(bill.amount)})
                       </SelectItem>
@@ -551,12 +567,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     icon: string | null;
   }
 
+  // Update the CategoryDisplay component to handle default icons
   function CategoryDisplay({ category, color, icon }: CategoryDisplayProps) {
     return (
       <div className="flex items-center gap-2">
         <div
           className="w-3 h-3 rounded-full"
-          style={{ backgroundColor: color || '#D3D3D3' }}
+          style={{ backgroundColor: color || '#6366F1' }}
         />
         {icon && <DynamicIcon iconName={icon} />}
         <span>{category}</span>
@@ -599,7 +616,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {bills.length === 0
+                {billsData.length === 0
                   ? "No bills have been added yet. Please add some bills to generate a report."
                   : "No transactions found for the selected date range and filters."}
               </AlertDescription>
@@ -668,7 +685,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 <CategoryDisplay
                                   category={ct.category}
                                   color={ct.color}
-                                  icon={bills.find(b => b.category_name === ct.category)?.category?.icon ?? null}
+                                  icon={billsData.find(b => b.category_name === ct.category)?.category?.icon ?? null}
                                 />
                               </TableCell>
                               <TableCell className="text-right font-medium">
@@ -721,7 +738,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableRow key={expense.description}>
                               <TableCell className="font-medium">{expense.description}</TableCell>
                               <TableCell>
-                                <CategoryDisplay category={expense.category} color={expense.color} icon={bills.find(b => b.category_name === expense.category)?.category?.icon ?? null} />
+                                <CategoryDisplay category={expense.category} color={expense.color} icon={billsData.find(b => b.category_name === expense.category)?.category?.icon ?? null} />
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {formatCurrency(expense.totalAmount / expense.transactions.length)}
@@ -785,7 +802,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 <CategoryDisplay
                                   category={item.category}
                                   color={item.color || '#D3D3D3'}
-                                  icon={bills.find(b => b.category_name === item.category)?.category?.icon ?? null}
+                                  icon={billsData.find(b => b.category_name === item.category)?.category?.icon ?? null}
                                 />
                               </TableCell>
                               <TableCell className="text-right">
@@ -885,7 +902,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                           <TableCell>
                                             <CategoryDisplay category={transaction.category} color={transaction.category_color || '#D3D3D3'} icon={transaction.category_icon ?? null} />
                                           </TableCell>
-                                          <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
+                                          <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-50'}`}>
                                             {formatCurrency(transaction.amount)}
                                           </TableCell>
                                           <TableCell className={`${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>

@@ -47,9 +47,9 @@ export function registerRoutes(app: Express): Server {
         amount: bills.amount,
         day: bills.day,
         category_id: bills.category_id,
-        category_name: sql<string>`COALESCE(${categories.name}, 'Uncategorized')`,
-        category_color: sql<string>`COALESCE(${categories.color}, '#D3D3D3')`,
-        category_icon: categories.icon
+        category_name: sql<string>`COALESCE(${categories.name}, 'General Expenses')`,
+        category_color: sql<string>`COALESCE(${categories.color}, '#6366F1')`,
+        category_icon: sql<string>`COALESCE(${categories.icon}, 'shopping-cart')`
       })
       .from(bills)
       .leftJoin(categories, eq(bills.category_id, categories.id))

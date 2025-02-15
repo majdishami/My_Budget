@@ -61,11 +61,16 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
   const { data: transactions = [] } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions'],
     enabled: isOpen,
-    staleTime: 0, // Always consider data stale
-    cacheTime: 0, // Don't cache the data
-    refetchOnMount: true, // Always refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window regains focus
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
+
+  // Add logging to track data updates
+  useEffect(() => {
+    console.log('Transactions data updated:', transactions);
+  }, [transactions]);
 
   // Filter transactions for the current month
   const monthlyTransactions = transactions.filter(t => {
