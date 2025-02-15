@@ -374,7 +374,6 @@ export default function ExpenseReportDialog({
         .sort((a, b) => b.total - a.total)
         .filter(entry => entry.total > 0);
     }
-
     // Handle all expenses combined
     else if (selectedValue === "all") {
       const totals: Record<string, CategoryTotal> = {};
@@ -462,7 +461,11 @@ export default function ExpenseReportDialog({
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
       const bill = bills.find(b => b.id === billId);
-      return bill ? `Expense Report: ${bill.name}` : "Expense Report";
+      if (bill) {
+        return (
+          `${bill.name} - ${formatCurrency(bill.amount)} per month`
+        );
+      }
     }
     if (selectedValue.startsWith('category_')) {
       return `${selectedValue.replace('category_', '')} Category`;
@@ -932,8 +935,7 @@ export default function ExpenseReportDialog({
                                 </TableCell>
                                 <TableCell>
                                   <span className={isOccurred ? 'text-red-600' : 'text-orange-500'}>
-                                    {isOccurred ? '✓ Paid' : '⌛ Pending'}                                  </span>
-                                </TableCell>
+                                    {isOccurred ? '✓ Paid' : '⌛ Pending'}                                  </span>                                </TableCell>
                               </TableRow>
                             );
                           })}
