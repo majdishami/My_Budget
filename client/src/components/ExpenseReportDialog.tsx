@@ -318,19 +318,43 @@ export default function ExpenseReportDialog({
       let pendingCount = 0;
 
       // Get all transactions for this category within date range
-      const categoryTransactions = filteredTransactions.filter(t =>
-        t.category_name === categoryName
-      );
+      const categoryTransactions: Transaction[] = [];
 
-      // Calculate totals and counts based on payment date
-      categoryTransactions.forEach(transaction => {
-        const transactionDate = dayjs(transaction.date);
-        if (transactionDate.isSameOrBefore(today)) {
-          occurred += transaction.amount;
-          occurredCount++;
-        } else {
-          pending += transaction.amount;
-          pendingCount++;
+      // For each bill in the category, calculate occurrences within date range
+      categoryBills.forEach(bill => {
+        let currentDate = dayjs(date.from).clone().date(bill.day);
+
+        // If the bill day in the first month has passed, start from next month
+        if (currentDate.isBefore(dayjs(date.from))) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        // Add all occurrences within date range
+        while (currentDate.isSameOrBefore(dayjs(date.to))) {
+          const isOccurred = currentDate.isSameOrBefore(today);
+
+          if (isOccurred) {
+            occurred += bill.amount;
+            occurredCount++;
+          } else {
+            pending += bill.amount;
+            pendingCount++;
+          }
+
+          // Add to transactions list
+          categoryTransactions.push({
+            id: `${bill.id}-${currentDate.format('YYYY-MM-DD')}`,
+            date: currentDate.format('YYYY-MM-DD'),
+            description: bill.name,
+            amount: bill.amount,
+            type: 'expense',
+            category_name: categoryName,
+            category_color: categoryDetails.category_color,
+            category_icon: categoryDetails.category_icon || categoryDetails.category?.icon,
+            category_id: bill.category_id
+          });
+
+          currentDate = currentDate.add(1, 'month');
         }
       });
 
@@ -345,7 +369,7 @@ export default function ExpenseReportDialog({
         pendingCount,
         color: categoryDetails.category_color,
         icon: categoryDetails.category_icon || categoryDetails.category?.icon || null,
-        transactions: categoryTransactions.sort((a, b) => 
+        transactions: categoryTransactions.sort((a, b) =>
           dayjs(b.date).valueOf() - dayjs(a.date).valueOf()
         )
       }];
@@ -927,7 +951,7 @@ export default function ExpenseReportDialog({
                             </TableCell>
                             <TableCell className="text-right text-orange-500">
                               {formatCurrency(summary.pendingAmount)}
-                            </TableCell>                            <TableCell className="textright">
+                            </TableCell>                            <TableCell className="text-right">
                               {itemTotals.reduce((acc, ct) => acc + ct.occurredCount, 0)}
                               {" / "}
                               {itemTotals.reduce((acc, ct) => acc + ct.pendingCount, 0)}
