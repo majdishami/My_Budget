@@ -262,9 +262,6 @@ export default function ExpenseReportDialog({
   const itemTotals = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
-    console.log('ItemTotals calculation - Selected Value:', selectedValue);
-    console.log('Date Range:', { from: date.from, to: date.to });
-
     const dateFrom = dayjs(date.from).startOf('day');
     const dateTo = dayjs(date.to).endOf('day');
 
@@ -273,10 +270,7 @@ export default function ExpenseReportDialog({
       const billId = selectedValue.replace('expense_', '');
       const bill = bills.find(b => b.id === billId);
 
-      console.log('Selected Bill:', bill);
-
       if (!bill) {
-        console.log('No bill found for id:', billId);
         return [];
       }
 
@@ -308,15 +302,6 @@ export default function ExpenseReportDialog({
 
       total = occurred + pending;
 
-      console.log('Individual Expense Totals:', {
-        name: bill.name,
-        total,
-        occurred,
-        pending,
-        occurredCount,
-        pendingCount
-      });
-
       return [{
         category: bill.name,
         total,
@@ -332,7 +317,6 @@ export default function ExpenseReportDialog({
     // Rest of the existing itemTotals logic remains unchanged
     if (selectedValue === "all_categories") {
       const totals: Record<string, CategoryTotal> = {};
-      // ... existing all_categories logic ...
       const dateFrom = dayjs(date.from).startOf('day');
       const dateTo = dayjs(date.to).endOf('day');
 
@@ -379,7 +363,6 @@ export default function ExpenseReportDialog({
         .sort((a, b) => b.total - a.total)
         .filter(entry => entry.total > 0);
     } else if (selectedValue.startsWith('category_')) {
-      // Keep existing category logic
       const categoryName = selectedValue.replace('category_', '');
       const categoryBills = bills.filter(b => b.category_name === categoryName);
 
@@ -916,7 +899,6 @@ export default function ExpenseReportDialog({
                   </Card>
                 )}
 
-                {/* Remove the old conditional that was preventing the expense details from showing */}
                 {selectedValue !== "all" && selectedValue !== "all_categories" && !selectedValue.startsWith('expense_') && (
                   <div className="space-y-4">
                     {/* This section is intentionally left blank as the Category Details section has been removed */}
