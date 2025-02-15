@@ -92,7 +92,13 @@ export function registerRoutes(app: Express): Server {
       const type = req.query.type as string | undefined;
 
       // First get all categories for smart matching
-      const allCategories = await db.query.categories.findMany();
+      const allCategories = await db.query.categories.findMany({
+        orderBy: [categories.name]
+      });
+
+      console.log('[Transactions API] Available categories:', 
+        allCategories.map(c => ({ id: c.id, name: c.name }))
+      );
 
       // Get transactions with category info
       let query = db.select({
@@ -119,43 +125,61 @@ export function registerRoutes(app: Express): Server {
 
       // Process transactions and match categories precisely
       const formattedTransactions = allTransactions.map(transaction => {
-        // Try to find a matching category if one isn't already assigned
-        if (!transaction.category_id) {
-          const matchingCategory = allCategories.find(category => {
-            const categoryName = category.name.toLowerCase();
-            const description = transaction.description.toLowerCase();
-
-            // Only match if the category name appears as a whole word in the description
-            const regex = new RegExp(`\\b${categoryName}\\b`, 'i');
-            return regex.test(description);
-          });
-
-          if (matchingCategory) {
-            console.log('[Transactions API] Matched category:', {
-              description: transaction.description,
-              category: matchingCategory.name
-            });
-
-            return {
-              ...transaction,
-              category_id: matchingCategory.id,
-              category_name: matchingCategory.name,
-              category_color: matchingCategory.color,
-              category_icon: matchingCategory.icon
-            };
-          }
+        // Keep existing category if already assigned
+        if (transaction.category_id) {
+          return {
+            id: transaction.id,
+            description: transaction.description,
+            amount: Number(transaction.amount),
+            date: dayjs(transaction.date).format('YYYY-MM-DD'),
+            type: transaction.type,
+            category_id: transaction.category_id,
+            category_name: transaction.category_name,
+            category_color: transaction.category_color,
+            category_icon: transaction.category_icon
+          };
         }
 
+        // Try to find a matching category if one isn't already assigned
+        const matchingCategory = allCategories.find(category => {
+          const categoryName = category.name.toLowerCase();
+          const description = transaction.description.toLowerCase();
+
+          // Only match if the category name appears as a whole word in the description
+          const regex = new RegExp(`\\b${categoryName}\\b`, 'i');
+          return regex.test(description);
+        });
+
+        if (matchingCategory) {
+          console.log('[Transactions API] Matched category:', {
+            description: transaction.description,
+            category: matchingCategory.name
+          });
+
+          return {
+            id: transaction.id,
+            description: transaction.description,
+            amount: Number(transaction.amount),
+            date: dayjs(transaction.date).format('YYYY-MM-DD'),
+            type: transaction.type,
+            category_id: matchingCategory.id,
+            category_name: matchingCategory.name,
+            category_color: matchingCategory.color,
+            category_icon: matchingCategory.icon
+          };
+        }
+
+        // Return with Uncategorized if no match found
         return {
           id: transaction.id,
           description: transaction.description,
           amount: Number(transaction.amount),
           date: dayjs(transaction.date).format('YYYY-MM-DD'),
           type: transaction.type,
-          category_id: transaction.category_id,
-          category_name: transaction.category_name,
-          category_color: transaction.category_color,
-          category_icon: transaction.category_icon
+          category_id: null,
+          category_name: 'Uncategorized',
+          category_color: '#6366F1',
+          category_icon: 'receipt'
         };
       });
 

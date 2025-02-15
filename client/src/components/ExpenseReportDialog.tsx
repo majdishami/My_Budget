@@ -214,7 +214,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                      transactionDate.isSameOrBefore(toDate, 'day');
 
       if (isInRange) {
-        console.log('[ExpenseReportDialog] Transaction in date range:', {
+        console.log('[ExpenseReportDialog] Transaction in range:', {
           description: t.description,
           date: t.date,
           amount: t.amount,
@@ -273,20 +273,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           });
         }
       }
-
-      console.log('[ExpenseReportDialog] After filtering:', {
-        selectedValue,
-        matchCount: filtered.length,
-        matches: filtered.map(t => ({
-          description: t.description,
-          category: t.category_name,
-          amount: t.amount
-        }))
-      });
     }
 
     return filtered;
-  }, [showReport, date, selectedValue, transactions, bills]);
+  }, [showReport, date, selectedValue, transactions, bills, today]);
 
   // Group transactions by expense name for the "all" view
   const groupedExpenses = useMemo(() => {
@@ -919,13 +909,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 <TableRow>
                                   <TableHead>Date</TableHead>
                                   <TableHead>Description</TableHead>
-                                                                 <TableHead>Category</TableHead>
-                                  <TableHead className="textright">Amount</TableHead>
-                                  <TableHead className="text-right">Status</TableHead>
+                                  <TableHead>Category</TableHead>
+                                  <TableHead className="text-right">Amount</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {monthTransactions.map((transaction, i) => (                                  <TableRow key={i}>
+                                {monthTransactions.map((transaction, i) => (
+                                  <TableRow key={i}>
                                     <TableCell>{dayjs(transaction.date).format('MMM D')}</TableCell>
                                     <TableCell>{transaction.description}</TableCell>
                                     <TableCell>
@@ -937,13 +927,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                     </TableCell>
                                     <TableCell className="text-right font-medium">
                                       {formatCurrency(transaction.amount)}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      {dayjs(transaction.date).isSameOrBefore(today) ? (
-                                        <span className="text-red-600">✓ Paid</span>
-                                      ) : (
-                                        <span className="text-orange-500">⌛ Pending</span>
-                                      )}
                                     </TableCell>
                                   </TableRow>
                                 ))}
