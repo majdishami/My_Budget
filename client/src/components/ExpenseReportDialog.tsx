@@ -125,30 +125,21 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const [previousReport, setPreviousReport] = useState<{ value: string, date: DateRange | undefined } | null>(null);
   const today = useMemo(() => dayjs(), []);
 
-  // Fetch categories for reference
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
-    enabled: isOpen,
-    staleTime: 0,
-    cacheTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-  });
-
-  // Update the useQuery hook to prevent caching
+  // Update the bills query to ensure fresh data
   const { data: billsData = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
     staleTime: 0,
-    gcTime: 0, // Changed from cacheTime as it's deprecated in v5
-    refetchOnMount: true,
+    gcTime: 0,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
-    refetchOnReconnect: true
+    refetchOnReconnect: true,
+    refetchInterval: 1000 // Poll every second while dialog is open
   });
 
-  // Add logging to track data updates
+  // Add debug logging
   useEffect(() => {
-    console.log('Bills data updated:', billsData);
+    console.log('Bills data updated in ExpenseReportDialog:', billsData);
   }, [billsData]);
 
 
@@ -163,8 +154,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     }
   }, [isOpen]);
 
-  // Group bills by category and prepare dropdown options
+  // Update the dropdown options with fresh data
   const dropdownOptions = useMemo(() => {
+    console.log('Recalculating dropdown options with bills:', billsData);
     const categorizedBills = billsData.reduce<Record<string, (Bill & { categoryColor: string })[]>>((acc, bill) => {
       const categoryName = bill.category_name || 'Uncategorized';
       if (!acc[categoryName]) {
@@ -907,8 +899,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                         transaction.occurred ? 'text-red-600' : 'text-orange-50'
                                       }`}>
                                         {transaction.occurred ? '✓' : '⌛'}
-                                      </TableCell>
-                                                                        </TableRow>                                  ))}
+                                                                            </TableCell>
+                                    </TableRow>
+                                  ))}
                               </TableBody>
                             </Table>
                           </CardContent>
