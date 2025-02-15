@@ -78,7 +78,11 @@ const DayCell = memo(({
   selectedMonth: number;
   selectedYear: number;
 }) => {
-  const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0;
+  // Sort transactions by amount in descending order
+  const sortedIncomes = [...dayIncomes].sort((a, b) => b.amount - a.amount);
+  const sortedBills = [...dayBills].sort((a, b) => b.amount - a.amount);
+
+  const hasTransactions = sortedIncomes.length > 0 || sortedBills.length > 0;
   const dayDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
   const dayOfWeek = dayDate.format('ddd');
 
@@ -114,20 +118,20 @@ const DayCell = memo(({
         </div>
         {hasTransactions && (
           <div className="flex gap-0.5">
-            {dayIncomes.length > 0 && (
+            {sortedIncomes.length > 0 && (
               <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-green-500" />
             )}
-            {dayBills.length > 0 && (
+            {sortedBills.length > 0 && (
               <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-red-500" />
             )}
           </div>
         )}
       </div>
       <div className="space-y-0.5 text-[8px] md:text-xs max-h-[calc(100%-1.5rem)] overflow-y-auto">
-        {dayIncomes.map((income) => (
+        {sortedIncomes.map((income) => (
           <TransactionCard key={income.id} item={income} type="income" />
         ))}
-        {dayBills.map((bill) => (
+        {sortedBills.map((bill) => (
           <TransactionCard key={bill.id} item={bill} type="bill" />
         ))}
       </div>
