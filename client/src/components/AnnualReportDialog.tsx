@@ -118,7 +118,8 @@ interface Bill {
   isOneTime: boolean;
   category_name: string;
   category_color: string;
-  category?: { icon: string | null }; // Added category field to Bill interface
+  category?: { icon: string | null };
+  category_icon?: string; // Added category_icon field to Bill interface
 }
 
 export default function AnnualReportDialog({
@@ -490,8 +491,8 @@ export default function AnnualReportDialog({
                       const total = amounts.occurred + amounts.pending;
                       const monthlyAverage = total / 12;
                       const percentage = ((total / (annualSummary.totalExpenses.occurred + annualSummary.totalExpenses.pending)) * 100).toFixed(1);
-                      // Find a bill with this category to get the color and icon
                       const categoryBill = bills.find(b => b.category_name === categoryName);
+                      const categoryIcon = categoryBill?.category_icon || categoryBill?.category?.icon || null;
 
                       return (
                         <TableRow key={categoryName}>
@@ -501,8 +502,8 @@ export default function AnnualReportDialog({
                                 className="w-3 h-3 rounded-full"
                                 style={{ backgroundColor: categoryBill?.category_color || '#D3D3D3' }}
                               />
-                              {categoryBill?.category?.icon && (
-                                <DynamicIcon iconName={categoryBill.category.icon} />
+                              {categoryIcon && (
+                                <DynamicIcon iconName={categoryIcon} />
                               )}
                               <span>{categoryName}</span>
                             </div>
