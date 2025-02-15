@@ -91,35 +91,43 @@ export function registerRoutes(app: Express): Server {
       });
       const type = req.query.type as string | undefined;
 
-      // First get all categories for smart matching
+      // First get all categories and bills for smart matching
       const allCategories = await db.query.categories.findMany({
         orderBy: [categories.name]
       });
+
+      const allBillsWithCategories = await db
+        .select({
+          bill_name: bills.name,
+          category_id: bills.category_id,
+          category_name: categories.name,
+          category_color: categories.color,
+          category_icon: categories.icon
+        })
+        .from(bills)
+        .leftJoin(categories, eq(bills.category_id, categories.id));
 
       console.log('[Transactions API] Available categories:', 
         allCategories.map(c => ({ id: c.id, name: c.name }))
       );
 
       // Get transactions with category info
-      let query = db.select({
-        id: transactions.id,
-        description: transactions.description,
-        amount: transactions.amount,
-        date: transactions.date,
-        type: transactions.type,
-        category_id: transactions.category_id,
-        category_name: sql<string>`COALESCE(${categories.name}, 'Uncategorized')`,
-        category_color: sql<string>`COALESCE(${categories.color}, '#6366F1')`,
-        category_icon: sql<string>`COALESCE(${categories.icon}, 'receipt')`
-      })
-      .from(transactions)
-      .leftJoin(categories, eq(transactions.category_id, categories.id));
-
-      if (type) {
-        query = query.where(eq(transactions.type, type as 'income' | 'expense'));
-      }
-
-      query = query.orderBy(desc(transactions.date));
+      const query = db
+        .select({
+          id: transactions.id,
+          description: transactions.description,
+          amount: transactions.amount,
+          date: transactions.date,
+          type: transactions.type,
+          category_id: transactions.category_id,
+          category_name: sql<string>`COALESCE(${categories.name}, 'Uncategorized')`,
+          category_color: sql<string>`COALESCE(${categories.color}, '#6366F1')`,
+          category_icon: sql<string>`COALESCE(${categories.icon}, 'receipt')`
+        })
+        .from(transactions)
+        .leftJoin(categories, eq(transactions.category_id, categories.id))
+        .where(type ? eq(transactions.type, type as 'income' | 'expense') : undefined)
+        .orderBy(desc(transactions.date));
 
       const allTransactions = await query;
 
@@ -141,14 +149,29 @@ export function registerRoutes(app: Express): Server {
         }
 
         // Try to find a matching category if one isn't already assigned
-        const matchingCategory = allCategories.find(category => {
-          const categoryName = category.name.toLowerCase();
+        let matchingCategory = allCategories.find(category => {
+          const categoryWords = category.name.toLowerCase().split(' ');
           const description = transaction.description.toLowerCase();
-
-          // Only match if the category name appears as a whole word in the description
-          const regex = new RegExp(`\\b${categoryName}\\b`, 'i');
-          return regex.test(description);
+          return categoryWords.every(word => description.includes(word));
         });
+
+        // If no direct category match, try to match through bills
+        if (!matchingCategory) {
+          const matchingBill = allBillsWithCategories.find(bill => {
+            const billWords = bill.bill_name.toLowerCase().split(' ').filter(word => word.length > 2);
+            const description = transaction.description.toLowerCase();
+            return billWords.some(word => description.includes(word));
+          });
+
+          if (matchingBill && matchingBill.category_name) {
+            matchingCategory = {
+              id: matchingBill.category_id!,
+              name: matchingBill.category_name,
+              color: matchingBill.category_color!,
+              icon: matchingBill.category_icon
+            };
+          }
+        }
 
         if (matchingCategory) {
           console.log('[Transactions API] Matched category:', {
