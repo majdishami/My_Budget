@@ -415,9 +415,10 @@ const App = () => {
                 selected={new Date(selectedYear, selectedMonth, selectedDay)}
                 onSelect={(date) => {
                   if (date) {
-                    setSelectedDay(date.getDate());
-                    setSelectedMonth(date.getMonth());
-                    setSelectedYear(date.getFullYear());
+                    const newDate = dayjs(date);
+                    setSelectedDay(newDate.date());
+                    setSelectedMonth(newDate.month());
+                    setSelectedYear(newDate.getFullYear());
                     setShowDailySummary(true);
                   }
                 }}
