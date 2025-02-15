@@ -53,18 +53,17 @@ const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
   return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
 };
 
-// Update transaction interface to properly include category information
+// Update transaction interface to properly include category information and match API response
 interface Transaction {
   id: string;
   date: string;
   description: string;
   amount: number;
-  occurred: boolean;
-  category: string;
+  type: 'income' | 'expense';
   category_name: string;
   category_color: string;
   category_icon: string | null;
-  type?: 'income' | 'expense';
+  category_id: number | null;
 }
 
 interface Category {
@@ -189,14 +188,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [bills]); // Only depend on billsData
 
-  // Update the transactions generation logic to use fetched transactions
+  // Update the transactions generation logic to use fetched transactions and updated filtering logic
   const filteredTransactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
-    console.log('[ExpenseReportDialog] Date range:', {
-      from: date.from,
-      to: date.to,
-      selectedValue
+    console.log('[ExpenseReportDialog] Starting filtration with:', {
+      dateRange: { from: date.from, to: date.to },
+      selectedValue,
+      totalTransactions: transactions.length
     });
 
     let filtered = transactions.filter(t => {
@@ -207,13 +206,24 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       const isInRange = transactionDate.isSameOrAfter(fromDate, 'day') &&
                        transactionDate.isSameOrBefore(toDate, 'day');
 
-      console.log('[ExpenseReportDialog] Transaction date check:', {
-        transaction: t.description,
-        date: t.date,
-        isInRange
-      });
+      if (isInRange) {
+        console.log('[ExpenseReportDialog] Transaction in date range:', {
+          description: t.description,
+          date: t.date,
+          amount: t.amount
+        });
+      }
 
       return isInRange;
+    });
+
+    console.log('[ExpenseReportDialog] After date filtering:', {
+      filteredCount: filtered.length,
+      transactions: filtered.map(t => ({
+        description: t.description,
+        date: t.date,
+        amount: t.amount
+      }))
     });
 
     // Additional filtering based on selection
@@ -222,25 +232,35 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         const expenseId = selectedValue.replace('expense_', '');
         console.log('[ExpenseReportDialog] Filtering for expense ID:', expenseId);
 
-        filtered = filtered.filter(t => {
-          const bill = bills.find(b => String(b.id) === expenseId);
-          const matches = bill ? t.description === bill.name : false;
+        const selectedBill = bills.find(b => String(b.id) === expenseId);
+        console.log('[ExpenseReportDialog] Selected bill:', selectedBill);
 
-          console.log('[ExpenseReportDialog] Expense match check:', {
-            transaction: t.description,
-            billName: bill?.name,
-            matches
+        if (selectedBill) {
+          filtered = filtered.filter(t => {
+            const matches = t.description.toLowerCase() === selectedBill.name.toLowerCase();
+            console.log('[ExpenseReportDialog] Comparing transaction:', {
+              transactionDesc: t.description,
+              billName: selectedBill.name,
+              matches
+            });
+            return matches;
           });
-
-          return matches;
-        });
+        }
       } else if (selectedValue.startsWith('category_')) {
         const categoryName = selectedValue.replace('category_', '');
         filtered = filtered.filter(t => t.category_name === categoryName);
       }
     }
 
-    console.log('[ExpenseReportDialog] Final filtered transactions:', filtered);
+    console.log('[ExpenseReportDialog] Final filtered transactions:', {
+      count: filtered.length,
+      transactions: filtered.map(t => ({
+        description: t.description,
+        date: t.date,
+        amount: t.amount
+      }))
+    });
+
     return filtered;
   }, [showReport, date, transactions, selectedValue, bills]);
 
@@ -254,7 +274,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       if (!groups[transaction.description]) {
         groups[transaction.description] = {
           description: transaction.description,
-          category: transaction.category,
+          category: transaction.category_name, // Use category_name here
           totalAmount: 0,
           occurredAmount: 0,
           pendingAmount: 0,
@@ -336,9 +356,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }> = {};
 
       filteredTransactions.forEach(t => {
-        if (!totals[t.category]) {
-          totals[t.category] = {
-            category: t.category,
+        if (!totals[t.category_name]) { // Use category_name here
+          totals[t.category_name] = { // Use category_name here
+            category: t.category_name, // Use category_name here
             total: 0,
             occurred: 0,
             pending: 0,
@@ -347,13 +367,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             color: t.category_color || '#D3D3D3'
           };
         }
-        totals[t.category].total += t.amount;
+        totals[t.category_name].total += t.amount; // Use category_name here
         if (dayjs(t.date).isSameOrBefore(today)) {
-          totals[t.category].occurred += t.amount;
-          totals[t.category].occurredCount++;
+          totals[t.category_name].occurred += t.amount; // Use category_name here
+          totals[t.category_name].occurredCount++; // Use category_name here
         } else {
-          totals[t.category].pending += t.amount;
-          totals[t.category].pendingCount++;
+          totals[t.category_name].pending += t.amount; // Use category_name here
+          totals[t.category_name].pendingCount++; // Use category_name here
         }
       });
 
@@ -375,7 +395,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         if (!totals[t.description]) {
           totals[t.description] = {
             description: t.description,
-            category: t.category,
+            category: t.category_name, // Use category_name here
             total: 0,
             occurred: 0,
             pending: 0,
@@ -412,7 +432,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         if (!totals[t.description]) {
           totals[t.description] = {
             description: t.description,
-            category: t.category,
+            category: t.category_name, // Use category_name here
             total: 0,
             occurred: 0,
             pending: 0,
@@ -911,19 +931,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                       </TableCell>
                                     </TableRow>
                                   ))}
-                              </TableBody>
-                            </Table>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
+                                </TableBody>
+                              </Table>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
