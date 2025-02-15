@@ -274,71 +274,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [bills, selectedValue, date, today]);
 
-  // Update summary calculations to match the same date range logic
-  const summary = useMemo(() => {
-    if (!date?.from || !date?.to) {
-      return {
-        totalAmount: 0,
-        occurredAmount: 0,
-        pendingAmount: 0
-      };
-    }
-
-    if (selectedValue === "all") {
-      // For "All Expenses Combined" view, use groupedExpenses
-      return {
-        totalAmount: groupedExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0),
-        occurredAmount: groupedExpenses.reduce((sum, expense) => sum + expense.occurredAmount, 0),
-        pendingAmount: groupedExpenses.reduce((sum, expense) => sum + expense.pendingAmount, 0)
-      };
-    } else if (selectedValue === "all_categories") {
-      // For "All Categories Combined" view, use itemTotals
-      return {
-        totalAmount: itemTotals.reduce((sum, item) => sum + item.total, 0),
-        occurredAmount: itemTotals.reduce((sum, item) => sum + item.occurred, 0),
-        pendingAmount: itemTotals.reduce((sum, item) => sum + item.pending, 0)
-      };
-    } else if (selectedValue.startsWith('category_')) {
-      const categoryName = selectedValue.replace('category_', '');
-      const categoryBills = bills.filter(b => b.category_name === categoryName);
-      const dateFrom = dayjs(date.from).startOf('day');
-      const dateTo = dayjs(date.to).endOf('day');
-
-      let totalOccurred = 0;
-      let totalPending = 0;
-
-      categoryBills.forEach(bill => {
-        let currentDate = dateFrom.clone().date(bill.day);
-
-        // If we've passed the bill day this month, start from next month
-        if (currentDate.isBefore(dateFrom)) {
-          currentDate = currentDate.add(1, 'month');
-        }
-
-        while (currentDate.isSameOrBefore(dateTo)) {
-          if (currentDate.isSameOrBefore(today)) {
-            totalOccurred += bill.amount;
-          } else {
-            totalPending += bill.amount;
-          }
-          currentDate = currentDate.add(1, 'month');
-        }
-      });
-
-      return {
-        totalAmount: totalOccurred + totalPending,
-        occurredAmount: totalOccurred,
-        pendingAmount: totalPending
-      };
-    }
-
-    return {
-      totalAmount: 0,
-      occurredAmount: 0,
-      pendingAmount: 0
-    };
-  }, [selectedValue, date, bills, today, groupedExpenses, itemTotals]);
-
   // Update itemTotals to properly calculate occurrences within date range
   const itemTotals = useMemo(() => {
     if (!date?.from || !date?.to) return [];
@@ -373,7 +308,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         // Generate all occurrences within date range
         while (currentDate.isSameOrBefore(dateTo)) {
           const entry = totals[bill.category_name];
-
           if (currentDate.isSameOrBefore(today)) {
             entry.occurred += bill.amount;
             entry.occurredCount++;
@@ -427,7 +361,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             pendingCount++;
           }
 
-          // Move to next month
           currentDate = currentDate.add(1, 'month');
         }
       });
@@ -448,6 +381,46 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     return [];
   }, [bills, selectedValue, date, today]);
+
+  // Update summary calculations to match the same date range logic
+  const summary = useMemo(() => {
+    if (!date?.from || !date?.to) {
+      return {
+        totalAmount: 0,
+        occurredAmount: 0,
+        pendingAmount: 0
+      };
+    }
+
+    if (selectedValue === "all") {
+      // For "All Expenses Combined" view, use groupedExpenses
+      return {
+        totalAmount: groupedExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0),
+        occurredAmount: groupedExpenses.reduce((sum, expense) => sum + expense.occurredAmount, 0),
+        pendingAmount: groupedExpenses.reduce((sum, expense) => sum + expense.pendingAmount, 0)
+      };
+    } else if (selectedValue === "all_categories") {
+      // For "All Categories Combined" view, use itemTotals
+      return {
+        totalAmount: itemTotals.reduce((sum, item) => sum + item.total, 0),
+        occurredAmount: itemTotals.reduce((sum, item) => sum + item.occurred, 0),
+        pendingAmount: itemTotals.reduce((sum, item) => sum + item.pending, 0)
+      };
+    } else if (selectedValue.startsWith('category_')) {
+      const categoryTotals = itemTotals[0] || { total: 0, occurred: 0, pending: 0 };
+      return {
+        totalAmount: categoryTotals.total,
+        occurredAmount: categoryTotals.occurred,
+        pendingAmount: categoryTotals.pending
+      };
+    }
+
+    return {
+      totalAmount: 0,
+      occurredAmount: 0,
+      pendingAmount: 0
+    };
+  }, [selectedValue, date, groupedExpenses, itemTotals]);
 
   const getDialogTitle = () => {
     if (selectedValue === "all") return "All Expenses Combined";
