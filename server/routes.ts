@@ -283,6 +283,8 @@ export function registerRoutes(app: Express): Server {
       });
 
       const transactionId = parseInt(req.params.id);
+
+      // First verify the transaction exists
       const existingTransaction = await db.query.transactions.findFirst({
         where: eq(transactions.id, transactionId)
       });
@@ -291,6 +293,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Transaction not found' });
       }
 
+      // Update the transaction with all fields
       const [updatedTransaction] = await db.update(transactions)
         .set({
           description: req.body.description,
@@ -302,9 +305,31 @@ export function registerRoutes(app: Express): Server {
         .where(eq(transactions.id, transactionId))
         .returning();
 
+      // If this was a bill-related transaction, update any other transactions 
+      // with the same description to maintain consistency
+      if (updatedTransaction) {
+        const oldDescription = existingTransaction.description.toLowerCase();
+        const newDescription = updatedTransaction.description.toLowerCase();
+
+        // Only update related transactions if the description changed
+        if (oldDescription !== newDescription) {
+          await db.update(transactions)
+            .set({
+              description: updatedTransaction.description,
+              category_id: updatedTransaction.category_id
+            })
+            .where(
+              and(
+                eq(transactions.category_id, existingTransaction.category_id),
+                ilike(transactions.description, `%${oldDescription}%`)
+              )
+            );
+        }
+      }
+
       console.log('[Transactions API] Successfully updated transaction:', updatedTransaction);
 
-      // Add cache control headers
+      // Add cache control headers to prevent stale data
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
