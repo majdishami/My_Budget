@@ -153,12 +153,13 @@ export function Budget() {
     })), 
   []); 
 
+  // Update years calculation to only show 2025 and future years
   const years = useMemo(() => 
-    Array.from({ length: 11 }, (_, i) => ({
-      value: today.year() - 5 + i,
-      label: (today.year() - 5 + i).toString()
+    Array.from({ length: 6 }, (_, i) => ({
+      value: 2025 + i,
+      label: (2025 + i).toString()
     })), 
-  [today]); 
+  []); 
 
   // Update getIncomeForDay to handle recurring incomes across all months
   const getIncomeForDay = useCallback((day: number) => {
