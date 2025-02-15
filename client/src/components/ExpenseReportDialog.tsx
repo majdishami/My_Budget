@@ -271,7 +271,7 @@ export default function ExpenseReportDialog({
     const dateFrom = dayjs(date.from).startOf('day');
     const dateTo = dayjs(date.to).endOf('day');
 
-    // Handle individual expense first
+    // Handle individual expense
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
       const bill = bills.find(b => b.id === billId);
@@ -322,10 +322,6 @@ export default function ExpenseReportDialog({
     // Rest of the existing itemTotals logic
     else if (selectedValue === "all_categories") {
       const totals: Record<string, CategoryTotal> = {};
-      const dateFrom = dayjs(date.from).startOf('day');
-      const dateTo = dayjs(date.to).endOf('day');
-
-      // Initialize totals for each category
       bills.forEach(bill => {
         if (!totals[bill.category_name]) {
           totals[bill.category_name] = {
@@ -367,7 +363,9 @@ export default function ExpenseReportDialog({
       return Object.values(totals)
         .sort((a, b) => b.total - a.total)
         .filter(entry => entry.total > 0);
-    } else if (selectedValue.startsWith('category_')) {
+    }
+    // Handle category selection
+    else if (selectedValue.startsWith('category_')) {
       const categoryName = selectedValue.replace('category_', '');
       const categoryBills = bills.filter(b => b.category_name === categoryName);
 
@@ -379,9 +377,6 @@ export default function ExpenseReportDialog({
       let pending = 0;
       let occurredCount = 0;
       let pendingCount = 0;
-
-      const dateFrom = dayjs(date.from).startOf('day');
-      const dateTo = dayjs(date.to).endOf('day');
 
       categoryBills.forEach(bill => {
         let currentDate = dateFrom.clone().date(bill.day);
@@ -897,12 +892,11 @@ export default function ExpenseReportDialog({
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Category</TableHead>
+                            <TableHead>Expense</TableHead>
                             <TableHead className="text-right">Total Amount</TableHead>
                             <TableHead className="text-right">Paid Amount</TableHead>
                             <TableHead className="text-right">Pending Amount</TableHead>
-                            <TableHead className="text-right">Paid Occurrences</TableHead>
-                            <TableHead className="text-right">Pending Occurrences</TableHead>
+                            <TableHead className="text-right">Occurrences</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -924,69 +918,13 @@ export default function ExpenseReportDialog({
                               <TableCell className="text-right text-orange-500">
                                 {formatCurrency(ct.pending)}
                               </TableCell>
-                              <TableCell className="text-right text-red-600">
-                                {ct.occurredCount}
-                              </TableCell>
-                              <TableCell className="text-right text-orange-500">
-                                {ct.pendingCount}
+                              <TableCell className="text-right">
+                                <span className="text-red-600">{ct.occurredCount}</span>
+                                {" / "}
+                                <span className="text-orange-500">{ct.pendingCount}</span>
                               </TableCell>
                             </TableRow>
                           ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {selectedValue.startsWith('expense_') && (
-                  <Card className="mb-4">
-                    <CardHeader>
-                      <CardTitle>
-                        {(() => {
-                          const billId = selectedValue.replace('expense_', '');
-                          const bill = bills.find(b => b.id === billId);
-                          return bill ? `Monthly Occurrences - ${bill.name}` : 'Expense Details';
-                        })()}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Due Date</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                            <TableHead className="text-right">Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {getMonthlyOccurrences.map((occurrence) => {
-                            const bill = bills.find(b => b.id === selectedValue.replace('expense_', ''));
-                            return (
-                              <TableRow key={occurrence.date}>
-                                <TableCell>{dayjs(occurrence.date).format('MMM D, YYYY')}</TableCell>
-                                <TableCell>
-                                  <CategoryDisplay
-                                    category={bill?.category_name || 'Uncategorized'}
-                                    color={bill?.category_color || '#D3D3D3'}
-                                    icon={bill?.category_icon || bill?.category?.icon || null}
-                                  />
-                                </TableCell>
-                                <TableCell className={`text-right ${
-                                  occurrence.status === 'occurred' ? 'text-red-600' : 'text-orange-500'
-                                }`}>
-                                  {formatCurrency(occurrence.amount)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {occurrence.status === 'occurred' ? (
-                                    <span className="text-red-600">✓ Paid</span>
-                                  ) : (
-                                    <span className="text-orange-500">⌛ Pending</span>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
                         </TableBody>
                       </Table>
                     </CardContent>
