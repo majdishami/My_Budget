@@ -211,7 +211,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       const transactionDate = dayjs(t.date);
       const fromDate = dayjs(date.from);
       const toDate = dayjs(date.to);
-      return transactionDate.isSameOrAfter(fromDate, 'day') && 
+      return transactionDate.isSameOrAfter(fromDate, 'day') &&
              transactionDate.isSameOrBefore(toDate, 'day');
     });
 
@@ -230,7 +230,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           let currentDate = dayjs(date.from).date(selectedBill.day);
           while (currentDate.isSameOrBefore(dayjs(date.to))) {
             // Only add if there's no actual transaction on this date
-            const existingTransaction = filtered.find(t => 
+            const existingTransaction = filtered.find(t =>
               dayjs(t.date).format('YYYY-MM-DD') === currentDate.format('YYYY-MM-DD')
             );
 
@@ -257,18 +257,18 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     if (selectedValue.startsWith('category_')) {
       const categoryName = selectedValue.replace('category_', '');
-      filtered = filtered.filter(t => 
+      filtered = filtered.filter(t =>
         t.category_name.toLowerCase() === categoryName.toLowerCase()
       );
 
       // Add projected transactions for bills in this category
-      const categoryBills = bills.filter(b => 
+      const categoryBills = bills.filter(b =>
         b.category_name.toLowerCase() === categoryName.toLowerCase()
       );
 
       categoryBills.forEach(bill => {
         const expectedOccurrences = calculateExpectedOccurrences(bill, date.from, date.to);
-        const actualOccurrences = filtered.filter(t => 
+        const actualOccurrences = filtered.filter(t =>
           t.description.toLowerCase().includes(bill.name.toLowerCase())
         ).length;
         const remainingOccurrences = expectedOccurrences - actualOccurrences;
@@ -276,7 +276,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         if (remainingOccurrences > 0) {
           let currentDate = dayjs(date.from).date(bill.day);
           while (currentDate.isSameOrBefore(dayjs(date.to))) {
-            const existingTransaction = filtered.find(t => 
+            const existingTransaction = filtered.find(t =>
               dayjs(t.date).format('YYYY-MM-DD') === currentDate.format('YYYY-MM-DD') &&
               t.description.toLowerCase().includes(bill.name.toLowerCase())
             );
@@ -305,41 +305,80 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     return filtered.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
   }, [showReport, date, selectedValue, transactions, bills]);
 
-  // Group transactions by expense name for the "all" view
+  // Update the groupedExpenses calculation
   const groupedExpenses = useMemo(() => {
     if (selectedValue !== "all") return [];
 
     const groups: Record<string, GroupedExpense> = {};
 
-    filteredTransactions.forEach(transaction => {
-      if (!groups[transaction.description]) {
-        groups[transaction.description] = {
-          description: transaction.description,
-          category: transaction.category_name,
+    // First initialize totals for all bills
+    bills.forEach(bill => {
+      if (!groups[bill.name]) {
+        groups[bill.name] = {
+          description: bill.name,
+          category: bill.category_name,
           totalAmount: 0,
           occurredAmount: 0,
           pendingAmount: 0,
-          color: transaction.category_color || '#D3D3D3',
-          transactions: [],
           occurredCount: 0,
-          pendingCount: 0
+          pendingCount: 0,
+          color: bill.category_color,
+          transactions: []
+        };
+      }
+    });
+
+    // Add actual transactions
+    filteredTransactions.forEach(t => {
+      if (!groups[t.description]) {
+        groups[t.description] = {
+          description: t.description,
+          category: t.category_name,
+          totalAmount: 0,
+          occurredAmount: 0,
+          pendingAmount: 0,
+          occurredCount: 0,
+          pendingCount: 0,
+          color: t.category_color,
+          transactions: []
         };
       }
 
-      const group = groups[transaction.description];
-      group.totalAmount += transaction.amount;
-      if (dayjs(transaction.date).isSameOrBefore(today)) {
-        group.occurredAmount += transaction.amount;
-        group.occurredCount++;
+      const entry = groups[t.description];
+      entry.totalAmount += t.amount;
+      entry.transactions.push(t);
+
+      if (dayjs(t.date).isSameOrBefore(today)) {
+        entry.occurredAmount += t.amount;
+        entry.occurredCount++;
       } else {
-        group.pendingAmount += transaction.amount;
-        group.pendingCount++;
+        entry.pendingAmount += t.amount;
+        entry.pendingCount++;
       }
-      group.transactions.push(transaction);
     });
 
+    // Add expected occurrences for each bill
+    if (date?.from && date?.to) {
+      bills.forEach(bill => {
+        const expectedOccurrences = calculateExpectedOccurrences(bill, date.from!, date.to!);
+        const actualOccurrences = filteredTransactions.filter(t =>
+          t.description.toLowerCase().includes(bill.name.toLowerCase())
+        ).length;
+
+        if (actualOccurrences < expectedOccurrences) {
+          const remainingOccurrences = expectedOccurrences - actualOccurrences;
+          const projectedAmount = bill.amount * remainingOccurrences;
+
+          const entry = groups[bill.name];
+          entry.totalAmount += projectedAmount;
+          entry.pendingAmount += projectedAmount;
+          entry.pendingCount += remainingOccurrences;
+        }
+      });
+    }
+
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
-  }, [filteredTransactions, selectedValue, today]);
+  }, [filteredTransactions, selectedValue, date, today, bills, calculateExpectedOccurrences]);
 
   // Update summary calculations to include all transactions in date range
   const summary = useMemo(() => {
@@ -443,8 +482,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       // Add expected occurrences for each category's bills
       bills.forEach(bill => {
         const expectedOccurrences = calculateExpectedOccurrences(bill, date!.from!, date!.to!);
-        const actualOccurrences = filteredTransactions.filter(t => 
-          t.category_name === bill.category_name && 
+        const actualOccurrences = filteredTransactions.filter(t =>
+          t.category_name === bill.category_name &&
           t.description.toLowerCase().includes(bill.name.toLowerCase())
         ).length;
 
@@ -513,7 +552,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       // Add expected occurrences for each bill
       bills.forEach(bill => {
         const expectedOccurrences = calculateExpectedOccurrences(bill, date!.from!, date!.to!);
-        const actualOccurrences = filteredTransactions.filter(t => 
+        const actualOccurrences = filteredTransactions.filter(t =>
           t.description.toLowerCase().includes(bill.name.toLowerCase())
         ).length;
 
@@ -559,7 +598,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         occurredCount: 0,
         pendingCount: 0,
         color: categoryTransactions[0]?.category_color || '#D3D3D3',
-        icon: categoryTransactions[0]?.category_icon || bills.find(b => 
+        icon: categoryTransactions[0]?.category_icon || bills.find(b =>
           b.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
         )?.category_icon || null
       };
@@ -579,13 +618,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       });
 
       // Add expected occurrences for bills in this category
-      const categoryBills = bills.filter(b => 
+      const categoryBills = bills.filter(b =>
         b.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
       );
 
       categoryBills.forEach(bill => {
         const expectedOccurrences = calculateExpectedOccurrences(bill, date!.from!, date!.to!);
-        const actualOccurrences = categoryTransactions.filter(t => 
+        const actualOccurrences = categoryTransactions.filter(t =>
           t.description.toLowerCase().includes(bill.name.toLowerCase())
         ).length;
 
@@ -892,7 +931,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           <TableRow>
                             <TableHead className="w-[180px]">Expense</TableHead>
                             <TableHead className="w-[140px]">Category</TableHead>
-                            <TableHead className="text-right w-[100px]">Monthly</TableHead>
                             <TableHead className="text-right w-[120px]">
                               <div>Total Amount</div>
                               <div className="text-xs font-normal">Paid / Pending</div>
@@ -903,42 +941,31 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             </TableHead>
                           </TableRow>
                         </TableHeader>
-                        <TableBody className="text-sm">
+                        <TableBody>
                           {groupedExpenses.map((expense) => (
                             <TableRow key={expense.description}>
                               <TableCell className="font-medium">{expense.description}</TableCell>
                               <TableCell>
                                 <CategoryDisplay
                                   category={expense.category}
-                                                                    color={expense.color}
+                                  color={expense.color}
                                   icon={bills.find(b => b.category_name === expense.category)?.category_icon ?? null}
                                 />
                               </TableCell>
-                              <TableCell className="text-right font-medium">
-                                {formatCurrency(expense.totalAmount / expense.transactions.length)}
-                              </TableCell>
-                              <TableCell>
-                                <div className="text-right font-medium">
-                                  {formatCurrency(expense.totalAmount)}
-                                </div>
-                                <div className="text-right text-xs">
-                                  <span className="text-red-600 font-medium">
-                                    {formatCurrency(expense.occurredAmount)}</span>
+                              <TableCell className="text-right">
+                                <div className="font-medium">{formatCurrency(expense.totalAmount)}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  <span className="text-red-600">{formatCurrency(expense.occurredAmount)}</span>
                                   {" / "}
-                                  <span className="text-orange-500">
-                                    {formatCurrency(expense.pendingAmount)}</span>
+                                  <span className="text-orange-500">{formatCurrency(expense.pendingAmount)}</span>
                                 </div>
                               </TableCell>
-                              <TableCell>
-                                <div className="text-right font-medium">
-                                  {expense.occurredCount + expense.pendingCount}
-                                </div>
-                                <div className="text-right text-xs">
-                                  <span className="text-red-600 font-medium">
-                                    {expense.occurredCount}</span>
+                              <TableCell className="text-right">
+                                <div className="font-medium">{expense.occurredCount + expense.pendingCount}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  <span className="text-red-600">{expense.occurredCount}</span>
                                   {" / "}
-                                  <span className="text-orange-500">
-                                    {expense.pendingCount}</span>
+                                  <span className="text-orange-500">{expense.pendingCount}</span>
                                 </div>
                               </TableCell>
                             </TableRow>
