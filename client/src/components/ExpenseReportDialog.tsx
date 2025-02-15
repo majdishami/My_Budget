@@ -254,24 +254,22 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id.toString() === billId);
       if (!bill) return [];
 
-      // Get transactions for this bill within date range
-      const billTransactions = transactions.filter(t =>
-        t.description === bill.name &&
-        dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
-        dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
-      ).sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+      // Get transactions for this specific bill in date range
+      const billTransactions = filteredTransactions.filter(t =>
+        t.description === bill.name
+      );
 
-      // Calculate totals based on actual transactions
+      // Calculate occurred (paid) transactions - before or on today
       const occurredTransactions = billTransactions.filter(t =>
         dayjs(t.date).isSameOrBefore(today)
       );
+
+      // Calculate pending transactions - after today
       const pendingTransactions = billTransactions.filter(t =>
         dayjs(t.date).isAfter(today)
       );
 
-      const occurredCount = occurredTransactions.length;
-      const pendingCount = pendingTransactions.length;
-
+      // Get totals
       const occurredAmount = occurredTransactions.reduce((sum, t) => sum + t.amount, 0);
       const pendingAmount = pendingTransactions.reduce((sum, t) => sum + t.amount, 0);
       const totalAmount = occurredAmount + pendingAmount;
@@ -281,8 +279,8 @@ export default function ExpenseReportDialog({
         total: totalAmount,
         occurred: occurredAmount,
         pending: pendingAmount,
-        occurredCount,
-        pendingCount,
+        occurredCount: occurredTransactions.length,
+        pendingCount: pendingTransactions.length,
         color: bill.category_color || '#D3D3D3',
         icon: bill.category_icon || bill.category?.icon || null,
         transactions: billTransactions
@@ -922,8 +920,7 @@ export default function ExpenseReportDialog({
                           ))}
                         </TableBody>
                       </Table>
-                    </CardContent>
-                  </Card>
+                    </CardContent>                  </Card>
                 )}
 
                 {selectedValue.startsWith('expense_') && itemTotals.length > 0 && (
