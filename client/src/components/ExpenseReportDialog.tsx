@@ -451,6 +451,7 @@ export default function ExpenseReportDialog({
 
     // Calculate amounts based on selection type
 
+
     return {
       title,
       totalAmount: itemTotals.reduce((sum, item) => sum + item.total, 0),
@@ -917,8 +918,7 @@ export default function ExpenseReportDialog({
                                 ?.filter(t => dayjs(t.date).isSameOrBefore(today))
                                 .map((transaction) => (
                                   <TableRow key={`${transaction.date}-${transaction.description}`}>
-                                                   <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                                    <TableCell className="text-right font-medium text-red-600">
+                                                   <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell><TableCell className="text-right font-medium text-red-600">
                                       {formatCurrency(transaction.amount)}
                                     </TableCell>
                                     <TableCell>
