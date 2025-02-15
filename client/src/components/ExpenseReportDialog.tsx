@@ -532,67 +532,29 @@ export default function ExpenseReportDialog({
                   {/* Individual Categories */}
                   <SelectGroup>
                     <SelectLabel>Individual Categories</SelectLabel>
-                    {dropdownOptions.categories.map((category) => {
-                      // Determine category-based color
-                      const categoryColor =
-                        category === 'Rent' ? "text-blue-600" :
-                          category === 'Groceries' ? "text-green-600" :
-                            category === 'Personal Loan' ? "text-purple-600" :
-                              category === 'Car Insurance' ? "text-red-600" :
-                                category === "Maid's Service" ? "text-pink-600" :
-                                  category === 'Credit Card Payments' ? "text-orange-600" :
-                                    category === 'Utilities - Electricity' ? "text-yellow-600" :
-                                      category === 'Utilities - Gas' ? "text-lime-600" :
-                                        category === 'Utilities - Water' ? "text-cyan-600" :
-                                          category === 'TV Service' ? "text-indigo-600" :
-                                            category === 'Internet' ? "text-violet-600" :
-                                              category === 'Online Services' ? "text-amber-600" :
-                                                category === 'Life Insurance' ? "text-emerald-600" :
-                                                  "text-slate-600";
-
-                      return (
-                        <SelectItem
-                          key={`category_${category}`}
-                          value={`category_${category}`}
-                          className={categoryColor}
-                        >
-                          {category}
-                        </SelectItem>
-                      );
-                    })}
+                    {dropdownOptions.categories.map((category) => (
+                      <SelectItem
+                        key={`category_${category}`}
+                        value={`category_${category}`}
+                        className="text-blue-600"
+                      >
+                        {category}
+                      </SelectItem>
+                    ))}
                   </SelectGroup>
 
                   {/* Individual Expenses */}
                   <SelectGroup>
                     <SelectLabel>Individual Expenses</SelectLabel>
-                    {bills.map((bill) => {
-                      // Use the same color mapping as categories
-                      const categoryColor =
-                        bill.category_id === 1 ? "text-blue-600" :
-                          bill.category_id === 2 ? "text-green-600" :
-                            bill.category_id === 3 ? "text-purple-600" :
-                              bill.category_id === 4 ? "text-red-600" :
-                                bill.category_id === 5 ? "text-pink-600" :
-                                  bill.category_id === 6 ? "text-orange-600" :
-                                    bill.category_id === 7 ? "text-yellow-600" :
-                                      bill.category_id === 8 ? "text-lime-600" :
-                                        bill.category_id === 9 ? "text-cyan-600" :
-                                          bill.category_id === 10 ? "text-indigo-600" :
-                                            bill.category_id === 11 ? "text-violet-600" :
-                                              bill.category_id === 12 ? "text-amber-600" :
-                                                bill.category_id === 13 ? "text-emerald-600" :
-                                                  "text-slate-600";
-
-                      return (
-                        <SelectItem
-                          key={`expense_${bill.id}`}
-                          value={`expense_${bill.id}`}
-                          className={categoryColor}
-                        >
-                          {bill.name}
-                        </SelectItem>
-                      );
-                    })}
+                    {bills.map((bill) => (
+                      <SelectItem
+                        key={`expense_${bill.id}`}
+                        value={`expense_${bill.id}`}
+                        className="text-green-600"
+                      >
+                        {bill.name}
+                      </SelectItem>
+                    ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
