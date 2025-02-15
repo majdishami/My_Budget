@@ -180,13 +180,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [bills]);
 
-  // Calculate expected occurrences within date range
+  // Update calculateExpectedOccurrences to handle date ranges properly
   const calculateExpectedOccurrences = (bill: Bill, startDate: Date, endDate: Date) => {
     const start = dayjs(startDate);
     const end = dayjs(endDate);
     const billDay = bill.day;
 
     let currentDate = start.date(billDay);
+    // If we've passed the bill day this month, start from next month
     if (currentDate.isBefore(start)) {
       currentDate = currentDate.add(1, 'month');
     }
@@ -200,7 +201,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     return occurrences;
   };
 
-  // Update filteredTransactions to properly handle duplicates and projections
+  // Update filteredTransactions to properly handle occurrences
   const filteredTransactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
@@ -210,7 +211,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     // Process and deduplicate transactions
     transactions.forEach(t => {
       const key = `${t.date}-${t.description.toLowerCase()}`;
-      // Keep the most recent transaction (assuming they're ordered by date)
       if (!transactionMap.has(key)) {
         transactionMap.set(key, t);
       }
@@ -225,54 +225,52 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
              transactionDate.isSameOrBefore(toDate, 'day');
     });
 
-    // Handle bill projections if needed
-    if (selectedValue.startsWith('expense_')) {
-      const billId = selectedValue.replace('expense_', '');
-      const selectedBill = bills.find(b => String(b.id) === billId);
+    // Add projected transactions for all bills within the date range
+    bills.forEach(bill => {
+      const expectedOccurrences = calculateExpectedOccurrences(bill, date.from, date.to);
+      const existingDates = new Set(
+        filtered
+          .filter(t => t.description.toLowerCase() === bill.name.toLowerCase())
+          .map(t => dayjs(t.date).format('YYYY-MM-DD'))
+      );
 
-      if (selectedBill) {
-        const expectedOccurrences = calculateExpectedOccurrences(selectedBill, date.from, date.to);
-        const existingDates = new Set(
-          filtered
-            .filter(t => t.description.toLowerCase() === selectedBill.name.toLowerCase())
-            .map(t => dayjs(t.date).format('YYYY-MM-DD'))
-        );
+      // Calculate remaining occurrences
+      const actualOccurrences = existingDates.size;
+      const remainingOccurrences = Math.max(0, expectedOccurrences - actualOccurrences);
 
-        // Calculate remaining occurrences
-        const actualOccurrences = existingDates.size;
-        const remainingOccurrences = Math.max(0, expectedOccurrences - actualOccurrences);
+      if (remainingOccurrences > 0) {
+        let currentDate = dayjs(date.from).date(bill.day);
+        if (currentDate.isBefore(dayjs(date.from))) {
+          currentDate = currentDate.add(1, 'month');
+        }
+        let addedProjections = 0;
 
-        if (remainingOccurrences > 0) {
-          let currentDate = dayjs(date.from).date(selectedBill.day);
-          let addedProjections = 0;
+        while (currentDate.isSameOrBefore(dayjs(date.to)) && addedProjections < remainingOccurrences) {
+          const dateStr = currentDate.format('YYYY-MM-DD');
 
-          while (currentDate.isSameOrBefore(dayjs(date.to)) && addedProjections < remainingOccurrences) {
-            const dateStr = currentDate.format('YYYY-MM-DD');
-
-            if (!existingDates.has(dateStr)) {
-              filtered.push({
-                id: `projected-${dateStr}`,
-                date: dateStr,
-                description: `${selectedBill.name} (Projected)`,
-                amount: selectedBill.amount,
-                type: 'expense',
-                category_name: selectedBill.category_name,
-                category_color: selectedBill.category_color,
-                category_icon: selectedBill.category_icon || null,
-                category_id: selectedBill.category_id
-              });
-              addedProjections++;
-            }
-            currentDate = currentDate.add(1, 'month');
+          if (!existingDates.has(dateStr)) {
+            filtered.push({
+              id: `projected-${bill.id}-${dateStr}`,
+              date: dateStr,
+              description: `${bill.name} (Projected)`,
+              amount: bill.amount,
+              type: 'expense',
+              category_name: bill.category_name,
+              category_color: bill.category_color,
+              category_icon: bill.category_icon || null,
+              category_id: bill.category_id
+            });
+            addedProjections++;
           }
+          currentDate = currentDate.add(1, 'month');
         }
       }
-    }
+    });
 
     return filtered.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
   }, [showReport, date, selectedValue, transactions, bills]);
 
-  // Update groupedExpenses calculation with proper occurrence tracking
+  // Update groupedExpenses to correctly track occurrences
   const groupedExpenses = useMemo(() => {
     if (selectedValue !== "all") return [];
 
@@ -280,7 +278,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     // Process transactions and group them
     filteredTransactions.forEach(t => {
-      const key = t.description;
+      const key = t.description.replace(' (Projected)', '');  // Group projected with actual
       if (!groups[key]) {
         groups[key] = {
           description: key,
@@ -296,7 +294,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
 
       const entry = groups[key];
-      const isOccurred = dayjs(t.date).isSameOrBefore(dayjs());
+      const isProjected = t.description.includes('(Projected)');
+      const isOccurred = !isProjected && dayjs(t.date).isSameOrBefore(dayjs());
 
       entry.totalAmount += t.amount;
       entry.transactions.push(t);
@@ -315,7 +314,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       .sort((a, b) => b.totalAmount - a.totalAmount);
   }, [filteredTransactions, selectedValue]);
 
-  // Update summary calculations to include all transactions in date range
   const summary = useMemo(() => {
     if (!filteredTransactions.length || !date?.from || !date?.to) return {
       totalAmount: 0,
