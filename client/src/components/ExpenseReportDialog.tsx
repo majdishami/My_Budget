@@ -85,6 +85,7 @@ interface Bill {
   category_icon?: string | null;
 }
 
+// Update the CategoryTotal interface to include transactions
 interface CategoryTotal {
   category: string;
   total: number;
@@ -93,7 +94,8 @@ interface CategoryTotal {
   occurredCount: number;
   pendingCount: number;
   color: string;
-  icon: string | null; // Added icon property
+  icon: string | null;
+  transactions?: Transaction[];
 }
 
 interface GroupedExpense {
@@ -141,8 +143,6 @@ export default function ExpenseReportDialog({
     setDate(undefined);
     setPreviousReport(null);
   };
-
-  // Update to fetch transactions instead of relying on bills prop
 
   // Force refresh when dialog opens
   useEffect(() => {
@@ -276,7 +276,7 @@ export default function ExpenseReportDialog({
         pending,
         occurredCount: billTransactions.filter(t => dayjs(t.date).isSameOrBefore(today)).length,
         pendingCount: billTransactions.filter(t => dayjs(t.date).isAfter(today)).length,
-        color: bill.category_color,
+        color: bill.category_color || '#D3D3D3',
         icon: bill.category_icon || bill.category?.icon || null,
         transactions: billTransactions.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf())
       }];
@@ -295,7 +295,7 @@ export default function ExpenseReportDialog({
       let occurredCount = 0;
       let pendingCount = 0;
 
-      const categoryTransactions = transactions.filter(t => 
+      const categoryTransactions = transactions.filter(t =>
         t.category_name === categoryName &&
         dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
         dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
@@ -435,7 +435,7 @@ export default function ExpenseReportDialog({
       const billId = selectedValue.replace('expense_', '');
       const bill = bills.find(b => b.id === billId);
       if (bill) {
-        title = `${bill.name} - ${formatCurrency(bill.amount)} monthly`;
+        title = `${bill.name} - ${formatCurrency(bill.amount)} per month`;
       }
     } else if (selectedValue === "all") {
       title = "All Expenses Combined";
@@ -444,9 +444,6 @@ export default function ExpenseReportDialog({
     } else if (selectedValue.startsWith('category_')) {
       title = `${selectedValue.replace('category_', '')} Category`;
     }
-
-    // Calculate amounts based on selection type
-
 
     return {
       title,
@@ -906,19 +903,38 @@ export default function ExpenseReportDialog({
                               <TableRow>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Amount</TableHead>
-                                <TableHead>Status</TableHead>
+                                <TableHead>Description</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {itemTotals[0].transactions
+                              {itemTotals[0]?.transactions
                                 ?.filter(t => dayjs(t.date).isSameOrBefore(today))
                                 .map((transaction) => (
                                   <TableRow key={`${transaction.date}-${transaction.description}`}>
-                                                   <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell><TableCell className="text-right font-medium text-red-600">
+                                    <TableCell>
+                                      {dayjs(transaction.date).format('MMM D, YYYY')}
+                                    </TableCell>
+                                    <TableCell className="text-right font-medium text-red-600">
                                       {formatCurrency(transaction.amount)}
                                     </TableCell>
                                     <TableCell>
-                                      <span className="text-red-600">✓ Paid</span>
+                                      {transaction.description}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+
+                              {itemTotals[0]?.transactions
+                                ?.filter(t => dayjs(t.date).isAfter(today))
+                                .map((transaction) => (
+                                  <TableRow key={`${transaction.date}-${transaction.description}`}>
+                                    <TableCell>
+                                      {dayjs(transaction.date).format('MMM D, YYYY')}
+                                    </TableCell>
+                                    <TableCell className="text-right font-medium text-orange-500">
+                                      {formatCurrency(transaction.amount)}
+                                    </TableCell>
+                                    <TableCell>
+                                      {transaction.description}
                                     </TableCell>
                                   </TableRow>
                                 ))}
@@ -938,7 +954,7 @@ export default function ExpenseReportDialog({
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {itemTotals[0].transactions
+                              {itemTotals[0]?.transactions
                                 ?.filter(t => dayjs(t.date).isAfter(today))
                                 .map((transaction) => (
                                   <TableRow key={`${transaction.date}-${transaction.description}`}>
