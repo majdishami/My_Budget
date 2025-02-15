@@ -45,7 +45,7 @@ const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
 
   // Convert icon name to match Lucide naming convention (e.g., "shopping-cart" to "ShoppingCart")
   const formatIconName = (name: string) => {
-    return name.split('-').map(part => 
+    return name.split('-').map(part =>
       part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
     ).join('');
   };
@@ -118,7 +118,7 @@ interface Bill {
   isOneTime: boolean;
   category_name: string;
   category_color: string;
-  category?: {icon: string | null}; // Added category field to Bill interface
+  category?: { icon: string | null }; // Added category field to Bill interface
 }
 
 export default function AnnualReportDialog({
@@ -252,8 +252,8 @@ export default function AnnualReportDialog({
 
       // Initialize category if not exists
       if (!summary.expensesByCategory[categoryName]) {
-        summary.expensesByCategory[categoryName] = { 
-          occurred: 0, 
+        summary.expensesByCategory[categoryName] = {
+          occurred: 0,
           pending: 0
         };
       }
