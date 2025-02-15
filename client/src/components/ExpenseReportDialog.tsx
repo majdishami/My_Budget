@@ -899,23 +899,23 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                         />
                                       </TableCell>
                                       <TableCell className={`text-right ${
-                                        transaction.occurred ? 'text-red-600' : ''text-orange-500'
+                                        transaction.occurred ? 'text-red-600' : 'text-orange-500'
                                       }`}>
                                         {formatCurrency(transaction.amount)}
                                       </TableCell>
                                       <TableCell className={`text-right ${
-                                        transaction.occurred ? 'text-red-600' : 'text-orange-50'
+                                                                       transaction.occurred ? 'text-red-600' : 'text-orange-500'
                                       }`}>
                                         {transaction.occurred ? '✓' : '⌛'}
                                       </TableCell>
                                     </TableRow>
                                   ))}
-                              </TableBody>
-                            </Table>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+                                </TableBody>
+                              </Table>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                   </div>
                 )}
               </div>
