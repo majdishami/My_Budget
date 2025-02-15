@@ -4,13 +4,9 @@ import { db } from "@db";
 import { categories, transactions, insertTransactionSchema, bills } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import { sql } from 'drizzle-orm';
-import pkg from 'pg';
-const { Pool } = pkg;
 import dayjs from 'dayjs';
 
 export function registerRoutes(app: Express): Server {
-  console.log('[Server] Starting route registration...');
-
   // Test route
   app.get('/api/health', (req, res) => {
     console.log('[Server] Health check endpoint called');
@@ -35,12 +31,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Bills Routes
+  // Bills Routes with proper icon handling
   app.get('/api/bills', async (req, res) => {
     try {
       console.log('[Bills API] Fetching bills with categories...');
 
-      // Use a subquery to ensure we always get category information
       const allBills = await db.select({
         id: bills.id,
         name: bills.name,
@@ -55,25 +50,7 @@ export function registerRoutes(app: Express): Server {
       .leftJoin(categories, eq(bills.category_id, categories.id))
       .orderBy(desc(bills.amount));
 
-      console.log('[Bills API] Raw query results:', allBills);
-
       const formattedBills = allBills.map(bill => {
-        // Get default icon based on category name if not set
-        let defaultIcon = 'more-horizontal'; // Default for uncategorized
-        if (bill.category_name === 'Rent') defaultIcon = 'home';
-        if (bill.category_name === 'Utilities - Electricity') defaultIcon = 'zap';
-        if (bill.category_name === 'Utilities - Gas') defaultIcon = 'flame';
-        if (bill.category_name === 'Utilities - Water') defaultIcon = 'droplet';
-        if (bill.category_name === 'Internet') defaultIcon = 'wifi';
-        if (bill.category_name === 'TV Service') defaultIcon = 'tv';
-        if (bill.category_name === 'Phone') defaultIcon = 'phone';
-        if (bill.category_name === 'Car Insurance') defaultIcon = 'car';
-        if (bill.category_name === 'Life Insurance') defaultIcon = 'heart';
-        if (bill.category_name === 'Credit Card Payments') defaultIcon = 'credit-card';
-        if (bill.category_name === 'Personal Loan') defaultIcon = 'credit-card';
-        if (bill.category_name === 'Online Services') defaultIcon = 'globe';
-        if (bill.category_name === 'Maid\'s Service') defaultIcon = 'home';
-
         const formatted = {
           id: bill.id,
           name: bill.name,
@@ -82,7 +59,7 @@ export function registerRoutes(app: Express): Server {
           category_id: bill.category_id,
           category_name: bill.category_name,
           category_color: bill.category_color,
-          category_icon: bill.category_icon || defaultIcon
+          category_icon: bill.category_icon
         };
         console.log('[Bills API] Formatted bill:', formatted);
         return formatted;
@@ -112,16 +89,30 @@ export function registerRoutes(app: Express): Server {
         date: transactions.date,
         type: transactions.type,
         category_id: transactions.category_id,
-        category_name: sql<string>`COALESCE(${categories.name}, 'Uncategorized')`,
-        category_color: sql<string>`COALESCE(${categories.color}, '#D3D3D3')`,
-        category_icon: sql<string>`COALESCE(${categories.icon}, 'more-horizontal')`
+        category_name: sql<string>`COALESCE(${categories.name}, 'General Expenses')`,
+        category_color: sql<string>`COALESCE(${categories.color}, '#6366F1')`,
+        category_icon: sql<string>`COALESCE(${categories.icon}, 'shopping-cart')`
       })
       .from(transactions)
       .leftJoin(categories, eq(transactions.category_id, categories.id))
       .orderBy(desc(transactions.date));
 
       if (type) {
-        query = query.where(eq(transactions.type, type as any));
+        query = db.select({
+          id: transactions.id,
+          description: transactions.description,
+          amount: transactions.amount,
+          date: transactions.date,
+          type: transactions.type,
+          category_id: transactions.category_id,
+          category_name: sql<string>`COALESCE(${categories.name}, 'General Expenses')`,
+          category_color: sql<string>`COALESCE(${categories.color}, '#6366F1')`,
+          category_icon: sql<string>`COALESCE(${categories.icon}, 'shopping-cart')`
+        })
+        .from(transactions)
+        .leftJoin(categories, eq(transactions.category_id, categories.id))
+        .where(eq(transactions.type, type as any))
+        .orderBy(desc(transactions.date));
       }
 
       const allTransactions = await query;
