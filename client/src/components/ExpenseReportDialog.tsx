@@ -188,14 +188,18 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [bills]); // Only depend on billsData
 
-  // Update the transactions generation logic to use fetched transactions and updated filtering logic
   const filteredTransactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
     console.log('[ExpenseReportDialog] Starting filtration with:', {
       dateRange: { from: date.from, to: date.to },
       selectedValue,
-      totalTransactions: transactions.length
+      totalTransactions: transactions.length,
+      transactions: transactions.slice(0, 3).map(t => ({
+        description: t.description,
+        date: t.date,
+        amount: t.amount
+      }))
     });
 
     let filtered = transactions.filter(t => {
@@ -204,7 +208,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       const toDate = dayjs(date.to);
 
       const isInRange = transactionDate.isSameOrAfter(fromDate, 'day') &&
-                       transactionDate.isSameOrBefore(toDate, 'day');
+                     transactionDate.isSameOrBefore(toDate, 'day');
 
       if (isInRange) {
         console.log('[ExpenseReportDialog] Transaction in date range:', {
@@ -217,15 +221,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       return isInRange;
     });
 
-    console.log('[ExpenseReportDialog] After date filtering:', {
-      filteredCount: filtered.length,
-      transactions: filtered.map(t => ({
-        description: t.description,
-        date: t.date,
-        amount: t.amount
-      }))
-    });
-
     // Additional filtering based on selection
     if (selectedValue !== "all" && selectedValue !== "all_categories") {
       if (selectedValue.startsWith('expense_')) {
@@ -236,14 +231,21 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         console.log('[ExpenseReportDialog] Selected bill:', selectedBill);
 
         if (selectedBill) {
+          const normalizedBillName = selectedBill.name.toLowerCase().trim();
+
           filtered = filtered.filter(t => {
-            const matches = t.description.toLowerCase() === selectedBill.name.toLowerCase();
-            console.log('[ExpenseReportDialog] Comparing transaction:', {
-              transactionDesc: t.description,
-              billName: selectedBill.name,
-              matches
+            const normalizedTransDesc = t.description.toLowerCase().trim();
+
+            // Match if either string fully contains the other to catch variations
+            const isMatch = normalizedTransDesc.includes(normalizedBillName);
+
+            console.log('[ExpenseReportDialog] Expense match check:', {
+              transactionDesc: normalizedTransDesc,
+              billName: normalizedBillName,
+              isMatch
             });
-            return matches;
+
+            return isMatch;
           });
         }
       } else if (selectedValue.startsWith('category_')) {
@@ -254,15 +256,16 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     console.log('[ExpenseReportDialog] Final filtered transactions:', {
       count: filtered.length,
-      transactions: filtered.map(t => ({
+      sampleTransactions: filtered.slice(0, 3).map(t => ({
         description: t.description,
         date: t.date,
-        amount: t.amount
+        amount: t.amount,
+        category: t.category_name
       }))
     });
 
     return filtered;
-  }, [showReport, date, transactions, selectedValue, bills]);
+  }, [showReport, date, transactions, selectedValue, bills, today]);
 
   // Group transactions by expense name for the "all" view
   const groupedExpenses = useMemo(() => {
@@ -894,56 +897,48 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                               <TableHeader>
                                 <TableRow>
                                   <TableHead>Date</TableHead>
-                                  <TableHead>Description</TableHead>
-                                  <TableHead>Category</TableHead>
+                                  <TableHead>Description</TableHead                                  <TableHead>Category</TableHead>
                                   <TableHead className="text-right">Amount</TableHead>
-                                  <TableHead className="text-right">Status</TableHead>
+                                  <TableHead<TableHead className="text-right">Status</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {monthTransactions
-                                  .sort((a, b) => {
-                                    if (dayjs(a.date).isSameOrBefore(today) !== dayjs(b.date).isSameOrBefore(today)) {
-                                      return dayjs(a.date).isSameOrBefore(today) ? -1 : 1;
-                                    }
-                                    return dayjs(a.date).diff(dayjs(b.date));
-                                  })
-                                  .map((transaction: Transaction) => (
-                                    <TableRow key={transaction.id}>
-                                      <TableCell>{dayjs(transaction.date).format('MMM D')}</TableCell>
-                                      <TableCell>{transaction.description}</TableCell>
-                                      <TableCell>
-                                        <CategoryDisplay
-                                          category={transaction.category_name}
-                                          color={transaction.category_color}
-                                          icon={transaction.category_icon}
-                                        />
-                                      </TableCell>
-                                      <TableCell className={`text-right ${
-                                        dayjs(transaction.date).isSameOrBefore(today) ? 'text-red-600' : 'text-orange-500'
-                                      }`}>
-                                        {formatCurrency(transaction.amount)}
-                                      </TableCell>
-                                      <TableCell className={`text-right ${
-                                        dayjs(transaction.date).isSameOrBefore(today) ? 'text-red-600' : 'text-orange-500'
-                                      }`}>
-                                        {dayjs(transaction.date).isSameOrBefore(today) ? '✓' : '⌛'}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+                                {monthTransactions.map((transaction, i) => (
+                                  <TableRow key={i}>
+                                    <TableCell>{dayjs(transaction.date).format('MMM D')}</TableCell>
+                                    <TableCell>{transaction.description}</TableCell>
+                                    <TableCell>
+                                      <CategoryDisplay
+                                        category={transaction.category_name}
+                                        color={transaction.category_color}
+                                        icon={bills.find(b => b.category_name === transaction.category_name)?.category_icon ?? null}
+                                      />
+                                    </TableCell>
+                                    <TableCell className="text-right font-medium">
+                                      {formatCurrency(transaction.amount)}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {dayjs(transaction.date).isSameOrBefore(today) ? (
+                                        <span className="text-red-600">✓ Paid</span>
+                                      ) : (
+                                        <span className="text-orange-500">⌛ Pending</span>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

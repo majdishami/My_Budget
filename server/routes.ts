@@ -85,7 +85,10 @@ export function registerRoutes(app: Express): Server {
   // Transactions Routes
   app.get('/api/transactions', async (req, res) => {
     try {
-      console.log('[Transactions API] Fetching transactions...');
+      console.log('[Transactions API] Fetching transactions...', {
+        type: req.query.type,
+        queryParams: req.query
+      });
       const type = req.query.type as string | undefined;
 
       let query = db.select({
@@ -104,25 +107,21 @@ export function registerRoutes(app: Express): Server {
       .orderBy(desc(transactions.date));
 
       if (type) {
-        query = db.select({
-          id: transactions.id,
-          description: transactions.description,
-          amount: transactions.amount,
-          date: transactions.date,
-          type: transactions.type,
-          category_id: transactions.category_id,
-          category_name: sql<string>`COALESCE(${categories.name}, 'General Expenses')`,
-          category_color: sql<string>`COALESCE(${categories.color}, '#6366F1')`,
-          category_icon: sql<string>`COALESCE(${categories.icon}, 'shopping-cart')`
-        })
-        .from(transactions)
-        .leftJoin(categories, eq(transactions.category_id, categories.id))
-        .where(eq(transactions.type, type as any))
-        .orderBy(desc(transactions.date));
+        query = query.where(eq(transactions.type, type as any));
       }
 
       const allTransactions = await query;
-      console.log('[Transactions API] Found transactions:', allTransactions.length);
+
+      console.log('[Transactions API] Found transactions:', {
+        count: allTransactions.length,
+        sampleTransactions: allTransactions.slice(0, 3).map(t => ({
+          description: t.description,
+          date: t.date,
+          amount: t.amount,
+          type: t.type,
+          category: t.category_name
+        }))
+      });
 
       const formattedTransactions = allTransactions.map(transaction => ({
         id: transaction.id,
