@@ -917,7 +917,7 @@ export default function ExpenseReportDialog({
                               <TableCell className="text-right text-red-600">
                                 {formatCurrency(expense.occurredAmount)}
                               </TableCell>
-                              <TableCell className="text-right text-orange500">{formatCurrency(expense.pendingAmount)}
+                              <TableCell className="text-right text-orange-500">{formatCurrency(expense.pendingAmount)}
                               </TableCell>                              <TableCell className="text-right">
                                 <span className="text-red-600">{expense.occurredCount}</span>
                                 {" / "}
