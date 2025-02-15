@@ -424,7 +424,7 @@ export default function ExpenseReportDialog({
 
   // Update summary calculations
   const summary = useMemo(() => {
-    if (!date?.from || !date?.to) {
+    if (!date?.from || !date?.to || itemTotals.length === 0) {
       return {
         title: "",
         totalAmount: 0,
@@ -450,23 +450,14 @@ export default function ExpenseReportDialog({
     }
 
     // Calculate amounts based on selection type
-    if (selectedValue === "all") {
-      return {
-        title,
-        totalAmount: groupedExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0),
-        occurredAmount: groupedExpenses.reduce((sum, expense) => sum + expense.occurredAmount, 0),
-        pendingAmount: groupedExpenses.reduce((sum, expense) => sum + expense.pendingAmount, 0)
-      };
-    }
 
-    // Use itemTotals for all other views (categories and individual expenses)
     return {
       title,
       totalAmount: itemTotals.reduce((sum, item) => sum + item.total, 0),
       occurredAmount: itemTotals.reduce((sum, item) => sum + item.occurred, 0),
       pendingAmount: itemTotals.reduce((sum, item) => sum + item.pending, 0)
     };
-  }, [selectedValue, date, groupedExpenses, itemTotals, bills]);
+  }, [selectedValue, date, itemTotals, bills]);
 
   const getDialogTitle = () => {
     if (selectedValue === "all") return "All Expenses Combined";
@@ -926,7 +917,7 @@ export default function ExpenseReportDialog({
                                 ?.filter(t => dayjs(t.date).isSameOrBefore(today))
                                 .map((transaction) => (
                                   <TableRow key={`${transaction.date}-${transaction.description}`}>
-                                    <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                                                   <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                                     <TableCell className="text-right font-medium text-red-600">
                                       {formatCurrency(transaction.amount)}
                                     </TableCell>
