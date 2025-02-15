@@ -351,47 +351,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     const dateFrom = dayjs(date.from).startOf('day');
     const dateTo = dayjs(date.to).endOf('day');
 
-    if (selectedValue === "all_categories") {
-      const totals: Record<string, CategoryTotal> = {};
-
-      // Process only transactions within date range
-      filteredTransactions.forEach(t => {
-        const transactionDate = dayjs(t.date);
-
-        // Skip transactions outside the date range
-        if (!transactionDate.isBetween(dateFrom, dateTo, 'day', '[]')) {
-          return;
-        }
-
-        if (!totals[t.category_name]) {
-          totals[t.category_name] = {
-            category: t.category_name,
-            total: 0,
-            occurred: 0,
-            pending: 0,
-            occurredCount: 0,
-            pendingCount: 0,
-            color: t.category_color,
-            icon: t.category_icon || null
-          };
-        }
-
-        const entry = totals[t.category_name];
-        // A transaction is "occurred" if it's before or equal to today
-        const isOccurred = transactionDate.isSameOrBefore(today, 'day');
-
-        entry.total += t.amount;
-        if (isOccurred) {
-          entry.occurred += t.amount;
-          entry.occurredCount++;
-        } else {
-          entry.pending += t.amount;
-          entry.pendingCount++;
-        }
-      });
-
-      return Object.values(totals).sort((a, b) => b.total - a.total);
-    } else if (selectedValue.startsWith('category_')) {
+    if (selectedValue.startsWith('category_')) {
       // For individual category view
       const categoryName = selectedValue.replace('category_', '');
       const categoryTransactions = filteredTransactions.filter(t => t.category_name === categoryName);
@@ -407,20 +367,34 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       let occurredCount = 0;
       let pendingCount = 0;
 
-      // Process transactions
-      categoryTransactions.forEach(t => {
-        const transactionDate = dayjs(t.date);
-        if (!transactionDate.isBetween(dateFrom, dateTo, 'day', '[]')) return;
+      // Get all bills in this category
+      const categoryBills = bills.filter(b => b.category_name === categoryName);
 
-        total += t.amount;
-        if (transactionDate.isSameOrBefore(today, 'day')) {
-          occurred += t.amount;
-          occurredCount++;
-        } else {
-          pending += t.amount;
-          pendingCount++;
+      categoryBills.forEach(bill => {
+        // Calculate monthly occurrences for each bill
+        let currentDate = dateFrom.clone().date(bill.day);
+
+        // If we've passed the bill day this month, start from next month
+        if (currentDate.isBefore(dateFrom)) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        // Generate all occurrences within date range
+        while (currentDate.isSameOrBefore(dateTo)) {
+          if (currentDate.isSameOrBefore(today)) {
+            occurred += bill.amount;
+            occurredCount++;
+          } else {
+            pending += bill.amount;
+            pendingCount++;
+          }
+
+          // Move to next month
+          currentDate = currentDate.add(1, 'month');
         }
       });
+
+      total = occurred + pending;
 
       return [{
         category: categoryName,
@@ -432,10 +406,56 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         color: categoryDetails.category_color,
         icon: categoryDetails.category_icon || null
       }];
+    } else if (selectedValue === "all_categories") {
+      const totals: Record<string, CategoryTotal> = {};
+
+      // Process each bill for the date range
+      bills.forEach(bill => {
+        if (!totals[bill.category_name]) {
+          totals[bill.category_name] = {
+            category: bill.category_name,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            occurredCount: 0,
+            pendingCount: 0,
+            color: bill.category_color,
+            icon: bill.category_icon || null
+          };
+        }
+
+        let currentDate = dateFrom.clone().date(bill.day);
+
+        // If we've passed the bill day this month, start from next month
+        if (currentDate.isBefore(dateFrom)) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        // Generate all occurrences within date range
+        while (currentDate.isSameOrBefore(dateTo)) {
+          const entry = totals[bill.category_name];
+
+          if (currentDate.isSameOrBefore(today)) {
+            entry.occurred += bill.amount;
+            entry.occurredCount++;
+          } else {
+            entry.pending += bill.amount;
+            entry.pendingCount++;
+          }
+
+          // Move to next month
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        const entry = totals[bill.category_name];
+        entry.total = entry.occurred + entry.pending;
+      });
+
+      return Object.values(totals).sort((a, b) => b.total - a.total);
     }
 
     return [];
-  }, [filteredTransactions, selectedValue, date, today]);
+  }, [filteredTransactions, selectedValue, date, bills, today]);
 
   const getDialogTitle = () => {
     if (selectedValue === "all") return "All Expenses Combined";
