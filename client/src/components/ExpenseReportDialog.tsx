@@ -426,21 +426,33 @@ export default function ExpenseReportDialog({
   const summary = useMemo(() => {
     if (!date?.from || !date?.to) {
       return {
+        title: "",
         totalAmount: 0,
         occurredAmount: 0,
         pendingAmount: 0
       };
     }
 
-    // Log current state
-    console.log('Summary calculation:', {
-      selectedValue,
-      itemTotalsLength: itemTotals.length,
-      hasGroupedExpenses: groupedExpenses.length > 0
-    });
+    // Get title based on selection type
+    let title = "";
+    if (selectedValue.startsWith('expense_')) {
+      const billId = selectedValue.replace('expense_', '');
+      const bill = bills.find(b => b.id === billId);
+      if (bill) {
+        title = `${bill.name} - ${formatCurrency(bill.amount)} monthly`;
+      }
+    } else if (selectedValue === "all") {
+      title = "All Expenses Combined";
+    } else if (selectedValue === "all_categories") {
+      title = "All Categories Combined";
+    } else if (selectedValue.startsWith('category_')) {
+      title = `${selectedValue.replace('category_', '')} Category`;
+    }
 
+    // Calculate amounts based on selection type
     if (selectedValue === "all") {
       return {
+        title,
         totalAmount: groupedExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0),
         occurredAmount: groupedExpenses.reduce((sum, expense) => sum + expense.occurredAmount, 0),
         pendingAmount: groupedExpenses.reduce((sum, expense) => sum + expense.pendingAmount, 0)
@@ -449,11 +461,12 @@ export default function ExpenseReportDialog({
 
     // Use itemTotals for all other views (categories and individual expenses)
     return {
+      title,
       totalAmount: itemTotals.reduce((sum, item) => sum + item.total, 0),
       occurredAmount: itemTotals.reduce((sum, item) => sum + item.occurred, 0),
       pendingAmount: itemTotals.reduce((sum, item) => sum + item.pending, 0)
     };
-  }, [selectedValue, date, groupedExpenses, itemTotals]);
+  }, [selectedValue, date, groupedExpenses, itemTotals, bills]);
 
   const getDialogTitle = () => {
     if (selectedValue === "all") return "All Expenses Combined";
@@ -611,7 +624,7 @@ export default function ExpenseReportDialog({
           <div className="flex justify-between items-start">
             <div>
               <DialogTitle className="text-xl">
-                {getDialogTitle()}
+                {summary.title}
                 <div className="text-sm font-normal text-muted-foreground mt-1">
                   {date?.from && date?.to && `${dayjs(date?.from).format('MMM D, YYYY')} - ${dayjs(date?.to).format('MMM D, YYYY')}`}
                 </div>
@@ -649,6 +662,23 @@ export default function ExpenseReportDialog({
               <div className="grid gap-4 mb-4">
                 {/* Main Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {selectedValue.startsWith('expense_') && (
+                    <div className="md:col-span-3 mb-2">
+                      <h2 className="text-2xl font-bold">
+                        {bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name}
+                      </h2>
+                      <div className="text-muted-foreground flex items-center gap-2 mt-1">
+                        <CategoryDisplay
+                          category={bills.find(b => b.id === selectedValue.replace('expense_', ''))?.category_name || 'Uncategorized'}
+                          color={bills.find(b => b.id === selectedValue.replace('expense_', ''))?.category_color || '#D3D3D3'}
+                          icon={bills.find(b => b.id === selectedValue.replace('expense_', ''))?.category_icon || null}
+                        />
+                        <span>
+                          {formatCurrency(bills.find(b => b.id === selectedValue.replace('expense_', ''))?.amount || 0)} per month
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   <Card>
                     <CardHeader className="py-4">
                       <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
@@ -879,8 +909,7 @@ export default function ExpenseReportDialog({
                         </div>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-6">
+                    <CardContent><div className="space-y-6">
                         {/* Paid Transactions */}
                         <div>
                           <h3 className="text-lg font-semibold mb-4">Paid Transactions</h3>
@@ -927,7 +956,7 @@ export default function ExpenseReportDialog({
                                 .map((transaction) => (
                                   <TableRow key={`${transaction.date}-${transaction.description}`}>
                                     <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                                         <TableCell className="text-right font-medium text-orange-500">
+                                    <TableCell className="text-right font-medium text-orange-500">
                                       {formatCurrency(transaction.amount)}
                                     </TableCell>
                                     <TableCell>
