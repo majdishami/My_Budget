@@ -96,6 +96,7 @@ interface CategoryTotal {
   occurredCount: number;
   pendingCount: number;
   color: string;
+  icon: string | null; // Added icon property
 }
 
 interface GroupedExpense {
@@ -406,7 +407,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             pending: 0,
             occurredCount: 0,
             pendingCount: 0,
-            color: bill.category_color
+            color: bill.category_color,
+            icon: bill.category_icon || null //Added icon initialization
           };
         }
       });
@@ -421,7 +423,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             pending: 0,
             occurredCount: 0,
             pendingCount: 0,
-            color: t.category_color
+            color: t.category_color,
+            icon: t.category_icon || null //Added icon initialization
           };
         }
 
@@ -538,6 +541,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         occurredCount: number;
         pendingCount: number;
         color: string;
+        icon: string | null; // Added icon property
       }> = {};
 
       // Calculate totals for the selected category
@@ -554,7 +558,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         pending: 0,
         occurredCount: 0,
         pendingCount: 0,
-        color: categoryTransactions[0]?.category_color || '#D3D3D3'
+        color: categoryTransactions[0]?.category_color || '#D3D3D3',
+        icon: categoryTransactions[0]?.category_icon || bills.find(b => 
+          b.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
+        )?.category_icon || null
       };
 
       // Add all actual transactions
@@ -597,7 +604,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     }
 
     return [];
-  }, [filteredTransactions, selectedValue, date, today, bills, calculateExpectedOccurrences]);
+  }, [filteredTransactions, selectedValue, date, today, bills]);
 
   // Update where we handle the bill ID in the dialog title
   const getDialogTitle = () => {
@@ -848,7 +855,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 <CategoryDisplay
                                   category={ct.category}
                                   color={ct.color}
-                                  icon={bills.find(b => b.category_name === ct.category)?.category?.icon ?? null}
+                                  icon={ct.icon}
                                 />
                               </TableCell>
                               <TableCell className="text-right font-medium">
@@ -903,7 +910,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                               <TableCell>
                                 <CategoryDisplay
                                   category={expense.category}
-                                  color={expense.color}
+                                                                    color={expense.color}
                                   icon={bills.find(b => b.category_name === expense.category)?.category_icon ?? null}
                                 />
                               </TableCell>
@@ -969,7 +976,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 <CategoryDisplay
                                   category={item.category}
                                   color={item.color || '#D3D3D3'}
-                                  icon={bills.find(b => b.category_name === item.category)?.category?.icon ?? null}
+                                  icon={item.icon}
                                 />
                               </TableCell>
                               <TableCell className="text-right">
