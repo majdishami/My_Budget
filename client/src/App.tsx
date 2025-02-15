@@ -503,22 +503,22 @@ function Router() {
                             View Reminders
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild className="text-blue-600 hover:text-blue-700">
+                          <DropdownMenuItem asChild>
                             <Link href="/reports/monthly-to-date">Monthly to Date</Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem asChild className="text-green-600 hover:text-green-700">
+                          <DropdownMenuItem asChild>
                             <Link href="/reports/monthly">Monthly Report</Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem asChild className="text-purple-600 hover:text-purple-700">
+                          <DropdownMenuItem asChild>
                             <Link href="/reports/annual">Annual Report</Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem asChild className="text-orange-600 hover:text-orange-700">
+                          <DropdownMenuItem asChild>
                             <Link href="/reports/date-range">Date Range</Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem asChild className="text-pink-600 hover:text-pink-700">
+                          <DropdownMenuItem asChild>
                             <Link href="/reports/income">Income Report</Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem asChild className="text-indigo-600 hover:text-indigo-700">
+                          <DropdownMenuItem asChild>
                             <Link href="/reports/expenses">Expense Report</Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
