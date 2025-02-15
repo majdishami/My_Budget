@@ -677,12 +677,17 @@ export default function ExpenseReportDialog({
                     <Card>
                       <CardHeader>
                         <CardTitle>
-                          <div className="flex items-center gap-2 text-lg">
-                            <CategoryDisplay
-                              category={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_name || 'Uncategorized'}
-                              color={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_color || '#D3D3D3'}
-                              icon={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_icon || null}
-                            />
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2 text-lg">
+                              <CategoryDisplay
+                                category={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_name || 'Uncategorized'}
+                                color={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_color || '#D3D3D3'}
+                                icon={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_icon || null}
+                              />
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Monthly Amount: {formatCurrency(bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.amount || 0)}
+                            </div>
                           </div>
                         </CardTitle>
                       </CardHeader>
@@ -925,8 +930,7 @@ export default function ExpenseReportDialog({
                               </TableCell>
                               <TableCell className="text-right text-red-600">
                                 {formatCurrency(expense.occurredAmount)}
-                              </TableCell>
-                              <TableCell className="text-right text-orange-500">
+                              </TableCell><TableCell className="text-right text-orange-500">
                                 {formatCurrency(expense.pendingAmount)}
                               </TableCell>
                               <TableCell className="text-right">
