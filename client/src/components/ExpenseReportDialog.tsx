@@ -290,7 +290,17 @@ export default function ExpenseReportDialog({
         pendingCount: pendingOccurrences.length,
         color: bill.category_color || '#D3D3D3',
         icon: bill.category_icon || bill.category?.icon || null,
-        transactions: billTransactions
+        transactions: billTransactions.length > 0 ? billTransactions : occurrences.map(o => ({
+          id: `${bill.id}-${o.date}`,
+          date: o.date,
+          description: bill.name,
+          amount: bill.amount,
+          type: 'expense' as const,
+          category_name: bill.category_name,
+          category_color: bill.category_color,
+          category_icon: bill.category_icon,
+          category_id: bill.category_id
+        }))
       }];
     }
     // Handle category selection
