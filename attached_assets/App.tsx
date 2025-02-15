@@ -334,10 +334,9 @@ const App = () => {
   // Update the calendar selection handler
   const handleCalendarSelect = (date: Date | undefined) => {
     if (date) {
-      const newDate = dayjs(date);
-      setSelectedDay(newDate.date());
-      setSelectedMonth(newDate.month());
-      setSelectedYear(newDate.year());
+      setSelectedDay(date.getDate());
+      setSelectedMonth(date.getMonth());
+      setSelectedYear(date.getFullYear());
       setShowDailySummary(true);
     }
   };
