@@ -198,19 +198,31 @@ export default function ExpenseReportDialog({
     };
   }, [bills]);
 
-
+  // Update the filteredTransactions calculation
   const filteredTransactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
-    // Only use actual transactions from the database within date range
-    return transactions
-      .filter(t => {
-        const transactionDate = dayjs(t.date);
-        return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
-               transactionDate.isSameOrBefore(dayjs(date.to), 'day');
-      })
-      .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
-  }, [showReport, date, transactions]);
+    const dateFrom = dayjs(date.from).startOf('day');
+    const dateTo = dayjs(date.to).endOf('day');
+
+    // Filter transactions within date range
+    let filtered = transactions.filter(t => {
+      const transactionDate = dayjs(t.date);
+      return transactionDate.isSameOrAfter(dateFrom, 'day') &&
+             transactionDate.isSameOrBefore(dateTo, 'day');
+    });
+
+    // If individual expense is selected, filter by expense name
+    if (selectedValue.startsWith('expense_')) {
+      const billId = selectedValue.replace('expense_', '');
+      const bill = bills.find(b => b.id === billId);
+      if (bill) {
+        filtered = filtered.filter(t => t.description === bill.name);
+      }
+    }
+
+    return filtered.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+  }, [showReport, date, transactions, selectedValue, bills]);
 
   // Update groupedExpenses to properly track occurrences
   const groupedExpenses = useMemo(() => {
@@ -886,42 +898,32 @@ export default function ExpenseReportDialog({
                 {selectedValue.startsWith('expense_') && itemTotals.length > 0 && (
                   <Card className="mb-4">
                     <CardHeader>
-                      <CardTitle>Expense Summary</CardTitle>
+                      <CardTitle>Expense Details</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Expense</TableHead>
-                            <TableHead className="text-right">Total Amount</TableHead>
-                            <TableHead className="text-right">Paid Amount</TableHead>
-                            <TableHead className="text-right">Pending Amount</TableHead>
-                            <TableHead className="text-right">Occurrences</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {itemTotals.map((ct) => (
-                            <TableRow key={ct.category}>
+                          {filteredTransactions.map((transaction) => (
+                            <TableRow key={`${transaction.date}-${transaction.description}`}>
+                              <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                              <TableCell>{transaction.description}</TableCell>
                               <TableCell>
                                 <CategoryDisplay
-                                  category={ct.category}
-                                  color={ct.color}
-                                  icon={ct.icon}
+                                  category={transaction.category_name}
+                                  color={transaction.category_color}
+                                  icon={transaction.category_icon}
                                 />
                               </TableCell>
                               <TableCell className="text-right font-medium">
-                                {formatCurrency(ct.total)}
-                              </TableCell>
-                              <TableCell className="text-right text-red-600">
-                                {formatCurrency(ct.occurred)}
-                              </TableCell>
-                              <TableCell className="text-right text-orange-500">
-                                {formatCurrency(ct.pending)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <span className="text-red-600">{ct.occurredCount}</span>
-                                {" / "}
-                                <span className="text-orange-500">{ct.pendingCount}</span>
+                                {formatCurrency(transaction.amount)}
                               </TableCell>
                             </TableRow>
                           ))}
