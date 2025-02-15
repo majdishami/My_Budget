@@ -317,14 +317,15 @@ export default function ExpenseReportDialog({
       let occurredCount = 0;
       let pendingCount = 0;
 
-      const categoryTransactions = transactions.filter(t =>
-        t.category_name === categoryName &&
-        dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
-        dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
+      // Get all transactions for this category within date range
+      const categoryTransactions = filteredTransactions.filter(t =>
+        t.category_name === categoryName
       );
 
+      // Calculate totals and counts based on payment date
       categoryTransactions.forEach(transaction => {
-        if (dayjs(transaction.date).isSameOrBefore(today)) {
+        const transactionDate = dayjs(transaction.date);
+        if (transactionDate.isSameOrBefore(today)) {
           occurred += transaction.amount;
           occurredCount++;
         } else {
@@ -344,7 +345,9 @@ export default function ExpenseReportDialog({
         pendingCount,
         color: categoryDetails.category_color,
         icon: categoryDetails.category_icon || categoryDetails.category?.icon || null,
-        transactions: categoryTransactions
+        transactions: categoryTransactions.sort((a, b) => 
+          dayjs(b.date).valueOf() - dayjs(a.date).valueOf()
+        )
       }];
     }
     // Handle all categories combined
