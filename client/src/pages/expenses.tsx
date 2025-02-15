@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Bill } from "@/types";
+import { Bill, Category } from "@/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import dayjs from "dayjs";
+import { cn } from "@/lib/utils";
 
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
@@ -21,7 +22,11 @@ export default function ExpenseReport() {
   const [selectedYear, setSelectedYear] = useState(dayjs().format('YYYY'));
   const [, setLocation] = useLocation();
 
-  // Query bills
+  // Query bills and categories
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
+
   const { data: bills = [], isLoading: billsLoading, error: billsError } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
   });
@@ -32,8 +37,19 @@ export default function ExpenseReport() {
     enabled: !billsLoading && bills.length > 0,
   });
 
-  const isLoading = billsLoading || transactionsLoading;
+  const isLoading = billsLoading || transactionsLoading || categoriesLoading;
   const error = billsError || transactionsError;
+
+  // Group bills by category
+  const groupedBills = bills.reduce((acc: Record<string, Bill[]>, bill) => {
+    const category = categories.find(c => c.id === bill.category_id);
+    const categoryName = category?.name || 'Uncategorized';
+    if (!acc[categoryName]) {
+      acc[categoryName] = [];
+    }
+    acc[categoryName].push(bill);
+    return acc;
+  }, {});
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
@@ -130,6 +146,35 @@ export default function ExpenseReport() {
             </Select>
           </div>
         </div>
+      </div>
+
+      <div className="space-y-4">
+        {Object.entries(groupedBills).map(([category, categoryBills]) => (
+          <div key={category} className="border rounded-lg p-4">
+            <h2 className="text-lg font-semibold text-blue-600 mb-2">{category}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categoryBills.map(bill => (
+                <div
+                  key={bill.id}
+                  className={cn(
+                    "p-4 rounded-lg border",
+                    bill.amount >= 1000 ? "text-red-600" :
+                    bill.amount >= 500 ? "text-orange-600" :
+                    "text-green-600"
+                  )}
+                >
+                  <div className="font-medium">{bill.name}</div>
+                  <div className="text-sm opacity-80">
+                    Due on day {bill.due_date}
+                  </div>
+                  <div className="mt-1 font-bold">
+                    ${bill.amount.toFixed(2)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       <ExpenseReportDialog
