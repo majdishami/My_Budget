@@ -321,7 +321,7 @@ export function registerRoutes(app: Express): Server {
               .where(
                 and(
                   eq(transactions.type, existingTransaction.type),
-                  ilike(transactions.description, `%${oldDescription}%`),
+                  ilike(transactions.description, oldDescription),
                   eq(transactions.category_id, existingTransaction.category_id)
                 )
               );
