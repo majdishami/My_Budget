@@ -152,6 +152,14 @@ export function registerRoutes(app: Express): Server {
         let matchingCategory = allCategories.find(category => {
           const categoryWords = category.name.toLowerCase().split(' ');
           const description = transaction.description.toLowerCase();
+
+          // Special handling for rent category to avoid duplicates
+          if (category.name.toLowerCase() === 'rent') {
+            return description.includes('rent') || 
+                   description.includes('monthly rent') ||
+                   description.includes('housing payment');
+          }
+
           return categoryWords.every(word => description.includes(word));
         });
 
@@ -160,6 +168,14 @@ export function registerRoutes(app: Express): Server {
           const matchingBill = allBillsWithCategories.find(bill => {
             const billWords = bill.bill_name.toLowerCase().split(' ').filter(word => word.length > 2);
             const description = transaction.description.toLowerCase();
+
+            // Special handling for rent bills
+            if (bill.category_name?.toLowerCase() === 'rent') {
+              return description.includes('rent') || 
+                     description.includes('monthly rent') ||
+                     description.includes('housing payment');
+            }
+
             return billWords.some(word => description.includes(word));
           });
 
