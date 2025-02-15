@@ -33,7 +33,6 @@ interface DailySummaryDialogProps {
   };
 }
 
-// Rest of the component implementation remains the same
 const TransactionCard = memo(({ 
   title, 
   items, 
@@ -92,8 +91,11 @@ export default function DailySummaryDialog({
   monthlyTotals,
 }: DailySummaryDialogProps) {
   const selectedDate = useMemo(() => {
-    // Create the date directly from the provided values
-    return dayjs(`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`);
+    // selectedMonth is already 0-based (0-11), so we don't need to adjust it
+    return dayjs()
+      .set('year', selectedYear)
+      .set('month', selectedMonth)
+      .set('date', selectedDay);
   }, [selectedYear, selectedMonth, selectedDay]);
 
   const currentDate = useMemo(() => 
