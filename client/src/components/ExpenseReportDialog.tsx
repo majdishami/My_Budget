@@ -197,52 +197,50 @@ export default function ExpenseReportDialog({
     if (selectedValue !== "all" || !date?.from || !date?.to) return [];
 
     const groups: Record<string, GroupedExpense> = {};
-    const dateFrom = dayjs(date.from).startOf('day');
-    const dateTo = dayjs(date.to).endOf('day');
 
-    // Process bills within date range
-    bills.forEach(bill => {
-      const key = bill.name;
+    // Filter transactions within date range
+    const dateRangeTransactions = transactions.filter(t =>
+      dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
+      dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
+    );
+
+    // Group transactions by expense name
+    dateRangeTransactions.forEach(transaction => {
+      const key = transaction.description;
       if (!groups[key]) {
+        // Find matching bill to get category info
+        const matchingBill = bills.find(b => b.name === transaction.description);
+
         groups[key] = {
           description: key,
-          category: bill.category_name,
+          category: matchingBill?.category_name || 'Uncategorized',
           totalAmount: 0,
           occurredAmount: 0,
           pendingAmount: 0,
           occurredCount: 0,
           pendingCount: 0,
-          color: bill.category_color,
+          color: matchingBill?.category_color || '#D3D3D3',
           transactions: []
         };
       }
 
-      let currentDate = dateFrom.clone().date(bill.day);
+      const entry = groups[key];
+      const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
 
-      // If we've passed the bill day this month, start from next month
-      if (currentDate.isBefore(dateFrom)) {
-        currentDate = currentDate.add(1, 'month');
+      if (isOccurred) {
+        entry.occurredAmount += transaction.amount;
+        entry.occurredCount++;
+      } else {
+        entry.pendingAmount += transaction.amount;
+        entry.pendingCount++;
       }
 
-      // Calculate occurrences within date range
-      while (currentDate.isSameOrBefore(dateTo)) {
-        const entry = groups[key];
-
-        if (currentDate.isSameOrBefore(today)) {
-          entry.occurredAmount += bill.amount;
-          entry.occurredCount++;
-        } else {
-          entry.pendingAmount += bill.amount;
-          entry.pendingCount++;
-        }
-
-        entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
-        currentDate = currentDate.add(1, 'month');
-      }
+      entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
+      entry.transactions.push(transaction);
     });
 
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
-  }, [bills, selectedValue, date, today]);
+  }, [bills, transactions, selectedValue, date, today]);
 
   // Item totals including transactions
   const itemTotals = useMemo(() => {
