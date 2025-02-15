@@ -330,15 +330,35 @@ function Router() {
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel>Edit Expenses</DropdownMenuLabel>
                           <div className="max-h-[25vh] overflow-y-auto">
-                            {bills.map((bill) => (
-                              <DropdownMenuItem
-                                key={`edit-${bill.id}`}
-                                onClick={() => handleEditTransaction('bill', bill)}
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                {bill.name}
-                              </DropdownMenuItem>
-                            ))}
+                            {bills.map((bill) => {
+                              // Determine category-based color
+                              const categoryColor =
+                                bill.category_id === 1 ? "text-blue-600" :
+                                  bill.category_id === 2 ? "text-green-600" :
+                                    bill.category_id === 3 ? "text-purple-600" :
+                                      bill.category_id === 4 ? "text-red-600" :
+                                        bill.category_id === 5 ? "text-pink-600" :
+                                          bill.category_id === 6 ? "text-orange-600" :
+                                            bill.category_id === 7 ? "text-yellow-600" :
+                                              bill.category_id === 8 ? "text-lime-600" :
+                                                bill.category_id === 9 ? "text-cyan-600" :
+                                                  bill.category_id === 10 ? "text-indigo-600" :
+                                                    bill.category_id === 11 ? "text-violet-600" :
+                                                      bill.category_id === 12 ? "text-amber-600" :
+                                                        bill.category_id === 13 ? "text-emerald-600" :
+                                                          "text-slate-600";
+
+                              return (
+                                <DropdownMenuItem
+                                  key={`edit-${bill.id}`}
+                                  onClick={() => handleEditTransaction('bill', bill)}
+                                  className={categoryColor}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  {bill.name}
+                                </DropdownMenuItem>
+                              );
+                            })}
                           </div>
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel>Delete Expenses</DropdownMenuLabel>
@@ -405,8 +425,8 @@ function Router() {
                                   <Badge variant="outline" className="ml-2">
                                     {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
                                       occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
-                                      occurrenceTypeLabel === 'monthly' ? 'Monthly' :
-                                      occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
+                                        occurrenceTypeLabel === 'monthly' ? 'Monthly' :
+                                          occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
                                   </Badge>
                                   <span className="text-muted-foreground text-sm">
                                     ({dayjs(income.date).format('MMM D')})
@@ -449,8 +469,8 @@ function Router() {
                                   <Badge variant="outline" className="ml-2">
                                     {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
                                       occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
-                                      occurrenceTypeLabel === 'monthly' ? 'Monthly' :
-                                      occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
+                                        occurrenceTypeLabel === 'monthly' ? 'Monthly' :
+                                          occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
                                   </Badge>
                                   <span className="text-muted-foreground text-sm">
                                     ({dayjs(income.date).format('MMM D')})
