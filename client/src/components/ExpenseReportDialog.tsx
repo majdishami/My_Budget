@@ -193,10 +193,27 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const filteredTransactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
+    console.log('[ExpenseReportDialog] Date range:', {
+      from: date.from,
+      to: date.to,
+      selectedValue
+    });
+
     let filtered = transactions.filter(t => {
       const transactionDate = dayjs(t.date);
-      return transactionDate.isSameOrAfter(dayjs(date.from)) &&
-             transactionDate.isSameOrBefore(dayjs(date.to));
+      const fromDate = dayjs(date.from);
+      const toDate = dayjs(date.to);
+
+      const isInRange = transactionDate.isSameOrAfter(fromDate, 'day') &&
+                       transactionDate.isSameOrBefore(toDate, 'day');
+
+      console.log('[ExpenseReportDialog] Transaction date check:', {
+        transaction: t.description,
+        date: t.date,
+        isInRange
+      });
+
+      return isInRange;
     });
 
     // Additional filtering based on selection
@@ -204,17 +221,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       if (selectedValue.startsWith('expense_')) {
         const expenseId = selectedValue.replace('expense_', '');
         console.log('[ExpenseReportDialog] Filtering for expense ID:', expenseId);
-        console.log('[ExpenseReportDialog] Current transactions:', filtered);
 
-        const selectedBill = bills.find(b => String(b.id) === expenseId);
-        if (selectedBill) {
-          console.log('[ExpenseReportDialog] Found matching bill:', selectedBill);
-          filtered = filtered.filter(t => {
-            const matches = t.description === selectedBill.name;
-            console.log('[ExpenseReportDialog] Checking transaction:', t, 'matches:', matches);
-            return matches;
+        filtered = filtered.filter(t => {
+          const bill = bills.find(b => String(b.id) === expenseId);
+          const matches = bill ? t.description === bill.name : false;
+
+          console.log('[ExpenseReportDialog] Expense match check:', {
+            transaction: t.description,
+            billName: bill?.name,
+            matches
           });
-        }
+
+          return matches;
+        });
       } else if (selectedValue.startsWith('category_')) {
         const categoryName = selectedValue.replace('category_', '');
         filtered = filtered.filter(t => t.category_name === categoryName);
@@ -418,9 +437,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     return [];
   }, [filteredTransactions, selectedValue, today]);
 
-
-  // Update the bill finding logic -  Not used anymore
-  //const getBillById = (id: string) => billsData.find(b => b.id === id);
 
   // Update where we handle the bill ID in the dialog title
   const getDialogTitle = () => {
