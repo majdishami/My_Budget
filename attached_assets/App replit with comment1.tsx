@@ -209,7 +209,7 @@ const App = () => {
     if (day > 0 && day <= daysInMonth) {
       setSelectedDay(day);
       // Ensure we're using the correct month when showing the daily summary
-      const clickedDate = dayjs().year(selectedYear).month(selectedMonth -1).date(day);
+      const clickedDate = dayjs().year(selectedYear).month(selectedMonth - 1).date(day);
       console.log('Clicked date:', clickedDate.format('YYYY-MM-DD')); // Debug log
       setShowDailySummary(true);
     }
@@ -218,7 +218,7 @@ const App = () => {
   // Function to check if a day is the current day
   const isCurrentDay = (day: number) => {
     const currentDate = dayjs(); // Get current date
-    return day === currentDate.date() && selectedMonth -1 === currentDate.month() && selectedYear === currentDate.year(); // Check if it matches
+    return day === currentDate.date() && selectedMonth - 1 === currentDate.month() && selectedYear === currentDate.year(); // Check if it matches
   };
 
   // Generate calendar days based on the selected month
@@ -241,7 +241,7 @@ const App = () => {
 
       // Special case for Ruba's salary which is bi-weekly
       if (income.source === "Ruba's Salary") {
-        const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth -1).startOf('month'); // Get first day of month
+        const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month'); // Get first day of month
         const lastDayOfMonth = firstDayOfMonth.endOf('month'); // Get last day of month
         const startDate = dayjs('2025-01-10'); // Start bi-weekly calculation from this date
 
@@ -265,11 +265,11 @@ const App = () => {
         // Create a new date with the selected year/month but same day
         const adjustedDate = dayjs()
           .year(selectedYear)
-          .month(selectedMonth -1)
+          .month(selectedMonth - 1)
           .date(incomeDay);
 
         // Only count if the day exists in the current month
-        if (adjustedDate.month() === selectedMonth -1) {
+        if (adjustedDate.month() === selectedMonth - 1) {
           totalIncome += income.amount; // Add income amount
         }
       }
@@ -401,12 +401,12 @@ const App = () => {
               <div className="flex items-center gap-2">
                 {/* Month selection dropdown */}
                 <select
-                  value={selectedMonth -1}
+                  value={selectedMonth - 1}
                   onChange={(e) => handleMonthChange(parseInt(e.target.value))}
                   className="p-2 border rounded bg-background min-w-[120px]"
                   aria-label="Select month"
                 >
-                  {months.map((month,index) => (
+                  {months.map((month, index) => (
                     <option key={index} value={index}>
                       {month.label}
                     </option>
@@ -475,9 +475,11 @@ const App = () => {
             month={new Date(selectedYear, selectedMonth - 1, 1)}
             onSelect={(date) => {
               if (date) {
+                // When a day is clicked, update the state and show the dialog
                 setSelectedDay(date.getDate());
                 setSelectedMonth(date.getMonth() + 1);
                 setSelectedYear(date.getFullYear());
+                setShowDailySummary(true);
               }
             }}
             onMonthChange={(date) => {
@@ -487,6 +489,8 @@ const App = () => {
               }
             }}
             className="rounded-md border m-4"
+            bills={bills}
+            incomes={incomes}
           />
         </div>
       </main>
@@ -496,7 +500,7 @@ const App = () => {
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
         selectedDay={selectedDay}
-        selectedMonth={selectedMonth -1} // Pass the correct month value
+        selectedMonth={selectedMonth - 1} // Pass the correct month value
         selectedYear={selectedYear}
         dayIncomes={getIncomeForDay(selectedDay)}
         dayBills={getBillsForDay(selectedDay)}
