@@ -254,33 +254,40 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id.toString() === billId);
       if (!bill) return [];
 
-      // Get transactions for this specific bill in date range
+      // Get all occurrences within date range
+      const occurrences: { date: string; isPaid: boolean }[] = [];
+      let currentDate = dayjs(date.from).clone().date(bill.day);
+
+      // If the bill day in the first month has passed, start from next month
+      if (currentDate.isBefore(dayjs(date.from))) {
+        currentDate = currentDate.add(1, 'month');
+      }
+
+      // Add all occurrences within date range
+      while (currentDate.isSameOrBefore(dayjs(date.to))) {
+        occurrences.push({
+          date: currentDate.format('YYYY-MM-DD'),
+          isPaid: currentDate.isSameOrBefore(today)
+        });
+        currentDate = currentDate.add(1, 'month');
+      }
+
+      // Filter transactions for this bill within date range
       const billTransactions = filteredTransactions.filter(t =>
         t.description === bill.name
       );
 
-      // Calculate occurred (paid) transactions - before or on today
-      const occurredTransactions = billTransactions.filter(t =>
-        dayjs(t.date).isSameOrBefore(today)
-      );
-
-      // Calculate pending transactions - after today
-      const pendingTransactions = billTransactions.filter(t =>
-        dayjs(t.date).isAfter(today)
-      );
-
-      // Get totals
-      const occurredAmount = occurredTransactions.reduce((sum, t) => sum + t.amount, 0);
-      const pendingAmount = pendingTransactions.reduce((sum, t) => sum + t.amount, 0);
-      const totalAmount = occurredAmount + pendingAmount;
+      // Calculate occurred and pending based on today's date
+      const occurredOccurrences = occurrences.filter(o => o.isPaid);
+      const pendingOccurrences = occurrences.filter(o => !o.isPaid);
 
       return [{
         category: bill.name,
-        total: totalAmount,
-        occurred: occurredAmount,
-        pending: pendingAmount,
-        occurredCount: occurredTransactions.length,
-        pendingCount: pendingTransactions.length,
+        total: bill.amount * occurrences.length,
+        occurred: bill.amount * occurredOccurrences.length,
+        pending: bill.amount * pendingOccurrences.length,
+        occurredCount: occurredOccurrences.length,
+        pendingCount: pendingOccurrences.length,
         color: bill.category_color || '#D3D3D3',
         icon: bill.category_icon || bill.category?.icon || null,
         transactions: billTransactions
@@ -909,7 +916,8 @@ export default function ExpenseReportDialog({
                               </TableCell>
                               <TableCell className="text-right text-red-600">
                                 {formatCurrency(expense.occurredAmount)}
-                              </TableCell><TableCell className="text-right text-orange500">
+                              </TableCell>
+                              <TableCell className="text-right text-orange500">
                                 {formatCurrency(expense.pendingAmount)}
                               </TableCell>                              <TableCell className="text-right">
                                 <span className="text-red-600">{expense.occurredCount}</span>
