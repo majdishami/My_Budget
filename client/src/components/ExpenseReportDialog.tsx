@@ -236,7 +236,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           filtered = filtered.filter(t => {
             const normalizedTransDesc = t.description.toLowerCase().trim();
 
-            // Match if either string fully contains the other to catch variations
+            // Match if transaction description contains the bill name
             const isMatch = normalizedTransDesc.includes(normalizedBillName);
 
             console.log('[ExpenseReportDialog] Expense match check:', {
@@ -897,9 +897,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                               <TableHeader>
                                 <TableRow>
                                   <TableHead>Date</TableHead>
-                                  <TableHead>Description</TableHead                                  <TableHead>Category</TableHead>
+                                  <TableHead>Description</TableHead>
+                                                                 <TableHead>Category</TableHead>
                                   <TableHead className="text-right">Amount</TableHead>
-                                  <TableHead<TableHead className="text-right">Status</TableHead>
+                                  <TableHead className="text-right">Status</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
