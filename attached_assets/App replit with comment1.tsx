@@ -59,13 +59,13 @@ const formatCurrency = (amount: number) => {
 // Main App component
 const App = () => {
   // Set today to February 2nd, 2025 for testing purposes
+  // Explicitly set the month to 1 for February (0-based months in JavaScript)
   const today = dayjs('2025-02-02');
-
-  // State hooks for managing selection and data
-  const [selectedYear, setSelectedYear] = useState(today.year()); // Year selection
-  const [selectedMonth, setSelectedMonth] = useState(today.month()); // Month selection
-  const [selectedDay, setSelectedDay] = useState<number>(today.date()); // Day selection
-  const [showDayDialog, setShowDayDialog] = useState(false); // Dialog state for daily summary
+  const [selectedYear, setSelectedYear] = useState(today.year());
+  // Ensure month is handled correctly (February is 1 in 0-based month system)
+  const [selectedMonth, setSelectedMonth] = useState(1); // Explicitly set to February
+  const [selectedDay, setSelectedDay] = useState<number>(today.date());
+  const [showDayDialog, setShowDayDialog] = useState(false);
   const [incomes, setIncomes] = useState<Income[]>([]); // State to manage income records
   const [bills, setBills] = useState<Bill[]>([]); // State to manage bill records
   const [editingBill, setEditingBill] = useState<Bill | null>(null); // State for editing a bill
@@ -172,7 +172,7 @@ const App = () => {
 
   // Memoization for performance optimization
   const firstDayOfMonth = useMemo(() => {
-    return dayjs(`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`); // Get the first day of the selected month
+    return dayjs(`${selectedYear}-${(selectedMonth).toString().padStart(2, '0')}-01`); // Get the first day of the selected month
   }, [selectedYear, selectedMonth]);
 
   const daysInMonth = useMemo(() => {
@@ -207,15 +207,18 @@ const App = () => {
   // Function to handle day click and show daily summary
   const handleDayClick = (day: number) => {
     if (day > 0 && day <= daysInMonth) {
-      setSelectedDay(day); // Set selected day
-      setShowDailySummary(true); // Open daily summary dialog
+      setSelectedDay(day);
+      // Ensure we're using the correct month when showing the daily summary
+      const clickedDate = dayjs().year(selectedYear).month(selectedMonth -1).date(day);
+      console.log('Clicked date:', clickedDate.format('YYYY-MM-DD')); // Debug log
+      setShowDailySummary(true);
     }
   };
 
   // Function to check if a day is the current day
   const isCurrentDay = (day: number) => {
     const currentDate = dayjs(); // Get current date
-    return day === currentDate.date() && selectedMonth === currentDate.month() && selectedYear === currentDate.year(); // Check if it matches
+    return day === currentDate.date() && selectedMonth -1 === currentDate.month() && selectedYear === currentDate.year(); // Check if it matches
   };
 
   // Generate calendar days based on the selected month
@@ -238,7 +241,7 @@ const App = () => {
 
       // Special case for Ruba's salary which is bi-weekly
       if (income.source === "Ruba's Salary") {
-        const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month'); // Get first day of month
+        const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth -1).startOf('month'); // Get first day of month
         const lastDayOfMonth = firstDayOfMonth.endOf('month'); // Get last day of month
         const startDate = dayjs('2025-01-10'); // Start bi-weekly calculation from this date
 
@@ -262,11 +265,11 @@ const App = () => {
         // Create a new date with the selected year/month but same day
         const adjustedDate = dayjs()
           .year(selectedYear)
-          .month(selectedMonth)
+          .month(selectedMonth -1)
           .date(incomeDay);
 
         // Only count if the day exists in the current month
-        if (adjustedDate.month() === selectedMonth) {
+        if (adjustedDate.month() === selectedMonth -1) {
           totalIncome += income.amount; // Add income amount
         }
       }
@@ -320,7 +323,7 @@ const App = () => {
   // Function to confirm deletion of an income
   const confirmIncomeDelete = () => {
     if (deletingIncome) {
-      const newIncomes = incomes.filter(i => i.source !== deletingIncome.source); // Filter out the deleted income
+      const newIncomes = incomes.filter(i => i.id !== deletingIncome.id); // Filter out the deleted income
       setIncomes(newIncomes); // Update incomes state
       localStorage.setItem("incomes", JSON.stringify(newIncomes)); // Update localStorage
       setShowDeleteIncomeDialog(false); // Close delete confirmation dialog
@@ -361,7 +364,7 @@ const App = () => {
 
   // Function to handle month change
   const handleMonthChange = (newMonth: number) => {
-    setSelectedMonth(newMonth); // Update selected month
+    setSelectedMonth(newMonth + 1); // Update selected month
     setSelectedDay(1); // Reset to the first day of new month
   };
 
@@ -393,18 +396,18 @@ const App = () => {
           <div className="flex justify-between items-center">
             <div className="space-y-2">
               <h1 className="text-2xl font-bold">
-                My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                My Budget - {dayjs().month(selectedMonth - 1).format("MMMM")} {selectedYear}
               </h1>
               <div className="flex items-center gap-2">
                 {/* Month selection dropdown */}
                 <select
-                  value={selectedMonth}
+                  value={selectedMonth -1}
                   onChange={(e) => handleMonthChange(parseInt(e.target.value))}
                   className="p-2 border rounded bg-background min-w-[120px]"
                   aria-label="Select month"
                 >
-                  {months.map(month => (
-                    <option key={month.value} value={month.value}>
+                  {months.map((month,index) => (
+                    <option key={index} value={index}>
                       {month.label}
                     </option>
                   ))}
@@ -578,7 +581,7 @@ const App = () => {
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
         selectedDay={selectedDay}
-        selectedMonth={selectedMonth}
+        selectedMonth={selectedMonth -1} // Pass the correct month value
         selectedYear={selectedYear}
         dayIncomes={getIncomeForDay(selectedDay)}
         dayBills={getBillsForDay(selectedDay)}
@@ -593,5 +596,4 @@ const App = () => {
   );
 };
 
-// Export the App component as the default export
 export default App;
