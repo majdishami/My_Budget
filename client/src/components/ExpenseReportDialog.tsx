@@ -198,13 +198,13 @@ export default function ExpenseReportDialog({
 
     const groups: Record<string, GroupedExpense> = {};
 
-    // Filter transactions within date range
+    // Filter transactions within date range first
     const dateRangeTransactions = transactions.filter(t =>
       dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
       dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
     );
 
-    // Group transactions by expense name
+    // Group transactions by expense description and category
     dateRangeTransactions.forEach(transaction => {
       const key = transaction.description;
       if (!groups[key]) {
@@ -227,6 +227,7 @@ export default function ExpenseReportDialog({
       const entry = groups[key];
       const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
 
+      // Update amounts and counts based on transaction date
       if (isOccurred) {
         entry.occurredAmount += transaction.amount;
         entry.occurredCount++;
@@ -242,7 +243,7 @@ export default function ExpenseReportDialog({
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [bills, transactions, selectedValue, date, today]);
 
-  // Item totals including transactions
+  // Update itemTotals for individual expense view
   const itemTotals = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
@@ -252,13 +253,14 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id === billId);
       if (!bill) return [];
 
-      // Filter transactions by date range and bill name
+      // Filter transactions that match this specific bill's name within the date range
       const billTransactions = transactions.filter(t =>
         t.description === bill.name &&
         dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
         dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
       );
 
+      // Calculate totals from actual transactions
       const occurred = billTransactions
         .filter(t => dayjs(t.date).isSameOrBefore(today))
         .reduce((sum, t) => sum + t.amount, 0);
@@ -267,6 +269,7 @@ export default function ExpenseReportDialog({
         .filter(t => dayjs(t.date).isAfter(today))
         .reduce((sum, t) => sum + t.amount, 0);
 
+      // Return single item with transaction details
       return [{
         category: bill.name,
         total: occurred + pending,
@@ -372,6 +375,51 @@ export default function ExpenseReportDialog({
         .filter(entry => entry.total > 0);
     }
 
+    // Handle all expenses combined
+    else if (selectedValue === "all") {
+      const totals: Record<string, CategoryTotal> = {};
+      bills.forEach(bill => {
+        if (!totals[bill.category_name]) {
+          totals[bill.category_name] = {
+            category: bill.category_name,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            occurredCount: 0,
+            pendingCount: 0,
+            color: bill.category_color,
+            icon: bill.category_icon || bill.category?.icon || null
+          };
+        }
+
+        let currentDate = dayjs(date.from).clone().date(bill.day);
+
+        if (currentDate.isBefore(dayjs(date.from))) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        while (currentDate.isSameOrBefore(dayjs(date.to))) {
+          const entry = totals[bill.category_name];
+          if (currentDate.isSameOrBefore(today)) {
+            entry.occurred += bill.amount;
+            entry.occurredCount++;
+          } else {
+            entry.pending += bill.amount;
+            entry.pendingCount++;
+          }
+
+          currentDate = currentDate.add(1, 'month');
+        }
+      });
+
+      Object.values(totals).forEach(entry => {
+        entry.total = entry.occurred + entry.pending;
+      });
+
+      return Object.values(totals)
+        .sort((a, b) => b.total - a.total)
+        .filter(entry => entry.total > 0);
+    }
     return [];
   }, [bills, selectedValue, date, today, transactions]);
 
