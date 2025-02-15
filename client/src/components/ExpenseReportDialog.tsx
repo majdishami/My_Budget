@@ -474,7 +474,7 @@ export default function ExpenseReportDialog({
     return "Expense Report";
   };
 
-  // Add new function to generate monthly occurrences
+  // Update getMonthlyOccurrences calculation
   const getMonthlyOccurrences = useMemo(() => {
     if (!date?.from || !date?.to || !selectedValue.startsWith('expense_')) {
       return [];
@@ -487,25 +487,31 @@ export default function ExpenseReportDialog({
     const occurrences: ExpenseOccurrence[] = [];
     const dateFrom = dayjs(date.from).startOf('day');
     const dateTo = dayjs(date.to).endOf('day');
-    let currentDate = dateFrom.clone().date(bill.day);
 
-    // If we've passed the bill day this month, start from next month
+    // Start from the first occurrence in the date range
+    let currentDate = dateFrom.clone().date(bill.day);
     if (currentDate.isBefore(dateFrom)) {
       currentDate = currentDate.add(1, 'month');
     }
 
     // Generate all occurrences within date range
     while (currentDate.isSameOrBefore(dateTo)) {
+      const matchingTransaction = transactions.find(t => 
+        dayjs(t.date).format('YYYY-MM-DD') === currentDate.format('YYYY-MM-DD') &&
+        t.description === bill.name
+      );
+
       occurrences.push({
         date: currentDate.format('YYYY-MM-DD'),
-        amount: bill.amount,
+        amount: matchingTransaction?.amount || bill.amount,
         status: currentDate.isSameOrBefore(today) ? 'occurred' : 'pending'
       });
+
       currentDate = currentDate.add(1, 'month');
     }
 
     return occurrences;
-  }, [bills, selectedValue, date, today]);
+  }, [bills, selectedValue, date, today, transactions]);
 
   if (!showReport) {
     return (
@@ -951,7 +957,7 @@ export default function ExpenseReportDialog({
                           {getMonthlyOccurrences.map((occurrence) => {
                             const bill = bills.find(b => b.id === selectedValue.replace('expense_', ''));
                             if (!bill) return null;
-                            return (
+                                                        return (
                               <TableRow key={occurrence.date}>
                                 <TableCell>{dayjs(occurrence.date).format('MMM D, YYYY')}</TableCell>
                                 <TableCell>{bill.name}</TableCell>                                <TableCell className={`text-right ${
