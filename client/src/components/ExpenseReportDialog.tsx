@@ -125,7 +125,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const [previousReport, setPreviousReport] = useState<{ value: string, date: DateRange | undefined } | null>(null);
   const today = useMemo(() => dayjs(), []);
 
-  // Update the bills query to ensure fresh data
+  // Update the bills query to ensure fresh data and never use stale data
   const { data: billsData = [], refetch: refetchBills } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
@@ -140,13 +140,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   // Force refresh when dialog opens
   useEffect(() => {
     if (isOpen) {
+      console.log('[ExpenseReportDialog] Dialog opened, forcing data refresh');
       refetchBills();
     }
   }, [isOpen, refetchBills]);
 
-  // Add debug logging
+  // Add debug logging for data updates
   useEffect(() => {
-    console.log('Bills data updated in ExpenseReportDialog:', billsData);
+    console.log('[ExpenseReportDialog] Bills data updated:', billsData);
   }, [billsData]);
 
   // Reset state when dialog closes
@@ -162,7 +163,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
   // Update the dropdown options with fresh data
   const dropdownOptions = useMemo(() => {
-    console.log('Recalculating dropdown options with bills:', billsData);
+    console.log('[ExpenseReportDialog] Recalculating dropdown options with bills:', billsData);
     const categorizedBills = billsData.reduce<Record<string, (Bill & { categoryColor: string })[]>>((acc, bill) => {
       const categoryName = bill.category_name || 'Uncategorized';
       if (!acc[categoryName]) {
@@ -898,7 +899,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                         />
                                       </TableCell>
                                       <TableCell className={`text-right ${
-                                        transaction.occurred ? 'text-red-600' : 'text-orange-500'
+                                        transaction.occurred ? 'text-red-600' : ''text-orange-500'
                                       }`}>
                                         {formatCurrency(transaction.amount)}
                                       </TableCell>
