@@ -91,13 +91,12 @@ export default function DailySummaryDialog({
   monthlyTotals,
 }: DailySummaryDialogProps) {
   const selectedDate = useMemo(() => {
-    // Create date string in YYYY-MM-DD format, ensuring month and day are padded
     const month = (selectedMonth + 1).toString().padStart(2, '0');
     const day = selectedDay.toString().padStart(2, '0');
     return dayjs(`${selectedYear}-${month}-${day}`);
   }, [selectedYear, selectedMonth, selectedDay]);
 
-  const currentDate = useMemo(() => 
+  const formattedDate = useMemo(() => 
     selectedDate.format('MMMM D, YYYY'),
     [selectedDate]
   );
@@ -120,10 +119,11 @@ export default function DailySummaryDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-2 md:p-6">
-        <DialogHeader>
+        <DialogHeader className="space-y-2">
           <DialogTitle className="text-sm md:text-xl">
-            Financial Summary for {currentDate}
+            Summary of The Day in The Month
           </DialogTitle>
+          <p className="text-sm text-muted-foreground">{formattedDate}</p>
           <DialogClose className="absolute right-1 md:right-4 top-1 md:top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
             <X className="h-3 w-3 md:h-4 md:w-4" />
             <span className="sr-only">Close</span>
