@@ -860,100 +860,91 @@ export default function ExpenseReportDialog({
                   </Card>
                 )}
 
-                {/* Individual Expense Details */}
                 {selectedValue.startsWith('expense_') && itemTotals.length > 0 && (
                   <Card className="mb-4">
                     <CardHeader>
-                      <CardTitle>Expense Details</CardTitle>
+                      <CardTitle className="flex flex-col space-y-2">
+                        <div className="text-xl font-semibold">
+                          {bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name}
+                        </div>
+                        <div className="text-sm font-normal text-muted-foreground flex items-center gap-2">
+                          <CategoryDisplay
+                            category={itemTotals[0].category}
+                            color={itemTotals[0].color}
+                            icon={itemTotals[0].icon}
+                          />
+                          <span className="text-foreground">
+                            {formatCurrency(bills.find(b => b.id === selectedValue.replace('expense_', ''))?.amount || 0)} per month
+                          </span>
+                        </div>
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {itemTotals[0].transactions?.map((transaction) => (
-                            <TableRow key={`${transaction.date}-${transaction.description}`}>
-                              <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                              <TableCell>{transaction.description}</TableCell>
-                              <TableCell>
-                                <CategoryDisplay
-                                  category={transaction.category_name}
-                                  color={transaction.category_color}
-                                  icon={transaction.category_icon}
-                                />
-                              </TableCell>
-                              <TableCell className="text-right font-medium">
-                                {formatCurrency(transaction.amount)}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                )}
-                {selectedValue.startsWith('expense_') && itemTotals.length > 0 && (
-                  <Card className="mb-4">
-                    <CardHeader>
-                      <CardTitle>Expected Bills</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                            <TableHead>Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {itemTotals[0].transactions?.map((transaction) => {
-                            const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
-
-                            return (
-                              <TableRow key={transaction.date}>
-                                <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                                <TableCell>{transaction.description}</TableCell>
-                                <TableCell>
-                                  <CategoryDisplay
-                                    category={transaction.category_name}
-                                    color={transaction.category_color}
-                                    icon={transaction.category_icon}
-                                  />
-                                </TableCell>
-                                <TableCell
-                                  className={`text-right ${isOccurred ? 'text-red-600' : 'text-orange-500'}`}>
-                                  {formatCurrency(transaction.amount)}
-                                </TableCell>
-                                <TableCell>
-                                  <span className={isOccurred ? 'text-red-600' : 'text-orange-500'}>
-                                    {isOccurred ? '✓ Paid' : '⌛ Pending'}                                  </span>                                </TableCell>
+                      <div className="space-y-6">
+                        {/* Paid Transactions */}
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Paid Transactions</h3>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Status</TableHead>
                               </TableRow>
-                            );
-                          })}
-                          {!itemTotals[0].transactions?.length && (
-                            <TableRow>
-                              <TableCell colSpan={5} className="text-center text-muted-foreground">
-                                No transactions found in selected date range
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
+                            </TableHeader>
+                            <TableBody>
+                              {itemTotals[0].transactions
+                                ?.filter(t => dayjs(t.date).isSameOrBefore(today))
+                                .map((transaction) => (
+                                  <TableRow key={`${transaction.date}-${transaction.description}`}>
+                                    <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                                    <TableCell className="text-right font-medium text-red-600">
+                                      {formatCurrency(transaction.amount)}
+                                    </TableCell>
+                                    <TableCell>
+                                      <span className="text-red-600">✓ Paid</span>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+
+                        {/* Pending Transactions */}
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Pending Transactions</h3>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Due Date</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {itemTotals[0].transactions
+                                ?.filter(t => dayjs(t.date).isAfter(today))
+                                .map((transaction) => (
+                                  <TableRow key={`${transaction.date}-${transaction.description}`}>
+                                    <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                                         <TableCell className="text-right font-medium text-orange-500">
+                                      {formatCurrency(transaction.amount)}
+                                    </TableCell>
+                                    <TableCell>
+                                      <span className="text-orange-500">⌛ Pending</span>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
                 {selectedValue !== "all" && selectedValue !== "all_categories" && !selectedValue.startsWith('expense_') && (
                   <div className="space-y-4">
-                    {/* This section is intentionally left blank as the Category Details section has been removed */}
+                    {/* Category Details section removed as specified */}
                   </div>
                 )}
               </div>
