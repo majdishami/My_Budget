@@ -314,17 +314,20 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [filteredTransactions, selectedValue, today]);
 
-  // Update summary calculations to use filteredTransactions
+  // Update summary calculations to properly handle all transactions
   const summary = useMemo(() => {
     const totalAmount = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
     const occurredAmount = filteredTransactions
       .filter(t => dayjs(t.date).isSameOrBefore(today))
       .reduce((sum, t) => sum + t.amount, 0);
+    const pendingAmount = filteredTransactions
+      .filter(t => dayjs(t.date).isAfter(today))
+      .reduce((sum, t) => sum + t.amount, 0);
 
     return {
       totalAmount,
       occurredAmount,
-      pendingAmount: totalAmount - occurredAmount
+      pendingAmount
     };
   }, [filteredTransactions, today]);
 
@@ -353,26 +356,18 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     setPreviousReport(null);
   };
 
-  // Calculate expense/category totals depending on mode
+  // Update itemTotals calculation for better category grouping
   const itemTotals = useMemo(() => {
     if (!filteredTransactions.length) return [];
 
     if (selectedValue === "all_categories") {
       // Category totals logic with occurrence tracking
-      const totals: Record<string, {
-        category: string;
-        total: number;
-        occurred: number;
-        pending: number;
-        occurredCount: number;
-        pendingCount: number;
-        color: string;
-      }> = {};
+      const totals: Record<string, CategoryTotal> = {};
 
       filteredTransactions.forEach(t => {
-        if (!totals[t.category_name]) { // Use category_name here
-          totals[t.category_name] = { // Use category_name here
-            category: t.category_name, // Use category_name here
+        if (!totals[t.category_name]) {
+          totals[t.category_name] = {
+            category: t.category_name,
             total: 0,
             occurred: 0,
             pending: 0,
@@ -381,54 +376,53 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             color: t.category_color || '#D3D3D3'
           };
         }
-        totals[t.category_name].total += t.amount; // Use category_name here
+
+        const entry = totals[t.category_name];
+        entry.total += t.amount;
+
         if (dayjs(t.date).isSameOrBefore(today)) {
-          totals[t.category_name].occurred += t.amount; // Use category_name here
-          totals[t.category_name].occurredCount++; // Use category_name here
+          entry.occurred += t.amount;
+          entry.occurredCount++;
         } else {
-          totals[t.category_name].pending += t.amount; // Use category_name here
-          totals[t.category_name].pendingCount++; // Use category_name here
+          entry.pending += t.amount;
+          entry.pendingCount++;
         }
       });
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
     } else if (selectedValue === "all") {
       // Expense totals logic with occurrences
-      const totals: Record<string, {
-        description: string;
-        category: string;
-        total: number;
-        occurred: number;
-        pending: number;
-        occurredCount: number;
-        pendingCount: number;
-        color: string;
-      }> = {};
+      const totals: Record<string, GroupedExpense> = {};
 
       filteredTransactions.forEach(t => {
         if (!totals[t.description]) {
           totals[t.description] = {
             description: t.description,
-            category: t.category_name, // Use category_name here
-            total: 0,
-            occurred: 0,
-            pending: 0,
+            category: t.category_name,
+            totalAmount: 0,
+            occurredAmount: 0,
+            pendingAmount: 0,
             occurredCount: 0,
             pendingCount: 0,
-            color: t.category_color || '#D3D3D3'
+            color: t.category_color || '#D3D3D3',
+            transactions: []
           };
         }
-        totals[t.description].total += t.amount;
+
+        const entry = totals[t.description];
+        entry.totalAmount += t.amount;
+        entry.transactions.push(t);
+
         if (dayjs(t.date).isSameOrBefore(today)) {
-          totals[t.description].occurred += t.amount;
-          totals[t.description].occurredCount++;
+          entry.occurredAmount += t.amount;
+          entry.occurredCount++;
         } else {
-          totals[t.description].pending += t.amount;
-          totals[t.description].pendingCount++;
+          entry.pendingAmount += t.amount;
+          entry.pendingCount++;
         }
       });
 
-      return Object.values(totals).sort((a, b) => b.total - a.total);
+      return Object.values(totals).sort((a, b) => b.totalAmount - a.totalAmount);
     } else if (selectedValue.startsWith('category_') || selectedValue.startsWith('expense_')) {
       // Individual category/expense totals logic with occurrences
       const totals: Record<string, {
@@ -446,7 +440,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         if (!totals[t.description]) {
           totals[t.description] = {
             description: t.description,
-            category: t.category_name, // Use category_name here
+            category: t.category_name,
             total: 0,
             occurred: 0,
             pending: 0,
@@ -455,13 +449,16 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             color: t.category_color || '#D3D3D3'
           };
         }
-        totals[t.description].total += t.amount;
+
+        const entry = totals[t.description];
+        entry.total += t.amount;
+
         if (dayjs(t.date).isSameOrBefore(today)) {
-          totals[t.description].occurred += t.amount;
-          totals[t.description].occurredCount++;
+          entry.occurred += t.amount;
+          entry.occurredCount++;
         } else {
-          totals[t.description].pending += t.amount;
-          totals[t.description].pendingCount++;
+          entry.pending += t.amount;
+          entry.pendingCount++;
         }
       });
 
@@ -715,7 +712,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {itemTotals.map((ct: any) => (
+                          {itemTotals.map((ct: CategoryTotal) => (
                             <TableRow key={ct.category}>
                               <TableCell>
                                 <CategoryDisplay
