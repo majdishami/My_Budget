@@ -243,7 +243,7 @@ export default function ExpenseReportDialog({
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [bills, transactions, selectedValue, date, today]);
 
-  // Update itemTotals for individual expense view
+  // Update the itemTotals calculation for individual expenses
   const itemTotals = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
@@ -253,39 +253,55 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id.toString() === billId);
       if (!bill) return [];
 
-      // Filter transactions that match this specific bill's name within the date range
+      // Calculate expected occurrences within date range
+      let expectedOccurrences = 0;
+      let currentDate = dayjs(date.from).clone().date(bill.day);
+
+      // If the bill day has passed in the start month, move to next month
+      if (currentDate.isBefore(dayjs(date.from))) {
+        currentDate = currentDate.add(1, 'month');
+      }
+
+      // Count expected occurrences within range
+      while (currentDate.isSameOrBefore(dayjs(date.to))) {
+        expectedOccurrences++;
+        currentDate = currentDate.add(1, 'month');
+      }
+
+      // Filter transactions within date range
       const billTransactions = transactions.filter(t =>
         t.description === bill.name &&
         dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
         dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
       );
 
-      let occurredCount = 0;
-      let pendingCount = 0;
-      let occurred = 0;
-      let pending = 0;
+      // Count actual paid transactions
+      const occurredCount = billTransactions.filter(t =>
+        dayjs(t.date).isSameOrBefore(today)
+      ).length;
 
-      // Count and sum actual transactions within date range
-      billTransactions.forEach(transaction => {
-        if (dayjs(transaction.date).isSameOrBefore(today)) {
-          occurredCount++;
-          occurred += transaction.amount;
-        } else {
-          pendingCount++;
-          pending += transaction.amount;
-        }
-      });
+      // Calculate pending occurrences
+      const pendingCount = expectedOccurrences - occurredCount;
+
+      // Calculate amounts
+      const totalAmount = bill.amount * expectedOccurrences;
+      const occurredAmount = billTransactions
+        .filter(t => dayjs(t.date).isSameOrBefore(today))
+        .reduce((sum, t) => sum + t.amount, 0);
+      const pendingAmount = totalAmount - occurredAmount;
 
       return [{
         category: bill.name,
-        total: occurred + pending,
-        occurred,
-        pending,
+        total: totalAmount,
+        occurred: occurredAmount,
+        pending: pendingAmount,
         occurredCount,
         pendingCount,
         color: bill.category_color || '#D3D3D3',
         icon: bill.category_icon || bill.category?.icon || null,
-        transactions: billTransactions.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf())
+        transactions: billTransactions.sort((a, b) =>
+          dayjs(a.date).valueOf() - dayjs(b.date).valueOf()
+        )
       }];
     }
     // Handle category selection
