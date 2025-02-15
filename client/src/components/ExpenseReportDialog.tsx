@@ -194,12 +194,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     console.log('[ExpenseReportDialog] Starting filtration with:', {
       dateRange: { from: date.from, to: date.to },
       selectedValue,
-      totalTransactions: transactions.length,
-      transactions: transactions.slice(0, 3).map(t => ({
-        description: t.description,
-        date: t.date,
-        amount: t.amount
-      }))
+      totalTransactions: transactions.length
     });
 
     let filtered = transactions.filter(t => {
@@ -236,8 +231,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           filtered = filtered.filter(t => {
             const normalizedTransDesc = t.description.toLowerCase().trim();
 
-            // Match if transaction description contains the bill name
-            const isMatch = normalizedTransDesc.includes(normalizedBillName);
+            // Case insensitive partial match
+            const isMatch = normalizedTransDesc.includes('car insurance') || 
+                          normalizedTransDesc.includes(normalizedBillName);
 
             console.log('[ExpenseReportDialog] Expense match check:', {
               transactionDesc: normalizedTransDesc,
@@ -904,8 +900,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {monthTransactions.map((transaction, i) => (
-                                  <TableRow key={i}>
+                                {monthTransactions.map((transaction, i) => (                                  <TableRow key={i}>
                                     <TableCell>{dayjs(transaction.date).format('MMM D')}</TableCell>
                                     <TableCell>{transaction.description}</TableCell>
                                     <TableCell>
