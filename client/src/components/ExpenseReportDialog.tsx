@@ -286,46 +286,37 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id === billId);
       if (!bill) return [];
 
-      // Use the same logic as groupedExpenses for individual bill
-      let currentDate = dayjs(date.from);
-      currentDate = currentDate.date(bill.day);
+      let currentDate = dayjs(date.from).date(bill.day);
       if (currentDate.isBefore(dayjs(date.from))) {
         currentDate = currentDate.add(1, 'month');
       }
 
-      const transactions: Transaction[] = [];
+      let occurredAmount = 0; 
+      let occurredCount = 0;
+      let pendingAmount = 0;
+      let pendingCount = 0;
+
+      // Calculate occurrences within date range
       while (currentDate.isSameOrBefore(dayjs(date.to))) {
-        transactions.push({
-          id: `${bill.id}-${currentDate.format('YYYY-MM-DD')}`,
-          date: currentDate.format('YYYY-MM-DD'),
-          description: bill.name,
-          amount: bill.amount,
-          type: 'expense',
-          category_name: bill.category_name,
-          category_color: bill.category_color,
-          category_icon: bill.category_icon || null,
-          category_id: bill.category_id
-        });
+        if (currentDate.isSameOrBefore(today)) {
+          occurredAmount += bill.amount;
+          occurredCount++;
+        } else {
+          pendingAmount += bill.amount;
+          pendingCount++;
+        }
         currentDate = currentDate.add(1, 'month');
       }
 
-      const occurred = transactions
-        .filter(t => dayjs(t.date).isSameOrBefore(today))
-        .reduce((sum, t) => sum + t.amount, 0);
-      const pending = transactions
-        .filter(t => dayjs(t.date).isAfter(today))
-        .reduce((sum, t) => sum + t.amount, 0);
-
       return [{
         category: bill.name,
-        total: occurred + pending,
-        occurred,
-        pending,
-        occurredCount: transactions.filter(t => dayjs(t.date).isSameOrBefore(today)).length,
-        pendingCount: transactions.filter(t => dayjs(t.date).isAfter(today)).length,
+        total: occurredAmount + pendingAmount,
+        occurred: occurredAmount,
+        pending: pendingAmount,
+        occurredCount,
+        pendingCount,
         color: bill.category_color,
-        icon: bill.category_icon || null,
-        transactions
+        icon: bill.category_icon || null
       }];
     }
     // Handle category selection
