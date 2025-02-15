@@ -276,18 +276,10 @@ export default function ExpenseReportDialog({
       const occurredOccurrences = occurrences.filter(o => o.isPaid);
       const pendingOccurrences = occurrences.filter(o => !o.isPaid);
 
-      // Convert occurrences to transaction format for display
-      const displayTransactions = occurrences.map(occurrence => ({
-        id: `${bill.id}-${occurrence.date}`,
-        date: occurrence.date,
-        description: bill.name,
-        amount: bill.amount,
-        type: 'expense' as const,
-        category_name: bill.category_name,
-        category_color: bill.category_color,
-        category_icon: bill.category_icon,
-        category_id: bill.category_id
-      })).sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+      // Get actual transactions for this bill within date range
+      const billTransactions = filteredTransactions.filter(t =>
+        t.description === bill.name
+      ).sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
 
       return [{
         category: bill.name,
@@ -298,7 +290,7 @@ export default function ExpenseReportDialog({
         pendingCount: pendingOccurrences.length,
         color: bill.category_color || '#D3D3D3',
         icon: bill.category_icon || bill.category?.icon || null,
-        transactions: displayTransactions
+        transactions: billTransactions
       }];
     }
     // Handle category selection
@@ -923,10 +915,9 @@ export default function ExpenseReportDialog({
                                 {formatCurrency(expense.totalAmount)}
                               </TableCell>
                               <TableCell className="text-right text-red-600">
-                               {formatCurrency(expense.occurredAmount)}
+                                {formatCurrency(expense.occurredAmount)}
                               </TableCell>
-                              <TableCell className="text-right text-orange500">
-                                {formatCurrency(expense.pendingAmount)}
+                              <TableCell className="text-right text-orange500">{formatCurrency(expense.pendingAmount)}
                               </TableCell>                              <TableCell className="text-right">
                                 <span className="text-red-600">{expense.occurredCount}</span>
                                 {" / "}
