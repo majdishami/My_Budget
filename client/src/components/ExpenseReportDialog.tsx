@@ -258,17 +258,27 @@ export default function ExpenseReportDialog({
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [bills, selectedValue, date, today]);
 
-  // Update itemTotals to handle individual expenses
+  // Update itemTotals calculation for individual expenses
   const itemTotals = useMemo(() => {
     if (!date?.from || !date?.to) return [];
+
+    console.log('ItemTotals calculation - Selected Value:', selectedValue);
+    console.log('Date Range:', { from: date.from, to: date.to });
+
     const dateFrom = dayjs(date.from).startOf('day');
     const dateTo = dayjs(date.to).endOf('day');
 
+    // Handle individual expense first
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
       const bill = bills.find(b => b.id === billId);
 
-      if (!bill) return [];
+      console.log('Selected Bill:', bill);
+
+      if (!bill) {
+        console.log('No bill found for id:', billId);
+        return [];
+      }
 
       let total = 0;
       let occurred = 0;
@@ -298,6 +308,15 @@ export default function ExpenseReportDialog({
 
       total = occurred + pending;
 
+      console.log('Individual Expense Totals:', {
+        name: bill.name,
+        total,
+        occurred,
+        pending,
+        occurredCount,
+        pendingCount
+      });
+
       return [{
         category: bill.name,
         total,
@@ -308,9 +327,14 @@ export default function ExpenseReportDialog({
         color: bill.category_color,
         icon: bill.category_icon || bill.category?.icon || null
       }];
-    } else if (selectedValue === "all_categories") {
-      // Keep existing all_categories logic
+    }
+
+    // Rest of the existing itemTotals logic remains unchanged
+    if (selectedValue === "all_categories") {
       const totals: Record<string, CategoryTotal> = {};
+      // ... existing all_categories logic ...
+      const dateFrom = dayjs(date.from).startOf('day');
+      const dateTo = dayjs(date.to).endOf('day');
 
       // Initialize totals for each category
       bills.forEach(bill => {
@@ -368,6 +392,9 @@ export default function ExpenseReportDialog({
       let occurredCount = 0;
       let pendingCount = 0;
 
+      const dateFrom = dayjs(date.from).startOf('day');
+      const dateTo = dayjs(date.to).endOf('day');
+
       categoryBills.forEach(bill => {
         let currentDate = dateFrom.clone().date(bill.day);
 
@@ -405,7 +432,7 @@ export default function ExpenseReportDialog({
     return [];
   }, [bills, selectedValue, date, today]);
 
-  // Update summary to handle all views consistently
+  // Update summary calculations
   const summary = useMemo(() => {
     if (!date?.from || !date?.to) {
       return {
@@ -415,20 +442,27 @@ export default function ExpenseReportDialog({
       };
     }
 
+    // Log current state
+    console.log('Summary calculation:', {
+      selectedValue,
+      itemTotalsLength: itemTotals.length,
+      hasGroupedExpenses: groupedExpenses.length > 0
+    });
+
     if (selectedValue === "all") {
       return {
         totalAmount: groupedExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0),
         occurredAmount: groupedExpenses.reduce((sum, expense) => sum + expense.occurredAmount, 0),
         pendingAmount: groupedExpenses.reduce((sum, expense) => sum + expense.pendingAmount, 0)
       };
-    } else {
-      // Use itemTotals for all other views
-      return {
-        totalAmount: itemTotals.reduce((sum, item) => sum + item.total, 0),
-        occurredAmount: itemTotals.reduce((sum, item) => sum + item.occurred, 0),
-        pendingAmount: itemTotals.reduce((sum, item) => sum + item.pending, 0)
-      };
     }
+
+    // Use itemTotals for all other views (categories and individual expenses)
+    return {
+      totalAmount: itemTotals.reduce((sum, item) => sum + item.total, 0),
+      occurredAmount: itemTotals.reduce((sum, item) => sum + item.occurred, 0),
+      pendingAmount: itemTotals.reduce((sum, item) => sum + item.pending, 0)
+    };
   }, [selectedValue, date, groupedExpenses, itemTotals]);
 
   const getDialogTitle = () => {
@@ -882,7 +916,7 @@ export default function ExpenseReportDialog({
                   </Card>
                 )}
 
-                {selectedValue !== "all" && selectedValue !== "all_categories" && selectedValue !== 'expense_' && (
+                {selectedValue !== "all" && selectedValue !== "all_categories" && selectedValue.startsWith('expense_') === false && (
                   <div className="space-y-4">
                     {/* This section is intentionally left blank as the Category Details section has been removed */}
                   </div>
