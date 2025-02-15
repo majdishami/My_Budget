@@ -253,20 +253,29 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id.toString() === billId);
       if (!bill) return [];
 
-      // Generate all monthly occurrence dates within range
-      const occurrences = [];
-      let currentDate = dayjs(date.from).startOf('month').date(bill.day);
+      let currentDate = dayjs(date.from).clone().date(bill.day);
 
-      // Calculate all occurrences
+      if (currentDate.isBefore(dayjs(date.from))) {
+        currentDate = currentDate.add(1, 'month');
+      }
+
+      let occurredCount = 0;
+      let pendingCount = 0;
+
+      // Count occurrences within date range
       while (currentDate.isSameOrBefore(dayjs(date.to))) {
-        if (currentDate.isSameOrAfter(dayjs(date.from))) {
-          occurrences.push({
-            date: currentDate.format('YYYY-MM-DD'),
-            isPaid: currentDate.isSameOrBefore(today),
-          });
+        if (currentDate.isSameOrBefore(today)) {
+          occurredCount++;
+        } else {
+          pendingCount++;
         }
         currentDate = currentDate.add(1, 'month');
       }
+
+      // Calculate amounts based on occurrences
+      const occurredAmount = bill.amount * occurredCount;
+      const pendingAmount = bill.amount * pendingCount;
+      const totalAmount = occurredAmount + pendingAmount;
 
       // Get actual transactions for this bill within date range
       const billTransactions = transactions.filter(t =>
@@ -274,17 +283,6 @@ export default function ExpenseReportDialog({
         dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
         dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
       ).sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
-
-      // Calculate totals based on occurrences
-      const paidOccurrences = occurrences.filter(o => o.isPaid);
-      const pendingOccurrences = occurrences.filter(o => !o.isPaid);
-
-      const occurredCount = paidOccurrences.length;
-      const pendingCount = pendingOccurrences.length;
-
-      const occurredAmount = bill.amount * occurredCount;
-      const pendingAmount = bill.amount * pendingCount;
-      const totalAmount = occurredAmount + pendingAmount;
 
       return [{
         category: bill.name,
@@ -923,8 +921,7 @@ export default function ExpenseReportDialog({
                                 {formatCurrency(expense.occurredAmount)}
                               </TableCell><TableCell className="text-right text-orange500">
                                 {formatCurrency(expense.pendingAmount)}
-                              </TableCell>
-                              <TableCell className="text-right">
+                              </TableCell>                              <TableCell className="text-right">
                                 <span className="text-red-600">{expense.occurredCount}</span>
                                 {" / "}
                                 <span className="text-orange-500">{expense.pendingCount}</span>
