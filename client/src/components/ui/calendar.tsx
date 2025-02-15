@@ -8,7 +8,7 @@ import { DayContent } from "@/components/DayContent"
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   bills?: Bill[];
   incomes?: Income[];
-  onDayClick?: (date: Date) => void;
+  onDayClick?: (dayNumber: number) => void;
 }
 
 function Calendar({

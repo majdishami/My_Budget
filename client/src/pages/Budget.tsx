@@ -13,6 +13,8 @@ import DailySummaryDialog from "@/components/DailySummaryDialog";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ThemeToggle from "@/components/ThemeToggle";
+import { Calendar } from "@/components/ui/calendar"; // Fix: Import from ui/calendar
+
 
 // Initialize dayjs plugins
 dayjs.extend(isBetween);
@@ -332,61 +334,6 @@ export function Budget() {
     setSelectedDay(Math.min(selectedDay, days));
   }, [selectedMonth, selectedDay]);
 
-  // Memoize day click handler
-  const handleDayClick = useCallback((day: number) => {
-    setSelectedDay(day);
-    setShowDailySummary(true);
-  }, []);
-
-  // Update the calendarData calculation
-  const calendarData = useMemo(() => {
-    // Ensure timezone consistency and proper month initialization
-    const firstDayDate = dayjs.tz(`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`, dayjs.tz.guess());
-    const daysInMonth = firstDayDate.daysInMonth();
-    const startWeekday = firstDayDate.day(); // 0-6, Sunday-Saturday
-
-    console.log('Calendar debug:', {
-      date: firstDayDate.format('YYYY-MM-DD'),
-      weekday: firstDayDate.format('dddd'),
-      startWeekday,
-      daysInMonth
-    });
-
-    // Create array for all days
-    const days: (number | null)[] = [];
-
-    // Add empty cells for days before the first day of month
-    for (let i = 0; i < startWeekday; i++) {
-      days.push(null);
-    }
-
-    // Add actual days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day);
-    }
-
-    // Add empty cells to complete the grid
-    const totalDays = startWeekday + daysInMonth;
-    const rowsNeeded = Math.ceil(totalDays / 7);
-    const totalCells = rowsNeeded * 7;
-
-    while (days.length < totalCells) {
-      days.push(null);
-    }
-
-    return days;
-  }, [selectedYear, selectedMonth]);
-
-  // Update the current day detection
-  const isCurrentDay = useCallback((dayNumber: number) => {
-    const now = dayjs();
-    return (
-      dayNumber === now.date() &&
-      selectedMonth === now.month() &&
-      selectedYear === now.year()
-    );
-  }, [selectedMonth, selectedYear]);
-
 
   // Loading state
   if (isLoading) {
@@ -477,44 +424,24 @@ export function Budget() {
 
       <Card className="m-1 md:m-4">
         <div className="w-full overflow-hidden">
-          <table className="w-full table-fixed border-collapse text-[10px] md:text-sm lg:text-base">
-            <thead className="sticky top-0 bg-background z-10">
-              <tr>
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                  <th key={day} className="p-0.5 lg:p-2 text-center font-medium text-muted-foreground border border-yellow-100/50 w-[14.28%]">
-                    {day}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-yellow-100/50">
-              {Array.from({ length: calendarData.length > 35 ? 6 : 5 }, (_, weekIndex) => (
-                <tr key={weekIndex} className="divide-x divide-yellow-100/50">
-                  {Array.from({ length: 7 }, (_, dayIndex) => {
-                    const dayNumber = calendarData[weekIndex * 7 + dayIndex];
-                    if (dayNumber === null) {
-                      return <td key={dayIndex} className="border border-yellow-100/50 p-0.5 lg:p-2 bg-muted/10 h-12 md:h-24 lg:h-48" />;
-                    }
-
-                    const isToday = isCurrentDay(dayNumber);
-                    return (
-                      <DayCell
-                        key={dayIndex}
-                        day={dayNumber}
-                        isCurrentDay={isToday}
-                        selectedDay={selectedDay}
-                        dayIncomes={getIncomeForDay(dayNumber)}
-                        dayBills={getBillsForDay(dayNumber)}
-                        onDayClick={handleDayClick}
-                        selectedMonth={selectedMonth}
-                        selectedYear={selectedYear}
-                      />
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Calendar
+            mode="single"
+            selected={new Date(selectedYear, selectedMonth, selectedDay)}
+            month={new Date(selectedYear, selectedMonth, 1)}
+            onDayClick={(dayNumber) => {
+              setSelectedDay(dayNumber);
+              setShowDailySummary(true);
+            }}
+            onMonthChange={(date) => {
+              if (date) {
+                setSelectedMonth(date.getMonth());
+                setSelectedYear(date.getFullYear());
+              }
+            }}
+            className="rounded-md border"
+            bills={bills}
+            incomes={incomes}
+          />
         </div>
       </Card>
 
@@ -522,7 +449,7 @@ export function Budget() {
         isOpen={showDailySummary}
         onOpenChange={setShowDailySummary}
         selectedDay={selectedDay}
-        selectedMonth={selectedMonth +1}
+        selectedMonth={selectedMonth}
         selectedYear={selectedYear}
         dayIncomes={getIncomeForDay(selectedDay)}
         dayBills={getBillsForDay(selectedDay)}

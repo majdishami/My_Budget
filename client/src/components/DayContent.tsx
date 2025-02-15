@@ -6,7 +6,7 @@ interface DayContentProps {
   day: Date;
   bills?: Bill[];
   incomes?: Income[];
-  onClick?: (date: Date) => void;
+  onClick?: (dayNumber: number) => void;
 }
 
 export function DayContent({ day, bills = [], incomes = [], onClick }: DayContentProps) {
@@ -26,7 +26,7 @@ export function DayContent({ day, bills = [], incomes = [], onClick }: DayConten
 
   const handleClick = () => {
     if (onClick) {
-      onClick(day);
+      onClick(day.getDate());
     }
   };
 
