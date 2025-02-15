@@ -195,7 +195,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     console.log('[ExpenseReportDialog] Starting filtration with:', {
       dateRange: { from: date.from, to: date.to },
       selectedValue,
-      totalTransactions: transactions.length
+      totalTransactions: transactions.length,
+      sampleTransactions: transactions.slice(0, 3).map(t => ({
+        description: t.description,
+        date: t.date,
+        amount: t.amount,
+        category: t.category_name
+      }))
     });
 
     let filtered = transactions.filter(t => {
@@ -212,7 +218,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           description: t.description,
           date: t.date,
           amount: t.amount,
-          category: t.category_name
+          category: t.category_name,
+          type: t.type
         });
       }
 
@@ -224,7 +231,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       transactions: filtered.map(t => ({
         description: t.description,
         date: t.date,
-        category: t.category_name
+        category: t.category_name,
+        type: t.type
       }))
     });
 
@@ -235,16 +243,21 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         console.log('[ExpenseReportDialog] Filtering for category:', categoryName);
 
         filtered = filtered.filter(t => {
-          // Case insensitive category matching
+          // Case insensitive category matching and include transactions with Car Insurance in description
           const normalizedCategory = t.category_name.toLowerCase();
           const normalizedSearchCategory = categoryName.toLowerCase();
-          const isMatch = normalizedCategory === normalizedSearchCategory;
+          const normalizedDescription = t.description.toLowerCase();
+
+          const isMatch = normalizedCategory === normalizedSearchCategory || 
+                         (normalizedSearchCategory === 'car insurance' && 
+                          normalizedDescription.includes('car insurance'));
 
           console.log('[ExpenseReportDialog] Category match check:', {
             transactionCategory: t.category_name,
             normalizedCategory,
             selectedCategory: categoryName,
             normalizedSearchCategory,
+            description: t.description,
             isMatch
           });
 
@@ -256,7 +269,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           matchCount: filtered.length,
           matches: filtered.map(t => ({
             description: t.description,
-            category: t.category_name
+            category: t.category_name,
+            type: t.type
           }))
         });
       }
@@ -273,7 +287,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     });
 
     return filtered;
-  }, [showReport, date, transactions, selectedValue, bills, today]);
+  }, [showReport, date, selectedValue, transactions]);
 
   // Group transactions by expense name for the "all" view
   const groupedExpenses = useMemo(() => {
