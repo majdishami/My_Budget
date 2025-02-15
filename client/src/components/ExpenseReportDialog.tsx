@@ -188,6 +188,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [bills]); // Only depend on billsData
 
+  // Update the filtering logic to properly handle category filtering
   const filteredTransactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
@@ -202,6 +203,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       const fromDate = dayjs(date.from);
       const toDate = dayjs(date.to);
 
+      // Include transactions on the start and end dates
       const isInRange = transactionDate.isSameOrAfter(fromDate, 'day') &&
                      transactionDate.isSameOrBefore(toDate, 'day');
 
@@ -218,22 +220,32 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     // Additional filtering based on selection
     if (selectedValue !== "all" && selectedValue !== "all_categories") {
-      if (selectedValue.startsWith('expense_')) {
+      if (selectedValue.startsWith('category_')) {
+        const categoryName = selectedValue.replace('category_', '');
+        console.log('[ExpenseReportDialog] Filtering for category:', categoryName);
+
+        filtered = filtered.filter(t => {
+          const isMatch = t.category_name === categoryName;
+
+          console.log('[ExpenseReportDialog] Category match check:', {
+            transactionCategory: t.category_name,
+            selectedCategory: categoryName,
+            isMatch
+          });
+
+          return isMatch;
+        });
+      } else if (selectedValue.startsWith('expense_')) {
         const expenseId = selectedValue.replace('expense_', '');
         console.log('[ExpenseReportDialog] Filtering for expense ID:', expenseId);
 
         const selectedBill = bills.find(b => String(b.id) === expenseId);
-        console.log('[ExpenseReportDialog] Selected bill:', selectedBill);
-
         if (selectedBill) {
           const normalizedBillName = selectedBill.name.toLowerCase().trim();
 
           filtered = filtered.filter(t => {
             const normalizedTransDesc = t.description.toLowerCase().trim();
-
-            // Case insensitive partial match
-            const isMatch = normalizedTransDesc.includes('car insurance') || 
-                          normalizedTransDesc.includes(normalizedBillName);
+            const isMatch = normalizedTransDesc.includes(normalizedBillName);
 
             console.log('[ExpenseReportDialog] Expense match check:', {
               transactionDesc: normalizedTransDesc,
@@ -244,9 +256,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             return isMatch;
           });
         }
-      } else if (selectedValue.startsWith('category_')) {
-        const categoryName = selectedValue.replace('category_', '');
-        filtered = filtered.filter(t => t.category_name === categoryName);
       }
     }
 
@@ -891,7 +900,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                           <CardContent>
                             <Table>
                               <TableHeader>
-                                <TableRow>
+                               <TableRow>
                                   <TableHead>Date</TableHead>
                                   <TableHead>Description</TableHead>
                                                                  <TableHead>Category</TableHead>
