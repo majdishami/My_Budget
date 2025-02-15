@@ -461,7 +461,7 @@ export default function ExpenseReportDialog({
       const billId = selectedValue.replace('expense_', '');
       const bill = bills.find(b => b.id.toString() === billId);
       if (bill) {
-        title = `${bill.name} - ${formatCurrency(bill.amount)} per month`;
+        title = `${bill.name}`; // Corrected title
       }
     } else if (selectedValue === "all") {
       title = "All Expenses Combined";
@@ -487,7 +487,7 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id === billId);
       if (bill) {
         return (
-          `${bill.name} - ${formatCurrency(bill.amount)} per month`
+          `${bill.name}` // Corrected title
         );
       }
     }
@@ -674,21 +674,62 @@ export default function ExpenseReportDialog({
                 {/* Main Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {selectedValue.startsWith('expense_') && (
-                    <div className="md:col-span-3 mb-2">
-                      <h2 className="text-2xl font-bold">
-                        {bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name}
-                      </h2>
-                      <div className="text-muted-foreground flex items-center gap-2 mt-1">
-                        <CategoryDisplay
-                          category={bills.find(b => b.id === selectedValue.replace('expense_', ''))?.category_name || 'Uncategorized'}
-                          color={bills.find(b => b.id === selectedValue.replace('expense_', ''))?.category_color || '#D3D3D3'}
-                          icon={bills.find(b => b.id === selectedValue.replace('expense_', ''))?.category_icon || null}
-                        />
-                        <span>
-                          {formatCurrency(bills.find(b => b.id === selectedValue.replace('expense_', ''))?.amount || 0)} per month
-                        </span>
-                      </div>
-                    </div>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>
+                          <div className="flex items-center gap-2 text-lg">
+                            <CategoryDisplay
+                              category={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_name || 'Uncategorized'}
+                              color={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_color || '#D3D3D3'}
+                              icon={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_icon || null}
+                            />
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-6">
+                          {/* Transaction Summary Table */}
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Description</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {itemTotals[0]?.transactions
+                                ?.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf())
+                                .map((transaction) => (
+                                  <TableRow key={`${transaction.date}-${transaction.description}`}>
+                                    <TableCell>
+                                      {dayjs(transaction.date).format('MMM D, YYYY')}
+                                    </TableCell>
+                                    <TableCell className={`text-right font-medium ${
+                                      dayjs(transaction.date).isSameOrBefore(today)
+                                        ? 'text-red-600'
+                                        : 'text-orange-500'
+                                    }`}>
+                                      {formatCurrency(transaction.amount)}
+                                    </TableCell>
+                                    <TableCell>
+                                      {dayjs(transaction.date).isSameOrBefore(today) ? (
+                                        <span className="text-red-600">Paid</span>
+                                      ) : (
+                                        <span className="text-orange-500">Pending</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      {transaction.description}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
                   <Card>
                     <CardHeader className="py-4">
@@ -939,8 +980,8 @@ export default function ExpenseReportDialog({
                                     {dayjs(transaction.date).format('MMM D, YYYY')}
                                   </TableCell>
                                   <TableCell className={`text-right font-medium ${
-                                    dayjs(transaction.date).isSameOrBefore(today) 
-                                      ? 'text-red-600' 
+                                    dayjs(transaction.date).isSameOrBefore(today)
+                                      ? 'text-red-600'
                                       : 'text-orange-500'
                                   }`}>
                                     {formatCurrency(transaction.amount)}
