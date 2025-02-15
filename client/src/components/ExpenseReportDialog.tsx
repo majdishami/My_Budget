@@ -834,7 +834,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 {selectedValue !== "all" && (
                   <div className="space-y-4">
                     {sortedMonths.map(monthKey => {
-                      const monthTransactions = groupedTransactions[monthKey];
+                      const monthTransactions = groupedTransactions[monthKey] || [];
                       const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
                       const monthlyPaid = monthTransactions
                         .filter(t => t.occurred)
@@ -846,87 +846,66 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <CardTitle className="text-xl font-semibold">
                               {dayjs(monthKey).format('MMMM YYYY')}
                             </CardTitle>
-                            {selectedValue === "all" && (
-                              <div className="text-sm space-y-1">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-muted-foreground">Net Balance up today:</span>
-                                  <span className="text-red-600">
-                                    {formatCurrency(monthlyTotal)}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-muted-foreground">Net:</span>
-                                  <span className="text-red-600">
-                                    {formatCurrency(monthlyPaid)}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-muted-foreground">Monthly Net:</span>
-                                  <span className="text-orange-500">
-                                    {formatCurrency(monthlyTotal - monthlyPaid)}</span>
-                                </div>
+                            <div className="text-sm space-y-1">
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Total for month:</span>
+                                <span className="text-red-600">{formatCurrency(monthlyTotal)}</span>
                               </div>
-                            )}
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Paid to date:</span>
+                                <span className="text-red-600">{formatCurrency(monthlyPaid)}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Remaining:</span>
+                                <span className="text-orange-500">
+                                  {formatCurrency(monthlyTotal - monthlyPaid)}
+                                </span>
+                              </div>
+                            </div>
                           </CardHeader>
                           <CardContent>
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  {selectedValue === "all_categories" ? (
-                                    <>
-                                      <TableHead>Category</TableHead>
-                                      <TableHead className="text-right">Total Amount</TableHead>
-                                      <TableHead>Status</TableHead>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <TableHead>Due Date</TableHead>
-                                      <TableHead>Description</TableHead>
-                                      <TableHead>Category</TableHead>
-                                      <TableHead className="text-right">Amount</TableHead>
-                                      <TableHead>Status</TableHead>
-                                    </>
-                                  )}
+                                  <TableHead>Date</TableHead>
+                                  <TableHead>Description</TableHead>
+                                  <TableHead>Category</TableHead>
+                                  <TableHead className="text-right">Amount</TableHead>
+                                  <TableHead className="text-right">Status</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
                                 {monthTransactions
                                   .sort((a, b) => {
-                                    if (selectedValue === "all_categories") {
-                                      return a.category.localeCompare(b.category);
+                                    if (a.occurred !== b.occurred) {
+                                      return a.occurred ? -1 : 1;
                                     }
                                     return dayjs(a.date).diff(dayjs(b.date));
                                   })
-                                  .map((transaction) => (
+                                  .map((transaction: Transaction) => (
                                     <TableRow key={transaction.id}>
-                                      {selectedValue === "all_categories" ? (
-                                        <>
-                                          <TableCell>
-                                            <CategoryDisplay category={transaction.category} color={transaction.category_color || '#D3D3D3'} icon={transaction.category_icon ?? null} />
-                                          </TableCell>
-                                          <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-50'}`}>
-                                            {formatCurrency(transaction.amount)}
-                                          </TableCell>
-                                          <TableCell className={`${transaction.occurred ? 'text-red-600' : ''text-orange-500'}`}>
-                                            {transaction.occurred ? '✓' : '⌛'}
-                                          </TableCell>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                                          <TableCell>{transaction.description}</TableCell>
-                                          <TableCell>
-                                            <CategoryDisplay category={transaction.category} color={transaction.category_color} icon={transaction.category_icon ?? null} />
-                                          </TableCell>
-                                          <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
-                                            {formatCurrency(transaction.amount)}
-                                          </TableCell>
-                                          <TableCell className={`${transaction.occurred ? 'text-red600' : 'text-orange-500'}`}>
-                                            {transaction.occurred ? '✓' : '⌛'}
-                                          </TableCell>
-                                        </>
-                                      )}
+                                      <TableCell>{dayjs(transaction.date).format('MMM D')}</TableCell>
+                                      <TableCell>{transaction.description}</TableCell>
+                                      <TableCell>
+                                        <CategoryDisplay
+                                          category={transaction.category_name}
+                                          color={transaction.category_color}
+                                          icon={transaction.category_icon}
+                                        />
+                                      </TableCell>
+                                      <TableCell className={`text-right ${
+                                        transaction.occurred ? 'text-red-600' : 'text-orange-500'
+                                      }`}>
+                                        {formatCurrency(transaction.amount)}
+                                      </TableCell>
+                                      <TableCell className={`text-right ${
+                                        transaction.occurred ? 'text-red-600' : 'text-orange-50'
+                                      }`}>
+                                        {transaction.occurred ? '✓' : '⌛'}
+                                      </TableCell>
                                     </TableRow>
                                   ))}
-                                </TableBody>
+                              </TableBody>
                             </Table>
                           </CardContent>
                         </Card>
