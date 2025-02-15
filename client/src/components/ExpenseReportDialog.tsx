@@ -423,8 +423,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       });
 
       return Object.values(totals).sort((a, b) => b.totalAmount - a.totalAmount);
-    } else if (selectedValue.startsWith('category_') || selectedValue.startsWith('expense_')) {
-      // Individual category/expense totals logic with occurrences
+    } else if (selectedValue.startsWith('category_')) {
+      // Individual category totals logic with occurrences
+      const selectedCategoryName = selectedValue.replace('category_', '');
       const totals: Record<string, {
         description: string;
         category: string;
@@ -436,7 +437,65 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         color: string;
       }> = {};
 
-      filteredTransactions.forEach(t => {
+      // Filter transactions for the selected category first
+      const categoryTransactions = filteredTransactions.filter(t =>
+        t.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
+      );
+
+      categoryTransactions.forEach(t => {
+        if (!totals[t.description]) {
+          totals[t.description] = {
+            description: t.description,
+            category: t.category_name,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            occurredCount: 0,
+            pendingCount: 0,
+            color: t.category_color || '#D3D3D3'
+          };
+        }
+
+        const entry = totals[t.description];
+        entry.total += t.amount;
+
+        if (dayjs(t.date).isSameOrBefore(today)) {
+          entry.occurred += t.amount;
+          entry.occurredCount++;
+        } else {
+          entry.pending += t.amount;
+          entry.pendingCount++;
+        }
+      });
+
+      return Object.values(totals).sort((a, b) => b.total - a.total);
+    } else if (selectedValue.startsWith('expense_')) {
+      // Individual expense totals logic with occurrences
+      const billId = selectedValue.replace('expense_', '');
+      const selectedBill = bills.find(b => b.id === billId);
+
+      if (!selectedBill) return [];
+
+      const totals: Record<string, {
+        description: string;
+        category: string;
+        total: number;
+        occurred: number;
+        pending: number;
+        occurredCount: number;
+        pendingCount: number;
+        color: string;
+      }> = {};
+
+      // Filter transactions that match the bill name
+      const billTransactions = filteredTransactions.filter(t => {
+        const normalizedTransDesc = t.description.toLowerCase().trim();
+        const normalizedBillName = selectedBill.name.toLowerCase().trim();
+        const billWords = normalizedBillName.split(' ').filter(word => word.length > 2);
+        return billWords.some(word => normalizedTransDesc.includes(word));
+      });
+
+      billTransactions.forEach(t => {
         if (!totals[t.description]) {
           totals[t.description] = {
             description: t.description,
@@ -466,7 +525,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     }
 
     return [];
-  }, [filteredTransactions, selectedValue, today]);
+  }, [filteredTransactions, selectedValue, bills, today]);
 
 
   // Update where we handle the bill ID in the dialog title
