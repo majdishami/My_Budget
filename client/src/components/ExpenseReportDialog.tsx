@@ -280,26 +280,24 @@ export default function ExpenseReportDialog({
   const itemTotals = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
-    // Handle single expense view
+    // Handle individual expense view
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
-      const expense = groupedExpenses.find(e => {
-        const bill = bills.find(b => b.id === billId);
-        return bill && e.description === bill.name;
-      });
+      const bill = bills.find(b => b.id === billId);
+      if (!bill) return [];
 
-      if (!expense) return [];
+      const expenseEntry = groupedExpenses.find(expense => expense.description === bill.name);
+      if (!expenseEntry) return [];
 
       return [{
-        category: expense.description,
-        total: expense.totalAmount,
-        occurred: expense.occurredAmount,
-        pending: expense.pendingAmount,
-        occurredCount: expense.occurredCount,
-        pendingCount: expense.pendingCount,
-        color: expense.color,
-        icon: bills.find(b => b.id === billId)?.category_icon || null,
-        transactions: expense.transactions
+        category: bill.name,
+        total: expenseEntry.totalAmount,
+        occurred: expenseEntry.occurredAmount,
+        pending: expenseEntry.pendingAmount,
+        occurredCount: expenseEntry.occurredCount,
+        pendingCount: expenseEntry.pendingCount,
+        color: bill.category_color,
+        icon: bill.category_icon || null
       }];
     }
     // Handle category selection
