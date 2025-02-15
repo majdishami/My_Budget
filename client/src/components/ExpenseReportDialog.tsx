@@ -246,6 +246,7 @@ export default function ExpenseReportDialog({
   // Update the itemTotals calculation for individual expenses
   const itemTotals = useMemo(() => {
     if (!date?.from || !date?.to) return [];
+    const totals: Record<string, CategoryTotal> = {};
 
     // Handle individual expense view
     if (selectedValue.startsWith('expense_')) {
@@ -253,14 +254,15 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id.toString() === billId);
       if (!bill) return [];
 
+      // Start with the bill's day in the first month
       let currentDate = dayjs(date.from).clone().date(bill.day);
+      let occurredCount = 0;
+      let pendingCount = 0;
 
+      // If already passed bill day in start month, move to next month
       if (currentDate.isBefore(dayjs(date.from))) {
         currentDate = currentDate.add(1, 'month');
       }
-
-      let occurredCount = 0;
-      let pendingCount = 0;
 
       // Count occurrences within date range
       while (currentDate.isSameOrBefore(dayjs(date.to))) {
@@ -277,7 +279,7 @@ export default function ExpenseReportDialog({
       const pendingAmount = bill.amount * pendingCount;
       const totalAmount = occurredAmount + pendingAmount;
 
-      // Get actual transactions for this bill within date range
+      // Get actual transactions for display
       const billTransactions = transactions.filter(t =>
         t.description === bill.name &&
         dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
