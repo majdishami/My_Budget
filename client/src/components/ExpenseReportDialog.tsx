@@ -286,18 +286,49 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id === billId);
       if (!bill) return [];
 
-      const expenseEntry = groupedExpenses.find(expense => expense.description === bill.name);
-      if (!expenseEntry) return [];
+      // Generate transactions for each month in the date range
+      const transactions: Transaction[] = [];
+      let currentDate = dayjs(date.from).date(bill.day);
+
+      // If we've passed the bill day this month, start from next month
+      if (currentDate.isBefore(dayjs(date.from))) {
+        currentDate = currentDate.add(1, 'month');
+      }
+
+      // Generate a transaction for each occurrence of the bill
+      while (currentDate.isSameOrBefore(dayjs(date.to))) {
+        transactions.push({
+          id: `${bill.id}-${currentDate.format('YYYY-MM-DD')}`,
+          date: currentDate.format('YYYY-MM-DD'),
+          description: bill.name,
+          amount: bill.amount,
+          type: 'expense',
+          category_name: bill.category_name,
+          category_color: bill.category_color,
+          category_icon: bill.category_icon || null,
+          category_id: bill.category_id
+        });
+        currentDate = currentDate.add(1, 'month');
+      }
+
+      // Calculate totals
+      const occurred = transactions
+        .filter(t => dayjs(t.date).isSameOrBefore(today))
+        .reduce((sum, t) => sum + t.amount, 0);
+      const pending = transactions
+        .filter(t => dayjs(t.date).isAfter(today))
+        .reduce((sum, t) => sum + t.amount, 0);
 
       return [{
         category: bill.name,
-        total: expenseEntry.totalAmount,
-        occurred: expenseEntry.occurredAmount,
-        pending: expenseEntry.pendingAmount,
-        occurredCount: expenseEntry.occurredCount,
-        pendingCount: expenseEntry.pendingCount,
+        total: occurred + pending,
+        occurred,
+        pending,
+        occurredCount: transactions.filter(t => dayjs(t.date).isSameOrBefore(today)).length,
+        pendingCount: transactions.filter(t => dayjs(t.date).isAfter(today)).length,
         color: bill.category_color,
-        icon: bill.category_icon || null
+        icon: bill.category_icon || null,
+        transactions // Include transactions for display
       }];
     }
     // Handle category selection
@@ -394,7 +425,7 @@ export default function ExpenseReportDialog({
     }
 
     return [];
-  }, [bills, selectedValue, date, today, groupedExpenses]);
+  }, [bills, selectedValue, date, today]);
 
   // Update summary calculations
   const summary = useMemo(() => {
@@ -900,8 +931,9 @@ export default function ExpenseReportDialog({
                                     icon={transaction.category_icon}
                                   />
                                 </TableCell>
-                                <TableCell className={`text-right ${isOccurred ? 'text-red-600' : 'text-orange-500'}`}>
-                                  {formatCurrency(transaction.amount)}
+                                <TableCell<replit_final_file>
+className={`text-right ${isOccurred ? 'text-red-600' : 'text-orange-500'}`}>
+                                    {formatCurrency(transaction.amount)}
                                 </TableCell>
                                 <TableCell>
                                   <span className={isOccurred ? 'text-red-600' : 'text-orange-500'}>
