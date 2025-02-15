@@ -114,7 +114,11 @@ interface ExpenseReportDialogProps {
   bills: Bill[];
 }
 
-export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: ExpenseReportDialogProps) {
+export default function ExpenseReportDialog({
+  isOpen,
+  onOpenChange,
+  bills,
+}: ExpenseReportDialogProps) {
   const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
@@ -260,104 +264,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     const dateFrom = dayjs(date.from).startOf('day');
     const dateTo = dayjs(date.to).endOf('day');
 
-    if (selectedValue === "all_categories") {
-      const totals: Record<string, CategoryTotal> = {};
-
-      // Initialize totals for each category
-      bills.forEach(bill => {
-        if (!totals[bill.category_name]) {
-          totals[bill.category_name] = {
-            category: bill.category_name,
-            total: 0,
-            occurred: 0,
-            pending: 0,
-            occurredCount: 0,
-            pendingCount: 0,
-            color: bill.category_color,
-            icon: bill.category_icon || bill.category?.icon || null
-          };
-        }
-
-        let currentDate = dateFrom.clone().date(bill.day);
-
-        // If we've passed the bill day this month, start from next month
-        if (currentDate.isBefore(dateFrom)) {
-          currentDate = currentDate.add(1, 'month');
-        }
-
-        // Generate all occurrences within date range
-        while (currentDate.isSameOrBefore(dateTo)) {
-          const entry = totals[bill.category_name];
-          if (currentDate.isSameOrBefore(today)) {
-            entry.occurred += bill.amount;
-            entry.occurredCount++;
-          } else {
-            entry.pending += bill.amount;
-            entry.pendingCount++;
-          }
-
-          currentDate = currentDate.add(1, 'month');
-        }
-      });
-
-      // Calculate totals after all occurrences
-      Object.values(totals).forEach(entry => {
-        entry.total = entry.occurred + entry.pending;
-      });
-
-      return Object.values(totals)
-        .sort((a, b) => b.total - a.total)
-        .filter(entry => entry.total > 0); // Only show categories with expenses
-    } else if (selectedValue.startsWith('category_')) {
-      const categoryName = selectedValue.replace('category_', '');
-      const categoryBills = bills.filter(b => b.category_name === categoryName);
-
-      if (categoryBills.length === 0) return [];
-
-      // Get the category details from the first bill
-      const categoryDetails = categoryBills[0];
-
-      let total = 0;
-      let occurred = 0;
-      let pending = 0;
-      let occurredCount = 0;
-      let pendingCount = 0;
-
-      categoryBills.forEach(bill => {
-        let currentDate = dateFrom.clone().date(bill.day);
-
-        // If we've passed the bill day this month, start from next month
-        if (currentDate.isBefore(dateFrom)) {
-          currentDate = currentDate.add(1, 'month');
-        }
-
-        // Generate all occurrences within date range
-        while (currentDate.isSameOrBefore(dateTo)) {
-          if (currentDate.isSameOrBefore(today)) {
-            occurred += bill.amount;
-            occurredCount++;
-          } else {
-            pending += bill.amount;
-            pendingCount++;
-          }
-
-          currentDate = currentDate.add(1, 'month');
-        }
-      });
-
-      total = occurred + pending;
-
-      return [{
-        category: categoryName,
-        total,
-        occurred,
-        pending,
-        occurredCount,
-        pendingCount,
-        color: categoryDetails.category_color,
-        icon: categoryDetails.category_icon || categoryDetails.category?.icon || null
-      }];
-    } else if (selectedValue.startsWith('expense_')) {
+    if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
       const bill = bills.find(b => b.id === billId);
 
@@ -401,12 +308,104 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         color: bill.category_color,
         icon: bill.category_icon || bill.category?.icon || null
       }];
+    } else if (selectedValue === "all_categories") {
+      // Keep existing all_categories logic
+      const totals: Record<string, CategoryTotal> = {};
+
+      // Initialize totals for each category
+      bills.forEach(bill => {
+        if (!totals[bill.category_name]) {
+          totals[bill.category_name] = {
+            category: bill.category_name,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            occurredCount: 0,
+            pendingCount: 0,
+            color: bill.category_color,
+            icon: bill.category_icon || bill.category?.icon || null
+          };
+        }
+
+        let currentDate = dateFrom.clone().date(bill.day);
+
+        if (currentDate.isBefore(dateFrom)) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        while (currentDate.isSameOrBefore(dateTo)) {
+          const entry = totals[bill.category_name];
+          if (currentDate.isSameOrBefore(today)) {
+            entry.occurred += bill.amount;
+            entry.occurredCount++;
+          } else {
+            entry.pending += bill.amount;
+            entry.pendingCount++;
+          }
+
+          currentDate = currentDate.add(1, 'month');
+        }
+      });
+
+      Object.values(totals).forEach(entry => {
+        entry.total = entry.occurred + entry.pending;
+      });
+
+      return Object.values(totals)
+        .sort((a, b) => b.total - a.total)
+        .filter(entry => entry.total > 0);
+    } else if (selectedValue.startsWith('category_')) {
+      // Keep existing category logic
+      const categoryName = selectedValue.replace('category_', '');
+      const categoryBills = bills.filter(b => b.category_name === categoryName);
+
+      if (categoryBills.length === 0) return [];
+
+      const categoryDetails = categoryBills[0];
+      let total = 0;
+      let occurred = 0;
+      let pending = 0;
+      let occurredCount = 0;
+      let pendingCount = 0;
+
+      categoryBills.forEach(bill => {
+        let currentDate = dateFrom.clone().date(bill.day);
+
+        if (currentDate.isBefore(dateFrom)) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        while (currentDate.isSameOrBefore(dateTo)) {
+          if (currentDate.isSameOrBefore(today)) {
+            occurred += bill.amount;
+            occurredCount++;
+          } else {
+            pending += bill.amount;
+            pendingCount++;
+          }
+
+          currentDate = currentDate.add(1, 'month');
+        }
+      });
+
+      total = occurred + pending;
+
+      return [{
+        category: categoryName,
+        total,
+        occurred,
+        pending,
+        occurredCount,
+        pendingCount,
+        color: categoryDetails.category_color,
+        icon: categoryDetails.category_icon || categoryDetails.category?.icon || null
+      }];
     }
 
     return [];
   }, [bills, selectedValue, date, today]);
 
-  // Update summary to handle individual expenses
+  // Update summary to handle all views consistently
   const summary = useMemo(() => {
     if (!date?.from || !date?.to) {
       return {
@@ -417,26 +416,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     }
 
     if (selectedValue === "all") {
-      // For "All Expenses Combined" view, use groupedExpenses
       return {
         totalAmount: groupedExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0),
         occurredAmount: groupedExpenses.reduce((sum, expense) => sum + expense.occurredAmount, 0),
         pendingAmount: groupedExpenses.reduce((sum, expense) => sum + expense.pendingAmount, 0)
       };
-    } else if (selectedValue === "all_categories" || selectedValue.startsWith('category_') || selectedValue.startsWith('expense_')) {
-      // Use itemTotals for all detailed views
+    } else {
+      // Use itemTotals for all other views
       return {
         totalAmount: itemTotals.reduce((sum, item) => sum + item.total, 0),
         occurredAmount: itemTotals.reduce((sum, item) => sum + item.occurred, 0),
         pendingAmount: itemTotals.reduce((sum, item) => sum + item.pending, 0)
       };
     }
-
-    return {
-      totalAmount: 0,
-      occurredAmount: 0,
-      pendingAmount: 0
-    };
   }, [selectedValue, date, groupedExpenses, itemTotals]);
 
   const getDialogTitle = () => {
