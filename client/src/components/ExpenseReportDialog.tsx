@@ -891,13 +891,13 @@ export default function ExpenseReportDialog({
                 {selectedValue.startsWith('expense_') && itemTotals.length > 0 && (
                   <Card className="mb-4">
                     <CardHeader>
-                      <CardTitle>Individual Expense Details</CardTitle>
+                      <CardTitle>Expense Summary</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Expense</TableHead>
+                            <TableHead>Category</TableHead>
                             <TableHead className="text-right">Total Amount</TableHead>
                             <TableHead className="text-right">Paid Amount</TableHead>
                             <TableHead className="text-right">Pending Amount</TableHead>
@@ -906,29 +906,29 @@ export default function ExpenseReportDialog({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {itemTotals.map((expense) => (
-                            <TableRow key={expense.category}>
+                          {itemTotals.map((ct) => (
+                            <TableRow key={ct.category}>
                               <TableCell>
                                 <CategoryDisplay
-                                  category={expense.category}
-                                  color={expense.color}
-                                  icon={expense.icon}
+                                  category={ct.category}
+                                  color={ct.color}
+                                  icon={ct.icon}
                                 />
                               </TableCell>
                               <TableCell className="text-right font-medium">
-                                {formatCurrency(expense.total)}
+                                {formatCurrency(ct.total)}
                               </TableCell>
                               <TableCell className="text-right text-red-600">
-                                {formatCurrency(expense.occurred)}
+                                {formatCurrency(ct.occurred)}
                               </TableCell>
                               <TableCell className="text-right text-orange-500">
-                                {formatCurrency(expense.pending)}
+                                {formatCurrency(ct.pending)}
                               </TableCell>
                               <TableCell className="text-right text-red-600">
-                                {expense.occurredCount}
+                                {ct.occurredCount}
                               </TableCell>
                               <TableCell className="text-right text-orange-500">
-                                {expense.pendingCount}
+                                {ct.pendingCount}
                               </TableCell>
                             </TableRow>
                           ))}
