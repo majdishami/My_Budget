@@ -330,9 +330,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
     // Add actual transactions
     filteredTransactions.forEach(t => {
-      if (!groups[t.description]) {
-        groups[t.description] = {
-          description: t.description,
+      const description = t.description;
+      if (!groups[description]) {
+        groups[description] = {
+          description: description,
           category: t.category_name,
           totalAmount: 0,
           occurredAmount: 0,
@@ -344,11 +345,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         };
       }
 
-      const entry = groups[t.description];
+      const entry = groups[description];
+      const transactionDate = dayjs(t.date);
+      const isOccurred = transactionDate.isSameOrBefore(today);
+
       entry.totalAmount += t.amount;
       entry.transactions.push(t);
 
-      if (dayjs(t.date).isSameOrBefore(today)) {
+      if (isOccurred) {
         entry.occurredAmount += t.amount;
         entry.occurredCount++;
       } else {
@@ -357,12 +361,17 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
     });
 
-    // Add expected occurrences for each bill
+    // Add expected occurrences for each bill within the date range
     if (date?.from && date?.to) {
       bills.forEach(bill => {
         const expectedOccurrences = calculateExpectedOccurrences(bill, date.from!, date.to!);
-        const actualOccurrences = filteredTransactions.filter(t =>
-          t.description.toLowerCase().includes(bill.name.toLowerCase())
+        const actualTransactions = filteredTransactions.filter(t => 
+          t.description.toLowerCase() === bill.name.toLowerCase()
+        );
+
+        const actualOccurrences = actualTransactions.length;
+        const actualPaidOccurrences = actualTransactions.filter(t => 
+          dayjs(t.date).isSameOrBefore(today)
         ).length;
 
         if (actualOccurrences < expectedOccurrences) {
