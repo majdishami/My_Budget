@@ -8,6 +8,7 @@ import { DayContent } from "@/components/DayContent"
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   bills?: Bill[];
   incomes?: Income[];
+  onDayClick?: (date: Date) => void;
 }
 
 function Calendar({
@@ -16,6 +17,7 @@ function Calendar({
   showOutsideDays = true,
   bills = [],
   incomes = [],
+  onDayClick,
   ...props
 }: CalendarProps) {
   return (
@@ -62,7 +64,13 @@ function Calendar({
         IconLeft: () => <ChevronLeft className="h-4 w-4" />,
         IconRight: () => <ChevronRight className="h-4 w-4" />,
         DayContent: ({ date, ...contentProps }) => (
-          <DayContent day={date} bills={bills} incomes={incomes} {...contentProps} />
+          <DayContent 
+            day={date} 
+            bills={bills} 
+            incomes={incomes} 
+            onClick={onDayClick}
+            {...contentProps} 
+          />
         ),
       }}
       {...props}

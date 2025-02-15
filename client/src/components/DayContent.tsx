@@ -6,9 +6,10 @@ interface DayContentProps {
   day: Date;
   bills?: Bill[];
   incomes?: Income[];
+  onClick?: (date: Date) => void;
 }
 
-export function DayContent({ day, bills = [], incomes = [] }: DayContentProps) {
+export function DayContent({ day, bills = [], incomes = [], onClick }: DayContentProps) {
   // Get unique incomes by source for this day
   const uniqueIncomes = incomes.reduce((acc: Income[], income) => {
     const exists = acc.find(i => i.source === income.source);
@@ -23,8 +24,17 @@ export function DayContent({ day, bills = [], incomes = [] }: DayContentProps) {
 
   const hasTransactions = uniqueIncomes.length > 0 || dayBills.length > 0;
 
+  const handleClick = () => {
+    if (onClick) {
+      onClick(day);
+    }
+  };
+
   return (
-    <div className="relative w-full h-full">
+    <div 
+      className="relative w-full h-full cursor-pointer" 
+      onClick={handleClick}
+    >
       <div className="absolute inset-0 flex items-center justify-center">
         {day.getDate()}
       </div>

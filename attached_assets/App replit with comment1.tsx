@@ -204,18 +204,7 @@ const App = () => {
     return { totalIncome, totalBills }; // Return the totals
   };
 
-  // Function to handle day click and show daily summary
-  const handleDayClick = (day: number) => {
-    if (day > 0 && day <= daysInMonth) {
-      setSelectedDay(day);
-      // Ensure we're using the correct month when showing the daily summary
-      const clickedDate = dayjs().year(selectedYear).month(selectedMonth - 1).date(day);
-      console.log('Clicked date:', clickedDate.format('YYYY-MM-DD')); // Debug log
-      setShowDailySummary(true);
-    }
-  };
 
-  // Function to check if a day is the current day
   const isCurrentDay = (day: number) => {
     const currentDate = dayjs(); // Get current date
     return day === currentDate.date() && selectedMonth - 1 === currentDate.month() && selectedYear === currentDate.year(); // Check if it matches
@@ -475,17 +464,23 @@ const App = () => {
             month={new Date(selectedYear, selectedMonth - 1, 1)}
             onSelect={(date) => {
               if (date) {
-                // When a day is clicked, update the state and show the dialog
                 setSelectedDay(date.getDate());
                 setSelectedMonth(date.getMonth() + 1);
                 setSelectedYear(date.getFullYear());
-                setShowDailySummary(true);
               }
             }}
             onMonthChange={(date) => {
               if (date) {
                 setSelectedMonth(date.getMonth() + 1);
                 setSelectedYear(date.getFullYear());
+              }
+            }}
+            onDayClick={(date) => {
+              if (date) {
+                setSelectedDay(date.getDate());
+                setSelectedMonth(date.getMonth() + 1);
+                setSelectedYear(date.getFullYear());
+                setShowDailySummary(true);
               }
             }}
             className="rounded-md border m-4"
