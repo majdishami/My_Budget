@@ -193,12 +193,30 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const filteredTransactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
-    return transactions.filter(t => {
+    let filtered = transactions.filter(t => {
       const transactionDate = dayjs(t.date);
       return transactionDate.isSameOrAfter(dayjs(date.from)) &&
              transactionDate.isSameOrBefore(dayjs(date.to));
     });
-  }, [showReport, date, transactions]);
+
+    // Additional filtering based on selection
+    if (selectedValue !== "all" && selectedValue !== "all_categories") {
+      if (selectedValue.startsWith('expense_')) {
+        const expenseId = selectedValue.replace('expense_', '');
+        const selectedBill = bills.find(b => b.id === expenseId);
+        if (selectedBill) {
+          filtered = filtered.filter(t =>
+            t.description === selectedBill.name
+          );
+        }
+      } else if (selectedValue.startsWith('category_')) {
+        const categoryName = selectedValue.replace('category_', '');
+        filtered = filtered.filter(t => t.category_name === categoryName);
+      }
+    }
+
+    return filtered;
+  }, [showReport, date, transactions, selectedValue, bills]);
 
   // Group transactions by expense name for the "all" view
   const groupedExpenses = useMemo(() => {
