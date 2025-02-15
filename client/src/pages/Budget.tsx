@@ -99,22 +99,27 @@ const DayCell = memo(({
     >
       <div className="flex justify-between items-start mb-0.5">
         <div className="flex flex-col items-start">
-          <div className="flex items-center gap-0.5">
-            <span className={cn(
-              "font-medium text-sm md:text-base lg:text-lg",
-              isCurrentDay && "text-primary font-bold bg-primary/10 px-1 rounded animate-[pulse_2s_ease-in-out_infinite]"
-            )}>
-              {day}
-            </span>
-            <span className="hidden md:inline text-[10px] text-muted-foreground">
-              {dayOfWeek}
-            </span>
+          <div className="flex items-center gap-1">
+            {isCurrentDay ? (
+              <>
+                <span className="font-bold text-sm md:text-base lg:text-lg text-primary bg-primary/10 px-1.5 rounded animate-[pulse_2s_ease-in-out_infinite]">
+                  {day}
+                </span>
+                <span className="text-[10px] text-primary bg-primary/10 px-1 rounded animate-[pulse_2s_ease-in-out_infinite]">
+                  {dayOfWeek}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-sm md:text-base lg:text-lg">
+                  {day}
+                </span>
+                <span className="hidden md:inline text-[10px] text-muted-foreground">
+                  {dayOfWeek}
+                </span>
+              </>
+            )}
           </div>
-          {isCurrentDay && (
-            <span className="text-[8px] md:text-xs font-medium text-primary bg-primary/10 px-1 rounded-sm animate-[pulse_2s_ease-in-out_infinite]">
-              Today
-            </span>
-          )}
         </div>
         {hasTransactions && (
           <div className="flex gap-0.5">
