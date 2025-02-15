@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
 import { categories, transactions, insertTransactionSchema, bills } from "@db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, ilike, or, and } from "drizzle-orm";
 import { sql } from 'drizzle-orm';
 import dayjs from 'dayjs';
 
@@ -82,7 +82,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Transactions Routes
+  // Transactions Routes with improved category matching
   app.get('/api/transactions', async (req, res) => {
     try {
       console.log('[Transactions API] Fetching transactions...', {
@@ -91,6 +91,10 @@ export function registerRoutes(app: Express): Server {
       });
       const type = req.query.type as string | undefined;
 
+      // First get all categories for smart matching
+      const allCategories = await db.query.categories.findMany();
+
+      // Get transactions
       let query = db.select({
         id: transactions.id,
         description: transactions.description,
@@ -98,23 +102,58 @@ export function registerRoutes(app: Express): Server {
         date: transactions.date,
         type: transactions.type,
         category_id: transactions.category_id,
-        category_name: sql<string>`COALESCE(${categories.name}, 'General Expenses')`,
+        category_name: sql<string>`COALESCE(${categories.name}, 'Uncategorized')`,
         category_color: sql<string>`COALESCE(${categories.color}, '#6366F1')`,
-        category_icon: sql<string>`COALESCE(${categories.icon}, 'shopping-cart')`
+        category_icon: sql<string>`COALESCE(${categories.icon}, 'receipt')`
       })
       .from(transactions)
-      .leftJoin(categories, eq(transactions.category_id, categories.id))
-      .orderBy(desc(transactions.date));
+      .leftJoin(categories, eq(transactions.category_id, categories.id));
 
       if (type) {
-        query = query.where(eq(transactions.type, type as any));
+        query = query.where(eq(transactions.type, type as 'income' | 'expense'));
       }
+
+      query = query.orderBy(desc(transactions.date));
 
       const allTransactions = await query;
 
+      // Smart category matching based on description
+      const formattedTransactions = allTransactions.map(transaction => {
+        // Try to find a matching category if one isn't already assigned
+        if (!transaction.category_id) {
+          const matchingCategory = allCategories.find(category => {
+            const categoryName = category.name.toLowerCase();
+            const description = transaction.description.toLowerCase();
+            return description.includes(categoryName);
+          });
+
+          if (matchingCategory) {
+            return {
+              ...transaction,
+              category_id: matchingCategory.id,
+              category_name: matchingCategory.name,
+              category_color: matchingCategory.color,
+              category_icon: matchingCategory.icon
+            };
+          }
+        }
+
+        return {
+          id: transaction.id,
+          description: transaction.description,
+          amount: Number(transaction.amount),
+          date: dayjs(transaction.date).format('YYYY-MM-DD'),
+          type: transaction.type,
+          category_id: transaction.category_id,
+          category_name: transaction.category_name,
+          category_color: transaction.category_color,
+          category_icon: transaction.category_icon
+        };
+      });
+
       console.log('[Transactions API] Found transactions:', {
-        count: allTransactions.length,
-        sampleTransactions: allTransactions.slice(0, 3).map(t => ({
+        count: formattedTransactions.length,
+        sampleTransactions: formattedTransactions.slice(0, 3).map(t => ({
           description: t.description,
           date: t.date,
           amount: t.amount,
@@ -123,19 +162,7 @@ export function registerRoutes(app: Express): Server {
         }))
       });
 
-      const formattedTransactions = allTransactions.map(transaction => ({
-        id: transaction.id,
-        description: transaction.description,
-        amount: Number(transaction.amount),
-        date: dayjs(transaction.date).format('YYYY-MM-DD'),
-        type: transaction.type,
-        category_id: transaction.category_id,
-        category_name: transaction.category_name,
-        category_color: transaction.category_color,
-        category_icon: transaction.category_icon
-      }));
-
-      // Add cache control headers to prevent stale data
+      // Add cache control headers
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');

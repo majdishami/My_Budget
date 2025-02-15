@@ -225,16 +225,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       return isInRange;
     });
 
-    console.log('[ExpenseReportDialog] After date filtering:', {
-      count: filtered.length,
-      transactions: filtered.map(t => ({
-        description: t.description,
-        date: t.date,
-        category: t.category_name,
-        type: t.type
-      }))
-    });
-
     // Additional filtering based on selection
     if (selectedValue !== "all" && selectedValue !== "all_categories") {
       if (selectedValue.startsWith('category_')) {
@@ -246,8 +236,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           const normalizedSearchCategory = categoryName.toLowerCase();
           const normalizedDescription = t.description.toLowerCase();
 
+          // Match either by category name or description content
           const isMatch = normalizedCategory === normalizedSearchCategory || 
-                         (normalizedDescription.includes(normalizedSearchCategory.toLowerCase()));
+                         normalizedDescription.includes(normalizedSearchCategory);
 
           console.log('[ExpenseReportDialog] Category match check:', {
             transactionCategory: t.category_name,
@@ -262,27 +253,22 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         });
       } else if (selectedValue.startsWith('expense_')) {
         const expenseId = selectedValue.replace('expense_', '');
-        console.log('[ExpenseReportDialog] Filtering for expense ID:', expenseId);
-
         const selectedBill = bills.find(b => String(b.id) === expenseId);
+
         if (selectedBill) {
           const normalizedBillName = selectedBill.name.toLowerCase().trim();
-          const normalizedBillCategory = (selectedBill.category_name || '').toLowerCase().trim();
 
           filtered = filtered.filter(t => {
             const normalizedTransDesc = t.description.toLowerCase().trim();
-            const normalizedTransCategory = t.category_name.toLowerCase().trim();
 
-            // Match based on either bill name in description or matching category
-            const isMatch = normalizedTransDesc.includes(normalizedBillName) || 
-                          (normalizedTransCategory === normalizedBillCategory && 
-                           normalizedTransDesc.includes(normalizedBillName.split(' ')[0]));
+            // Match any part of the bill name in the transaction description
+            const billWords = normalizedBillName.split(' ').filter(word => word.length > 2);
+            const isMatch = billWords.some(word => normalizedTransDesc.includes(word));
 
             console.log('[ExpenseReportDialog] Expense match check:', {
               transactionDesc: normalizedTransDesc,
-              transactionCategory: normalizedTransCategory,
               billName: normalizedBillName,
-              billCategory: normalizedBillCategory,
+              billWords,
               isMatch
             });
 
@@ -291,13 +277,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         }
       }
 
-      console.log('[ExpenseReportDialog] After expense/category filtering:', {
+      console.log('[ExpenseReportDialog] After filtering:', {
         selectedValue,
         matchCount: filtered.length,
         matches: filtered.map(t => ({
           description: t.description,
           category: t.category_name,
-          type: t.type
+          amount: t.amount
         }))
       });
     }
@@ -910,7 +896,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                       return (
                         <Card key={monthKey}>
                           <CardHeader className="py-4">
-                            <CardTitle className="text-xl font-semibold">
+                            <CardTitle className="text-sm font-medium">
                               {dayjs(monthKey).format('MMMM YYYY')}
                             </CardTitle>
                             <div className="text-sm space-y-1">
@@ -919,7 +905,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 <span className="text-red-600">{formatCurrency(monthlyTotal)}</span>
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Paid to date:</span>
+                               <span className="text-muted-foreground">Paid to date:</span>
                                 <span className="text-red-600">{formatCurrency(monthlyPaid)}</span>
                               </div>
                               <div className="flex justify-between items-center">
