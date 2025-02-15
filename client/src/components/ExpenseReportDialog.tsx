@@ -340,7 +340,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [filteredTransactions, selectedValue, today]);
 
-  // Update summary calculations to include all expected occurrences
+  // Update summary calculations to include all transactions in date range
   const summary = useMemo(() => {
     if (!filteredTransactions.length || !date?.from || !date?.to) return {
       totalAmount: 0,
@@ -348,7 +348,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       pendingAmount: 0
     };
 
-    // Calculate totals from actual transactions
+    // Calculate totals from all transactions in the date range
     const actualTotal = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
     const occurredAmount = filteredTransactions
       .filter(t => dayjs(t.date).isSameOrBefore(today))
@@ -357,26 +357,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       .filter(t => dayjs(t.date).isAfter(today))
       .reduce((sum, t) => sum + t.amount, 0);
 
-    // Calculate expected occurrences for all bills within date range
-    let projectedAmount = 0;
-    bills.forEach(bill => {
-      const expectedOccurrences = calculateExpectedOccurrences(bill, date.from!, date.to!);
-      const actualOccurrences = filteredTransactions.filter(t => 
-        t.description.toLowerCase().includes(bill.name.toLowerCase())
-      ).length;
-
-      if (actualOccurrences < expectedOccurrences) {
-        const remainingOccurrences = expectedOccurrences - actualOccurrences;
-        projectedAmount += bill.amount * remainingOccurrences;
-      }
-    });
-
     return {
-      totalAmount: actualTotal + projectedAmount,
+      totalAmount: actualTotal,
       occurredAmount,
-      pendingAmount: pendingAmount + projectedAmount
+      pendingAmount
     };
-  }, [filteredTransactions, date, today, bills, calculateExpectedOccurrences]);
+  }, [filteredTransactions, date, today]);
 
   // Group transactions by month
   const groupedTransactions = useMemo(() => {
