@@ -540,26 +540,26 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         color: string;
       }> = {};
 
-      // First add all actual transactions
+      // Calculate totals for the selected category
       const categoryTransactions = filteredTransactions.filter(t =>
         t.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
       );
 
-      categoryTransactions.forEach(t => {
-        if (!totals[t.description]) {
-          totals[t.description] = {
-            description: t.description,
-            category: t.category_name,
-            total: 0,
-            occurred: 0,
-            pending: 0,
-            occurredCount: 0,
-            pendingCount: 0,
-            color: t.category_color || '#D3D3D3'
-          };
-        }
+      // Single consolidated entry for the category
+      totals[selectedCategoryName] = {
+        description: selectedCategoryName,
+        category: selectedCategoryName,
+        total: 0,
+        occurred: 0,
+        pending: 0,
+        occurredCount: 0,
+        pendingCount: 0,
+        color: categoryTransactions[0]?.category_color || '#D3D3D3'
+      };
 
-        const entry = totals[t.description];
+      // Add all actual transactions
+      categoryTransactions.forEach(t => {
+        const entry = totals[selectedCategoryName];
         entry.total += t.amount;
 
         if (dayjs(t.date).isSameOrBefore(today)) {
@@ -571,7 +571,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         }
       });
 
-      // Then add expected occurrences for bills in this category
+      // Add expected occurrences for bills in this category
       const categoryBills = bills.filter(b => 
         b.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
       );
@@ -582,30 +582,18 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           t.description.toLowerCase().includes(bill.name.toLowerCase())
         ).length;
 
-        if (!totals[bill.name]) {
-          totals[bill.name] = {
-            description: bill.name,
-            category: selectedCategoryName,
-            total: 0,
-            occurred: 0,
-            pending: 0,
-            occurredCount: 0,
-            pendingCount: 0,
-            color: bill.category_color || '#D3D3D3'
-          };
-        }
-
         if (actualOccurrences < expectedOccurrences) {
           const remainingOccurrences = expectedOccurrences - actualOccurrences;
           const projectedAmount = bill.amount * remainingOccurrences;
 
-          totals[bill.name].total += projectedAmount;
-          totals[bill.name].pending += projectedAmount;
-          totals[bill.name].pendingCount += remainingOccurrences;
+          const entry = totals[selectedCategoryName];
+          entry.total += projectedAmount;
+          entry.pending += projectedAmount;
+          entry.pendingCount += remainingOccurrences;
         }
       });
 
-      return Object.values(totals).sort((a, b) => b.total - a.total);
+      return Object.values(totals);
     }
 
     return [];
@@ -836,26 +824,26 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 </div>
 
                 {/* Category/Expense Summary Section */}
-                {selectedValue === "all_categories" && itemTotals.length > 0 && (
-                  <Card>
-                    <CardHeader className="py-4">
-                      <CardTitle className="text-lg font-medium">Category Summary</CardTitle>
+                {selectedValue.startsWith('category_') && itemTotals.length > 0 && (
+                  <Card className="mb-4">
+                    <CardHeader>
+                      <CardTitle>Expense Summary</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Category</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                            <TableHead className="text-right">Paid</TableHead>
-                            <TableHead className="text-right">Pending</TableHead>
+                            <TableHead className="text-right">Total Amount</TableHead>
+                            <TableHead className="text-right">Paid Amount</TableHead>
+                            <TableHead className="text-right">Pending Amount</TableHead>
                             <TableHead className="text-right">Paid Occurrences</TableHead>
                             <TableHead className="text-right">Pending Occurrences</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {itemTotals.map((ct: CategoryTotal) => (
-                            <TableRow key={ct.category}>
+                          {itemTotals.map((ct) => (
+                            <TableRow key={ct.description}>
                               <TableCell>
                                 <CategoryDisplay
                                   category={ct.category}
