@@ -303,13 +303,12 @@ export default function ExpenseReportDialog({
           type: 'expense',
           category_name: bill.category_name,
           category_color: bill.category_color,
-          category_icon: bill.category_icon,
+          category_icon: bill.category_icon || null,
           category_id: bill.category_id
         });
         currentDate = currentDate.add(1, 'month');
       }
 
-      // Calculate totals
       const occurred = transactions
         .filter(t => dayjs(t.date).isSameOrBefore(today))
         .reduce((sum, t) => sum + t.amount, 0);
@@ -325,7 +324,7 @@ export default function ExpenseReportDialog({
         occurredCount: transactions.filter(t => dayjs(t.date).isSameOrBefore(today)).length,
         pendingCount: transactions.filter(t => dayjs(t.date).isAfter(today)).length,
         color: bill.category_color,
-        icon: bill.category_icon || bill.category?.icon || null,
+        icon: bill.category_icon || null,
         transactions
       }];
     }
@@ -901,7 +900,7 @@ export default function ExpenseReportDialog({
                 {selectedValue.startsWith('expense_') && itemTotals.length > 0 && (
                   <Card className="mb-4">
                     <CardHeader>
-                      <CardTitle>Expense Transactions</CardTitle>
+                      <CardTitle>Expected Bills</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <Table>
@@ -909,6 +908,7 @@ export default function ExpenseReportDialog({
                           <TableRow>
                             <TableHead>Date</TableHead>
                             <TableHead>Description</TableHead>
+                            <TableHead>Category</TableHead>
                             <TableHead className="text-right">Amount</TableHead>
                             <TableHead>Status</TableHead>
                           </TableRow>
@@ -916,24 +916,31 @@ export default function ExpenseReportDialog({
                         <TableBody>
                           {itemTotals[0].transactions?.map((transaction) => {
                             const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
+
                             return (
                               <TableRow key={transaction.date}>
                                 <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                                 <TableCell>{transaction.description}</TableCell>
+                                <TableCell>
+                                  <CategoryDisplay
+                                    category={transaction.category_name}
+                                    color={transaction.category_color}
+                                    icon={transaction.category_icon}
+                                  />
+                                </TableCell>
                                 <TableCell className={`text-right ${isOccurred ? 'text-red-600' : 'text-orange-500'}`}>
                                   {formatCurrency(transaction.amount)}
                                 </TableCell>
                                 <TableCell>
                                   <span className={isOccurred ? 'text-red-600' : 'text-orange-500'}>
-                                    {isOccurred ? '✓ Paid' : '⌛ Pending'}
-                                  </span>
+                                    {isOccurred ? '✓ Paid' : '⌛ Pending'}                                  </span>
                                 </TableCell>
                               </TableRow>
                             );
                           })}
                           {!itemTotals[0].transactions?.length && (
                             <TableRow>
-                              <TableCell colSpan={4} className="text-center text-muted-foreground">
+                              <TableCell colSpan={5} className="text-center text-muted-foreground">
                                 No transactions found in selected date range
                               </TableCell>
                             </TableRow>
