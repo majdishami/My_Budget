@@ -31,7 +31,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Bills Routes with proper icon handling
+  // Bills Routes with proper icon handling and cache prevention
   app.get('/api/bills', async (req, res) => {
     try {
       console.log('[Bills API] Fetching bills with categories...');
@@ -66,6 +66,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       console.log('[Bills API] Found bills:', formattedBills.length);
+
+      // Add cache control headers to prevent stale data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+
       return res.json(formattedBills);
     } catch (error) {
       console.error('[Bills API] Error:', error);

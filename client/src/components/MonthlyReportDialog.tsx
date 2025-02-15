@@ -57,19 +57,28 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
   const firstDayOfMonth = today.startOf('month').format('YYYY-MM-DD');
   const lastDayOfMonth = today.endOf('month').format('YYYY-MM-DD');
 
-  // Fetch transactions from the database
-  const { data: transactions = [] } = useQuery<Transaction[]>({
+  // Fetch transactions with aggressive refresh
+  const { data: transactions = [], refetch: refetchTransactions } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions'],
     enabled: isOpen,
     staleTime: 0,
-    cacheTime: 0,
-    refetchOnMount: true,
+    gcTime: 0,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 1000 // Poll every second while dialog is open
   });
+
+  // Force refresh when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      refetchTransactions();
+    }
+  }, [isOpen, refetchTransactions]);
 
   // Add logging to track data updates
   useEffect(() => {
-    console.log('Transactions data updated:', transactions);
+    console.log('Transactions data updated in MonthlyReportDialog:', transactions);
   }, [transactions]);
 
   // Filter transactions for the current month

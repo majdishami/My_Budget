@@ -126,7 +126,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   const today = useMemo(() => dayjs(), []);
 
   // Update the bills query to ensure fresh data
-  const { data: billsData = [] } = useQuery<Bill[]>({
+  const { data: billsData = [], refetch: refetchBills } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,
     staleTime: 0,
@@ -137,11 +137,17 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     refetchInterval: 1000 // Poll every second while dialog is open
   });
 
+  // Force refresh when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      refetchBills();
+    }
+  }, [isOpen, refetchBills]);
+
   // Add debug logging
   useEffect(() => {
     console.log('Bills data updated in ExpenseReportDialog:', billsData);
   }, [billsData]);
-
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -175,12 +181,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       ),
       categorizedBills
     };
-  }, [billsData]);
+  }, [billsData]); // Only depend on billsData
 
-  // Update the transactions generation logic
+  // Update the transactions generation logic with proper dependencies
   const transactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
+    console.log('Regenerating transactions with bills:', billsData);
     let filteredBills = billsData;
 
     // Filter based on selection
@@ -230,7 +237,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     });
 
     return result.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
-  }, [showReport, selectedValue, date, billsData, today]);
+  }, [showReport, selectedValue, date, billsData, today]); // Add all dependencies
 
   // Group transactions by expense name for the "all" view
   const groupedExpenses = useMemo(() => {
@@ -899,7 +906,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                         transaction.occurred ? 'text-red-600' : 'text-orange-50'
                                       }`}>
                                         {transaction.occurred ? '✓' : '⌛'}
-                                                                            </TableCell>
+                                      </TableCell>
                                     </TableRow>
                                   ))}
                               </TableBody>
