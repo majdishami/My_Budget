@@ -319,9 +319,8 @@ export default function ExpenseReportDialog({
         icon: bill.category_icon || bill.category?.icon || null
       }];
     }
-
-    // Rest of the existing itemTotals logic remains unchanged
-    if (selectedValue === "all_categories") {
+    // Rest of the existing itemTotals logic
+    else if (selectedValue === "all_categories") {
       const totals: Record<string, CategoryTotal> = {};
       const dateFrom = dayjs(date.from).startOf('day');
       const dateTo = dayjs(date.to).endOf('day');
