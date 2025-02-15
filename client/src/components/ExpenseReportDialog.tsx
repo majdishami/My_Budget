@@ -287,21 +287,14 @@ export default function ExpenseReportDialog({
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
       const bill = bills.find(b => b.id === billId);
-
-      if (!bill) {
-        return [];
-      }
+      if (!bill) return [];
 
       let currentDate = dateFrom.clone().date(bill.day);
       if (currentDate.isBefore(dateFrom)) {
         currentDate = currentDate.add(1, 'month');
       }
 
-      const occurrences: {
-        date: string;
-        amount: number;
-        status: 'occurred' | 'pending';
-      }[] = [];
+      const occurrences: ExpenseOccurrence[] = [];
 
       while (currentDate.isSameOrBefore(dateTo)) {
         const matchingTransaction = transactions.find(t =>
@@ -336,51 +329,6 @@ export default function ExpenseReportDialog({
         icon: bill.category_icon || bill.category?.icon || null,
         occurrences
       }];
-    }
-    // Rest of the existing itemTotals logic for categories
-    else if (selectedValue === "all_categories") {
-      const totals: Record<string, CategoryTotal> = {};
-      bills.forEach(bill => {
-        if (!totals[bill.category_name]) {
-          totals[bill.category_name] = {
-            category: bill.category_name,
-            total: 0,
-            occurred: 0,
-            pending: 0,
-            occurredCount: 0,
-            pendingCount: 0,
-            color: bill.category_color,
-            icon: bill.category_icon || bill.category?.icon || null
-          };
-        }
-
-        let currentDate = dateFrom.clone().date(bill.day);
-
-        if (currentDate.isBefore(dateFrom)) {
-          currentDate = currentDate.add(1, 'month');
-        }
-
-        while (currentDate.isSameOrBefore(dateTo)) {
-          const entry = totals[bill.category_name];
-          if (currentDate.isSameOrBefore(today)) {
-            entry.occurred += bill.amount;
-            entry.occurredCount++;
-          } else {
-            entry.pending += bill.amount;
-            entry.pendingCount++;
-          }
-
-          currentDate = currentDate.add(1, 'month');
-        }
-      });
-
-      Object.values(totals).forEach(entry => {
-        entry.total = entry.occurred + entry.pending;
-      });
-
-      return Object.values(totals)
-        .sort((a, b) => b.total - a.total)
-        .filter(entry => entry.total > 0);
     }
     // Handle category selection
     else if (selectedValue.startsWith('category_')) {
@@ -428,6 +376,51 @@ export default function ExpenseReportDialog({
         color: categoryDetails.category_color,
         icon: categoryDetails.category_icon || categoryDetails.category?.icon || null
       }];
+    }
+    // Handle all categories combined
+    else if (selectedValue === "all_categories") {
+      const totals: Record<string, CategoryTotal> = {};
+      bills.forEach(bill => {
+        if (!totals[bill.category_name]) {
+          totals[bill.category_name] = {
+            category: bill.category_name,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            occurredCount: 0,
+            pendingCount: 0,
+            color: bill.category_color,
+            icon: bill.category_icon || bill.category?.icon || null
+          };
+        }
+
+        let currentDate = dateFrom.clone().date(bill.day);
+
+        if (currentDate.isBefore(dateFrom)) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        while (currentDate.isSameOrBefore(dateTo)) {
+          const entry = totals[bill.category_name];
+          if (currentDate.isSameOrBefore(today)) {
+            entry.occurred += bill.amount;
+            entry.occurredCount++;
+          } else {
+            entry.pending += bill.amount;
+            entry.pendingCount++;
+          }
+
+          currentDate = currentDate.add(1, 'month');
+        }
+      });
+
+      Object.values(totals).forEach(entry => {
+        entry.total = entry.occurred + entry.pending;
+      });
+
+      return Object.values(totals)
+        .sort((a, b) => b.total - a.total)
+        .filter(entry => entry.total > 0);
     }
 
     return [];
@@ -479,9 +472,6 @@ export default function ExpenseReportDialog({
     }
     return "Expense Report";
   };
-
-  // Update getMonthlyOccurrences calculation - This function is no longer needed as the logic is integrated into itemTotals
-  //const getMonthlyOccurrences = useMemo(() => { ... });
 
 
   if (!showReport) {
