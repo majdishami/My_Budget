@@ -380,69 +380,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
   // Update itemTotals to properly calculate occurrences within date range
   const itemTotals = useMemo(() => {
-    if (!filteredTransactions.length || !date?.from || !date?.to) return [];
+    if (!date?.from || !date?.to) return [];
     const dateFrom = dayjs(date.from).startOf('day');
     const dateTo = dayjs(date.to).endOf('day');
 
-    if (selectedValue.startsWith('category_')) {
-      // For individual category view
-      const categoryName = selectedValue.replace('category_', '');
-      const categoryTransactions = filteredTransactions.filter(t => t.category_name === categoryName);
-
-      if (categoryTransactions.length === 0) return [];
-
-      // Get the category details from the first transaction
-      const categoryDetails = categoryTransactions[0];
-
-      let total = 0;
-      let occurred = 0;
-      let pending = 0;
-      let occurredCount = 0;
-      let pendingCount = 0;
-
-      // Get all bills in this category
-      const categoryBills = bills.filter(b => b.category_name === categoryName);
-
-      categoryBills.forEach(bill => {
-        // Calculate monthly occurrences for each bill
-        let currentDate = dateFrom.clone().date(bill.day);
-
-        // If we've passed the bill day this month, start from next month
-        if (currentDate.isBefore(dateFrom)) {
-          currentDate = currentDate.add(1, 'month');
-        }
-
-        // Generate all occurrences within date range
-        while (currentDate.isSameOrBefore(dateTo)) {
-          if (currentDate.isSameOrBefore(today)) {
-            occurred += bill.amount;
-            occurredCount++;
-          } else {
-            pending += bill.amount;
-            pendingCount++;
-          }
-
-          // Move to next month
-          currentDate = currentDate.add(1, 'month');
-        }
-      });
-
-      total = occurred + pending;
-
-      return [{
-        category: categoryName,
-        total,
-        occurred,
-        pending,
-        occurredCount,
-        pendingCount,
-        color: categoryDetails.category_color,
-        icon: categoryDetails.category_icon || null
-      }];
-    } else if (selectedValue === "all_categories") {
+    if (selectedValue === "all_categories") {
       const totals: Record<string, CategoryTotal> = {};
 
-      // Process each bill for the date range
+      // Initialize totals for each category
       bills.forEach(bill => {
         if (!totals[bill.category_name]) {
           totals[bill.category_name] = {
@@ -480,11 +425,63 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           currentDate = currentDate.add(1, 'month');
         }
 
+        // Update total after all occurrences are calculated
         const entry = totals[bill.category_name];
         entry.total = entry.occurred + entry.pending;
       });
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
+    } else if (selectedValue.startsWith('category_')) {
+      // Individual category view logic remains unchanged
+      const categoryName = selectedValue.replace('category_', '');
+      const categoryBills = bills.filter(b => b.category_name === categoryName);
+
+      if (categoryBills.length === 0) return [];
+
+      // Get the category details from the first bill
+      const categoryDetails = categoryBills[0];
+
+      let total = 0;
+      let occurred = 0;
+      let pending = 0;
+      let occurredCount = 0;
+      let pendingCount = 0;
+
+      categoryBills.forEach(bill => {
+        let currentDate = dateFrom.clone().date(bill.day);
+
+        // If we've passed the bill day this month, start from next month
+        if (currentDate.isBefore(dateFrom)) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        // Generate all occurrences within date range
+        while (currentDate.isSameOrBefore(dateTo)) {
+          if (currentDate.isSameOrBefore(today)) {
+            occurred += bill.amount;
+            occurredCount++;
+          } else {
+            pending += bill.amount;
+            pendingCount++;
+          }
+
+          // Move to next month
+          currentDate = currentDate.add(1, 'month');
+        }
+      });
+
+      total = occurred + pending;
+
+      return [{
+        category: categoryName,
+        total,
+        occurred,
+        pending,
+        occurredCount,
+        pendingCount,
+        color: categoryDetails.category_color,
+        icon: categoryDetails.category_icon || null
+      }];
     }
 
     return [];
