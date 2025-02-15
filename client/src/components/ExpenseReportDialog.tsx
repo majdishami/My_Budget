@@ -180,105 +180,49 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [bills]);
 
-  // Update calculateExpectedOccurrences to handle date ranges properly
-  const calculateExpectedOccurrences = (bill: Bill, startDate: Date, endDate: Date) => {
-    const start = dayjs(startDate);
-    const end = dayjs(endDate);
-    const billDay = bill.day;
+  //This function is not used anymore.
+  // const calculateExpectedOccurrences = (bill: Bill, startDate: Date, endDate: Date) => {
+  //   const start = dayjs(startDate);
+  //   const end = dayjs(endDate);
+  //   const billDay = bill.day;
 
-    let currentDate = start.date(billDay);
-    // If we've passed the bill day this month, start from next month
-    if (currentDate.isBefore(start)) {
-      currentDate = currentDate.add(1, 'month');
-    }
+  //   let currentDate = start.date(billDay);
+  //   // If we've passed the bill day this month, start from next month
+  //   if (currentDate.isBefore(start)) {
+  //     currentDate = currentDate.add(1, 'month');
+  //   }
 
-    let occurrences = 0;
-    while (currentDate.isSameOrBefore(end)) {
-      occurrences++;
-      currentDate = currentDate.add(1, 'month');
-    }
+  //   let occurrences = 0;
+  //   while (currentDate.isSameOrBefore(end)) {
+  //     occurrences++;
+  //     currentDate = currentDate.add(1, 'month');
+  //   }
 
-    return occurrences;
-  };
+  //   return occurrences;
+  // };
 
-  // Update filteredTransactions to properly handle occurrences
   const filteredTransactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
-    // Create a map to deduplicate transactions by date and description
-    const transactionMap = new Map<string, Transaction>();
+    // Only use actual transactions from the database within date range
+    return transactions
+      .filter(t => {
+        const transactionDate = dayjs(t.date);
+        return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
+               transactionDate.isSameOrBefore(dayjs(date.to), 'day');
+      })
+      .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+  }, [showReport, date, transactions]);
 
-    // Process and deduplicate transactions
-    transactions.forEach(t => {
-      const key = `${t.date}-${t.description.toLowerCase()}`;
-      if (!transactionMap.has(key)) {
-        transactionMap.set(key, t);
-      }
-    });
-
-    // Convert map back to array and filter by date range
-    let filtered = Array.from(transactionMap.values()).filter(t => {
-      const transactionDate = dayjs(t.date);
-      const fromDate = dayjs(date.from);
-      const toDate = dayjs(date.to);
-      return transactionDate.isSameOrAfter(fromDate, 'day') &&
-             transactionDate.isSameOrBefore(toDate, 'day');
-    });
-
-    // Add projected transactions for all bills within the date range
-    bills.forEach(bill => {
-      const expectedOccurrences = calculateExpectedOccurrences(bill, date.from, date.to);
-      const existingDates = new Set(
-        filtered
-          .filter(t => t.description.toLowerCase() === bill.name.toLowerCase())
-          .map(t => dayjs(t.date).format('YYYY-MM-DD'))
-      );
-
-      // Calculate remaining occurrences
-      const actualOccurrences = existingDates.size;
-      const remainingOccurrences = Math.max(0, expectedOccurrences - actualOccurrences);
-
-      if (remainingOccurrences > 0) {
-        let currentDate = dayjs(date.from).date(bill.day);
-        if (currentDate.isBefore(dayjs(date.from))) {
-          currentDate = currentDate.add(1, 'month');
-        }
-        let addedProjections = 0;
-
-        while (currentDate.isSameOrBefore(dayjs(date.to)) && addedProjections < remainingOccurrences) {
-          const dateStr = currentDate.format('YYYY-MM-DD');
-
-          if (!existingDates.has(dateStr)) {
-            filtered.push({
-              id: `projected-${bill.id}-${dateStr}`,
-              date: dateStr,
-              description: `${bill.name} (Projected)`,
-              amount: bill.amount,
-              type: 'expense',
-              category_name: bill.category_name,
-              category_color: bill.category_color,
-              category_icon: bill.category_icon || null,
-              category_id: bill.category_id
-            });
-            addedProjections++;
-          }
-          currentDate = currentDate.add(1, 'month');
-        }
-      }
-    });
-
-    return filtered.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
-  }, [showReport, date, selectedValue, transactions, bills]);
-
-  // Update groupedExpenses to correctly track occurrences
+  // Update groupedExpenses to handle only actual transactions
   const groupedExpenses = useMemo(() => {
     if (selectedValue !== "all") return [];
 
     const groups: Record<string, GroupedExpense> = {};
 
-    // Process transactions and group them
+    // Only process actual transactions
     filteredTransactions.forEach(t => {
-      const key = t.description.replace(' (Projected)', '');  // Group projected with actual
+      const key = t.description;
       if (!groups[key]) {
         groups[key] = {
           description: key,
@@ -294,8 +238,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
 
       const entry = groups[key];
-      const isProjected = t.description.includes('(Projected)');
-      const isOccurred = !isProjected && dayjs(t.date).isSameOrBefore(dayjs());
+      const isOccurred = dayjs(t.date).isSameOrBefore(today);
 
       entry.totalAmount += t.amount;
       entry.transactions.push(t);
@@ -309,83 +252,30 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
     });
 
-    return Object.values(groups)
-      .filter(g => g.transactions.length > 0)
-      .sort((a, b) => b.totalAmount - a.totalAmount);
-  }, [filteredTransactions, selectedValue]);
+    return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
+  }, [filteredTransactions, selectedValue, today]);
 
+  // Simplify summary calculations
   const summary = useMemo(() => {
-    if (!filteredTransactions.length || !date?.from || !date?.to) return {
-      totalAmount: 0,
-      occurredAmount: 0,
-      pendingAmount: 0
-    };
-
-    // Calculate totals from all transactions in the date range
-    const actualTotal = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
-    const occurredAmount = filteredTransactions
-      .filter(t => dayjs(t.date).isSameOrBefore(today))
-      .reduce((sum, t) => sum + t.amount, 0);
-    const pendingAmount = filteredTransactions
-      .filter(t => dayjs(t.date).isAfter(today))
-      .reduce((sum, t) => sum + t.amount, 0);
-
     return {
-      totalAmount: actualTotal,
-      occurredAmount,
-      pendingAmount
+      totalAmount: filteredTransactions.reduce((sum, t) => sum + t.amount, 0),
+      occurredAmount: filteredTransactions
+        .filter(t => dayjs(t.date).isSameOrBefore(today))
+        .reduce((sum, t) => sum + t.amount, 0),
+      pendingAmount: filteredTransactions
+        .filter(t => dayjs(t.date).isAfter(today))
+        .reduce((sum, t) => sum + t.amount, 0)
     };
-  }, [filteredTransactions, date, today]);
+  }, [filteredTransactions, today]);
 
-  // Group transactions by month
-  const groupedTransactions = useMemo(() => {
-    return filteredTransactions.reduce((groups: Record<string, Transaction[]>, transaction) => {
-      const monthKey = dayjs(transaction.date).format('YYYY-MM');
-      if (!groups[monthKey]) {
-        groups[monthKey] = [];
-      }
-      groups[monthKey].push(transaction);
-      return groups;
-    }, {});
-  }, [filteredTransactions]);
-
-  // Get sorted month keys
-  const sortedMonths = useMemo(() =>
-    Object.keys(groupedTransactions).sort((a, b) => dayjs(a).diff(dayjs(b))),
-    [groupedTransactions]
-  );
-
-  const handleBackToSelection = () => {
-    setShowReport(false);
-    setSelectedValue("all");
-    setDate(undefined);
-    setPreviousReport(null);
-  };
-
-  // Update itemTotals for category summaries to include all expected occurrences
+  // Update itemTotals to only show actual transactions
   const itemTotals = useMemo(() => {
     if (!filteredTransactions.length || !date?.from || !date?.to) return [];
 
     if (selectedValue === "all_categories") {
       const totals: Record<string, CategoryTotal> = {};
 
-      // First, initialize totals for all categories that have bills
-      bills.forEach(bill => {
-        if (!totals[bill.category_name]) {
-          totals[bill.category_name] = {
-            category: bill.category_name,
-            total: 0,
-            occurred: 0,
-            pending: 0,
-            occurredCount: 0,
-            pendingCount: 0,
-            color: bill.category_color,
-            icon: bill.category_icon || null //Added icon initialization
-          };
-        }
-      });
-
-      // Add all actual transactions
+      // Process only actual transactions
       filteredTransactions.forEach(t => {
         if (!totals[t.category_name]) {
           totals[t.category_name] = {
@@ -396,189 +286,29 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             occurredCount: 0,
             pendingCount: 0,
             color: t.category_color,
-            icon: t.category_icon || null //Added icon initialization
+            icon: t.category_icon || null
           };
         }
 
         const entry = totals[t.category_name];
-        entry.total += t.amount;
+        const isOccurred = dayjs(t.date).isSameOrBefore(today);
 
-        if (dayjs(t.date).isSameOrBefore(today)) {
+        entry.total += t.amount;
+        if (isOccurred) {
           entry.occurred += t.amount;
           entry.occurredCount++;
         } else {
           entry.pending += t.amount;
           entry.pendingCount++;
-        }
-      });
-
-      // Add expected occurrences for each category's bills
-      bills.forEach(bill => {
-        const expectedOccurrences = calculateExpectedOccurrences(bill, date!.from!, date!.to!);
-        const actualOccurrences = filteredTransactions.filter(t =>
-          t.category_name === bill.category_name &&
-          t.description.toLowerCase().includes(bill.name.toLowerCase())
-        ).length;
-
-        if (actualOccurrences < expectedOccurrences) {
-          const remainingOccurrences = expectedOccurrences - actualOccurrences;
-          const projectedAmount = bill.amount * remainingOccurrences;
-
-          const entry = totals[bill.category_name];
-          entry.total += projectedAmount;
-          entry.pending += projectedAmount;
-          entry.pendingCount += remainingOccurrences;
         }
       });
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
-    } else if (selectedValue === "all") {
-      // Update expense grouping to include expected occurrences
-      const totals: Record<string, GroupedExpense> = {};
-
-      // First initialize totals for all bills
-      bills.forEach(bill => {
-        if (!totals[bill.name]) {
-          totals[bill.name] = {
-            description: bill.name,
-            category: bill.category_name,
-            totalAmount: 0,
-            occurredAmount: 0,
-            pendingAmount: 0,
-            occurredCount: 0,
-            pendingCount: 0,
-            color: bill.category_color,
-            transactions: []
-          };
-        }
-      });
-
-      // Add actual transactions
-      filteredTransactions.forEach(t => {
-        if (!totals[t.description]) {
-          totals[t.description] = {
-            description: t.description,
-            category: t.category_name,
-            totalAmount: 0,
-            occurredAmount: 0,
-            pendingAmount: 0,
-            occurredCount: 0,
-            pendingCount: 0,
-            color: t.category_color,
-            transactions: []
-          };
-        }
-
-        const entry = totals[t.description];
-        entry.totalAmount += t.amount;
-        entry.transactions.push(t);
-
-        if (dayjs(t.date).isSameOrBefore(today)) {
-          entry.occurredAmount += t.amount;
-          entry.occurredCount++;
-        } else {
-          entry.pendingAmount += t.amount;
-          entry.pendingCount++;
-        }
-      });
-
-      // Add expected occurrences for each bill
-      bills.forEach(bill => {
-        const expectedOccurrences = calculateExpectedOccurrences(bill, date!.from!, date!.to!);
-        const actualOccurrences = filteredTransactions.filter(t =>
-          t.description.toLowerCase().includes(bill.name.toLowerCase())
-        ).length;
-
-        if (actualOccurrences < expectedOccurrences) {
-          const remainingOccurrences = expectedOccurrences - actualOccurrences;
-          const projectedAmount = bill.amount * remainingOccurrences;
-
-          const entry = totals[bill.name];
-          entry.totalAmount += projectedAmount;
-          entry.pendingAmount += projectedAmount;
-          entry.pendingCount += remainingOccurrences;
-        }
-      });
-
-      return Object.values(totals).sort((a, b) => b.totalAmount - a.totalAmount);
-    } else if (selectedValue.startsWith('category_')) {
-      // Individual category totals logic with expected occurrences
-      const selectedCategoryName = selectedValue.replace('category_', '');
-      const totals: Record<string, {
-        description: string;
-        category: string;
-        total: number;
-        occurred: number;
-        pending: number;
-        occurredCount: number;
-        pendingCount: number;
-        color: string;
-        icon: string | null; // Added icon property
-      }> = {};
-
-      // Calculate totals for the selected category
-      const categoryTransactions = filteredTransactions.filter(t =>
-        t.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
-      );
-
-      // Single consolidated entry for the category
-      totals[selectedCategoryName] = {
-        description: selectedCategoryName,
-        category: selectedCategoryName,
-        total: 0,
-        occurred: 0,
-        pending: 0,
-        occurredCount: 0,
-        pendingCount: 0,
-        color: categoryTransactions[0]?.category_color || '#D3D3D3',
-        icon: categoryTransactions[0]?.category_icon || bills.find(b =>
-          b.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
-        )?.category_icon || null
-      };
-
-      // Add all actual transactions
-      categoryTransactions.forEach(t => {
-        const entry = totals[selectedCategoryName];
-        entry.total += t.amount;
-
-        if (dayjs(t.date).isSameOrBefore(today)) {
-          entry.occurred += t.amount;
-          entry.occurredCount++;
-        } else {
-          entry.pending += t.amount;
-          entry.pendingCount++;
-        }
-      });
-
-      // Add expected occurrences for bills in this category
-      const categoryBills = bills.filter(b =>
-        b.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
-      );
-
-      categoryBills.forEach(bill => {
-        const expectedOccurrences = calculateExpectedOccurrences(bill, date!.from!, date!.to!);
-        const actualOccurrences = categoryTransactions.filter(t =>
-          t.description.toLowerCase().includes(bill.name.toLowerCase())
-        ).length;
-
-        if (actualOccurrences < expectedOccurrences) {
-          const remainingOccurrences = expectedOccurrences - actualOccurrences;
-          const projectedAmount = bill.amount * remainingOccurrences;
-
-          const entry = totals[selectedCategoryName];
-          entry.total += projectedAmount;
-          entry.pending += projectedAmount;
-          entry.pendingCount += remainingOccurrences;
-        }
-      });
-
-      return Object.values(totals);
     }
 
     return [];
-  }, [filteredTransactions, selectedValue, date, today, bills]);
+  }, [filteredTransactions, selectedValue, date, today]);
 
-  // Update where we handle the bill ID in the dialog title
   const getDialogTitle = () => {
     if (selectedValue === "all") return "All Expenses Combined";
     if (selectedValue === "all_categories") return "All Categories Combined";
@@ -822,7 +552,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                         </TableHeader>
                         <TableBody>
                           {itemTotals.map((ct) => (
-                            <TableRow key={ct.description}>
+                            <TableRow key={ct.category}>
                               <TableCell>
                                 <CategoryDisplay
                                   category={ct.category}
@@ -914,59 +644,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                   </Card>
                 )}
 
+
                 {selectedValue !== "all" && selectedValue !== "all_categories" && itemTotals.length > 0 && (
-                  <Card className="mb-4">
-                    <CardHeader>
-                      <CardTitle>Expense Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Expense</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead className="text-right">Monthly Amount</TableHead>
-                            <TableHead className="text-right">Total Amount</TableHead>
-                            <TableHead className="text-right">Paid Amount</TableHead>
-                            <TableHead className="text-right">Pending Amount</TableHead>
-                            <TableHead className="text-right">Paid Occurrences</TableHead>
-                            <TableHead className="text-right">Pending Occurrences</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>{itemTotals.map((item: any) => (
-                            <TableRow key={item.description}>
-                              <TableCell>{item.description}</TableCell>
-                              <TableCell>
-                                <CategoryDisplay
-                                  category={item.category}
-                                  color={item.color || '#D3D3D3'}
-                                  icon={item.icon}
-                                />
-                              </TableCell>
-                              <TableCell className="textright font-medium">
-                                {formatCurrency(item.total / (item.occurredCount + item.pendingCount))}
-                              </TableCell>
-                              <TableCell className="text-right font-medium">
-                                {formatCurrency(item.total)}
-                              </TableCell>
-                              <TableCell className="text-right text-red-600">
-                                {formatCurrency(item.occurred)}
-                              </TableCell>
-                              <TableCell className="text-right text-orange-500">
-                                {formatCurrency(item.pending)}
-                              </TableCell>
-                              <TableCell className="text-right text-red-600">
-                                {item.occurredCount}
-                              </TableCell>
-                              <TableCell className="text-right text-orange-500">
-                                {item.pendingCount}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
+                    <></>
                 )}
 
                 {selectedValue !== "all" && (
