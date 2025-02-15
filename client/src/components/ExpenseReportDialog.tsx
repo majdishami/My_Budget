@@ -234,10 +234,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             );
 
             if (!existingTransaction) {
+              // Standardize projected rent descriptions
+              const description = selectedBill.name === 'Rent' ? 'Rent (Projected)' : `${selectedBill.name} (Projected)`;
               filtered.push({
                 id: `projected-${currentDate.format('YYYY-MM-DD')}`,
                 date: currentDate.format('YYYY-MM-DD'),
-                description: `${selectedBill.name} (Projected)`,
+                description,
                 amount: selectedBill.amount,
                 type: 'expense',
                 category_name: selectedBill.category_name,
@@ -279,10 +281,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             );
 
             if (!existingTransaction) {
+              // Standardize projected rent descriptions
+              const description = bill.name === 'Rent' ? 'Rent (Projected)' : `${bill.name} (Projected)`;
               filtered.push({
                 id: `projected-${bill.id}-${currentDate.format('YYYY-MM-DD')}`,
                 date: currentDate.format('YYYY-MM-DD'),
-                description: `${bill.name} (Projected)`,
+                description,
                 amount: bill.amount,
                 type: 'expense',
                 category_name: bill.category_name,

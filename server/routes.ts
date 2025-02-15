@@ -153,11 +153,15 @@ export function registerRoutes(app: Express): Server {
           const categoryWords = category.name.toLowerCase().split(' ');
           const description = transaction.description.toLowerCase();
 
-          // Special handling for rent category to avoid duplicates
+          // Special handling for rent category to standardize rent descriptions
           if (category.name.toLowerCase() === 'rent') {
-            return description.includes('rent') || 
-                   description.includes('monthly rent') ||
-                   description.includes('housing payment');
+            const isRentRelated = description.includes('rent') || 
+                                 description.includes('housing payment');
+            if (isRentRelated) {
+              // Standardize the description for rent
+              transaction.description = 'Rent';
+            }
+            return isRentRelated;
           }
 
           return categoryWords.every(word => description.includes(word));
@@ -169,11 +173,15 @@ export function registerRoutes(app: Express): Server {
             const billWords = bill.bill_name.toLowerCase().split(' ').filter(word => word.length > 2);
             const description = transaction.description.toLowerCase();
 
-            // Special handling for rent bills
+            // Special handling for rent bills to standardize descriptions
             if (bill.category_name?.toLowerCase() === 'rent') {
-              return description.includes('rent') || 
-                     description.includes('monthly rent') ||
-                     description.includes('housing payment');
+              const isRentRelated = description.includes('rent') || 
+                                   description.includes('housing payment');
+              if (isRentRelated) {
+                // Standardize the description for rent
+                transaction.description = 'Rent';
+              }
+              return isRentRelated;
             }
 
             return billWords.some(word => description.includes(word));
