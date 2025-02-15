@@ -53,9 +53,10 @@ const formatCurrency = (amount: number) => {
 };
 
 const App = () => {
+  // Fixed reference date for the app
   const today = dayjs('2025-02-09');
   const [selectedYear, setSelectedYear] = useState(today.year());
-  const [selectedMonth, setSelectedMonth] = useState(today.month());
+  const [selectedMonth, setSelectedMonth] = useState(today.month()); // February (1)
   const [selectedDay, setSelectedDay] = useState<number>(today.date());
   const [showDayDialog, setShowDayDialog] = useState(false);
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -330,6 +331,17 @@ const App = () => {
     setSelectedDay(1);
   };
 
+  // Update the calendar selection handler
+  const handleCalendarSelect = (date: Date | undefined) => {
+    if (date) {
+      const newDate = dayjs(date);
+      setSelectedDay(newDate.date());
+      setSelectedMonth(newDate.month());
+      setSelectedYear(newDate.year());
+      setShowDailySummary(true);
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-background">
       <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
@@ -413,15 +425,7 @@ const App = () => {
               <Calendar
                 mode="single"
                 selected={new Date(selectedYear, selectedMonth, selectedDay)}
-                onSelect={(date) => {
-                  if (date) {
-                    const newDate = dayjs(date);
-                    setSelectedDay(newDate.date());
-                    setSelectedMonth(newDate.month());
-                    setSelectedYear(newDate.getFullYear());
-                    setShowDailySummary(true);
-                  }
-                }}
+                onSelect={handleCalendarSelect}
                 bills={bills}
                 incomes={incomes}
                 className="rounded-md"
@@ -441,6 +445,7 @@ const App = () => {
         dayBills={getBillsForDay(selectedDay)}
         totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
         totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
+        monthlyTotals={monthlyTotals}
       />
     </div>
   );
