@@ -469,110 +469,25 @@ const App = () => {
 
         {/* Render the calendar for the selected month */}
         <div className="flex-1 overflow-y-auto">
-          <Card className="m-4">
-            <div className="overflow-hidden">
-              <table className="w-full border-collapse">
-                <thead className="sticky top-0 bg-background z-10">
-                  <tr>
-                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
-                      <th key={day} className="p-2 text-center font-medium text-muted-foreground border w-[14.28%]">
-                        {day}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {Array.from({ length: 6 }, (_, weekIndex) => (
-                    <tr key={weekIndex} className="divide-x">
-                      {Array.from({ length: 7 }, (_, dayIndex) => {
-                        const dayNumber = calendarDays[weekIndex * 7 + dayIndex]; // Get the day number for the calendar
-
-                        // If the day is null (not in the month), render an empty cell
-                        if (dayNumber === null) {
-                          return <td key={dayIndex} className="border p-2 bg-muted/10 h-48 w-[14.28%]" />;
-                        }
-
-                        const dayIncomes = getIncomeForDay(dayNumber); // Get incomes for the day
-                        const dayBills = getBillsForDay(dayNumber); // Get bills for the day
-                        const hasTransactions = dayIncomes.length > 0 || dayBills.length > 0; // Check if there are transactions
-
-                        return (
-                          <td
-                            key={dayIndex}
-                            onClick={() => handleDayClick(dayNumber)} // Handle day click to show summary
-                            className={cn(
-                              "border p-2 align-top cursor-pointer transition-colors h-48 w-[14.28%]",
-                              "hover:bg-accent", // Change background on hover
-                              isCurrentDay(dayNumber) && "ring-2 ring-primary ring-offset-2 border-primary", // Highlight current day
-                              selectedDay === dayNumber && "bg-accent/50 font-semibold", // Highlight selected day
-                              hasTransactions && "shadow-sm" // Add shadow if transactions exist
-                            )}
-                          >
-                            <div className="flex justify-between items-start mb-1">
-                              <span className={cn(
-                                "font-medium text-lg",
-                                isCurrentDay(dayNumber) && "text-primary font-bold" // Highlight current day text
-                              )}>
-                                {dayNumber} {/* Display the day number */}
-                              </span>
-                              {hasTransactions && (
-                                <div className="flex gap-1">
-                                  {dayIncomes.length > 0 && (
-                                    <div className="w-2 h-2 rounded-full bg-green-500" /> // Green dot for income
-                                  )}
-                                  {dayBills.length > 0 && (
-                                    <div className="w-2 h-2 rounded-full bg-red-500" /> // Red dot for bills
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <div className="space-y-0.5 text-xs">
-                              {dayIncomes.length > 0 && (
-                                <div className="space-y-0.5">
-                                  {dayIncomes.map((income, index) => (
-                                    <div
-                                      key={income.id}
-                                      className="flex justify-between items-center text-green-600 dark:text-green-400"
-                                    >
-                                      <span className="truncate max-w-[70%]">
-                                        {(index + 1)}. {income.source}
-                                      </span>
-                                      <span className="font-medium shrink-0">
-                                        ${income.amount.toLocaleString()}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              {dayBills.length > 0 && (
-                                <div className="space-y-0.5">
-                                  {[...dayBills]
-                                    .sort((a, b) => b.amount - a.amount)
-                                    .map((bill, index) => (
-                                      <div
-                                        key={bill.id}
-                                        className="flex justify-between items-center text-red-600 dark:text-red-400"
-                                      >
-                                        <span className="truncate max-w-[70%]">
-                                          {(index + 1)}. {bill.name}
-                                        </span>
-                                        <span className="font-medium shrink-0">
-                                          ${bill.amount.toLocaleString()}
-                                        </span>
-                                      </div>
-                                    ))}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          <Calendar
+            mode="single"
+            selected={new Date(selectedYear, selectedMonth - 1, selectedDay)}
+            month={new Date(selectedYear, selectedMonth - 1, 1)}
+            onSelect={(date) => {
+              if (date) {
+                setSelectedDay(date.getDate());
+                setSelectedMonth(date.getMonth() + 1);
+                setSelectedYear(date.getFullYear());
+              }
+            }}
+            onMonthChange={(date) => {
+              if (date) {
+                setSelectedMonth(date.getMonth() + 1);
+                setSelectedYear(date.getFullYear());
+              }
+            }}
+            className="rounded-md border m-4"
+          />
         </div>
       </main>
 
