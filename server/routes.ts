@@ -341,6 +341,65 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: 'Server error deleting transaction' });
     }
   });
+  // Add proper update handling for bills
+  app.patch('/api/bills/:id', async (req, res) => {
+    try {
+      console.log('[Bills API] Updating bill:', {
+        id: req.params.id,
+        data: req.body
+      });
+
+      const billId = parseInt(req.params.id);
+      const existingBill = await db.query.bills.findFirst({
+        where: eq(bills.id, billId)
+      });
+
+      if (!existingBill) {
+        return res.status(404).json({ message: 'Bill not found' });
+      }
+
+      // Update the bill
+      const [updatedBill] = await db.update(bills)
+        .set({
+          name: req.body.name,
+          amount: req.body.amount,
+          day: req.body.day,
+          category_id: req.body.category_id
+        })
+        .where(eq(bills.id, billId))
+        .returning();
+
+      // Also update any existing transactions that were generated from this bill
+      // to maintain consistency in descriptions and amounts
+      if (existingBill.name !== req.body.name) {
+        await db.update(transactions)
+          .set({
+            description: req.body.name,
+            category_id: req.body.category_id
+          })
+          .where(
+            and(
+              eq(transactions.category_id, existingBill.category_id),
+              ilike(transactions.description, `%${existingBill.name}%`)
+            )
+          );
+      }
+
+      console.log('[Bills API] Successfully updated bill:', updatedBill);
+
+      // Add cache control headers
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+
+      res.json(updatedBill);
+    } catch (error) {
+      console.error('[Bills API] Error updating bill:', error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Invalid request data'
+      });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
