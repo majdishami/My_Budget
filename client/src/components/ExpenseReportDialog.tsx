@@ -227,10 +227,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     if (selectedValue !== "all" || !date?.from || !date?.to) return [];
 
     const groups: Record<string, GroupedExpense> = {};
-    const dateFrom = dayjs(date.from);
-    const dateTo = dayjs(date.to);
+    const dateFrom = dayjs(date.from).startOf('day');
+    const dateTo = dayjs(date.to).endOf('day');
 
-    // Only process actual transactions within date range
+    // Process transactions within date range
     filteredTransactions.forEach(t => {
       const transactionDate = dayjs(t.date);
 
@@ -255,8 +255,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
 
       const entry = groups[key];
-      // A transaction is "occurred" if it's before or equal to today AND within the date range
-      const isOccurred = transactionDate.isSameOrBefore(today);
+      // A transaction is "occurred" if it's before or equal to today
+      const isOccurred = transactionDate.isSameOrBefore(today, 'day');
 
       entry.totalAmount += t.amount;
       entry.transactions.push(t);
@@ -273,7 +273,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [filteredTransactions, selectedValue, date, today]);
 
-  // Update summary calculations
+  // Update summary calculations to match the same date range logic
   const summary = useMemo(() => {
     if (!date?.from || !date?.to) {
       return {
@@ -283,8 +283,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       };
     }
 
-    const dateFrom = dayjs(date.from);
-    const dateTo = dayjs(date.to);
+    const dateFrom = dayjs(date.from).startOf('day');
+    const dateTo = dayjs(date.to).endOf('day');
 
     // Filter transactions to only include those within the date range
     const validTransactions = filteredTransactions.filter(t => {
@@ -295,10 +295,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     return {
       totalAmount: validTransactions.reduce((sum, t) => sum + t.amount, 0),
       occurredAmount: validTransactions
-        .filter(t => dayjs(t.date).isSameOrBefore(today))
+        .filter(t => dayjs(t.date).isSameOrBefore(today, 'day'))
         .reduce((sum, t) => sum + t.amount, 0),
       pendingAmount: validTransactions
-        .filter(t => dayjs(t.date).isAfter(today))
+        .filter(t => dayjs(t.date).isAfter(today, 'day'))
         .reduce((sum, t) => sum + t.amount, 0)
     };
   }, [filteredTransactions, date, today]);
@@ -306,13 +306,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   // Update itemTotals to properly calculate occurrences within date range
   const itemTotals = useMemo(() => {
     if (!filteredTransactions.length || !date?.from || !date?.to) return [];
-    const dateFrom = dayjs(date.from);
-    const dateTo = dayjs(date.to);
+    const dateFrom = dayjs(date.from).startOf('day');
+    const dateTo = dayjs(date.to).endOf('day');
 
     if (selectedValue === "all_categories") {
       const totals: Record<string, CategoryTotal> = {};
 
-      // Process only actual transactions within date range
+      // Process only transactions within date range
       filteredTransactions.forEach(t => {
         const transactionDate = dayjs(t.date);
 
@@ -335,8 +335,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         }
 
         const entry = totals[t.category_name];
-        // A transaction is "occurred" if it's before or equal to today AND within the date range
-        const isOccurred = transactionDate.isSameOrBefore(today);
+        // A transaction is "occurred" if it's before or equal to today
+        const isOccurred = transactionDate.isSameOrBefore(today, 'day');
 
         entry.total += t.amount;
         if (isOccurred) {
