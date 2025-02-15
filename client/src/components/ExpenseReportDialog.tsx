@@ -386,6 +386,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       // Category totals logic with occurrence tracking
       const totals: Record<string, CategoryTotal> = {};
 
+      // First, add all actual transactions
       filteredTransactions.forEach(t => {
         if (!totals[t.category_name]) {
           totals[t.category_name] = {
@@ -402,7 +403,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         const entry = totals[t.category_name];
         entry.total += t.amount;
 
-        // Check if transaction is before or after today
         if (dayjs(t.date).isSameOrBefore(today)) {
           entry.occurred += t.amount;
           entry.occurredCount++;
@@ -410,6 +410,29 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
           entry.pending += t.amount;
           entry.pendingCount++;
         }
+      });
+
+      // Then, add expected occurrences for each category's bills
+      Object.keys(totals).forEach(categoryName => {
+        const categoryBills = bills.filter(b => b.category_name === categoryName);
+
+        categoryBills.forEach(bill => {
+          const expectedOccurrences = calculateExpectedOccurrences(bill, date!.from, date!.to);
+          const actualOccurrences = filteredTransactions.filter(t => 
+            t.category_name === categoryName && 
+            t.description.toLowerCase().includes(bill.name.toLowerCase())
+          ).length;
+
+          // If we have fewer actual occurrences than expected, add projected ones
+          if (actualOccurrences < expectedOccurrences) {
+            const remainingOccurrences = expectedOccurrences - actualOccurrences;
+            const projectedAmount = bill.amount * remainingOccurrences;
+
+            totals[categoryName].total += projectedAmount;
+            totals[categoryName].pending += projectedAmount;
+            totals[categoryName].pendingCount += remainingOccurrences;
+          }
+        });
       });
 
       return Object.values(totals).sort((a, b) => b.total - a.total);
@@ -448,7 +471,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
       return Object.values(totals).sort((a, b) => b.totalAmount - a.totalAmount);
     } else if (selectedValue.startsWith('category_')) {
-      // Individual category totals logic
+      // Individual category totals logic with expected occurrences
       const selectedCategoryName = selectedValue.replace('category_', '');
       const totals: Record<string, {
         description: string;
@@ -461,7 +484,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         color: string;
       }> = {};
 
-      // Filter transactions for the selected category
+      // First add all actual transactions
       const categoryTransactions = filteredTransactions.filter(t =>
         t.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
       );
@@ -483,7 +506,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         const entry = totals[t.description];
         entry.total += t.amount;
 
-        // Check if transaction is before or after today
         if (dayjs(t.date).isSameOrBefore(today)) {
           entry.occurred += t.amount;
           entry.occurredCount++;
@@ -493,11 +515,45 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         }
       });
 
+      // Then add expected occurrences for bills in this category
+      const categoryBills = bills.filter(b => 
+        b.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
+      );
+
+      categoryBills.forEach(bill => {
+        const expectedOccurrences = calculateExpectedOccurrences(bill, date!.from, date!.to);
+        const actualOccurrences = categoryTransactions.filter(t => 
+          t.description.toLowerCase().includes(bill.name.toLowerCase())
+        ).length;
+
+        if (!totals[bill.name]) {
+          totals[bill.name] = {
+            description: bill.name,
+            category: selectedCategoryName,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            occurredCount: 0,
+            pendingCount: 0,
+            color: bill.category_color || '#D3D3D3'
+          };
+        }
+
+        if (actualOccurrences < expectedOccurrences) {
+          const remainingOccurrences = expectedOccurrences - actualOccurrences;
+          const projectedAmount = bill.amount * remainingOccurrences;
+
+          totals[bill.name].total += projectedAmount;
+          totals[bill.name].pending += projectedAmount;
+          totals[bill.name].pendingCount += remainingOccurrences;
+        }
+      });
+
       return Object.values(totals).sort((a, b) => b.total - a.total);
     }
 
     return [];
-  }, [filteredTransactions, selectedValue, date, today]);
+  }, [filteredTransactions, selectedValue, date, today, bills, calculateExpectedOccurrences, groupedExpenses]);
 
   // Update where we handle the bill ID in the dialog title
   const getDialogTitle = () => {
@@ -857,7 +913,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableHead className="text-right">Total Amount</TableHead>
                             <TableHead className="text-right">Paid Amount</TableHead>
                             <TableHead className="text-right">Pending Amount</TableHead>
-                            <TableHead className="text-right">Paid Occurrences</TableHead>
+                            <TableHead className="textright">Paid Occurrences</TableHead>
                             <TableHead className="text-right">Pending Occurrences</TableHead>
                           </TableRow>
                         </TableHeader>
