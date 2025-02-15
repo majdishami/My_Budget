@@ -209,7 +209,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       const fromDate = dayjs(date.from);
       const toDate = dayjs(date.to);
 
-      // Include transactions on the start and end dates
       const isInRange = transactionDate.isSameOrAfter(fromDate, 'day') &&
                      transactionDate.isSameOrBefore(toDate, 'day');
 
@@ -243,14 +242,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         console.log('[ExpenseReportDialog] Filtering for category:', categoryName);
 
         filtered = filtered.filter(t => {
-          // Case insensitive category matching and include transactions with Car Insurance in description
           const normalizedCategory = t.category_name.toLowerCase();
           const normalizedSearchCategory = categoryName.toLowerCase();
           const normalizedDescription = t.description.toLowerCase();
 
           const isMatch = normalizedCategory === normalizedSearchCategory || 
-                         (normalizedSearchCategory === 'car insurance' && 
-                          normalizedDescription.includes('car insurance'));
+                         (normalizedDescription.includes(normalizedSearchCategory.toLowerCase()));
 
           console.log('[ExpenseReportDialog] Category match check:', {
             transactionCategory: t.category_name,
@@ -263,31 +260,50 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
           return isMatch;
         });
+      } else if (selectedValue.startsWith('expense_')) {
+        const expenseId = selectedValue.replace('expense_', '');
+        console.log('[ExpenseReportDialog] Filtering for expense ID:', expenseId);
 
-        console.log('[ExpenseReportDialog] After category filtering:', {
-          categoryName,
-          matchCount: filtered.length,
-          matches: filtered.map(t => ({
-            description: t.description,
-            category: t.category_name,
-            type: t.type
-          }))
-        });
+        const selectedBill = bills.find(b => String(b.id) === expenseId);
+        if (selectedBill) {
+          const normalizedBillName = selectedBill.name.toLowerCase().trim();
+          const normalizedBillCategory = (selectedBill.category_name || '').toLowerCase().trim();
+
+          filtered = filtered.filter(t => {
+            const normalizedTransDesc = t.description.toLowerCase().trim();
+            const normalizedTransCategory = t.category_name.toLowerCase().trim();
+
+            // Match based on either bill name in description or matching category
+            const isMatch = normalizedTransDesc.includes(normalizedBillName) || 
+                          (normalizedTransCategory === normalizedBillCategory && 
+                           normalizedTransDesc.includes(normalizedBillName.split(' ')[0]));
+
+            console.log('[ExpenseReportDialog] Expense match check:', {
+              transactionDesc: normalizedTransDesc,
+              transactionCategory: normalizedTransCategory,
+              billName: normalizedBillName,
+              billCategory: normalizedBillCategory,
+              isMatch
+            });
+
+            return isMatch;
+          });
+        }
       }
+
+      console.log('[ExpenseReportDialog] After expense/category filtering:', {
+        selectedValue,
+        matchCount: filtered.length,
+        matches: filtered.map(t => ({
+          description: t.description,
+          category: t.category_name,
+          type: t.type
+        }))
+      });
     }
 
-    console.log('[ExpenseReportDialog] Final filtered transactions:', {
-      count: filtered.length,
-      sampleTransactions: filtered.slice(0, 3).map(t => ({
-        description: t.description,
-        date: t.date,
-        amount: t.amount,
-        category: t.category_name
-      }))
-    });
-
     return filtered;
-  }, [showReport, date, selectedValue, transactions]);
+  }, [showReport, date, selectedValue, transactions, bills]);
 
   // Group transactions by expense name for the "all" view
   const groupedExpenses = useMemo(() => {
@@ -889,7 +905,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                       const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
                       const monthlyPaid = monthTransactions
                         .filter(t => dayjs(t.date).isSameOrBefore(today))
-                        .reduce((sum, t) => sum + t.amount, 0);
+                        .reduce((sum, t)=> sum + t.amount, 0);
 
                       return (
                         <Card key={monthKey}>
