@@ -352,6 +352,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       entry.totalAmount += t.amount;
       entry.transactions.push(t);
 
+      // Update occurred/pending amounts and counts based on transaction date
       if (isOccurred) {
         entry.occurredAmount += t.amount;
         entry.occurredCount++;
@@ -364,22 +365,27 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     // Add expected occurrences for each bill within the date range
     if (date?.from && date?.to) {
       bills.forEach(bill => {
+        const entry = groups[bill.name];
         const expectedOccurrences = calculateExpectedOccurrences(bill, date.from!, date.to!);
+
+        // Find actual transactions for this bill
         const actualTransactions = filteredTransactions.filter(t => 
           t.description.toLowerCase() === bill.name.toLowerCase()
         );
 
+        // Count actual occurrences and their status
         const actualOccurrences = actualTransactions.length;
         const actualPaidOccurrences = actualTransactions.filter(t => 
           dayjs(t.date).isSameOrBefore(today)
         ).length;
 
+        // Calculate remaining occurrences that need to be projected
         if (actualOccurrences < expectedOccurrences) {
           const remainingOccurrences = expectedOccurrences - actualOccurrences;
           const projectedAmount = bill.amount * remainingOccurrences;
 
-          const entry = groups[bill.name];
           entry.totalAmount += projectedAmount;
+          // All projected occurrences are pending since they haven't happened yet
           entry.pendingAmount += projectedAmount;
           entry.pendingCount += remainingOccurrences;
         }
