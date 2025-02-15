@@ -114,6 +114,12 @@ interface ExpenseReportDialogProps {
   bills: Bill[];
 }
 
+interface ExpenseOccurrence {
+  date: string;
+  amount: number;
+  status: 'occurred' | 'pending';
+}
+
 export default function ExpenseReportDialog({
   isOpen,
   onOpenChange,
@@ -461,6 +467,39 @@ export default function ExpenseReportDialog({
     }
     return "Expense Report";
   };
+
+  // Add new function to generate monthly occurrences
+  const getMonthlyOccurrences = useMemo(() => {
+    if (!date?.from || !date?.to || !selectedValue.startsWith('expense_')) {
+      return [];
+    }
+
+    const billId = selectedValue.replace('expense_', '');
+    const bill = bills.find(b => b.id === billId);
+    if (!bill) return [];
+
+    const occurrences: ExpenseOccurrence[] = [];
+    const dateFrom = dayjs(date.from).startOf('day');
+    const dateTo = dayjs(date.to).endOf('day');
+    let currentDate = dateFrom.clone().date(bill.day);
+
+    // If we've passed the bill day this month, start from next month
+    if (currentDate.isBefore(dateFrom)) {
+      currentDate = currentDate.add(1, 'month');
+    }
+
+    // Generate all occurrences within date range
+    while (currentDate.isSameOrBefore(dateTo)) {
+      occurrences.push({
+        date: currentDate.format('YYYY-MM-DD'),
+        amount: bill.amount,
+        status: currentDate.isSameOrBefore(today) ? 'occurred' : 'pending'
+      });
+      currentDate = currentDate.add(1, 'month');
+    }
+
+    return occurrences;
+  }, [bills, selectedValue, date, today]);
 
   if (!showReport) {
     return (
@@ -894,6 +933,61 @@ export default function ExpenseReportDialog({
                               </TableCell>
                             </TableRow>
                           ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedValue.startsWith('expense_') && (
+                  <Card className="mb-4">
+                    <CardHeader>
+                      <CardTitle>
+                        {(() => {
+                          const billId = selectedValue.replace('expense_', '');
+                          const bill = bills.find(b => b.id === billId);
+                          return bill ? `Monthly Occurrences - ${bill.name}` : 'Expense Details';
+                        })()}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead className="text-right">Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {getMonthlyOccurrences.map((occurrence) => {
+                            const bill = bills.find(b => b.id === selectedValue.replace('expense_', ''));
+                            return (
+                              <TableRow key={occurrence.date}>
+                                <TableCell>{dayjs(occurrence.date).format('MMM D, YYYY')}</TableCell>
+                                <TableCell>
+                                  <CategoryDisplay
+                                    category={bill?.category_name || 'Uncategorized'}
+                                    color={bill?.category_color || '#D3D3D3'}
+                                    icon={bill?.category_icon || bill?.category?.icon || null}
+                                  />
+                                </TableCell>
+                                <TableCell className={`text-right ${
+                                  occurrence.status === 'occurred' ? 'text-red-600' : 'text-orange-500'
+                                }`}>
+                                  {formatCurrency(occurrence.amount)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {occurrence.status === 'occurred' ? (
+                                    <span className="text-red-600">✓ Paid</span>
+                                  ) : (
+                                    <span className="text-orange-500">⌛ Pending</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </CardContent>
