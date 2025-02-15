@@ -328,7 +328,35 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     const dateFrom = dayjs(date.from).startOf('day');
     const dateTo = dayjs(date.to).endOf('day');
 
-    if (selectedValue.startsWith('category_')) {
+    if (selectedValue === "all_categories") {
+      let totalOccurred = 0;
+      let totalPending = 0;
+
+      bills.forEach(bill => {
+        let currentDate = dateFrom.clone().date(bill.day);
+
+        // If we've passed the bill day this month, start from next month
+        if (currentDate.isBefore(dateFrom)) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        // Generate all occurrences within date range
+        while (currentDate.isSameOrBefore(dateTo)) {
+          if (currentDate.isSameOrBefore(today)) {
+            totalOccurred += bill.amount;
+          } else {
+            totalPending += bill.amount;
+          }
+          currentDate = currentDate.add(1, 'month');
+        }
+      });
+
+      return {
+        totalAmount: totalOccurred + totalPending,
+        occurredAmount: totalOccurred,
+        pendingAmount: totalPending
+      };
+    } else if (selectedValue.startsWith('category_')) {
       const categoryName = selectedValue.replace('category_', '');
       const categoryBills = bills.filter(b => b.category_name === categoryName);
 
@@ -398,7 +426,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             occurredCount: 0,
             pendingCount: 0,
             color: bill.category_color,
-            icon: bill.category_icon || null
+            icon: bill.category_icon || bill.category?.icon || null
           };
         }
 
@@ -421,18 +449,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
             entry.pendingCount++;
           }
 
-          // Move to next month
           currentDate = currentDate.add(1, 'month');
         }
+      });
 
-        // Update total after all occurrences are calculated
-        const entry = totals[bill.category_name];
+      // Calculate totals after all occurrences
+      Object.values(totals).forEach(entry => {
         entry.total = entry.occurred + entry.pending;
       });
 
-      return Object.values(totals).sort((a, b) => b.total - a.total);
+      return Object.values(totals)
+        .sort((a, b) => b.total - a.total)
+        .filter(entry => entry.total > 0); // Only show categories with expenses
     } else if (selectedValue.startsWith('category_')) {
-      // Individual category view logic remains unchanged
       const categoryName = selectedValue.replace('category_', '');
       const categoryBills = bills.filter(b => b.category_name === categoryName);
 
@@ -480,12 +509,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         occurredCount,
         pendingCount,
         color: categoryDetails.category_color,
-        icon: categoryDetails.category_icon || null
+        icon: categoryDetails.category_icon || categoryDetails.category?.icon || null
       }];
     }
 
     return [];
-  }, [filteredTransactions, selectedValue, date, bills, today]);
+  }, [bills, selectedValue, date, today]);
 
   const getDialogTitle = () => {
     if (selectedValue === "all") return "All Expenses Combined";
