@@ -13,18 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
 import dayjs from 'dayjs';
-import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
-import isBetween from 'dayjs/plugin/isBetween';
 import { useQuery } from "@tanstack/react-query";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -35,7 +24,6 @@ import {
 } from "@/components/ui/table";
 import { AlertCircle, X } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import * as Icons from 'lucide-react';
 
 // Update the DynamicIcon component to properly handle icon names
@@ -203,11 +191,24 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     return occurrences;
   };
 
-  // Update filteredTransactions to include expected occurrences
+  // Update filteredTransactions to properly handle duplicates and projections
   const filteredTransactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
 
-    let filtered = transactions.filter(t => {
+    // Create a map to deduplicate transactions by date and description
+    const transactionMap = new Map<string, Transaction>();
+
+    // Process and deduplicate transactions
+    transactions.forEach(t => {
+      const key = `${t.date}-${t.description.toLowerCase()}`;
+      // Keep the most recent transaction (assuming they're ordered by date)
+      if (!transactionMap.has(key)) {
+        transactionMap.set(key, t);
+      }
+    });
+
+    // Convert map back to array and filter by date range
+    let filtered = Array.from(transactionMap.values()).filter(t => {
       const transactionDate = dayjs(t.date);
       const fromDate = dayjs(date.from);
       const toDate = dayjs(date.to);
@@ -215,125 +216,65 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
              transactionDate.isSameOrBefore(toDate, 'day');
     });
 
-    // Add expected occurrences for bills within the date range
+    // Handle bill projections if needed
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
       const selectedBill = bills.find(b => String(b.id) === billId);
 
       if (selectedBill) {
         const expectedOccurrences = calculateExpectedOccurrences(selectedBill, date.from, date.to);
-        const actualOccurrences = filtered.length;
-        const remainingOccurrences = expectedOccurrences - actualOccurrences;
+        const existingDates = new Set(
+          filtered
+            .filter(t => t.description.toLowerCase() === selectedBill.name.toLowerCase())
+            .map(t => dayjs(t.date).format('YYYY-MM-DD'))
+        );
 
-        // Add projected transactions for remaining occurrences
+        // Calculate remaining occurrences
+        const actualOccurrences = existingDates.size;
+        const remainingOccurrences = Math.max(0, expectedOccurrences - actualOccurrences);
+
         if (remainingOccurrences > 0) {
           let currentDate = dayjs(date.from).date(selectedBill.day);
-          while (currentDate.isSameOrBefore(dayjs(date.to))) {
-            // Only add if there's no actual transaction on this date
-            const existingTransaction = filtered.find(t =>
-              dayjs(t.date).format('YYYY-MM-DD') === currentDate.format('YYYY-MM-DD')
-            );
+          let addedProjections = 0;
 
-            if (!existingTransaction) {
-              // Standardize projected rent descriptions
-              const description = selectedBill.name === 'Rent' ? 'Rent (Projected)' : `${selectedBill.name} (Projected)`;
+          while (currentDate.isSameOrBefore(dayjs(date.to)) && addedProjections < remainingOccurrences) {
+            const dateStr = currentDate.format('YYYY-MM-DD');
+
+            if (!existingDates.has(dateStr)) {
               filtered.push({
-                id: `projected-${currentDate.format('YYYY-MM-DD')}`,
-                date: currentDate.format('YYYY-MM-DD'),
-                description,
+                id: `projected-${dateStr}`,
+                date: dateStr,
+                description: `${selectedBill.name} (Projected)`,
                 amount: selectedBill.amount,
                 type: 'expense',
                 category_name: selectedBill.category_name,
                 category_color: selectedBill.category_color,
-                category_icon: selectedBill.category_icon,
+                category_icon: selectedBill.category_icon || null,
                 category_id: selectedBill.category_id
               });
+              addedProjections++;
             }
             currentDate = currentDate.add(1, 'month');
           }
         }
       }
-    }
-
-    if (selectedValue.startsWith('category_')) {
-      const categoryName = selectedValue.replace('category_', '');
-      filtered = filtered.filter(t =>
-        t.category_name.toLowerCase() === categoryName.toLowerCase()
-      );
-
-      // Add projected transactions for bills in this category
-      const categoryBills = bills.filter(b =>
-        b.category_name.toLowerCase() === categoryName.toLowerCase()
-      );
-
-      categoryBills.forEach(bill => {
-        const expectedOccurrences = calculateExpectedOccurrences(bill, date.from, date.to);
-        const actualOccurrences = filtered.filter(t =>
-          t.description.toLowerCase().includes(bill.name.toLowerCase())
-        ).length;
-        const remainingOccurrences = expectedOccurrences - actualOccurrences;
-
-        if (remainingOccurrences > 0) {
-          let currentDate = dayjs(date.from).date(bill.day);
-          while (currentDate.isSameOrBefore(dayjs(date.to))) {
-            const existingTransaction = filtered.find(t =>
-              dayjs(t.date).format('YYYY-MM-DD') === currentDate.format('YYYY-MM-DD') &&
-              t.description.toLowerCase().includes(bill.name.toLowerCase())
-            );
-
-            if (!existingTransaction) {
-              // Standardize projected rent descriptions
-              const description = bill.name === 'Rent' ? 'Rent (Projected)' : `${bill.name} (Projected)`;
-              filtered.push({
-                id: `projected-${bill.id}-${currentDate.format('YYYY-MM-DD')}`,
-                date: currentDate.format('YYYY-MM-DD'),
-                description,
-                amount: bill.amount,
-                type: 'expense',
-                category_name: bill.category_name,
-                category_color: bill.category_color,
-                category_icon: bill.category_icon,
-                category_id: bill.category_id
-              });
-            }
-            currentDate = currentDate.add(1, 'month');
-          }
-        }
-      });
     }
 
     return filtered.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
   }, [showReport, date, selectedValue, transactions, bills]);
 
-  // Update the groupedExpenses calculation
+  // Update groupedExpenses calculation with proper occurrence tracking
   const groupedExpenses = useMemo(() => {
     if (selectedValue !== "all") return [];
 
     const groups: Record<string, GroupedExpense> = {};
 
-    // First initialize totals for all bills
-    bills.forEach(bill => {
-      if (!groups[bill.name]) {
-        groups[bill.name] = {
-          description: bill.name,
-          category: bill.category_name,
-          totalAmount: 0,
-          occurredAmount: 0,
-          pendingAmount: 0,
-          occurredCount: 0,
-          pendingCount: 0,
-          color: bill.category_color,
-          transactions: []
-        };
-      }
-    });
-
-    // Add actual transactions
+    // Process transactions and group them
     filteredTransactions.forEach(t => {
-      const description = t.description;
-      if (!groups[description]) {
-        groups[description] = {
-          description: description,
+      const key = t.description;
+      if (!groups[key]) {
+        groups[key] = {
+          description: key,
           category: t.category_name,
           totalAmount: 0,
           occurredAmount: 0,
@@ -345,14 +286,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         };
       }
 
-      const entry = groups[description];
-      const transactionDate = dayjs(t.date);
-      const isOccurred = transactionDate.isSameOrBefore(today);
+      const entry = groups[key];
+      const isOccurred = dayjs(t.date).isSameOrBefore(dayjs());
 
       entry.totalAmount += t.amount;
       entry.transactions.push(t);
 
-      // Update occurred/pending amounts and counts based on transaction date
       if (isOccurred) {
         entry.occurredAmount += t.amount;
         entry.occurredCount++;
@@ -362,38 +301,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
     });
 
-    // Add expected occurrences for each bill within the date range
-    if (date?.from && date?.to) {
-      bills.forEach(bill => {
-        const entry = groups[bill.name];
-        const expectedOccurrences = calculateExpectedOccurrences(bill, date.from!, date.to!);
-
-        // Find actual transactions for this bill
-        const actualTransactions = filteredTransactions.filter(t => 
-          t.description.toLowerCase() === bill.name.toLowerCase()
-        );
-
-        // Count actual occurrences and their status
-        const actualOccurrences = actualTransactions.length;
-        const actualPaidOccurrences = actualTransactions.filter(t => 
-          dayjs(t.date).isSameOrBefore(today)
-        ).length;
-
-        // Calculate remaining occurrences that need to be projected
-        if (actualOccurrences < expectedOccurrences) {
-          const remainingOccurrences = expectedOccurrences - actualOccurrences;
-          const projectedAmount = bill.amount * remainingOccurrences;
-
-          entry.totalAmount += projectedAmount;
-          // All projected occurrences are pending since they haven't happened yet
-          entry.pendingAmount += projectedAmount;
-          entry.pendingCount += remainingOccurrences;
-        }
-      });
-    }
-
-    return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
-  }, [filteredTransactions, selectedValue, date, today, bills, calculateExpectedOccurrences]);
+    return Object.values(groups)
+      .filter(g => g.transactions.length > 0)
+      .sort((a, b) => b.totalAmount - a.totalAmount);
+  }, [filteredTransactions, selectedValue]);
 
   // Update summary calculations to include all transactions in date range
   const summary = useMemo(() => {
@@ -947,11 +858,16 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableHead className="w-[180px]">Expense</TableHead>
                             <TableHead className="w-[140px]">Category</TableHead>
                             <TableHead className="text-right w-[120px]">
-                              <div>Total Amount</div>
-                              <div className="text-xs font-normal">Paid / Pending</div>
+                              Total Amount
+                            </TableHead>
+                            <TableHead className="text-right w-[120px]">
+                              Paid Amount
+                            </TableHead>
+                            <TableHead className="text-right w-[120px]">
+                              Pending Amount
                             </TableHead>
                             <TableHead className="text-right w-[100px]">
-                              <div>Occurrences</div>
+                              Occurrences
                               <div className="text-xs font-normal">Paid / Pending</div>
                             </TableHead>
                           </TableRow>
@@ -959,7 +875,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                         <TableBody>
                           {groupedExpenses.map((expense) => (
                             <TableRow key={expense.description}>
-                              <TableCell className="font-medium">{expense.description}</TableCell>
+                              <TableCell className="font-medium">
+                                {expense.description}
+                              </TableCell>
                               <TableCell>
                                 <CategoryDisplay
                                   category={expense.category}
@@ -967,21 +885,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                   icon={bills.find(b => b.category_name === expense.category)?.category_icon ?? null}
                                 />
                               </TableCell>
-                              <TableCell className="text-right">
-                                <div className="font-medium">{formatCurrency(expense.totalAmount)}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  <span className="text-red-600">{formatCurrency(expense.occurredAmount)}</span>
-                                  {" / "}
-                                  <span className="text-orange-500">{formatCurrency(expense.pendingAmount)}</span>
-                                </div>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(expense.totalAmount)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-600">
+                                {formatCurrency(expense.occurredAmount)}
+                              </TableCell>
+                              <TableCell className="text-right text-orange-500">
+                                {formatCurrency(expense.pendingAmount)}
                               </TableCell>
                               <TableCell className="text-right">
-                                <div className="font-medium">{expense.occurredCount + expense.pendingCount}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  <span className="text-red-600">{expense.occurredCount}</span>
-                                  {" / "}
-                                  <span className="text-orange-500">{expense.pendingCount}</span>
-                                </div>
+                                <span className="text-red-600">{expense.occurredCount}</span>
+                                {" / "}
+                                <span className="text-orange-500">{expense.pendingCount}</span>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -1006,7 +922,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableHead className="text-right">Total Amount</TableHead>
                             <TableHead className="text-right">Paid Amount</TableHead>
                             <TableHead className="text-right">Pending Amount</TableHead>
-                            <TableHead className="textright">Paid Occurrences</TableHead>
+                            <TableHead className="text-right">Paid Occurrences</TableHead>
                             <TableHead className="text-right">Pending Occurrences</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1021,7 +937,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                   icon={item.icon}
                                 />
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="textright font-medium">
                                 {formatCurrency(item.total / (item.occurredCount + item.pendingCount))}
                               </TableCell>
                               <TableCell className="text-right font-medium">
@@ -1050,11 +966,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 {selectedValue !== "all" && (
                   <div className="space-y-4">
                     {sortedMonths.map(monthKey => {
-                      const monthTransactions= groupedTransactions[monthKey] || [];
+                      const monthTransactions = groupedTransactions[monthKey] || [];
                       const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
                       const monthlyPaid = monthTransactions
                         .filter(t => dayjs(t.date).isSameOrBefore(today))
-                        .reduce((sum, t)=> sum + t.amount, 0);
+                        .reduce((sum, t) => sum + t.amount, 0);
 
                       return (
                         <Card key={monthKey}>

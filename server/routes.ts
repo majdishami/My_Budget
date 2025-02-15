@@ -46,9 +46,9 @@ export function registerRoutes(app: Express): Server {
         category_color: sql<string>`COALESCE(${categories.color}, '#6366F1')`,
         category_icon: sql<string>`COALESCE(${categories.icon}, 'shopping-cart')`
       })
-      .from(bills)
-      .leftJoin(categories, eq(bills.category_id, categories.id))
-      .orderBy(desc(bills.amount));
+        .from(bills)
+        .leftJoin(categories, eq(bills.category_id, categories.id))
+        .orderBy(desc(bills.amount));
 
       const formattedBills = allBills.map(bill => {
         const formatted = {
@@ -107,7 +107,7 @@ export function registerRoutes(app: Express): Server {
         .from(bills)
         .leftJoin(categories, eq(bills.category_id, categories.id));
 
-      console.log('[Transactions API] Available categories:', 
+      console.log('[Transactions API] Available categories:',
         allCategories.map(c => ({ id: c.id, name: c.name }))
       );
 
@@ -155,8 +155,8 @@ export function registerRoutes(app: Express): Server {
 
           // Special handling for rent category to standardize rent descriptions
           if (category.name.toLowerCase() === 'rent') {
-            const isRentRelated = description.includes('rent') || 
-                                 description.includes('housing payment');
+            const isRentRelated = description.includes('rent') ||
+              description.includes('housing payment');
             if (isRentRelated) {
               // Standardize the description for rent
               transaction.description = 'Rent';
@@ -175,8 +175,8 @@ export function registerRoutes(app: Express): Server {
 
             // Special handling for rent bills to standardize descriptions
             if (bill.category_name?.toLowerCase() === 'rent') {
-              const isRentRelated = description.includes('rent') || 
-                                   description.includes('housing payment');
+              const isRentRelated = description.includes('rent') ||
+                description.includes('housing payment');
               if (isRentRelated) {
                 // Standardize the description for rent
                 transaction.description = 'Rent';
@@ -283,8 +283,6 @@ export function registerRoutes(app: Express): Server {
       });
 
       const transactionId = parseInt(req.params.id);
-
-      // First verify the transaction exists
       const existingTransaction = await db.query.transactions.findFirst({
         where: eq(transactions.id, transactionId)
       });
@@ -293,43 +291,50 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Transaction not found' });
       }
 
-      // Update the transaction with all fields
-      const [updatedTransaction] = await db.update(transactions)
-        .set({
-          description: req.body.description,
-          amount: req.body.amount,
-          date: new Date(req.body.date),
-          type: req.body.type,
-          category_id: req.body.category_id
-        })
-        .where(eq(transactions.id, transactionId))
-        .returning();
+      // Update all transactions with the same description and category to maintain consistency
+      const oldDescription = existingTransaction.description.toLowerCase();
+      const newDescription = req.body.description.toLowerCase();
 
-      // If this was a bill-related transaction, update any other transactions 
-      // with the same description to maintain consistency
-      if (updatedTransaction) {
-        const oldDescription = existingTransaction.description.toLowerCase();
-        const newDescription = updatedTransaction.description.toLowerCase();
-
-        // Only update related transactions if the description changed
-        if (oldDescription !== newDescription) {
-          await db.update(transactions)
+      // Start a transaction to ensure all updates happen together
+      let updatedTransaction;
+      try {
+        await db.transaction(async (tx) => {
+          // First update the specific transaction
+          [updatedTransaction] = await tx.update(transactions)
             .set({
-              description: updatedTransaction.description,
-              category_id: updatedTransaction.category_id
+              description: req.body.description,
+              amount: req.body.amount,
+              date: new Date(req.body.date),
+              type: req.body.type,
+              category_id: req.body.category_id
             })
-            .where(
-              and(
-                eq(transactions.category_id, existingTransaction.category_id),
-                ilike(transactions.description, `%${oldDescription}%`)
-              )
-            );
-        }
+            .where(eq(transactions.id, transactionId))
+            .returning();
+
+          // Then update all related transactions to maintain consistency
+          if (oldDescription !== newDescription || existingTransaction.category_id !== req.body.category_id) {
+            await tx.update(transactions)
+              .set({
+                description: req.body.description,
+                category_id: req.body.category_id
+              })
+              .where(
+                and(
+                  eq(transactions.type, existingTransaction.type),
+                  ilike(transactions.description, `%${oldDescription}%`),
+                  eq(transactions.category_id, existingTransaction.category_id)
+                )
+              );
+          }
+        });
+      } catch (error) {
+        console.error('[Transactions API] Transaction update failed:', error);
+        throw error;
       }
 
       console.log('[Transactions API] Successfully updated transaction:', updatedTransaction);
 
-      // Add cache control headers to prevent stale data
+      // Add aggressive cache control headers
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
