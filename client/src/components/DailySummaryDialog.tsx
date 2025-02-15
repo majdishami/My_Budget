@@ -91,10 +91,11 @@ export default function DailySummaryDialog({
   totalBillsUpToToday,
   monthlyTotals,
 }: DailySummaryDialogProps) {
-  const selectedDate = useMemo(() => 
-    dayjs().year(selectedYear).month(selectedMonth).date(selectedDay),
-    [selectedYear, selectedMonth, selectedDay]
-  );
+  const selectedDate = useMemo(() => {
+    // Create date using the passed year, month, and day
+    // Note: month parameter is 0-based in dayjs
+    return dayjs().year(selectedYear).month(selectedMonth).date(selectedDay);
+  }, [selectedYear, selectedMonth, selectedDay]);
 
   const currentDate = useMemo(() => 
     selectedDate.format('MMMM D, YYYY'),
