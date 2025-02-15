@@ -203,11 +203,17 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     if (selectedValue !== "all" && selectedValue !== "all_categories") {
       if (selectedValue.startsWith('expense_')) {
         const expenseId = selectedValue.replace('expense_', '');
-        const selectedBill = bills.find(b => b.id === expenseId);
+        console.log('[ExpenseReportDialog] Filtering for expense ID:', expenseId);
+        console.log('[ExpenseReportDialog] Current transactions:', filtered);
+
+        const selectedBill = bills.find(b => String(b.id) === expenseId);
         if (selectedBill) {
-          filtered = filtered.filter(t =>
-            t.description === selectedBill.name
-          );
+          console.log('[ExpenseReportDialog] Found matching bill:', selectedBill);
+          filtered = filtered.filter(t => {
+            const matches = t.description === selectedBill.name;
+            console.log('[ExpenseReportDialog] Checking transaction:', t, 'matches:', matches);
+            return matches;
+          });
         }
       } else if (selectedValue.startsWith('category_')) {
         const categoryName = selectedValue.replace('category_', '');
@@ -215,6 +221,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
     }
 
+    console.log('[ExpenseReportDialog] Final filtered transactions:', filtered);
     return filtered;
   }, [showReport, date, transactions, selectedValue, bills]);
 
