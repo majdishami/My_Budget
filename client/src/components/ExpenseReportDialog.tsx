@@ -567,7 +567,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     icon: string | null;
   }
 
-  // Update the CategoryDisplay component to handle default icons
+  // Update the CategoryDisplay component to display consistent icons
   function CategoryDisplay({ category, color, icon }: CategoryDisplayProps) {
     return (
       <div className="flex items-center gap-2">
@@ -738,7 +738,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                             <TableRow key={expense.description}>
                               <TableCell className="font-medium">{expense.description}</TableCell>
                               <TableCell>
-                                <CategoryDisplay category={expense.category} color={expense.color} icon={billsData.find(b => b.category_name === expense.category)?.category?.icon ?? null} />
+                                <CategoryDisplay
+                                  category={expense.category}
+                                  color={expense.color}
+                                  icon={bills.find(b => b.category_name === expense.category)?.category_icon ?? null}
+                                />
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {formatCurrency(expense.totalAmount / expense.transactions.length)}
@@ -903,8 +907,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                       }`}>
                                         {transaction.occurred ? '✓' : '⌛'}
                                       </TableCell>
-                                    </TableRow>
-                                  ))}
+                                    </TableRow>                                  ))}
                               </TableBody>
                             </Table>
                           </CardContent>
