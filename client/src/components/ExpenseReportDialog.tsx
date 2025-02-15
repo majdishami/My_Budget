@@ -250,7 +250,7 @@ export default function ExpenseReportDialog({
     // Handle individual expense view
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
-      const bill = bills.find(b => b.id === billId);
+      const bill = bills.find(b => b.id.toString() === billId);
       if (!bill) return [];
 
       // Filter transactions that match this specific bill's name within the date range
@@ -433,7 +433,7 @@ export default function ExpenseReportDialog({
     let title = "";
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
-      const bill = bills.find(b => b.id === billId);
+      const bill = bills.find(b => b.id.toString() === billId);
       if (bill) {
         title = `${bill.name} - ${formatCurrency(bill.amount)} per month`;
       }
@@ -522,7 +522,7 @@ export default function ExpenseReportDialog({
                     <SelectLabel>Individual Expenses</SelectLabel>
                     {bills.map((bill) => (
                       <SelectItem key={`expense_${bill.id}`} value={`expense_${bill.id}`}>
-                        {bill.name} ({formatCurrency(bill.amount)})
+                        {bill.name}
                       </SelectItem>
                     ))}
                   </SelectGroup>
