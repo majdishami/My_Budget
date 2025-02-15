@@ -90,17 +90,12 @@ export default function DailySummaryDialog({
   totalBillsUpToToday,
   monthlyTotals,
 }: DailySummaryDialogProps) {
-  const selectedDate = useMemo(() => {
-    return dayjs()
-      .year(selectedYear)
-      .month(selectedMonth)
-      .date(selectedDay);
+  // Create the date using the passed month directly
+  const formattedDate = useMemo(() => {
+    // Create a date string with explicit month (no auto-adjustment)
+    const date = new Date(selectedYear, selectedMonth, selectedDay);
+    return dayjs(date).format('MMMM D, YYYY');
   }, [selectedYear, selectedMonth, selectedDay]);
-
-  const formattedDate = useMemo(() => 
-    selectedDate.format('MMMM D, YYYY'),
-    [selectedDate]
-  );
 
   const { dailyIncome, dailyBills, totalNet } = useMemo(() => ({
     dailyIncome: dayIncomes.reduce((sum, income) => sum + income.amount, 0),
@@ -112,7 +107,7 @@ export default function DailySummaryDialog({
     remainingIncome: monthlyTotals.income - totalIncomeUpToToday,
     remainingExpenses: monthlyTotals.expenses - totalBillsUpToToday,
     remainingBalance: (monthlyTotals.income - totalIncomeUpToToday) - 
-                     (monthlyTotals.expenses - totalBillsUpToToday)
+                   (monthlyTotals.expenses - totalBillsUpToToday)
   }), [monthlyTotals, totalIncomeUpToToday, totalBillsUpToToday]);
 
   if (!isOpen) return null;
