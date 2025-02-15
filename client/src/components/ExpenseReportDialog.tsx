@@ -328,6 +328,39 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     const dateFrom = dayjs(date.from).startOf('day');
     const dateTo = dayjs(date.to).endOf('day');
 
+    if (selectedValue.startsWith('category_')) {
+      const categoryName = selectedValue.replace('category_', '');
+      const categoryBills = bills.filter(b => b.category_name === categoryName);
+
+      let occurred = 0;
+      let pending = 0;
+
+      categoryBills.forEach(bill => {
+        let currentDate = dateFrom.clone().date(bill.day);
+
+        // If we've passed the bill day this month, start from next month
+        if (currentDate.isBefore(dateFrom)) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        // Generate all occurrences within date range
+        while (currentDate.isSameOrBefore(dateTo)) {
+          if (currentDate.isSameOrBefore(today)) {
+            occurred += bill.amount;
+          } else {
+            pending += bill.amount;
+          }
+          currentDate = currentDate.add(1, 'month');
+        }
+      });
+
+      return {
+        totalAmount: occurred + pending,
+        occurredAmount: occurred,
+        pendingAmount: pending
+      };
+    }
+
     // Filter transactions to only include those within the date range
     const validTransactions = filteredTransactions.filter(t => {
       const transactionDate = dayjs(t.date);
@@ -343,7 +376,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         .filter(t => dayjs(t.date).isAfter(today, 'day'))
         .reduce((sum, t) => sum + t.amount, 0)
     };
-  }, [filteredTransactions, date, today]);
+  }, [filteredTransactions, date, today, selectedValue, bills]);
 
   // Update itemTotals to properly calculate occurrences within date range
   const itemTotals = useMemo(() => {
