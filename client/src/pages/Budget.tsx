@@ -78,10 +78,8 @@ const DayCell = memo(({
   selectedMonth: number;
   selectedYear: number;
 }) => {
-  // Sort transactions by amount in descending order
   const sortedIncomes = [...dayIncomes].sort((a, b) => b.amount - a.amount);
   const sortedBills = [...dayBills].sort((a, b) => b.amount - a.amount);
-
   const hasTransactions = sortedIncomes.length > 0 || sortedBills.length > 0;
   const dayDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
   const dayOfWeek = dayDate.format('ddd');
@@ -92,7 +90,7 @@ const DayCell = memo(({
       className={cn(
         "border border-yellow-100/50 p-0.5 lg:p-2 align-top cursor-pointer transition-colors h-12 md:h-24 lg:h-48 relative touch-manipulation",
         "hover:bg-accent active:bg-accent/70",
-        isCurrentDay && "ring-2 ring-primary ring-offset-2 bg-primary/5",
+        isCurrentDay && "ring-2 ring-primary ring-offset-2 bg-yellow-100/50",
         selectedDay === day && "bg-accent/50",
         hasTransactions && "shadow-sm"
       )}
@@ -102,10 +100,10 @@ const DayCell = memo(({
           <div className="flex items-center gap-1">
             {isCurrentDay ? (
               <>
-                <span className="font-bold text-sm md:text-base lg:text-lg text-primary bg-primary/10 px-1.5 rounded animate-[pulse_2s_ease-in-out_infinite]">
+                <span className="font-bold text-sm md:text-base lg:text-lg text-primary bg-yellow-200 px-1.5 rounded">
                   {day}
                 </span>
-                <span className="text-[10px] text-primary bg-primary/10 px-1 rounded animate-[pulse_2s_ease-in-out_infinite]">
+                <span className="text-[10px] text-primary bg-yellow-200 px-1 rounded">
                   {dayOfWeek}
                 </span>
               </>
