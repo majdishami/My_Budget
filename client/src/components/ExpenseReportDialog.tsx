@@ -895,8 +895,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                     }
                                     return dayjs(a.date).diff(dayjs(b.date));
                                   })
-                                  .map((transaction, index) => (
-                                    <TableRow key={`${transaction.date}-${index}`}>
+                                  .map((transaction) => (
+                                    <TableRow key={transaction.id}>
                                       {selectedValue === "all_categories" ? (
                                         <>
                                           <TableCell>
@@ -905,7 +905,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                           <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-orange-50'}`}>
                                             {formatCurrency(transaction.amount)}
                                           </TableCell>
-                                          <TableCell className={`${transaction.occurred ? 'text-red-600' : 'text-orange-500'}`}>
+                                          <TableCell className={`${transaction.occurred ? 'text-red-600' : ''text-orange-500'}`}>
                                             {transaction.occurred ? '✓' : '⌛'}
                                           </TableCell>
                                         </>
