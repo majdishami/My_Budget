@@ -144,15 +144,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
   // Force refresh when dialog opens
   useEffect(() => {
     if (isOpen) {
-      console.log('[ExpenseReportDialog] Dialog opened, forcing data refresh');
       refetchTransactions();
     }
   }, [isOpen, refetchTransactions]);
 
-  // Add debug logging for data updates
-  useEffect(() => {
-    console.log('[ExpenseReportDialog] Transactions data updated:', transactions);
-  }, [transactions]);
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -165,9 +160,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     }
   }, [isOpen]);
 
-  // Update the dropdown options with fresh data.  This section remains largely the same, but billsData is not used
+  // Update the dropdown options with fresh data.
   const dropdownOptions = useMemo(() => {
-    console.log('[ExpenseReportDialog] Recalculating dropdown options with bills:', bills); //Using bills here as it is used later.  Could be improved.
     const categorizedBills = bills.reduce<Record<string, (Bill & { categoryColor: string })[]>>((acc, bill) => {
       const categoryName = bill.category_name || 'Uncategorized';
       if (!acc[categoryName]) {
@@ -186,7 +180,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       ),
       categorizedBills
     };
-  }, [bills]); // Only depend on billsData
+  }, [bills]); 
 
   // Update the filtering logic to properly handle category filtering
   const filteredTransactions = useMemo(() => {
@@ -195,14 +189,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     console.log('[ExpenseReportDialog] Starting filtration with:', {
       dateRange: { from: date.from, to: date.to },
       selectedValue,
-      totalTransactions: transactions.length,
-      sampleTransactions: transactions.slice(0, 3).map(t => ({
-        description: t.description,
-        date: t.date,
-        amount: t.amount,
-        category: t.category_name,
-        type: t.type
-      }))
+      totalTransactions: transactions.length
     });
 
     let filtered = transactions.filter(t => {
@@ -210,18 +197,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       const fromDate = dayjs(date.from);
       const toDate = dayjs(date.to);
 
+      // Include all transactions within the date range
       const isInRange = transactionDate.isSameOrAfter(fromDate, 'day') &&
                      transactionDate.isSameOrBefore(toDate, 'day');
-
-      if (isInRange) {
-        console.log('[ExpenseReportDialog] Transaction in range:', {
-          description: t.description,
-          date: t.date,
-          amount: t.amount,
-          category: t.category_name,
-          type: t.type
-        });
-      }
 
       return isInRange;
     });
@@ -230,53 +208,26 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     if (selectedValue !== "all" && selectedValue !== "all_categories") {
       if (selectedValue.startsWith('category_')) {
         const categoryName = selectedValue.replace('category_', '');
-        console.log('[ExpenseReportDialog] Filtering for category:', categoryName);
-
-        filtered = filtered.filter(t => {
-          // Exact category name matching (case insensitive)
-          const normalizedCategory = t.category_name.toLowerCase();
-          const normalizedSearchCategory = categoryName.toLowerCase();
-          const isMatch = normalizedCategory === normalizedSearchCategory;
-
-          console.log('[ExpenseReportDialog] Category match check:', {
-            transactionCategory: t.category_name,
-            normalizedCategory,
-            selectedCategory: categoryName,
-            normalizedSearchCategory,
-            isMatch
-          });
-
-          return isMatch;
-        });
+        filtered = filtered.filter(t => 
+          t.category_name.toLowerCase() === categoryName.toLowerCase()
+        );
       } else if (selectedValue.startsWith('expense_')) {
-        const expenseId = selectedValue.replace('expense_', '');
-        const selectedBill = bills.find(b => String(b.id) === expenseId);
+        const billId = selectedValue.replace('expense_', '');
+        const selectedBill = bills.find(b => String(b.id) === billId);
 
         if (selectedBill) {
           const normalizedBillName = selectedBill.name.toLowerCase().trim();
-
           filtered = filtered.filter(t => {
             const normalizedTransDesc = t.description.toLowerCase().trim();
-
-            // Match any part of the bill name in the transaction description
             const billWords = normalizedBillName.split(' ').filter(word => word.length > 2);
-            const isMatch = billWords.some(word => normalizedTransDesc.includes(word));
-
-            console.log('[ExpenseReportDialog] Expense match check:', {
-              transactionDesc: normalizedTransDesc,
-              billName: normalizedBillName,
-              billWords,
-              isMatch
-            });
-
-            return isMatch;
+            return billWords.some(word => normalizedTransDesc.includes(word));
           });
         }
       }
     }
 
     return filtered;
-  }, [showReport, date, selectedValue, transactions, bills, today]);
+  }, [showReport, date, selectedValue, transactions, bills]);
 
   // Group transactions by expense name for the "all" view
   const groupedExpenses = useMemo(() => {
@@ -288,7 +239,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       if (!groups[transaction.description]) {
         groups[transaction.description] = {
           description: transaction.description,
-          category: transaction.category_name, // Use category_name here
+          category: transaction.category_name, 
           totalAmount: 0,
           occurredAmount: 0,
           pendingAmount: 0,
@@ -356,9 +307,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     setPreviousReport(null);
   };
 
-  // Update itemTotals calculation for better category grouping
+  // Update itemTotals calculation to properly handle all transactions in range
   const itemTotals = useMemo(() => {
-    if (!filteredTransactions.length) return [];
+    if (!filteredTransactions.length || !date?.from || !date?.to) return [];
 
     if (selectedValue === "all_categories") {
       // Category totals logic with occurrence tracking
@@ -380,6 +331,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         const entry = totals[t.category_name];
         entry.total += t.amount;
 
+        // Check if transaction is before or after today
         if (dayjs(t.date).isSameOrBefore(today)) {
           entry.occurred += t.amount;
           entry.occurredCount++;
@@ -413,6 +365,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         entry.totalAmount += t.amount;
         entry.transactions.push(t);
 
+        // Check if transaction is before or after today
         if (dayjs(t.date).isSameOrBefore(today)) {
           entry.occurredAmount += t.amount;
           entry.occurredCount++;
@@ -424,7 +377,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
 
       return Object.values(totals).sort((a, b) => b.totalAmount - a.totalAmount);
     } else if (selectedValue.startsWith('category_')) {
-      // Individual category totals logic with occurrences
+      // Individual category totals logic
       const selectedCategoryName = selectedValue.replace('category_', '');
       const totals: Record<string, {
         description: string;
@@ -437,7 +390,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         color: string;
       }> = {};
 
-      // Filter transactions for the selected category first
+      // Filter transactions for the selected category
       const categoryTransactions = filteredTransactions.filter(t =>
         t.category_name.toLowerCase() === selectedCategoryName.toLowerCase()
       );
@@ -459,59 +412,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         const entry = totals[t.description];
         entry.total += t.amount;
 
-        if (dayjs(t.date).isSameOrBefore(today)) {
-          entry.occurred += t.amount;
-          entry.occurredCount++;
-        } else {
-          entry.pending += t.amount;
-          entry.pendingCount++;
-        }
-      });
-
-      return Object.values(totals).sort((a, b) => b.total - a.total);
-    } else if (selectedValue.startsWith('expense_')) {
-      // Individual expense totals logic with occurrences
-      const billId = selectedValue.replace('expense_', '');
-      const selectedBill = bills.find(b => b.id === billId);
-
-      if (!selectedBill) return [];
-
-      const totals: Record<string, {
-        description: string;
-        category: string;
-        total: number;
-        occurred: number;
-        pending: number;
-        occurredCount: number;
-        pendingCount: number;
-        color: string;
-      }> = {};
-
-      // Filter transactions that match the bill name
-      const billTransactions = filteredTransactions.filter(t => {
-        const normalizedTransDesc = t.description.toLowerCase().trim();
-        const normalizedBillName = selectedBill.name.toLowerCase().trim();
-        const billWords = normalizedBillName.split(' ').filter(word => word.length > 2);
-        return billWords.some(word => normalizedTransDesc.includes(word));
-      });
-
-      billTransactions.forEach(t => {
-        if (!totals[t.description]) {
-          totals[t.description] = {
-            description: t.description,
-            category: t.category_name,
-            total: 0,
-            occurred: 0,
-            pending: 0,
-            occurredCount: 0,
-            pendingCount: 0,
-            color: t.category_color || '#D3D3D3'
-          };
-        }
-
-        const entry = totals[t.description];
-        entry.total += t.amount;
-
+        // Check if transaction is before or after today
         if (dayjs(t.date).isSameOrBefore(today)) {
           entry.occurred += t.amount;
           entry.occurredCount++;
@@ -525,8 +426,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     }
 
     return [];
-  }, [filteredTransactions, selectedValue, bills, today]);
-
+  }, [filteredTransactions, selectedValue, date, today]);
 
   // Update where we handle the bill ID in the dialog title
   const getDialogTitle = () => {
@@ -534,7 +434,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     if (selectedValue === "all_categories") return "All Categories Combined";
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
-      return bills.find(b => b.id === billId)?.name || "Expense Report"; //Using bills here as fallback. Could be improved.
+      return bills.find(b => b.id === billId)?.name || "Expense Report"; 
     }
     if (selectedValue.startsWith('category_')) {
       return `${selectedValue.replace('category_', '')} Category`;
