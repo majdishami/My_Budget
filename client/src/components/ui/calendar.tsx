@@ -71,7 +71,10 @@ function Calendar({
       }}
       {...props}
       mode="single"
-      defaultMonth={props.month}
+      month={props.month}
+      onMonthChange={props.onMonthChange}
+      selected={props.selected}
+      disabled={false}
     />
   )
 }
