@@ -94,7 +94,7 @@ export function registerRoutes(app: Express): Server {
       // First get all categories for smart matching
       const allCategories = await db.query.categories.findMany();
 
-      // Get transactions
+      // Get transactions with category info
       let query = db.select({
         id: transactions.id,
         description: transactions.description,
@@ -117,17 +117,25 @@ export function registerRoutes(app: Express): Server {
 
       const allTransactions = await query;
 
-      // Smart category matching based on description
+      // Process transactions and match categories precisely
       const formattedTransactions = allTransactions.map(transaction => {
         // Try to find a matching category if one isn't already assigned
         if (!transaction.category_id) {
           const matchingCategory = allCategories.find(category => {
             const categoryName = category.name.toLowerCase();
             const description = transaction.description.toLowerCase();
-            return description.includes(categoryName);
+
+            // Only match if the category name appears as a whole word in the description
+            const regex = new RegExp(`\\b${categoryName}\\b`, 'i');
+            return regex.test(description);
           });
 
           if (matchingCategory) {
+            console.log('[Transactions API] Matched category:', {
+              description: transaction.description,
+              category: matchingCategory.name
+            });
+
             return {
               ...transaction,
               category_id: matchingCategory.id,

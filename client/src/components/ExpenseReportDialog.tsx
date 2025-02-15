@@ -200,7 +200,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         description: t.description,
         date: t.date,
         amount: t.amount,
-        category: t.category_name
+        category: t.category_name,
+        type: t.type
       }))
     });
 
@@ -232,20 +233,16 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         console.log('[ExpenseReportDialog] Filtering for category:', categoryName);
 
         filtered = filtered.filter(t => {
+          // Exact category name matching (case insensitive)
           const normalizedCategory = t.category_name.toLowerCase();
           const normalizedSearchCategory = categoryName.toLowerCase();
-          const normalizedDescription = t.description.toLowerCase();
-
-          // Match either by category name or description content
-          const isMatch = normalizedCategory === normalizedSearchCategory || 
-                         normalizedDescription.includes(normalizedSearchCategory);
+          const isMatch = normalizedCategory === normalizedSearchCategory;
 
           console.log('[ExpenseReportDialog] Category match check:', {
             transactionCategory: t.category_name,
             normalizedCategory,
             selectedCategory: categoryName,
             normalizedSearchCategory,
-            description: t.description,
             isMatch
           });
 
@@ -905,7 +902,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                 <span className="text-red-600">{formatCurrency(monthlyTotal)}</span>
                               </div>
                               <div className="flex justify-between items-center">
-                               <span className="text-muted-foreground">Paid to date:</span>
+                                <span className="text-muted-foreground">Paid to date:</span>
                                 <span className="text-red-600">{formatCurrency(monthlyPaid)}</span>
                               </div>
                               <div className="flex justify-between items-center">
