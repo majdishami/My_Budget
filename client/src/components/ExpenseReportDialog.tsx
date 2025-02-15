@@ -254,37 +254,27 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id.toString() === billId);
       if (!bill) return [];
 
-      // Start with the bill's day in the first month
-      let currentDate = dayjs(date.from).clone().date(bill.day);
-      let occurredCount = 0;
-      let pendingCount = 0;
-
-      // If already passed bill day in start month, move to next month
-      if (currentDate.isBefore(dayjs(date.from))) {
-        currentDate = currentDate.add(1, 'month');
-      }
-
-      // Count occurrences within date range
-      while (currentDate.isSameOrBefore(dayjs(date.to))) {
-        if (currentDate.isSameOrBefore(today)) {
-          occurredCount++;
-        } else {
-          pendingCount++;
-        }
-        currentDate = currentDate.add(1, 'month');
-      }
-
-      // Calculate amounts based on occurrences
-      const occurredAmount = bill.amount * occurredCount;
-      const pendingAmount = bill.amount * pendingCount;
-      const totalAmount = occurredAmount + pendingAmount;
-
-      // Get actual transactions for display
+      // Get transactions for this bill within date range
       const billTransactions = transactions.filter(t =>
         t.description === bill.name &&
         dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
         dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
       ).sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+
+      // Calculate totals based on actual transactions
+      const occurredTransactions = billTransactions.filter(t =>
+        dayjs(t.date).isSameOrBefore(today)
+      );
+      const pendingTransactions = billTransactions.filter(t =>
+        dayjs(t.date).isAfter(today)
+      );
+
+      const occurredCount = occurredTransactions.length;
+      const pendingCount = pendingTransactions.length;
+
+      const occurredAmount = occurredTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const pendingAmount = pendingTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const totalAmount = occurredAmount + pendingAmount;
 
       return [{
         category: bill.name,
@@ -951,7 +941,8 @@ export default function ExpenseReportDialog({
                           />
                           <span className="text-foreground">
                             {formatCurrency(bills.find(b => b.id === selectedValue.replace('expense_', ''))?.amount || 0)} per month
-                          </span>                        </div>
+                          </span>
+                        </div>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
