@@ -140,9 +140,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     queryKey: ['/api/bills'],
     enabled: isOpen,
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0, // Changed from cacheTime as it's deprecated in v5
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true
   });
 
   // Add logging to track data updates
@@ -907,7 +908,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                                       }`}>
                                         {transaction.occurred ? '✓' : '⌛'}
                                       </TableCell>
-                                    </TableRow>                                  ))}
+                                                                        </TableRow>                                  ))}
                               </TableBody>
                             </Table>
                           </CardContent>
