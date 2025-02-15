@@ -15,6 +15,15 @@ import { DateRange } from "react-day-picker";
 import dayjs from 'dayjs';
 import { useQuery } from "@tanstack/react-query";
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
