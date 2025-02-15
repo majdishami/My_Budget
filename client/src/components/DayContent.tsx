@@ -10,17 +10,17 @@ interface DayContentProps {
 }
 
 export function DayContent({ day, bills = [], incomes = [], onClick }: DayContentProps) {
-  // Get unique incomes by source for this day
+  // Get unique incomes by source for this day and sort by amount descending
   const uniqueIncomes = incomes.reduce((acc: Income[], income) => {
     const exists = acc.find(i => i.source === income.source);
     if (!exists) {
       acc.push(income);
     }
     return acc;
-  }, []);
+  }, []).sort((a, b) => b.amount - a.amount);
 
-  // Get bills for this day (bills are already unique by nature)
-  const dayBills = bills;
+  // Get bills for this day and sort by amount descending
+  const dayBills = bills.sort((a, b) => b.amount - a.amount);
 
   const hasTransactions = uniqueIncomes.length > 0 || dayBills.length > 0;
 
