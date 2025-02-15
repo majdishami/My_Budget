@@ -269,7 +269,6 @@ export default function ExpenseReportDialog({
         .filter(t => dayjs(t.date).isAfter(today))
         .reduce((sum, t) => sum + t.amount, 0);
 
-      // Return single item with transaction details
       return [{
         category: bill.name,
         total: occurred + pending,
@@ -278,7 +277,7 @@ export default function ExpenseReportDialog({
         occurredCount: billTransactions.filter(t => dayjs(t.date).isSameOrBefore(today)).length,
         pendingCount: billTransactions.filter(t => dayjs(t.date).isAfter(today)).length,
         color: bill.category_color,
-        icon: bill.category_icon || null,
+        icon: bill.category_icon || bill.category?.icon || null,
         transactions: billTransactions.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf())
       }];
     }
@@ -296,23 +295,19 @@ export default function ExpenseReportDialog({
       let occurredCount = 0;
       let pendingCount = 0;
 
-      categoryBills.forEach(bill => {
-        let currentDate = dayjs(date.from).clone().date(bill.day);
+      const categoryTransactions = transactions.filter(t => 
+        t.category_name === categoryName &&
+        dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
+        dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
+      );
 
-        if (currentDate.isBefore(dayjs(date.from))) {
-          currentDate = currentDate.add(1, 'month');
-        }
-
-        while (currentDate.isSameOrBefore(dayjs(date.to))) {
-          if (currentDate.isSameOrBefore(today)) {
-            occurred += bill.amount;
-            occurredCount++;
-          } else {
-            pending += bill.amount;
-            pendingCount++;
-          }
-
-          currentDate = currentDate.add(1, 'month');
+      categoryTransactions.forEach(transaction => {
+        if (dayjs(transaction.date).isSameOrBefore(today)) {
+          occurred += transaction.amount;
+          occurredCount++;
+        } else {
+          pending += transaction.amount;
+          pendingCount++;
         }
       });
 
@@ -326,7 +321,8 @@ export default function ExpenseReportDialog({
         occurredCount,
         pendingCount,
         color: categoryDetails.category_color,
-        icon: categoryDetails.category_icon || categoryDetails.category?.icon || null
+        icon: categoryDetails.category_icon || categoryDetails.category?.icon || null,
+        transactions: categoryTransactions
       }];
     }
     // Handle all categories combined
