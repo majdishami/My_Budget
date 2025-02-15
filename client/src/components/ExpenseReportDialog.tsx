@@ -222,18 +222,20 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
   }, [showReport, date, transactions]);
 
-  // Update groupedExpenses to properly handle occurrences
+  // Update groupedExpenses to properly handle occurrences within date range
   const groupedExpenses = useMemo(() => {
-    if (selectedValue !== "all") return [];
+    if (selectedValue !== "all" || !date?.from || !date?.to) return [];
 
     const groups: Record<string, GroupedExpense> = {};
+    const dateFrom = dayjs(date.from);
+    const dateTo = dayjs(date.to);
 
     // Only process actual transactions within date range
     filteredTransactions.forEach(t => {
       const transactionDate = dayjs(t.date);
 
       // Skip transactions outside the date range
-      if (!transactionDate.isBetween(dayjs(date?.from), dayjs(date?.to), 'day', '[]')) {
+      if (!transactionDate.isBetween(dateFrom, dateTo, 'day', '[]')) {
         return;
       }
 
@@ -253,6 +255,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       }
 
       const entry = groups[key];
+      // A transaction is "occurred" if it's before or equal to today AND within the date range
       const isOccurred = transactionDate.isSameOrBefore(today);
 
       entry.totalAmount += t.amount;
@@ -280,9 +283,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       };
     }
 
+    const dateFrom = dayjs(date.from);
+    const dateTo = dayjs(date.to);
+
+    // Filter transactions to only include those within the date range
     const validTransactions = filteredTransactions.filter(t => {
       const transactionDate = dayjs(t.date);
-      return transactionDate.isBetween(dayjs(date.from), dayjs(date.to), 'day', '[]');
+      return transactionDate.isBetween(dateFrom, dateTo, 'day', '[]');
     });
 
     return {
@@ -296,9 +303,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [filteredTransactions, date, today]);
 
-  // Update itemTotals to properly calculate occurrences
+  // Update itemTotals to properly calculate occurrences within date range
   const itemTotals = useMemo(() => {
     if (!filteredTransactions.length || !date?.from || !date?.to) return [];
+    const dateFrom = dayjs(date.from);
+    const dateTo = dayjs(date.to);
 
     if (selectedValue === "all_categories") {
       const totals: Record<string, CategoryTotal> = {};
@@ -308,7 +317,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         const transactionDate = dayjs(t.date);
 
         // Skip transactions outside the date range
-        if (!transactionDate.isBetween(dayjs(date.from), dayjs(date.to), 'day', '[]')) {
+        if (!transactionDate.isBetween(dateFrom, dateTo, 'day', '[]')) {
           return;
         }
 
@@ -326,6 +335,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         }
 
         const entry = totals[t.category_name];
+        // A transaction is "occurred" if it's before or equal to today AND within the date range
         const isOccurred = transactionDate.isSameOrBefore(today);
 
         entry.total += t.amount;
