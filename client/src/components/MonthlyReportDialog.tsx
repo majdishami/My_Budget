@@ -72,13 +72,14 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
   // Force refresh when dialog opens
   useEffect(() => {
     if (isOpen) {
+      console.log('[MonthlyReportDialog] Dialog opened, forcing data refresh');
       refetchTransactions();
     }
   }, [isOpen, refetchTransactions]);
 
   // Add logging to track data updates
   useEffect(() => {
-    console.log('Transactions data updated in MonthlyReportDialog:', transactions);
+    console.log('[MonthlyReportDialog] Transactions data updated:', transactions);
   }, [transactions]);
 
   // Filter transactions for the current month
