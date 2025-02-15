@@ -790,6 +790,71 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                   </Card>
                 )}
 
+                {selectedValue === "all_categories" && itemTotals.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Categories Breakdown</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Category</TableHead>
+                            <TableHead className="text-right">Total Amount</TableHead>
+                            <TableHead className="text-right">Paid Amount</TableHead>
+                            <TableHead className="text-right">Pending Amount</TableHead>
+                            <TableHead className="text-right">Occurrences</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {itemTotals.map((ct) => (
+                            <TableRow key={ct.category}>
+                              <TableCell>
+                                <CategoryDisplay
+                                  category={ct.category}
+                                  color={ct.color}
+                                  icon={ct.icon}
+                                />
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(ct.total)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-600">
+                                {formatCurrency(ct.occurred)}
+                              </TableCell>
+                              <TableCell className="text-right text-orange-500">
+                                {formatCurrency(ct.pending)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span className="text-red-600">{ct.occurredCount}</span>
+                                {" / "}
+                                <span className="text-orange-500">{ct.pendingCount}</span>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="font-bold">
+                            <TableCell>Total</TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(summary.totalAmount)}
+                            </TableCell>
+                            <TableCell className="text-right text-red-600">
+                              {formatCurrency(summary.occurredAmount)}
+                            </TableCell>
+                            <TableCell className="text-right text-orange-500">
+                              {formatCurrency(summary.pendingAmount)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {itemTotals.reduce((acc, ct) => acc + ct.occurredCount, 0)}
+                              {" / "}
+                              {itemTotals.reduce((acc, ct) => acc + ct.pendingCount, 0)}
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {selectedValue === "all" && groupedExpenses.length > 0 && (
                   <Card className="mb-4">
                     <CardHeader>
