@@ -825,6 +825,53 @@ export default function ExpenseReportDialog({
                   </Card>
                 )}
 
+                {/* Category Transaction Details Section */}
+                {selectedValue.startsWith('category_') && itemTotals.length > 0 && (
+                  <Card className="mb-4">
+                    <CardHeader>
+                      <CardTitle>Transaction Details</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {itemTotals[0]?.transactions
+                            ?.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf())
+                            .map((transaction) => (
+                              <TableRow key={`${transaction.date}-${transaction.description}`}>
+                                <TableCell>
+                                  {dayjs(transaction.date).format('MMM D, YYYY')}
+                                </TableCell>
+                                <TableCell>{transaction.description}</TableCell>
+                                <TableCell className={`text-right font-medium ${
+                                  dayjs(transaction.date).isSameOrBefore(today)
+                                    ? 'text-red-600'
+                                    : 'text-orange-500'
+                                }`}>
+                                  {formatCurrency(transaction.amount)}
+                                </TableCell>
+                                <TableCell>
+                                  {dayjs(transaction.date).isSameOrBefore(today) ? (
+                                    <span className="text-red-600">Paid</span>
+                                  ) : (
+                                    <span className="text-orange-500">Pending</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {selectedValue === "all_categories" && itemTotals.length > 0 && (
                   <Card>
                     <CardHeader>
@@ -877,8 +924,7 @@ export default function ExpenseReportDialog({
                             </TableCell>
                             <TableCell className="text-right text-orange-500">
                               {formatCurrency(summary.pendingAmount)}
-                            </TableCell>
-                            <TableCell className="text-right">
+                            </TableCell>                            <TableCell className="textright">
                               {itemTotals.reduce((acc, ct) => acc + ct.occurredCount, 0)}
                               {" / "}
                               {itemTotals.reduce((acc, ct) => acc + ct.pendingCount, 0)}
