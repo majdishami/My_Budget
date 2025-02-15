@@ -265,7 +265,7 @@ export default function ExpenseReportDialog({
       let occurred = 0;
       let pending = 0;
 
-      // For both one-time and recurring bills, use actual transactions for the report
+      // Count and sum actual transactions within date range
       billTransactions.forEach(transaction => {
         if (dayjs(transaction.date).isSameOrBefore(today)) {
           occurredCount++;
@@ -275,25 +275,6 @@ export default function ExpenseReportDialog({
           pending += transaction.amount;
         }
       });
-
-      // If no transactions found but it's a recurring bill, calculate expected occurrences
-      if (billTransactions.length === 0 && !bill.isOneTime) {
-        let currentDate = dayjs(date.from).clone().date(bill.day);
-        if (currentDate.isBefore(dayjs(date.from))) {
-          currentDate = currentDate.add(1, 'month');
-        }
-
-        while (currentDate.isSameOrBefore(dayjs(date.to))) {
-          if (currentDate.isSameOrBefore(today)) {
-            occurredCount++;
-            occurred += bill.amount;
-          } else {
-            pendingCount++;
-            pending += bill.amount;
-          }
-          currentDate = currentDate.add(1, 'month');
-        }
-      }
 
       return [{
         category: bill.name,
