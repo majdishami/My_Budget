@@ -289,65 +289,35 @@ export default function ExpenseReportDialog({
       const dateFrom = dayjs(date.from).startOf('day');
       const dateTo = dayjs(date.to).endOf('day');
 
-      // Filter transactions for this specific bill
-      const expenseTransactions = transactions.filter(t =>
-        t.description === bill.name &&
-        dayjs(t.date).isBetween(dateFrom, dateTo, 'day', '[]')
-      );
+      // Get actual transactions for this bill in date range
+      const actualTransactions = transactions.filter(t => {
+        const transDate = dayjs(t.date);
+        return t.description === bill.name &&
+               transDate.isSameOrAfter(dateFrom, 'day') &&
+               transDate.isSameOrBefore(dateTo, 'day');
+      });
 
-      let currentDate = dateFrom.clone().date(bill.day);
-      if (currentDate.isBefore(dateFrom)) {
-        currentDate = currentDate.add(1, 'month');
-      }
+      const total = actualTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const occurred = actualTransactions
+        .filter(t => dayjs(t.date).isSameOrBefore(today))
+        .reduce((sum, t) => sum + t.amount, 0);
 
-      let occurredAmount = 0;
-      let pendingAmount = 0;
-      let occurredCount = 0;
-      let pendingCount = 0;
-
-      // Track all expected bill dates
-      const allDates: string[] = [];
-      while (currentDate.isSameOrBefore(dateTo)) {
-        allDates.push(currentDate.format('YYYY-MM-DD'));
-
-        if (currentDate.isSameOrBefore(today)) {
-          const transaction = expenseTransactions.find(t =>
-            dayjs(t.date).format('YYYY-MM-DD') === currentDate.format('YYYY-MM-DD')
-          );
-          if (transaction) {
-            occurredAmount += transaction.amount;
-          } else {
-            occurredAmount += bill.amount;
-          }
-          occurredCount++;
-        } else {
-          pendingAmount += bill.amount;
-          pendingCount++;
-        }
-
-        currentDate = currentDate.add(1, 'month');
-      }
+      const pending = total - occurred;
+      const occurredCount = actualTransactions.filter(t =>
+        dayjs(t.date).isSameOrBefore(today)
+      ).length;
+      const pendingCount = actualTransactions.length - occurredCount;
 
       return [{
         category: bill.name,
-        total: occurredAmount + pendingAmount,
-        occurred: occurredAmount,
-        pending: pendingAmount,
+        total,
+        occurred,
+        pending,
         occurredCount,
         pendingCount,
         color: bill.category_color,
         icon: bill.category_icon || bill.category?.icon || null,
-        occurrences: allDates.map(date => {
-          const transaction = expenseTransactions.find(t =>
-            dayjs(t.date).format('YYYY-MM-DD') === date
-          );
-          const isOccurred = dayjs(date).isSameOrBefore(today);
-          return {
-            date,
-            amount: transaction?.amount || bill.amount,
-            status: isOccurred ? 'occurred' : 'pending'
-          };
-        })
+        transactions: actualTransactions
       }];
     }
     // Handle category selection
@@ -922,7 +892,7 @@ export default function ExpenseReportDialog({
                 {selectedValue.startsWith('expense_') && itemTotals.length > 0 && (
                   <Card className="mb-4">
                     <CardHeader>
-                      <CardTitle>Expense Occurrences</CardTitle>
+                      <CardTitle>Expense Transactions</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <Table>
@@ -935,44 +905,35 @@ export default function ExpenseReportDialog({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {itemTotals[0].occurrences?.map((occurrence) => {
-                            const bill = bills.find(b => b.id === selectedValue.replace('expense_', ''));
-                            if (!bill) return null;
-
-                            const transaction = transactions.find(t =>
-                              dayjs(t.date).format('YYYY-MM-DD') === occurrence.date &&
-                              t.description === bill.name
-                            );
-
-                            const isTransactionMatched = !!transaction;
-
+                          {itemTotals[0].transactions?.map((transaction) => {
+                            const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
                             return (
-                              <TableRow key={occurrence.date}>
-                                <TableCell>{dayjs(occurrence.date).format('MMM D, YYYY')}</TableCell>
-                                <TableCell>{bill.name}</TableCell>
-                                <TableCell className={`text-right ${
-                                  occurrence.status === 'occurred' ? 'text-red-600' : 'text-orange-500'
-                                }`}>
-                                  {formatCurrency(occurrence.amount)}
+                              <TableRow key={transaction.date}>
+                                <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                                <TableCell>{transaction.description}</TableCell>
+                                <TableCell className={`text-right ${isOccurred ? 'text-red-600' : 'text-orange-500'}`}>
+                                  {formatCurrency(transaction.amount)}
                                 </TableCell>
                                 <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <span className={occurrence.status === 'occurred' ? 'text-red-600' : 'text-orange-500'}>
-                                      {occurrence.status === 'occurred'
-                                        ? isTransactionMatched ? '✓ Paid' : '! Expected'
-                                        : '⌛ Pending'}
-                                    </span>
-                                  </div>
+                                  <span className={isOccurred ? 'text-red-600' : 'text-orange-500'}>
+                                    {isOccurred ? '✓ Paid' : '⌛ Pending'}
+                                  </span>
                                 </TableCell>
                               </TableRow>
                             );
                           })}
+                          {!itemTotals[0].transactions?.length && (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center text-muted-foreground">
+                                No transactions found in selected date range
+                              </TableCell>
+                            </TableRow>
+                          )}
                         </TableBody>
                       </Table>
                     </CardContent>
                   </Card>
                 )}
-
                 {selectedValue !== "all" && selectedValue !== "all_categories" && !selectedValue.startsWith('expense_') && (
                   <div className="space-y-4">
                     {/* This section is intentionally left blank as the Category Details section has been removed */}
