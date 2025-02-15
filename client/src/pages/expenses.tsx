@@ -21,15 +21,19 @@ export default function ExpenseReport() {
   const [selectedYear, setSelectedYear] = useState(dayjs().format('YYYY'));
   const [, setLocation] = useLocation();
 
-  // Update the query configuration to handle errors properly
-  const { data: bills = [], isLoading, error } = useQuery<Bill[]>({
+  // Query bills
+  const { data: bills = [], isLoading: billsLoading, error: billsError } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
-    retry: false, // Don't retry on failure
-    refetchOnWindowFocus: false, // Don't refetch when window gains focus
-    onError: () => {
-      setLocation("/"); // Navigate back to home on error
-    }
   });
+
+  // Query transactions
+  const { data: transactions = [], isLoading: transactionsLoading, error: transactionsError } = useQuery({
+    queryKey: ['/api/transactions', { type: 'expense' }],
+    enabled: !billsLoading && bills.length > 0,
+  });
+
+  const isLoading = billsLoading || transactionsLoading;
+  const error = billsError || transactionsError;
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
@@ -67,7 +71,7 @@ export default function ExpenseReport() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Error loading bills data. Please try again later.
+            Error loading expense data. Please try again later.
           </AlertDescription>
         </Alert>
       </div>
@@ -132,6 +136,7 @@ export default function ExpenseReport() {
         isOpen={isDialogOpen}
         onOpenChange={handleOpenChange}
         bills={bills}
+        transactions={transactions}
       />
     </div>
   );

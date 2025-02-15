@@ -112,6 +112,7 @@ interface ExpenseReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   bills: Bill[];
+  transactions: Transaction[];
 }
 
 interface ExpenseOccurrence {
@@ -124,6 +125,7 @@ export default function ExpenseReportDialog({
   isOpen,
   onOpenChange,
   bills,
+  transactions,
 }: ExpenseReportDialogProps) {
   const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
@@ -141,28 +143,11 @@ export default function ExpenseReportDialog({
   };
 
   // Update to fetch transactions instead of relying on bills prop
-  const { data: transactions = [], refetch: refetchTransactions } = useQuery<Transaction[]>({
-    queryKey: ['/api/transactions', 'expense'],
-    queryFn: async () => {
-      const response = await fetch('/api/transactions?type=expense');
-      if (!response.ok) throw new Error('Failed to fetch transactions');
-      return response.json();
-    },
-    enabled: isOpen,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-    refetchInterval: 1000 // Poll every second while dialog is open
-  });
 
   // Force refresh when dialog opens
   useEffect(() => {
-    if (isOpen) {
-      refetchTransactions();
-    }
-  }, [isOpen, refetchTransactions]);
+    //This section remains unchanged
+  }, [isOpen]);
 
 
   // Reset state when dialog closes
@@ -198,31 +183,14 @@ export default function ExpenseReportDialog({
     };
   }, [bills]);
 
-  // Update the filteredTransactions calculation
+  // Filter transactions based on date range
   const filteredTransactions = useMemo(() => {
-    if (!showReport || !date?.from || !date?.to) return [];
-
-    const dateFrom = dayjs(date.from).startOf('day');
-    const dateTo = dayjs(date.to).endOf('day');
-
-    // Filter transactions within date range
-    let filtered = transactions.filter(t => {
-      const transactionDate = dayjs(t.date);
-      return transactionDate.isSameOrAfter(dateFrom, 'day') &&
-             transactionDate.isSameOrBefore(dateTo, 'day');
-    });
-
-    // If individual expense is selected, filter by expense name
-    if (selectedValue.startsWith('expense_')) {
-      const billId = selectedValue.replace('expense_', '');
-      const bill = bills.find(b => b.id === billId);
-      if (bill) {
-        filtered = filtered.filter(t => t.description === bill.name);
-      }
-    }
-
-    return filtered.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
-  }, [showReport, date, transactions, selectedValue, bills]);
+    if (!date?.from || !date?.to) return [];
+    return transactions.filter(t =>
+      dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
+      dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
+    );
+  }, [transactions, date]);
 
   // Update groupedExpenses to properly track occurrences
   const groupedExpenses = useMemo(() => {
@@ -276,9 +244,9 @@ export default function ExpenseReportDialog({
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [bills, selectedValue, date, today]);
 
-  // Update itemTotals calculation for individual expenses
+  // Item totals including transactions
   const itemTotals = useMemo(() => {
-    if (!date?.from || !date?.to) return [];
+    if (!date?.from || !date?.to || !filteredTransactions.length) return [];
 
     // Handle individual expense view
     if (selectedValue.startsWith('expense_')) {
@@ -286,36 +254,13 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id === billId);
       if (!bill) return [];
 
-      // Generate transactions for each month in the date range
-      const transactions: Transaction[] = [];
-      let currentDate = dayjs(date.from).date(bill.day);
+      const expenseTransactions = filteredTransactions.filter(t => t.description === bill.name);
 
-      // If we've passed the bill day this month, start from next month
-      if (currentDate.isBefore(dayjs(date.from))) {
-        currentDate = currentDate.add(1, 'month');
-      }
-
-      // Generate a transaction for each occurrence of the bill
-      while (currentDate.isSameOrBefore(dayjs(date.to))) {
-        transactions.push({
-          id: `${bill.id}-${currentDate.format('YYYY-MM-DD')}`,
-          date: currentDate.format('YYYY-MM-DD'),
-          description: bill.name,
-          amount: bill.amount,
-          type: 'expense',
-          category_name: bill.category_name,
-          category_color: bill.category_color,
-          category_icon: bill.category_icon || null,
-          category_id: bill.category_id
-        });
-        currentDate = currentDate.add(1, 'month');
-      }
-
-      // Calculate totals
-      const occurred = transactions
+      const occurred = expenseTransactions
         .filter(t => dayjs(t.date).isSameOrBefore(today))
         .reduce((sum, t) => sum + t.amount, 0);
-      const pending = transactions
+
+      const pending = expenseTransactions
         .filter(t => dayjs(t.date).isAfter(today))
         .reduce((sum, t) => sum + t.amount, 0);
 
@@ -324,11 +269,11 @@ export default function ExpenseReportDialog({
         total: occurred + pending,
         occurred,
         pending,
-        occurredCount: transactions.filter(t => dayjs(t.date).isSameOrBefore(today)).length,
-        pendingCount: transactions.filter(t => dayjs(t.date).isAfter(today)).length,
+        occurredCount: expenseTransactions.filter(t => dayjs(t.date).isSameOrBefore(today)).length,
+        pendingCount: expenseTransactions.filter(t => dayjs(t.date).isAfter(today)).length,
         color: bill.category_color,
         icon: bill.category_icon || null,
-        transactions // Include transactions for display
+        transactions: expenseTransactions.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf())
       }];
     }
     // Handle category selection
@@ -425,7 +370,7 @@ export default function ExpenseReportDialog({
     }
 
     return [];
-  }, [bills, selectedValue, date, today]);
+  }, [bills, selectedValue, date, today, filteredTransactions]);
 
   // Update summary calculations
   const summary = useMemo(() => {
@@ -473,7 +418,6 @@ export default function ExpenseReportDialog({
     }
     return "Expense Report";
   };
-
 
   if (!showReport) {
     return (
@@ -931,9 +875,9 @@ export default function ExpenseReportDialog({
                                     icon={transaction.category_icon}
                                   />
                                 </TableCell>
-                                <TableCell<replit_final_file>
-className={`text-right ${isOccurred ? 'text-red-600' : 'text-orange-500'}`}>
-                                    {formatCurrency(transaction.amount)}
+                                <TableCell
+                                  className={`text-right ${isOccurred ? 'text-red-600' : 'text-orange-500'}`}>
+                                  {formatCurrency(transaction.amount)}
                                 </TableCell>
                                 <TableCell>
                                   <span className={isOccurred ? 'text-red-600' : 'text-orange-500'}>
