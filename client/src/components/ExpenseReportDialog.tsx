@@ -253,42 +253,41 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id.toString() === billId);
       if (!bill) return [];
 
-      // Calculate expected occurrences within date range
-      let expectedOccurrences = 0;
-      let currentDate = dayjs(date.from).clone().date(bill.day);
+      // Calculate all possible occurrences within date range
+      const occurrences: { date: string; isPaid: boolean }[] = [];
+      let currentDate = dayjs(date.from).clone().startOf('month').date(bill.day);
 
-      // If the bill day has passed in the start month, move to next month
+      // If we're past the bill day in the start month, move to next month
       if (currentDate.isBefore(dayjs(date.from))) {
         currentDate = currentDate.add(1, 'month');
       }
 
-      // Count expected occurrences within range
+      // Generate all occurrence dates within range
       while (currentDate.isSameOrBefore(dayjs(date.to))) {
-        expectedOccurrences++;
+        if (currentDate.isSameOrAfter(dayjs(date.from))) {
+          occurrences.push({
+            date: currentDate.format('YYYY-MM-DD'),
+            isPaid: currentDate.isSameOrBefore(today)
+          });
+        }
         currentDate = currentDate.add(1, 'month');
       }
 
-      // Filter transactions within date range
+      // Count occurrences
+      const occurredCount = occurrences.filter(o => o.isPaid).length;
+      const pendingCount = occurrences.length - occurredCount;
+
+      // Calculate amounts
+      const totalAmount = bill.amount * occurrences.length;
+      const occurredAmount = bill.amount * occurredCount;
+      const pendingAmount = bill.amount * pendingCount;
+
+      // Get actual transactions for display
       const billTransactions = transactions.filter(t =>
         t.description === bill.name &&
         dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
         dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
       );
-
-      // Count actual paid transactions
-      const occurredCount = billTransactions.filter(t =>
-        dayjs(t.date).isSameOrBefore(today)
-      ).length;
-
-      // Calculate pending occurrences
-      const pendingCount = expectedOccurrences - occurredCount;
-
-      // Calculate amounts
-      const totalAmount = bill.amount * expectedOccurrences;
-      const occurredAmount = billTransactions
-        .filter(t => dayjs(t.date).isSameOrBefore(today))
-        .reduce((sum, t) => sum + t.amount, 0);
-      const pendingAmount = totalAmount - occurredAmount;
 
       return [{
         category: bill.name,
@@ -927,7 +926,7 @@ export default function ExpenseReportDialog({
                               </TableCell>
                               <TableCell className="text-right text-red-600">
                                 {formatCurrency(expense.occurredAmount)}
-                              </TableCell><TableCell className="text-right text-orange-500">
+                              </TableCell><TableCell className="text-right text-orange500">
                                 {formatCurrency(expense.pendingAmount)}
                               </TableCell>
                               <TableCell className="text-right">
