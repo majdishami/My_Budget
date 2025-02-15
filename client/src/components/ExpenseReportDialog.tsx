@@ -453,7 +453,8 @@ export default function ExpenseReportDialog({
     if (selectedValue === "all_categories") return "All Categories Combined";
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
-      return bills.find(b => b.id === billId)?.name || "Expense Report";
+      const bill = bills.find(b => b.id === billId);
+      return bill ? `Expense Report: ${bill.name}` : "Expense Report";
     }
     if (selectedValue.startsWith('category_')) {
       return `${selectedValue.replace('category_', '')} Category`;
@@ -852,13 +853,13 @@ export default function ExpenseReportDialog({
                 {selectedValue.startsWith('expense_') && itemTotals.length > 0 && (
                   <Card className="mb-4">
                     <CardHeader>
-                      <CardTitle>Expense Details</CardTitle>
+                      <CardTitle>Individual Expense Details</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Name</TableHead>
+                            <TableHead>Expense</TableHead>
                             <TableHead className="text-right">Total Amount</TableHead>
                             <TableHead className="text-right">Paid Amount</TableHead>
                             <TableHead className="text-right">Pending Amount</TableHead>
