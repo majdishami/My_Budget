@@ -292,46 +292,52 @@ export default function ExpenseReportDialog({
         return [];
       }
 
-      let total = 0;
-      let occurred = 0;
-      let pending = 0;
-      let occurredCount = 0;
-      let pendingCount = 0;
-
       let currentDate = dateFrom.clone().date(bill.day);
-
-      // If we've passed the bill day this month, start from next month
       if (currentDate.isBefore(dateFrom)) {
         currentDate = currentDate.add(1, 'month');
       }
 
-      // Generate all occurrences within date range
+      const occurrences: {
+        date: string;
+        amount: number;
+        status: 'occurred' | 'pending';
+      }[] = [];
+
       while (currentDate.isSameOrBefore(dateTo)) {
-        if (currentDate.isSameOrBefore(today)) {
-          occurred += bill.amount;
-          occurredCount++;
-        } else {
-          pending += bill.amount;
-          pendingCount++;
-        }
+        const matchingTransaction = transactions.find(t =>
+          dayjs(t.date).format('YYYY-MM-DD') === currentDate.format('YYYY-MM-DD') &&
+          t.description === bill.name
+        );
+
+        occurrences.push({
+          date: currentDate.format('YYYY-MM-DD'),
+          amount: matchingTransaction?.amount || bill.amount,
+          status: currentDate.isSameOrBefore(today) ? 'occurred' : 'pending'
+        });
 
         currentDate = currentDate.add(1, 'month');
       }
 
-      total = occurred + pending;
+      const occurred = occurrences
+        .filter(o => o.status === 'occurred')
+        .reduce((sum, o) => sum + o.amount, 0);
+      const pending = occurrences
+        .filter(o => o.status === 'pending')
+        .reduce((sum, o) => sum + o.amount, 0);
 
       return [{
         category: bill.name,
-        total,
+        total: occurred + pending,
         occurred,
         pending,
-        occurredCount,
-        pendingCount,
+        occurredCount: occurrences.filter(o => o.status === 'occurred').length,
+        pendingCount: occurrences.filter(o => o.status === 'pending').length,
         color: bill.category_color,
-        icon: bill.category_icon || bill.category?.icon || null
+        icon: bill.category_icon || bill.category?.icon || null,
+        occurrences
       }];
     }
-    // Rest of the existing itemTotals logic
+    // Rest of the existing itemTotals logic for categories
     else if (selectedValue === "all_categories") {
       const totals: Record<string, CategoryTotal> = {};
       bills.forEach(bill => {
@@ -425,7 +431,7 @@ export default function ExpenseReportDialog({
     }
 
     return [];
-  }, [bills, selectedValue, date, today]);
+  }, [bills, selectedValue, date, today, transactions]);
 
   // Update summary calculations
   const summary = useMemo(() => {
@@ -474,44 +480,9 @@ export default function ExpenseReportDialog({
     return "Expense Report";
   };
 
-  // Update getMonthlyOccurrences calculation
-  const getMonthlyOccurrences = useMemo(() => {
-    if (!date?.from || !date?.to || !selectedValue.startsWith('expense_')) {
-      return [];
-    }
+  // Update getMonthlyOccurrences calculation - This function is no longer needed as the logic is integrated into itemTotals
+  //const getMonthlyOccurrences = useMemo(() => { ... });
 
-    const billId = selectedValue.replace('expense_', '');
-    const bill = bills.find(b => b.id === billId);
-    if (!bill) return [];
-
-    const occurrences: ExpenseOccurrence[] = [];
-    const dateFrom = dayjs(date.from).startOf('day');
-    const dateTo = dayjs(date.to).endOf('day');
-
-    // Start from the first occurrence in the date range
-    let currentDate = dateFrom.clone().date(bill.day);
-    if (currentDate.isBefore(dateFrom)) {
-      currentDate = currentDate.add(1, 'month');
-    }
-
-    // Generate all occurrences within date range
-    while (currentDate.isSameOrBefore(dateTo)) {
-      const matchingTransaction = transactions.find(t => 
-        dayjs(t.date).format('YYYY-MM-DD') === currentDate.format('YYYY-MM-DD') &&
-        t.description === bill.name
-      );
-
-      occurrences.push({
-        date: currentDate.format('YYYY-MM-DD'),
-        amount: matchingTransaction?.amount || bill.amount,
-        status: currentDate.isSameOrBefore(today) ? 'occurred' : 'pending'
-      });
-
-      currentDate = currentDate.add(1, 'month');
-    }
-
-    return occurrences;
-  }, [bills, selectedValue, date, today, transactions]);
 
   if (!showReport) {
     return (
@@ -938,7 +909,7 @@ export default function ExpenseReportDialog({
                     </CardContent>
                   </Card>
                 )}
-                {selectedValue.startsWith('expense_') && (
+                {selectedValue.startsWith('expense_') && itemTotals.length > 0 && (
                   <Card className="mb-4">
                     <CardHeader>
                       <CardTitle>Expense Occurrences</CardTitle>
@@ -954,13 +925,14 @@ export default function ExpenseReportDialog({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {getMonthlyOccurrences.map((occurrence) => {
+                          {itemTotals[0].occurrences?.map((occurrence) => {
                             const bill = bills.find(b => b.id === selectedValue.replace('expense_', ''));
                             if (!bill) return null;
-                                                        return (
+                            return (
                               <TableRow key={occurrence.date}>
                                 <TableCell>{dayjs(occurrence.date).format('MMM D, YYYY')}</TableCell>
-                                <TableCell>{bill.name}</TableCell>                                <TableCell className={`text-right ${
+                                <TableCell>{bill.name}</TableCell>
+                                <TableCell className={`text-right ${
                                   occurrence.status === 'occurred' ? 'text-red-600' : 'text-orange-500'
                                 }`}>
                                   {formatCurrency(occurrence.amount)}
@@ -973,7 +945,7 @@ export default function ExpenseReportDialog({
                               </TableRow>
                             );
                           })}
-                          {getMonthlyOccurrences.length === 0 && (
+                          {!itemTotals[0].occurrences?.length && (
                             <TableRow>
                               <TableCell colSpan={4} className="text-center text-muted-foreground">
                                 No occurrences found in selected date range
