@@ -253,39 +253,38 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id.toString() === billId);
       if (!bill) return [];
 
-      // Calculate all possible occurrence dates within the date range
-      const occurrences: { date: string; isPaid: boolean }[] = [];
-      let currentDate = dayjs(date.from).clone().startOf('month').date(bill.day);
+      // Generate all monthly occurrence dates within range
+      const occurrences = [];
+      let currentDate = dayjs(date.from).startOf('month').date(bill.day);
 
-      // If we're past the bill day in the start month, move to next month
-      if (currentDate.isBefore(dayjs(date.from))) {
-        currentDate = currentDate.add(1, 'month');
-      }
-
-      // Generate all occurrence dates within range
+      // Calculate all occurrences
       while (currentDate.isSameOrBefore(dayjs(date.to))) {
-        occurrences.push({
-          date: currentDate.format('YYYY-MM-DD'),
-          isPaid: currentDate.isSameOrBefore(today)
-        });
+        if (currentDate.isSameOrAfter(dayjs(date.from))) {
+          occurrences.push({
+            date: currentDate.format('YYYY-MM-DD'),
+            isPaid: currentDate.isSameOrBefore(today),
+          });
+        }
         currentDate = currentDate.add(1, 'month');
       }
 
-      // Count occurrences and calculate amounts
-      const occurredCount = occurrences.filter(o => o.isPaid).length;
-      const pendingCount = occurrences.filter(o => !o.isPaid).length;
-
-      // Calculate amounts based on bill amount and occurrences
-      const occurredAmount = bill.amount * occurredCount;
-      const pendingAmount = bill.amount * pendingCount;
-      const totalAmount = occurredAmount + pendingAmount;
-
-      // Get actual transactions for display
+      // Get actual transactions for this bill within date range
       const billTransactions = transactions.filter(t =>
         t.description === bill.name &&
         dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
         dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
       ).sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+
+      // Calculate totals based on occurrences
+      const paidOccurrences = occurrences.filter(o => o.isPaid);
+      const pendingOccurrences = occurrences.filter(o => !o.isPaid);
+
+      const occurredCount = paidOccurrences.length;
+      const pendingCount = pendingOccurrences.length;
+
+      const occurredAmount = bill.amount * occurredCount;
+      const pendingAmount = bill.amount * pendingCount;
+      const totalAmount = occurredAmount + pendingAmount;
 
       return [{
         category: bill.name,
