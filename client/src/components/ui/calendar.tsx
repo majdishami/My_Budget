@@ -71,8 +71,7 @@ function Calendar({
       }}
       {...props}
       mode="single"
-      fromMonth={props.month}
-      toMonth={props.month}
+      defaultMonth={props.month}
     />
   )
 }
