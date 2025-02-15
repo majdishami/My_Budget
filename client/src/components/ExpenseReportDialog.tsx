@@ -916,7 +916,8 @@ export default function ExpenseReportDialog({
                   </Card>
                 )}
 
-                {selectedValue !== "all" && selectedValue !== "all_categories" && selectedValue.startsWith('expense_') === false && (
+                {/* Remove the old conditional that was preventing the expense details from showing */}
+                {selectedValue !== "all" && selectedValue !== "all_categories" && !selectedValue.startsWith('expense_') && (
                   <div className="space-y-4">
                     {/* This section is intentionally left blank as the Category Details section has been removed */}
                   </div>
