@@ -932,6 +932,53 @@ export default function ExpenseReportDialog({
                     </CardContent>
                   </Card>
                 )}
+                {selectedValue.startsWith('expense_') && (
+                  <Card className="mb-4">
+                    <CardHeader>
+                      <CardTitle>Expense Occurrences</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead className="text-right">Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {getMonthlyOccurrences.map((occurrence) => {
+                            const bill = bills.find(b => b.id === selectedValue.replace('expense_', ''));
+                            if (!bill) return null;
+                            return (
+                              <TableRow key={occurrence.date}>
+                                <TableCell>{dayjs(occurrence.date).format('MMM D, YYYY')}</TableCell>
+                                <TableCell>{bill.name}</TableCell>                                <TableCell className={`text-right ${
+                                  occurrence.status === 'occurred' ? 'text-red-600' : 'text-orange-500'
+                                }`}>
+                                  {formatCurrency(occurrence.amount)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span className={occurrence.status === 'occurred' ? 'text-red-600' : 'text-orange-500'}>
+                                    {occurrence.status === 'occurred' ? '✓ Paid' : '⌛ Pending'}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                          {getMonthlyOccurrences.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center text-muted-foreground">
+                                No occurrences found in selected date range
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {selectedValue !== "all" && selectedValue !== "all_categories" && !selectedValue.startsWith('expense_') && (
                   <div className="space-y-4">
