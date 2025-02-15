@@ -91,11 +91,10 @@ export default function DailySummaryDialog({
   monthlyTotals,
 }: DailySummaryDialogProps) {
   const selectedDate = useMemo(() => {
-    // selectedMonth is already 0-based (0-11), so we don't need to adjust it
-    return dayjs()
-      .set('year', selectedYear)
-      .set('month', selectedMonth)
-      .set('date', selectedDay);
+    // Create date string in YYYY-MM-DD format, ensuring month and day are padded
+    const month = (selectedMonth + 1).toString().padStart(2, '0');
+    const day = selectedDay.toString().padStart(2, '0');
+    return dayjs(`${selectedYear}-${month}-${day}`);
   }, [selectedYear, selectedMonth, selectedDay]);
 
   const currentDate = useMemo(() => 
