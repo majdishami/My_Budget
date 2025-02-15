@@ -188,26 +188,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     };
   }, [bills]);
 
-  //This function is not used anymore.
-  // const calculateExpectedOccurrences = (bill: Bill, startDate: Date, endDate: Date) => {
-  //   const start = dayjs(startDate);
-  //   const end = dayjs(endDate);
-  //   const billDay = bill.day;
-
-  //   let currentDate = start.date(billDay);
-  //   // If we've passed the bill day this month, start from next month
-  //   if (currentDate.isBefore(start)) {
-  //     currentDate = currentDate.add(1, 'month');
-  //   }
-
-  //   let occurrences = 0;
-  //   while (currentDate.isSameOrBefore(end)) {
-  //     occurrences++;
-  //     currentDate = currentDate.add(1, 'month');
-  //   }
-
-  //   return occurrences;
-  // };
 
   const filteredTransactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
@@ -274,7 +254,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [bills, selectedValue, date, today]);
 
-  // Update itemTotals to properly calculate occurrences within date range
+  // Update itemTotals to handle individual expenses
   const itemTotals = useMemo(() => {
     if (!date?.from || !date?.to) return [];
     const dateFrom = dayjs(date.from).startOf('day');
@@ -377,12 +357,56 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         color: categoryDetails.category_color,
         icon: categoryDetails.category_icon || categoryDetails.category?.icon || null
       }];
+    } else if (selectedValue.startsWith('expense_')) {
+      const billId = selectedValue.replace('expense_', '');
+      const bill = bills.find(b => b.id === billId);
+
+      if (!bill) return [];
+
+      let total = 0;
+      let occurred = 0;
+      let pending = 0;
+      let occurredCount = 0;
+      let pendingCount = 0;
+
+      let currentDate = dateFrom.clone().date(bill.day);
+
+      // If we've passed the bill day this month, start from next month
+      if (currentDate.isBefore(dateFrom)) {
+        currentDate = currentDate.add(1, 'month');
+      }
+
+      // Generate all occurrences within date range
+      while (currentDate.isSameOrBefore(dateTo)) {
+        if (currentDate.isSameOrBefore(today)) {
+          occurred += bill.amount;
+          occurredCount++;
+        } else {
+          pending += bill.amount;
+          pendingCount++;
+        }
+
+        currentDate = currentDate.add(1, 'month');
+      }
+
+      total = occurred + pending;
+
+      return [{
+        category: bill.name,
+        total,
+        occurred,
+        pending,
+        occurredCount,
+        pendingCount,
+        color: bill.category_color,
+        icon: bill.category_icon || bill.category?.icon || null
+      }];
     }
 
     return [];
   }, [bills, selectedValue, date, today]);
 
-  // Update summary calculations to match the same date range logic
+  // Update summary to handle individual expenses
   const summary = useMemo(() => {
     if (!date?.from || !date?.to) {
       return {
@@ -399,19 +423,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
         occurredAmount: groupedExpenses.reduce((sum, expense) => sum + expense.occurredAmount, 0),
         pendingAmount: groupedExpenses.reduce((sum, expense) => sum + expense.pendingAmount, 0)
       };
-    } else if (selectedValue === "all_categories") {
-      // For "All Categories Combined" view, use itemTotals
+    } else if (selectedValue === "all_categories" || selectedValue.startsWith('category_') || selectedValue.startsWith('expense_')) {
+      // Use itemTotals for all detailed views
       return {
         totalAmount: itemTotals.reduce((sum, item) => sum + item.total, 0),
         occurredAmount: itemTotals.reduce((sum, item) => sum + item.occurred, 0),
         pendingAmount: itemTotals.reduce((sum, item) => sum + item.pending, 0)
-      };
-    } else if (selectedValue.startsWith('category_')) {
-      const categoryTotals = itemTotals[0] || { total: 0, occurred: 0, pending: 0 };
-      return {
-        totalAmount: categoryTotals.total,
-        occurredAmount: categoryTotals.occurred,
-        pendingAmount: categoryTotals.pending
       };
     }
 
@@ -822,7 +839,58 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                   </Card>
                 )}
 
-                {selectedValue !== "all" && selectedValue !== "all_categories" && (
+                {/* Individual Expense Details */}
+                {selectedValue.startsWith('expense_') && itemTotals.length > 0 && (
+                  <Card className="mb-4">
+                    <CardHeader>
+                      <CardTitle>Expense Details</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead className="text-right">Total Amount</TableHead>
+                            <TableHead className="text-right">Paid Amount</TableHead>
+                            <TableHead className="text-right">Pending Amount</TableHead>
+                            <TableHead className="text-right">Paid Occurrences</TableHead>
+                            <TableHead className="text-right">Pending Occurrences</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {itemTotals.map((expense) => (
+                            <TableRow key={expense.category}>
+                              <TableCell>
+                                <CategoryDisplay
+                                  category={expense.category}
+                                  color={expense.color}
+                                  icon={expense.icon}
+                                />
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(expense.total)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-600">
+                                {formatCurrency(expense.occurred)}
+                              </TableCell>
+                              <TableCell className="text-right text-orange-500">
+                                {formatCurrency(expense.pending)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-600">
+                                {expense.occurredCount}
+                              </TableCell>
+                              <TableCell className="text-right text-orange-500">
+                                {expense.pendingCount}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedValue !== "all" && selectedValue !== "all_categories" && selectedValue !== 'expense_' && (
                   <div className="space-y-4">
                     {/* This section is intentionally left blank as the Category Details section has been removed */}
                   </div>
