@@ -180,53 +180,124 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       ),
       categorizedBills
     };
-  }, [bills]); 
+  }, [bills]);
 
-  // Update the filtering logic to properly handle category filtering
+  // Calculate expected occurrences within date range
+  const calculateExpectedOccurrences = (bill: Bill, startDate: Date, endDate: Date) => {
+    const start = dayjs(startDate);
+    const end = dayjs(endDate);
+    const billDay = bill.day;
+
+    let currentDate = start.date(billDay);
+    if (currentDate.isBefore(start)) {
+      currentDate = currentDate.add(1, 'month');
+    }
+
+    let occurrences = 0;
+    while (currentDate.isSameOrBefore(end)) {
+      occurrences++;
+      currentDate = currentDate.add(1, 'month');
+    }
+
+    return occurrences;
+  };
+
+  // Update filteredTransactions to include expected occurrences
   const filteredTransactions = useMemo(() => {
     if (!showReport || !date?.from || !date?.to) return [];
-
-    console.log('[ExpenseReportDialog] Starting filtration with:', {
-      dateRange: { from: date.from, to: date.to },
-      selectedValue,
-      totalTransactions: transactions.length
-    });
 
     let filtered = transactions.filter(t => {
       const transactionDate = dayjs(t.date);
       const fromDate = dayjs(date.from);
       const toDate = dayjs(date.to);
-
-      // Include all transactions within the date range
-      const isInRange = transactionDate.isSameOrAfter(fromDate, 'day') &&
-                     transactionDate.isSameOrBefore(toDate, 'day');
-
-      return isInRange;
+      return transactionDate.isSameOrAfter(fromDate, 'day') && 
+             transactionDate.isSameOrBefore(toDate, 'day');
     });
 
-    // Additional filtering based on selection
-    if (selectedValue !== "all" && selectedValue !== "all_categories") {
-      if (selectedValue.startsWith('category_')) {
-        const categoryName = selectedValue.replace('category_', '');
-        filtered = filtered.filter(t => 
-          t.category_name.toLowerCase() === categoryName.toLowerCase()
-        );
-      } else if (selectedValue.startsWith('expense_')) {
-        const billId = selectedValue.replace('expense_', '');
-        const selectedBill = bills.find(b => String(b.id) === billId);
+    // Add expected occurrences for bills within the date range
+    if (selectedValue.startsWith('expense_')) {
+      const billId = selectedValue.replace('expense_', '');
+      const selectedBill = bills.find(b => String(b.id) === billId);
 
-        if (selectedBill) {
-          const normalizedBillName = selectedBill.name.toLowerCase().trim();
-          filtered = filtered.filter(t => {
-            const normalizedTransDesc = t.description.toLowerCase().trim();
-            const billWords = normalizedBillName.split(' ').filter(word => word.length > 2);
-            return billWords.some(word => normalizedTransDesc.includes(word));
-          });
+      if (selectedBill) {
+        const expectedOccurrences = calculateExpectedOccurrences(selectedBill, date.from, date.to);
+        const actualOccurrences = filtered.length;
+        const remainingOccurrences = expectedOccurrences - actualOccurrences;
+
+        // Add projected transactions for remaining occurrences
+        if (remainingOccurrences > 0) {
+          let currentDate = dayjs(date.from).date(selectedBill.day);
+          while (currentDate.isSameOrBefore(dayjs(date.to))) {
+            // Only add if there's no actual transaction on this date
+            const existingTransaction = filtered.find(t => 
+              dayjs(t.date).format('YYYY-MM-DD') === currentDate.format('YYYY-MM-DD')
+            );
+
+            if (!existingTransaction) {
+              filtered.push({
+                id: `projected-${currentDate.format('YYYY-MM-DD')}`,
+                date: currentDate.format('YYYY-MM-DD'),
+                description: `${selectedBill.name} (Projected)`,
+                amount: selectedBill.amount,
+                type: 'expense',
+                category_name: selectedBill.category_name,
+                category_color: selectedBill.category_color,
+                category_icon: selectedBill.category_icon,
+                category_id: selectedBill.category_id
+              });
+            }
+            currentDate = currentDate.add(1, 'month');
+          }
         }
       }
     }
 
-    return filtered;
+    if (selectedValue.startsWith('category_')) {
+      const categoryName = selectedValue.replace('category_', '');
+      filtered = filtered.filter(t => 
+        t.category_name.toLowerCase() === categoryName.toLowerCase()
+      );
+
+      // Add projected transactions for bills in this category
+      const categoryBills = bills.filter(b => 
+        b.category_name.toLowerCase() === categoryName.toLowerCase()
+      );
+
+      categoryBills.forEach(bill => {
+        const expectedOccurrences = calculateExpectedOccurrences(bill, date.from, date.to);
+        const actualOccurrences = filtered.filter(t => 
+          t.description.toLowerCase().includes(bill.name.toLowerCase())
+        ).length;
+        const remainingOccurrences = expectedOccurrences - actualOccurrences;
+
+        if (remainingOccurrences > 0) {
+          let currentDate = dayjs(date.from).date(bill.day);
+          while (currentDate.isSameOrBefore(dayjs(date.to))) {
+            const existingTransaction = filtered.find(t => 
+              dayjs(t.date).format('YYYY-MM-DD') === currentDate.format('YYYY-MM-DD') &&
+              t.description.toLowerCase().includes(bill.name.toLowerCase())
+            );
+
+            if (!existingTransaction) {
+              filtered.push({
+                id: `projected-${bill.id}-${currentDate.format('YYYY-MM-DD')}`,
+                date: currentDate.format('YYYY-MM-DD'),
+                description: `${bill.name} (Projected)`,
+                amount: bill.amount,
+                type: 'expense',
+                category_name: bill.category_name,
+                category_color: bill.category_color,
+                category_icon: bill.category_icon,
+                category_id: bill.category_id
+              });
+            }
+            currentDate = currentDate.add(1, 'month');
+          }
+        }
+      });
+    }
+
+    return filtered.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
   }, [showReport, date, selectedValue, transactions, bills]);
 
   // Group transactions by expense name for the "all" view
@@ -239,7 +310,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       if (!groups[transaction.description]) {
         groups[transaction.description] = {
           description: transaction.description,
-          category: transaction.category_name, 
+          category: transaction.category_name,
           totalAmount: 0,
           occurredAmount: 0,
           pendingAmount: 0,
@@ -434,7 +505,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
     if (selectedValue === "all_categories") return "All Categories Combined";
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
-      return bills.find(b => b.id === billId)?.name || "Expense Report"; 
+      return bills.find(b => b.id === billId)?.name || "Expense Report";
     }
     if (selectedValue.startsWith('category_')) {
       return `${selectedValue.replace('category_', '')} Category`;
@@ -830,7 +901,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                 {selectedValue !== "all" && (
                   <div className="space-y-4">
                     {sortedMonths.map(monthKey => {
-                      const monthTransactions = groupedTransactions[monthKey] || [];
+                      const monthTransactions= groupedTransactions[monthKey] || [];
                       const monthlyTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
                       const monthlyPaid = monthTransactions
                         .filter(t => dayjs(t.date).isSameOrBefore(today))
