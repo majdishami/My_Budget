@@ -825,61 +825,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
                   </Card>
                 )}
 
-                {selectedValue !== "all" && selectedValue !== "all_categories" && itemTotals.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Category Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Category</TableHead>
-                            <TableHead className="text-right">Total Amount</TableHead>
-                            <TableHead className="text-right">Paid Amount</TableHead>
-                            <TableHead className="text-right">Pending Amount</TableHead>
-                            <TableHead className="text-right">Occurrences (Paid/Pending)</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {itemTotals.map((ct) => (
-                            <TableRow key={ct.category}>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: ct.color || '#D3D3D3' }}
-                                  />
-                                  {ct.icon && <DynamicIcon iconName={ct.icon} />}
-                                  <span>{ct.category}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right font-medium">
-                                {formatCurrency(ct.total)}
-                              </TableCell>
-                              <TableCell className="text-right text-red-600">
-                                {formatCurrency(ct.occurred)}
-                              </TableCell>
-                              <TableCell className="text-right text-orange-500">
-                                {formatCurrency(ct.pending)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <span className="text-red-600">{ct.occurredCount}</span>
-                                {" / "}
-                                <span className="text-orange-500">{ct.pendingCount}</span>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                )}
-
-
-                {selectedValue !== "all" && (
+                {selectedValue !== "all" && selectedValue !== "all_categories" && (
                   <div className="space-y-4">
-                    {/* This section is intentionally left blank as it's not relevant to the provided edit */}
+                    {/* This section is intentionally left blank as the Category Details section has been removed */}
                   </div>
                 )}
               </div>
