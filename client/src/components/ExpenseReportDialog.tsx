@@ -222,7 +222,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
   }, [showReport, date, transactions]);
 
-  // Update groupedExpenses to properly handle occurrences within date range
+  // Update groupedExpenses to properly track occurrences
   const groupedExpenses = useMemo(() => {
     if (selectedValue !== "all" || !date?.from || !date?.to) return [];
 
@@ -267,6 +267,48 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills }: Exp
       } else {
         entry.pendingAmount += t.amount;
         entry.pendingCount++;
+      }
+    });
+
+    // For each category, check if there are any transactions in the category
+    // that occur in between any two dates in the date range
+    Object.values(groups).forEach(group => {
+      // Get all transaction dates for this group
+      const allDates = group.transactions.map(t => dayjs(t.date));
+
+      // Sort dates chronologically
+      allDates.sort((a, b) => a.valueOf() - b.valueOf());
+
+      if (allDates.length > 0) {
+        // Determine the payment day (e.g., 1st of the month for rent)
+        const paymentDay = allDates[0].date();
+
+        // Count all possible payment dates within the date range
+        let currentDate = dateFrom.date(paymentDay);
+        if (currentDate.isBefore(dateFrom)) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        while (currentDate.isSameOrBefore(dateTo)) {
+          const isOccurred = currentDate.isSameOrBefore(today);
+
+          // Check if this date should be counted as an occurrence
+          if (currentDate.isSameOrBefore(dateTo)) {
+            if (isOccurred) {
+              if (!allDates.some(d => d.isSame(currentDate, 'day'))) {
+                group.occurredCount++;
+                group.occurredAmount += group.transactions[0].amount;
+              }
+            } else {
+              if (!allDates.some(d => d.isSame(currentDate, 'day'))) {
+                group.pendingCount++;
+                group.pendingAmount += group.transactions[0].amount;
+              }
+            }
+          }
+
+          currentDate = currentDate.add(1, 'month');
+        }
       }
     });
 
