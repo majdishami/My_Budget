@@ -240,7 +240,6 @@ export default function ExpenseReportDialog({
 
     // First, process bills to ensure they're included
     bills.forEach(bill => {
-      let currentMonth = startDate.clone().startOf('month');
       const key = bill.name;
 
       if (!groups[key]) {
@@ -257,14 +256,22 @@ export default function ExpenseReportDialog({
         };
       }
 
-      // Count one occurrence per month within the date range
-      while (currentMonth.isSameOrBefore(endDate, 'month')) {
-        const billDate = currentMonth.date(bill.day);
+      // Get all months between start and end date
+      const months = new Set();
+      let currentDate = startDate.clone();
+      while (currentDate.isSameOrBefore(endDate, 'month')) {
+        months.add(currentDate.format('YYYY-MM'));
+        currentDate = currentDate.add(1, 'month');
+      }
 
-        // Only count if the bill date falls within our date range
+      // For each unique month, add one occurrence if the bill date falls within range
+      months.forEach(monthStr => {
+        const billDate = dayjs(monthStr).date(bill.day);
+
+        // Only count if bill date falls within our date range
         if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
-          const isOccurred = billDate.isSameOrBefore(today);
           const entry = groups[key];
+          const isOccurred = billDate.isSameOrBefore(today);
 
           if (isOccurred) {
             entry.occurredAmount += bill.amount;
@@ -287,8 +294,7 @@ export default function ExpenseReportDialog({
             category_id: bill.category_id
           });
         }
-        currentMonth = currentMonth.add(1, 'month');
-      }
+      });
     });
 
     // Then add any actual transactions that occurred
