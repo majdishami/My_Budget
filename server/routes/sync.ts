@@ -15,6 +15,11 @@ const validateAndPreprocessData = (data: any) => {
       throw new Error('Invalid backup format: data must be a JSON object');
     }
 
+    // Handle optional session array
+    if ('session' in data && !Array.isArray(data.session)) {
+      data.session = [];
+    }
+
     // Check required arrays exist
     const requiredArrays = ['categories', 'bills', 'transactions'];
     for (const arrayName of requiredArrays) {
@@ -54,12 +59,21 @@ const validateAndPreprocessData = (data: any) => {
       if (!transaction.id || !transaction.description || !transaction.amount || !transaction.date) {
         throw new Error(`Invalid transaction format: Each transaction must have id, description, amount, and date fields`);
       }
+
       // Format date string to match SQL timestamp format
       const { created_at, date, ...rest } = transaction;
-      const formattedDate = new Date(date).toISOString();
+      let formattedDate;
+      try {
+        formattedDate = new Date(date).toISOString();
+      } catch (error) {
+        console.error(`Error formatting date for transaction ${transaction.id}:`, error);
+        formattedDate = date; // Keep original format if parsing fails
+      }
+
       if (transaction.category_id && !categoryIds.has(transaction.category_id)) {
         console.warn(`Warning: Transaction "${transaction.description}" references non-existent category ${transaction.category_id}`);
       }
+
       return {
         ...rest,
         date: formattedDate
@@ -68,10 +82,12 @@ const validateAndPreprocessData = (data: any) => {
 
     return data;
   } catch (error) {
+    console.error('Data validation error:', error);
     throw error;
   }
 };
 
+// Backup endpoint remains unchanged
 router.post('/api/sync/backup', async (req, res) => {
   try {
     const result = await generateDatabaseBackup();
@@ -95,6 +111,7 @@ router.post('/api/sync/backup', async (req, res) => {
   }
 });
 
+// Download endpoint remains unchanged
 router.get('/api/sync/download/:filename', (req, res) => {
   try {
     const { filename } = req.params;
@@ -130,6 +147,7 @@ router.get('/api/sync/download/:filename', (req, res) => {
   }
 });
 
+// Restore endpoint
 router.post('/api/sync/restore', async (req, res) => {
   let tempPath = '';
 
@@ -236,7 +254,6 @@ router.post('/api/sync/restore', async (req, res) => {
           error: 'Invalid backup file content',
           details: parseError.message || 'Unknown parse error'
         });
-        return;
       }
     } finally {
       // Clean up the temporary file
