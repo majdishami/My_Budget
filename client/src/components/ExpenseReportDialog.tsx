@@ -183,14 +183,18 @@ export default function ExpenseReportDialog({
     };
   }, [bills]);
 
+  // Update filteredTransactions logic
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
     // Get transactions within date range
     const dateRangeTransactions = transactions.filter(t => {
-      const transactionDate = dayjs(t.date);
-      return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
-             transactionDate.isSameOrBefore(dayjs(date.to), 'day') &&
+      const transactionDate = dayjs(t.date).startOf('day');
+      const startDate = dayjs(date.from).startOf('day');
+      const endDate = dayjs(date.to).startOf('day');
+
+      return transactionDate.isSameOrAfter(startDate) &&
+             transactionDate.isSameOrBefore(endDate) &&
              (selectedValue === "all" || selectedValue === "all_categories" ? t.type === 'expense' : true);
     });
 
@@ -293,11 +297,15 @@ export default function ExpenseReportDialog({
         const billDate = currentMonth.date(bill.day);
 
         // Only include if bill date falls within our date range
-        if (billDate.isSameOrAfter(dayjs(date.from)) && 
-            billDate.isSameOrBefore(dayjs(date.to))) {
+        if (billDate.isSameOrAfter(dayjs(date.from).startOf('day')) && 
+            billDate.isSameOrBefore(dayjs(date.to).endOf('day'))) {
+
+          // A bill is considered paid if it's before or equal to today
+          const isPaid = billDate.isSameOrBefore(dayjs(), 'day');
+
           occurrences.push({
             date: billDate.format('YYYY-MM-DD'),
-            isPaid: billDate.isBefore(dayjs())
+            isPaid
           });
         }
         currentMonth = currentMonth.add(1, 'month');
@@ -328,7 +336,7 @@ export default function ExpenseReportDialog({
           type: 'expense' as const,
           category_name: bill.category_name,
           category_color: bill.category_color,
-          category_icon: bill.category_icon,
+          category_icon: bill.category_icon || null,
           category_id: bill.category_id
         }))
       }];
