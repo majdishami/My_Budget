@@ -424,44 +424,27 @@ export default function ExpenseReportDialog({
     else if (selectedValue === "all") {
       const totals: Record<string, CategoryTotal> = {};
 
-      // First get all expense categories from the bills
-      bills.forEach(bill => {
-        if (!totals[bill.category_name]) {
-          totals[bill.category_name] = {
-            category: bill.category_name,
-            total: 0,
-            occurred: 0,
-            pending: 0,
-            occurredCount: 0,
-            pendingCount: 0,
-            color: bill.category_color,
-            icon: bill.category_icon || bill.category?.icon || null,
-            transactions: []
-          };
-        }
-      });
-
-      // Add all expense transactions to their categories
+      // First get all expense transactions and their categories
       filteredTransactions
         .filter(t => t.type === 'expense')
         .forEach(transaction => {
-          // Ensure we have a category for this transaction
-          if (!totals[transaction.category_name]) {
-            const matchingBill = bills.find(b => b.name === transaction.description);
-            totals[transaction.category_name] = {
-              category: transaction.category_name,
+          const categoryName = transaction.category_name;
+
+          if (!totals[categoryName]) {
+            totals[categoryName] = {
+              category: categoryName,
               total: 0,
               occurred: 0,
               pending: 0,
               occurredCount: 0,
               pendingCount: 0,
-              color: matchingBill?.category_color || '#D3D3D3',
-              icon: matchingBill?.category_icon || matchingBill?.category?.icon || null,
+              color: transaction.category_color || '#D3D3D3',
+              icon: transaction.category_icon || null,
               transactions: []
             };
           }
 
-          const entry = totals[transaction.category_name];
+          const entry = totals[categoryName];
           const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
 
           if (isOccurred) {
@@ -927,7 +910,7 @@ export default function ExpenseReportDialog({
                     <CardContent>
                       <Table>
                         <TableHeader>
-                                                    <TableRow>
+                          <TableRow>
                             <TableHead>Category</TableHead>
                             <TableHead className="text-right">Total Amount</TableHead>
                             <TableHead className="text-right">Paid Amount</TableHead>
