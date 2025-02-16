@@ -277,6 +277,7 @@ export default function ExpenseReportDialog({
             const entry = groups[key];
             const isOccurred = billDate.isSameOrBefore(today);
 
+            // Update amounts based on occurrence
             if (isOccurred) {
               entry.occurredAmount += bill.amount;
               entry.occurredCount++;
@@ -285,7 +286,7 @@ export default function ExpenseReportDialog({
               entry.pendingCount++;
             }
 
-            entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
+            // Add transaction record
             entry.transactions.push({
               id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
               date: billDate.format('YYYY-MM-DD'),
@@ -299,12 +300,15 @@ export default function ExpenseReportDialog({
             });
           }
         }
-
         currentDate = currentDate.add(1, 'month');
       }
+
+      // Update total amount after processing all occurrences
+      const entry = groups[key];
+      entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
     });
 
-    // Then add any actual transactions that occurred
+    // Then process any actual transactions that aren't covered by bills
     filteredTransactions
       .filter(t => t.type === 'expense')
       .forEach(transaction => {
@@ -335,6 +339,7 @@ export default function ExpenseReportDialog({
         const entry = groups[key];
         const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
 
+        // Update amounts and counts
         if (isOccurred) {
           entry.occurredAmount += transaction.amount;
           entry.occurredCount++;
@@ -955,7 +960,7 @@ export default function ExpenseReportDialog({
         <div className="flex-1 overflow-y-auto">
           {filteredTransactions.length === 0 && showReport ? (
             <Alert>
-              <AlertCircle className="h-4 w-4" />
+              <AlertCircle className="h-4 w4" />
               <AlertDescription>
                 {bills.length ===0
                   ? "No bills have been added yet. Please add some bills to generate a report."
