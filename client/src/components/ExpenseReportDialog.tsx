@@ -284,10 +284,11 @@ export default function ExpenseReportDialog({
 
       // Calculate monthly occurrences within date range
       const occurrences: { date: string; isPaid: boolean }[] = [];
-      let currentMonth = dayjs(date.from).startOf('month');
+      const startMonth = dayjs(date.from).startOf('month');
       const endMonth = dayjs(date.to).endOf('month');
+      let currentMonth = startMonth;
 
-      while (currentMonth.isSameOrBefore(endMonth)) {
+      while (currentMonth.isSameOrBefore(endMonth, 'month')) {
         const billDate = currentMonth.date(bill.day);
 
         // Only include if bill date falls within our date range
@@ -295,7 +296,7 @@ export default function ExpenseReportDialog({
             billDate.isSameOrBefore(dayjs(date.to))) {
           occurrences.push({
             date: billDate.format('YYYY-MM-DD'),
-            isPaid: billDate.isSameOrBefore(today)
+            isPaid: billDate.isBefore(dayjs()) // Compare with current date
           });
         }
         currentMonth = currentMonth.add(1, 'month');
