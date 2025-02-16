@@ -230,7 +230,7 @@ export default function ExpenseReportDialog({
     });
   }, [generatedTransactions, transactions, date]);
 
-  // Update groupedExpenses to properly track occurrences
+  // Update groupedExpenses to use simpler filtering like MonthlyReportDialog
   const groupedExpenses = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
@@ -241,49 +241,46 @@ export default function ExpenseReportDialog({
     // Track processed bill-month combinations
     const processedEntries = new Set<string>();
 
+    // First handle bills
     bills.forEach(bill => {
       const key = bill.name;
 
-      if (!groups[key]) {
-        groups[key] = {
-          description: key,
-          category: bill.category_name,
-          totalAmount: 0,
-          occurredAmount: 0,
-          pendingAmount: 0,
-          occurredCount: 0,
-          pendingCount: 0,
-          color: bill.category_color,
-          transactions: []
-        };
-      }
+      // Only process each bill once per month
+      const monthKey = `${bill.id}-${startDate.format('YYYY-MM')}`;
+      if (!processedEntries.has(monthKey)) {
+        processedEntries.add(monthKey);
 
-      // Process each month separately
-      let currentMonth = startDate.clone().startOf('month');
-      const endMonth = endDate.clone().endOf('month');
+        if (!groups[key]) {
+          groups[key] = {
+            description: key,
+            category: bill.category_name,
+            totalAmount: 0,
+            occurredAmount: 0,
+            pendingAmount: 0,
+            occurredCount: 0,
+            pendingCount: 0,
+            color: bill.category_color,
+            transactions: []
+          };
+        }
 
-      while (currentMonth.isSameOrBefore(endMonth, 'month')) {
-        const billDate = currentMonth.date(bill.day);
-        const monthKey = `${bill.id}-${currentMonth.format('YYYY-MM')}`;
+        const entry = groups[key];
+        const billDate = startDate.date(bill.day);
 
-        // Only process if:
-        // 1. Haven't processed this bill-month combination yet
-        // 2. Bill date falls within the selected range
-        // 3. Bill date is valid for this month
-        if (!processedEntries.has(monthKey) &&
-            billDate.isBetween(startDate, endDate, 'day', '[]') &&
-            billDate.isValid()) {
-
-          processedEntries.add(monthKey);
-          const entry = groups[key];
+        // Only include if bill date falls within our date range
+        if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
           const isOccurred = billDate.isSameOrBefore(today);
 
-          // Update counts first
+          // Update counts and amounts
           if (isOccurred) {
-            entry.occurredCount++;
+            entry.occurredCount = 1;
+            entry.occurredAmount = bill.amount;
           } else {
-            entry.pendingCount++;
+            entry.pendingCount = 1;
+            entry.pendingAmount = bill.amount;
           }
+
+          entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
 
           // Add transaction record
           entry.transactions.push({
@@ -298,18 +295,10 @@ export default function ExpenseReportDialog({
             category_id: bill.category_id
           });
         }
-        currentMonth = currentMonth.add(1, 'month');
       }
-
-      // Calculate amounts based on occurrence counts
-      const entry = groups[key];
-      // Set amounts directly based on occurrence count and bill amount
-      entry.occurredAmount = entry.occurredCount * bill.amount;
-      entry.pendingAmount = entry.pendingCount * bill.amount;
-      entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
     });
 
-    // Process actual transactions
+    // Then handle actual transactions
     filteredTransactions
       .filter(t => t.type === 'expense')
       .forEach(transaction => {
@@ -341,11 +330,11 @@ export default function ExpenseReportDialog({
 
         // Update counts and amounts
         if (isOccurred) {
-          entry.occurredCount++;
-          entry.occurredAmount += transaction.amount;
+          entry.occurredCount = 1;
+          entry.occurredAmount = transaction.amount;
         } else {
-          entry.pendingCount++;
-          entry.pendingAmount += transaction.amount;
+          entry.pendingCount = 1;
+          entry.pendingAmount = transaction.amount;
         }
 
         entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
@@ -971,8 +960,7 @@ export default function ExpenseReportDialog({
             </Alert>
           ) : (
             <>
-              <div className="grid gap-4 mb-4">
-                {/* Main Summary Cards */}
+              <div className="grid gap-4 mb-4">{/* Main Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {selectedValue.startsWith('expense_') && (
                     <Card>
