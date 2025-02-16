@@ -424,13 +424,33 @@ export default function ExpenseReportDialog({
     else if (selectedValue === "all") {
       const totals: Record<string, CategoryTotal> = {};
 
-      // First get all expense transactions and their categories
+      // First get all categories from bills to ensure we have valid category entries
+      bills.forEach(bill => {
+        const categoryName = bill.category_name;
+        if (!totals[categoryName]) {
+          totals[categoryName] = {
+            category: categoryName,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            occurredCount: 0,
+            pendingCount: 0,
+            color: bill.category_color,
+            icon: bill.category_icon || null,
+            transactions: []
+          };
+        }
+      });
+
+      // Process all expense transactions
       filteredTransactions
-        .filter(t => t.type === 'expense')
+        .filter(t => t.type === 'expense' && t.category_name !== 'Uncategorized')
         .forEach(transaction => {
           const categoryName = transaction.category_name;
+          const matchingBill = bills.find(b => b.name === transaction.description);
 
-          if (!totals[categoryName]) {
+          // If we don't have this category yet, add it using the bill's category info
+          if (!totals[categoryName] && matchingBill) {
             totals[categoryName] = {
               category: categoryName,
               total: 0,
@@ -438,11 +458,14 @@ export default function ExpenseReportDialog({
               pending: 0,
               occurredCount: 0,
               pendingCount: 0,
-              color: transaction.category_color || '#D3D3D3',
-              icon: transaction.category_icon || null,
+              color: matchingBill.category_color,
+              icon: matchingBill.category_icon || null,
               transactions: []
             };
           }
+
+          // Skip if we can't find a proper category
+          if (!totals[categoryName]) return;
 
           const entry = totals[categoryName];
           const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
