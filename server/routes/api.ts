@@ -10,8 +10,8 @@ router.get('/api/reports/expenses', async (req, res) => {
       WITH RECURSIVE 
       CurrentMonth AS (
         SELECT 
-          date_trunc('month', CURRENT_DATE) as start_date,
-          date_trunc('month', CURRENT_DATE) + INTERVAL '1 month' - INTERVAL '1 day' as end_date
+          DATE '2025-02-01' as start_date,
+          DATE '2025-02-28' as end_date
       ),
       MonthlyBills AS (
         SELECT DISTINCT ON (b.id)
@@ -29,8 +29,8 @@ router.get('/api/reports/expenses', async (req, res) => {
               WHERE t.category_id = b.category_id 
               AND t.amount = b.amount 
               AND t.type = 'expense'
-              AND t.date >= (SELECT start_date FROM CurrentMonth)
-              AND t.date <= (SELECT end_date FROM CurrentMonth)
+              AND DATE_TRUNC('day', t.date::timestamp) >= (SELECT start_date FROM CurrentMonth)
+              AND DATE_TRUNC('day', t.date::timestamp) <= (SELECT end_date FROM CurrentMonth)
             ) THEN 1 
             ELSE 0 
           END as paid_occurrences,
@@ -40,8 +40,8 @@ router.get('/api/reports/expenses', async (req, res) => {
               WHERE t.category_id = b.category_id 
               AND t.amount = b.amount 
               AND t.type = 'expense'
-              AND t.date >= (SELECT start_date FROM CurrentMonth)
-              AND t.date <= (SELECT end_date FROM CurrentMonth)
+              AND DATE_TRUNC('day', t.date::timestamp) >= (SELECT start_date FROM CurrentMonth)
+              AND DATE_TRUNC('day', t.date::timestamp) <= (SELECT end_date FROM CurrentMonth)
             ) THEN b.amount 
             ELSE 0 
           END as paid_amount
