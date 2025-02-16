@@ -269,7 +269,6 @@ export default function ExpenseReportDialog({
   // Update the itemTotals calculation for individual expenses
   const itemTotals = useMemo(() => {
     if (!date?.from || !date?.to) return [];
-    const totals: Record<string, CategoryTotal> = {};
 
     // Handle individual expense view
     if (selectedValue.startsWith('expense_')) {
@@ -279,30 +278,26 @@ export default function ExpenseReportDialog({
 
       // Get all occurrences within date range
       const occurrences: { date: string; isPaid: boolean }[] = [];
-      let currentDate = dayjs(date.from).clone().date(bill.day);
+      let currentDate = dayjs(date.from).startOf('day');
+      const endDate = dayjs(date.to).endOf('day');
 
-      // If the bill day in the first month has passed, start from next month
-      if (currentDate.isBefore(dayjs(date.from))) {
-        currentDate = currentDate.add(1, 'month');
+      while (currentDate.isSameOrBefore(endDate)) {
+        if (currentDate.date() === bill.day) {
+          occurrences.push({
+            date: currentDate.format('YYYY-MM-DD'),
+            isPaid: currentDate.isSameOrBefore(today)
+          });
+        }
+        currentDate = currentDate.add(1, 'day');
       }
 
-      // Add all occurrences within date range
-      while (currentDate.isSameOrBefore(dayjs(date.to))) {
-        occurrences.push({
-          date: currentDate.format('YYYY-MM-DD'),
-          isPaid: currentDate.isSameOrBefore(today)
-        });
-        currentDate = currentDate.add(1, 'month');
-      }
-
-      // Calculate occurred and pending based on today's date
       const occurredOccurrences = occurrences.filter(o => o.isPaid);
       const pendingOccurrences = occurrences.filter(o => !o.isPaid);
 
       // Get actual transactions for this bill within date range
-      const billTransactions = filteredTransactions.filter(t =>
-        t.description === bill.name
-      ).sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+      const billTransactions = filteredTransactions
+        .filter(t => t.description.toLowerCase().trim() === bill.name.toLowerCase().trim())
+        .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
 
       return [{
         category: bill.name,
@@ -312,7 +307,7 @@ export default function ExpenseReportDialog({
         occurredCount: occurredOccurrences.length,
         pendingCount: pendingOccurrences.length,
         color: bill.category_color || '#D3D3D3',
-        icon: bill.category_icon || bill.category?.icon || null,
+        icon: bill.category_icon || null,
         transactions: billTransactions.length > 0 ? billTransactions : occurrences.map(o => ({
           id: `${bill.id}-${o.date}`,
           date: o.date,
@@ -554,7 +549,7 @@ export default function ExpenseReportDialog({
         .filter(entry => entry.total > 0);
     }
     return [];
-  }, [bills, selectedValue, date, today, transactions]);
+  }, [bills, selectedValue, date, today, transactions, filteredTransactions]);
 
   // Update summary calculations
   const summary = useMemo(() => {
@@ -925,9 +920,9 @@ export default function ExpenseReportDialog({
                               <TableCell className="text-right text-orange-500">
                                 {formatCurrency(ct.pending)}
                               </TableCell>
-                              <TableCell className="text-right text-red-600">
-                                {ct.occurredCount}
-                              </TableCell><TableCell className="text-right text-orange-500">
+                              <TableCell className="text-right text-red-600">{ct.occurredCount}
+                              </TableCell>
+                              <TableCell className="text-right text-orange-500">
                                 {ct.pendingCount}
                               </TableCell>
                             </TableRow>
@@ -939,7 +934,7 @@ export default function ExpenseReportDialog({
                 )}
 
                 {/* Category Transaction Details Section */}
-                {selectedValue.startsWith('category_') && itemTotals.length > 0 && (
+                {selectedValue.startsWith('category_') && itemTotals.length >0 && (
                   <Card className="mb-4">
                     <CardHeader>
                       <CardTitle>Transaction Details</CardTitle>
@@ -1033,7 +1028,8 @@ export default function ExpenseReportDialog({
                             </TableCell>
                             <TableCell className="text-right text-orange-500">
                               {formatCurrency(summary.pendingAmount)}
-                            </TableCell>                            <TableCell className="text-right">
+                            </TableCell>
+                            <TableCell className="text-right">
                               {itemTotals.reduce((acc, ct) => acc + ct.occurredCount, 0)}
                               {" / "}
                               {itemTotals.reduce((acc, ct) => acc + ct.pendingCount, 0)}
@@ -1048,7 +1044,8 @@ export default function ExpenseReportDialog({
                 {selectedValue === "all" && groupedExpenses.length > 0 && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Expenses Summary</CardTitle>                    </CardHeader>
+                      <CardTitle>Expenses Summary</CardTitle>
+                    </CardHeader>
                     <CardContent>
                       <Table>
                         <TableHeader>
@@ -1090,12 +1087,14 @@ export default function ExpenseReportDialog({
                                 {formatCurrency(expense.occurredAmount)}
                               </TableCell>
                               <TableCell className="text-right text-orange-500">{formatCurrency(expense.pendingAmount)}
-                              </TableCell>                              <TableCell className="text-right">
+                              </TableCell>
+                              <TableCell className="text-right">
                                 <span className="text-red-600">{expense.occurredCount}</span>
                                 {" / "}
                                 <span className="text-orange-500">{expense.pendingCount}</span>
                               </TableCell>
-                            </TableRow>                          ))}
+                            </TableRow>
+                          ))}
                         </TableBody>
                       </Table>
                     </CardContent>
