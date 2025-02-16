@@ -238,7 +238,9 @@ export default function ExpenseReportDialog({
     const startDate = dayjs(date.from);
     const endDate = dayjs(date.to);
 
-    // First, process bills to ensure they're included
+    // Track processed bill-month combinations
+    const processedEntries = new Set<string>();
+
     bills.forEach(bill => {
       const key = bill.name;
 
@@ -256,69 +258,66 @@ export default function ExpenseReportDialog({
         };
       }
 
-      // Track processed months to avoid duplicates
-      const processedMonths = new Set<string>();
-
-      // Get unique months between start and end date
-      let currentDate = startDate.clone().startOf('month');
+      // Process each month separately
+      let currentMonth = startDate.clone().startOf('month');
       const endMonth = endDate.clone().endOf('month');
 
-      while (currentDate.isSameOrBefore(endMonth, 'month')) {
-        const monthKey = currentDate.format('YYYY-MM');
+      while (currentMonth.isSameOrBefore(endMonth, 'month')) {
+        const billDate = currentMonth.date(bill.day);
+        const monthKey = `${bill.id}-${currentMonth.format('YYYY-MM')}`;
 
-        // Only process each month once
-        if (!processedMonths.has(monthKey)) {
-          processedMonths.add(monthKey);
+        // Only process if:
+        // 1. Haven't processed this bill-month combination yet
+        // 2. Bill date falls within the selected range
+        // 3. Bill date is valid for this month
+        if (!processedEntries.has(monthKey) &&
+            billDate.isBetween(startDate, endDate, 'day', '[]') &&
+            billDate.isValid()) {
 
-          const billDate = currentDate.date(bill.day);
+          processedEntries.add(monthKey);
+          const entry = groups[key];
+          const isOccurred = billDate.isSameOrBefore(today);
 
-          // Only count if bill date falls within our date range
-          if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
-            const entry = groups[key];
-            const isOccurred = billDate.isSameOrBefore(today);
-
-            // Update amounts based on occurrence
-            if (isOccurred) {
-              entry.occurredAmount += bill.amount;
-              entry.occurredCount++;
-            } else {
-              entry.pendingAmount += bill.amount;
-              entry.pendingCount++;
-            }
-
-            // Add transaction record
-            entry.transactions.push({
-              id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
-              date: billDate.format('YYYY-MM-DD'),
-              description: bill.name,
-              amount: bill.amount,
-              type: 'expense',
-              category_name: bill.category_name,
-              category_color: bill.category_color,
-              category_icon: bill.category_icon || null,
-              category_id: bill.category_id
-            });
+          // Add exactly one occurrence for this month
+          if (isOccurred) {
+            entry.occurredAmount += bill.amount;
+            entry.occurredCount++;
+          } else {
+            entry.pendingAmount += bill.amount;
+            entry.pendingCount++;
           }
+
+          // Record the transaction
+          entry.transactions.push({
+            id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
+            date: billDate.format('YYYY-MM-DD'),
+            description: bill.name,
+            amount: bill.amount,
+            type: 'expense',
+            category_name: bill.category_name,
+            category_color: bill.category_color,
+            category_icon: bill.category_icon || null,
+            category_id: bill.category_id
+          });
         }
-        currentDate = currentDate.add(1, 'month');
+        currentMonth = currentMonth.add(1, 'month');
       }
 
-      // Update total amount after processing all occurrences
+      // Update total amount after processing all months
       const entry = groups[key];
       entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
     });
 
-    // Then process any actual transactions that aren't covered by bills
+    // Process actual transactions
     filteredTransactions
       .filter(t => t.type === 'expense')
       .forEach(transaction => {
         const key = transaction.description;
-        const transactionMonth = dayjs(transaction.date).format('YYYY-MM');
+        const transactionDate = dayjs(transaction.date);
+        const monthKey = `${transaction.id}-${transactionDate.format('YYYY-MM')}`;
 
-        // Skip if this transaction is already accounted for in bills for this month
-        if (groups[key] && groups[key].transactions.some(t => 
-          dayjs(t.date).format('YYYY-MM') === transactionMonth
-        )) {
+        // Skip if already processed
+        if (processedEntries.has(monthKey)) {
           return;
         }
 
@@ -337,9 +336,8 @@ export default function ExpenseReportDialog({
         }
 
         const entry = groups[key];
-        const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
+        const isOccurred = transactionDate.isSameOrBefore(today);
 
-        // Update amounts and counts
         if (isOccurred) {
           entry.occurredAmount += transaction.amount;
           entry.occurredCount++;
@@ -352,7 +350,10 @@ export default function ExpenseReportDialog({
         entry.transactions.push(transaction);
       });
 
-    return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
+    return Object.values(groups)
+      .sort((a, b) => b.totalAmount - a.totalAmount)
+      .filter(entry => entry.totalAmount > 0);
+
   }, [bills, filteredTransactions, date, today]);
 
   // Update itemTotals to properly handle both expenses and incomes
@@ -951,8 +952,7 @@ export default function ExpenseReportDialog({
                 >
                   <X className="h-4 w-4" />
                   <span className="sr-only">Close</span>
-                </button>
-              </DialogClose>
+                </button></DialogClose>
             </div>
           </div>
         </DialogHeader>
@@ -960,7 +960,7 @@ export default function ExpenseReportDialog({
         <div className="flex-1 overflow-y-auto">
           {filteredTransactions.length === 0 && showReport ? (
             <Alert>
-              <AlertCircle className="h-4 w4" />
+              <AlertCircle className="h-4 w4"/>
               <AlertDescription>
                 {bills.length ===0
                   ? "No bills have been added yet. Please add some bills to generate a report."
