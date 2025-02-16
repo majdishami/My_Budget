@@ -188,14 +188,14 @@ export default function ExpenseReportDialog({
     if (!date?.from || !date?.to) return [];
 
     // Get transactions within date range
-    const transactions = transactions.filter(t =>
+    const dateRangeTransactions = transactions.filter(t =>
       dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
       dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day') &&
       (selectedValue === "all" || selectedValue === "all_categories" ? t.type === 'expense' : true)
     );
 
     // Find matching bills to ensure we have proper category info
-    return transactions.map(t => {
+    return dateRangeTransactions.map(t => {
       const matchingBill = bills.find(b =>
         b.name.toLowerCase().trim() === t.description.toLowerCase().trim()
       );
@@ -818,19 +818,20 @@ export default function ExpenseReportDialog({
                             <TableHeader>
                               <TableRow>
                                 <TableHead>Date</TableHead>
+                                <TableHead>Description</TableHead>
                                 <TableHead className="text-right">Amount</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Description</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {itemTotals[0]?.transactions
                                 ?.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf())
                                 .map((transaction) => (
-                                  <TableRow key={`${transaction.date}-${transaction.description}`}>
+                                  <TableRow key={`${transaction.id}-${transaction.date}`}>
                                     <TableCell>
                                       {dayjs(transaction.date).format('MMM D, YYYY')}
                                     </TableCell>
+                                    <TableCell>{transaction.description}</TableCell>
                                     <TableCell className={`text-right font-medium ${
                                       dayjs(transaction.date).isSameOrBefore(today)
                                         ? 'text-red-600'
@@ -844,9 +845,6 @@ export default function ExpenseReportDialog({
                                       ) : (
                                         <span className="text-orange-500">Pending</span>
                                       )}
-                                    </TableCell>
-                                    <TableCell>
-                                      {transaction.description}
                                     </TableCell>
                                   </TableRow>
                                 ))}
@@ -929,7 +927,7 @@ export default function ExpenseReportDialog({
                               </TableCell>
                               <TableCell className="text-right text-red-600">
                                 {ct.occurredCount}
-                              </TableCell<TableCell className="text-right text-orange-500">
+                              </TableCell><TableCell className="text-right text-orange-500">
                                 {ct.pendingCount}
                               </TableCell>
                             </TableRow>
@@ -1048,7 +1046,7 @@ export default function ExpenseReportDialog({
                 )}
 
                 {selectedValue === "all" && groupedExpenses.length > 0 && (
-                  <Card className="mb-4">
+                  <Card>
                     <CardHeader>
                       <CardTitle>Expenses Summary</CardTitle>                    </CardHeader>
                     <CardContent>
@@ -1105,7 +1103,7 @@ export default function ExpenseReportDialog({
                 )}
 
                 {selectedValue.startsWith('expense_') && itemTotals.length > 0 && (
-                  <Card className="mb-4">
+                  <Card>
                     <CardHeader>
                       <CardTitle className="flex flex-col space-y-2">
                         <div className="text-xl font-semibold">
