@@ -191,7 +191,7 @@ export default function ExpenseReportDialog({
     const dateRangeTransactions = transactions.filter(t => {
       const transactionDate = dayjs(t.date).startOf('day');
       const startDate = dayjs(date.from).startOf('day');
-      const endDate = dayjs(date.to).startOf('day');
+      const endDate = dayjs(date.to).endOf('day');
 
       return transactionDate.isSameOrAfter(startDate) &&
              transactionDate.isSameOrBefore(endDate) &&
@@ -921,8 +921,7 @@ export default function ExpenseReportDialog({
                         <TableHeader>
                           <TableRow>
                             <TableHead>Date</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead>Description</TableHead><TableHead className="text-right">Amount</TableHead>
                             <TableHead>Status</TableHead>
                           </TableRow>
                         </TableHeader>
