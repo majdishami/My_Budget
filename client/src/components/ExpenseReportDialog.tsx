@@ -194,14 +194,23 @@ export default function ExpenseReportDialog({
       const endDate = dayjs(date.to).endOf('month');
 
       return transactionDate.isSameOrAfter(startDate) &&
-             transactionDate.isSameOrBefore(endDate) &&
-             (selectedValue === "all" || selectedValue === "all_categories" ? t.type === 'expense' : true);
+             transactionDate.isSameOrBefore(endDate);
     });
 
     // Find matching bills to ensure we have proper category info
     return dateRangeTransactions.map(t => {
+      if (t.type === 'income') {
+        return {
+          ...t,
+          category_name: t.category_name || 'Uncategorized',
+          category_color: t.category_color || '#10B981', // Green color for income
+          category_icon: t.category_icon || 'dollar-sign',
+          category_id: t.category_id || null
+        };
+      }
+
       // Try to find a matching bill by exact name match first
-      const matchingBill = bills.find(b => 
+      const matchingBill = bills.find(b =>
         b.name.toLowerCase().trim() === t.description.toLowerCase().trim()
       );
 
@@ -224,7 +233,7 @@ export default function ExpenseReportDialog({
         category_id: t.category_id || null
       };
     });
-  }, [transactions, date, selectedValue, bills]);
+  }, [transactions, date, bills]);
 
   // Update groupedExpenses to properly track occurrences
   const groupedExpenses = useMemo(() => {
@@ -238,7 +247,7 @@ export default function ExpenseReportDialog({
     bills.forEach(bill => {
       let currentMonth = startDate.clone();
 
-      while (currentMonth.isSameOrBefore(endDate, 'month')) {
+      while (currentMonth.isSameOrBefore(endDate)) {
         const billDate = currentMonth.date(bill.day);
 
         if (billDate.isSameOrAfter(startDate) && billDate.isSameOrBefore(endDate)) {
@@ -322,9 +331,12 @@ export default function ExpenseReportDialog({
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [bills, filteredTransactions, date, today]);
 
-  // Update the occurrence calculation in itemTotals
+  // Update itemTotals to properly handle both expenses and incomes
   const itemTotals = useMemo(() => {
     if (!date?.from || !date?.to) return [];
+
+    const startDate = dayjs(date.from).startOf('month');
+    const endDate = dayjs(date.to).endOf('month');
 
     // Handle individual expense view
     if (selectedValue.startsWith('expense_')) {
@@ -341,7 +353,7 @@ export default function ExpenseReportDialog({
         const billDate = currentMonth.date(bill.day);
 
         // Only include if bill date falls within our date range
-        if (billDate.isSameOrAfter(dayjs(date.from).startOf('day')) && 
+        if (billDate.isSameOrAfter(dayjs(date.from).startOf('day')) &&
             billDate.isSameOrBefore(dayjs(date.to).endOf('day'))) {
 
           // A bill is considered paid if it's before or equal to today
@@ -389,57 +401,85 @@ export default function ExpenseReportDialog({
     else if (selectedValue === "all_categories") {
       const totals: Record<string, CategoryTotal> = {};
 
-      bills.forEach(bill => {
-        if (!totals[bill.category_name]) {
-          totals[bill.category_name] = {
-            category: bill.category_name,
+      // Process all transactions first
+      filteredTransactions.forEach(transaction => {
+        const categoryName = transaction.category_name;
+
+        if (!totals[categoryName]) {
+          totals[categoryName] = {
+            category: categoryName,
             total: 0,
             occurred: 0,
             pending: 0,
             occurredCount: 0,
             pendingCount: 0,
-            color: bill.category_color,
-            icon: bill.category_icon || null,
+            color: transaction.category_color,
+            icon: transaction.category_icon,
             transactions: []
           };
         }
 
-        let currentMonth = dayjs(date.from).startOf('month');
-        const endMonth = dayjs(date.to).endOf('month');
+        const entry = totals[categoryName];
+        const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
 
-        while (currentMonth.isSameOrBefore(endMonth)) {
+        if (isOccurred) {
+          entry.occurred += transaction.amount;
+          entry.occurredCount++;
+        } else {
+          entry.pending += transaction.amount;
+          entry.pendingCount++;
+        }
+
+        entry.transactions?.push(transaction);
+      });
+
+      // Process bills for future occurrences
+      bills.forEach(bill => {
+        let currentMonth = startDate.clone();
+
+        while (currentMonth.isSameOrBefore(endDate)) {
           const billDate = currentMonth.date(bill.day);
 
-          if (billDate.isSameOrAfter(dayjs(date.from), 'day') &&
-              billDate.isSameOrBefore(dayjs(date.to), 'day')) {
+          if (billDate.isSameOrAfter(startDate) &&
+              billDate.isSameOrBefore(endDate)) {
             const entry = totals[bill.category_name];
             const isOccurred = billDate.isSameOrBefore(today);
 
-            if (isOccurred) {
-              entry.occurred += bill.amount;
-              entry.occurredCount++;
-            } else {
-              entry.pending += bill.amount;
-              entry.pendingCount++;
-            }
+            // Only add if we don't have a matching transaction
+            const hasMatchingTransaction = entry?.transactions?.some(t =>
+              dayjs(t.date).format('YYYY-MM-DD') === billDate.format('YYYY-MM-DD') &&
+              t.description === bill.name
+            );
 
-            entry.transactions?.push({
-              id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
-              date: billDate.format('YYYY-MM-DD'),
-              description: bill.name,
-              amount: bill.amount,
-              type: 'expense',
-              category_name: bill.category_name,
-              category_color: bill.category_color,
-              category_icon: bill.category_icon,
-              category_id: bill.category_id
-            });
+            if (!hasMatchingTransaction) {
+              if (!entry) {
+                totals[bill.category_name] = {
+                  category: bill.category_name,
+                  total: bill.amount,
+                  occurred: isOccurred ? bill.amount : 0,
+                  pending: isOccurred ? 0 : bill.amount,
+                  occurredCount: isOccurred ? 1 : 0,
+                  pendingCount: isOccurred ? 0 : 1,
+                  color: bill.category_color,
+                  icon: bill.category_icon,
+                  transactions: []
+                };
+              } else {
+                if (isOccurred) {
+                  entry.occurred += bill.amount;
+                  entry.occurredCount++;
+                } else {
+                  entry.pending += bill.amount;
+                  entry.pendingCount++;
+                }
+              }
+            }
           }
           currentMonth = currentMonth.add(1, 'month');
         }
       });
 
-      // Calculate totals and sort transactions
+      // Calculate totals
       Object.values(totals).forEach(entry => {
         entry.total = entry.occurred + entry.pending;
         if (entry.transactions) {
@@ -918,14 +958,12 @@ export default function ExpenseReportDialog({
                             <TableHead className="text-right">Paid Amount</TableHead>
                             <TableHead className="text-right">Pending Amount</TableHead>
                             <TableHead className="text-right">Paid Occurrences</TableHead>
-                            <TableHead className="text-right">Pending Occurrences</TableHead>
-                          </TableRow>
+                            <TableHead className="text-right">Pending Occurrences</TableHead>                          </TableRow>
                         </TableHeader>
                         <TableBody>
                           {itemTotals.map((ct) => (
                             <TableRow key={ct.category}>
-                              <TableCell>
-                                <CategoryDisplay
+                              <TableCell><CategoryDisplay
                                   category={ct.category}                                  color={ct.color}
                                   icon={ct.icon}
                                 />
