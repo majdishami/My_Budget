@@ -2,8 +2,10 @@ import { db } from '@db';
 import path from 'path';
 import fs from 'fs';
 import { sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { categories, bills, transactions, users } from '@db/schema';
 
-export async function generateDatabaseBackup() {
+export async function generateDatabaseBackup(userId: number) {
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = path.join(process.cwd(), 'tmp');
@@ -14,32 +16,27 @@ export async function generateDatabaseBackup() {
       fs.mkdirSync(backupPath, { recursive: true });
     }
 
-    // Get all table names in the database
-    const result = await db.execute(sql`
-      SELECT tablename 
-      FROM pg_tables 
-      WHERE schemaname = 'public'
-    `);
+    // Get user-specific data
+    const userCategories = await db.select().from(categories)
+      .where(eq(categories.user_id, userId));
 
-    // Create a backup object with table data
-    const backup: Record<string, any> = {};
-    const tables = Array.isArray(result) ? result : result.rows || [];
+    const userBills = await db.select().from(bills)
+      .where(eq(bills.user_id, userId));
 
-    console.log('Found tables:', tables);
+    const userTransactions = await db.select().from(transactions)
+      .where(eq(transactions.user_id, userId));
 
-    // For each table, get all rows
-    for (const row of tables) {
-      const tablename = row.tablename;
-      try {
-        console.log(`Backing up table: ${tablename}`);
-        const query = sql.raw(`SELECT * FROM "${tablename}"`);
-        const data = await db.execute(query);
-        backup[tablename] = Array.isArray(data) ? data : data.rows || [];
-      } catch (tableError: any) {
-        console.error(`Error backing up table ${tablename}:`, tableError);
-        throw new Error(`Failed to backup table ${tablename}: ${tableError.message}`);
+    // Create backup object with user's data
+    const backup = {
+      categories: userCategories,
+      bills: userBills,
+      transactions: userTransactions,
+      metadata: {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        userId: userId
       }
-    }
+    };
 
     // Write the backup to a file
     fs.writeFileSync(backupFile, JSON.stringify(backup, null, 2));
@@ -59,144 +56,156 @@ export async function generateDatabaseBackup() {
   }
 }
 
-export async function restoreDatabaseBackup(backupFile: string) {
+interface BackupData {
+  categories: any[];
+  bills: any[];
+  transactions: any[];
+  metadata?: {
+    version: string;
+    timestamp: string;
+    userId: number;
+  };
+}
+
+export async function validateBackupData(data: BackupData): Promise<{ valid: boolean; error?: string }> {
+  try {
+    if (!data.categories || !Array.isArray(data.categories)) {
+      return { valid: false, error: 'Missing or invalid categories array' };
+    }
+
+    if (!data.bills || !Array.isArray(data.bills)) {
+      return { valid: false, error: 'Missing or invalid bills array' };
+    }
+
+    if (!data.transactions || !Array.isArray(data.transactions)) {
+      return { valid: false, error: 'Missing or invalid transactions array' };
+    }
+
+    // Validate category references
+    const categoryIds = new Set(data.categories.map(cat => cat.id));
+
+    for (const bill of data.bills) {
+      if (bill.category_id && !categoryIds.has(bill.category_id)) {
+        return { valid: false, error: `Invalid category reference in bill: ${bill.id}` };
+      }
+    }
+
+    for (const transaction of data.transactions) {
+      if (transaction.category_id && !categoryIds.has(transaction.category_id)) {
+        return { valid: false, error: `Invalid category reference in transaction: ${transaction.id}` };
+      }
+    }
+
+    return { valid: true };
+  } catch (error) {
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : 'Unknown validation error'
+    };
+  }
+}
+
+export async function restoreDatabaseBackup(backupFile: string, userId: number) {
   console.log('Starting database restore process...');
 
-  return db.transaction(async (tx) => {
-    try {
-      if (!fs.existsSync(backupFile)) {
-        throw new Error('Backup file not found');
-      }
+  try {
+    if (!fs.existsSync(backupFile)) {
+      throw new Error('Backup file not found');
+    }
 
-      console.log('Reading backup file:', backupFile);
-      const backupContent = fs.readFileSync(backupFile, 'utf-8');
-      console.log('Backup content length:', backupContent.length);
+    console.log('Reading backup file:', backupFile);
+    const backupContent = fs.readFileSync(backupFile, 'utf-8');
+    const backupData: BackupData = JSON.parse(backupContent);
 
-      let backupData: Record<string, any[]>;
+    // Validate backup data
+    const validation = await validateBackupData(backupData);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
 
+    // Start transaction for atomic restore
+    return await db.transaction(async (tx) => {
       try {
-        backupData = JSON.parse(backupContent);
-        console.log('Data parsed successfully, validating structure...');
+        // Update all data to be associated with the current user
+        const categoryData = backupData.categories.map(cat => ({
+          ...cat,
+          user_id: userId
+        }));
 
-        if (!backupData.categories || !Array.isArray(backupData.categories)) {
-          throw new Error('Invalid backup structure: missing categories array');
+        const billData = backupData.bills.map(bill => ({
+          ...bill,
+          user_id: userId
+        }));
+
+        const transactionData = backupData.transactions.map(trans => ({
+          ...trans,
+          user_id: userId
+        }));
+
+        // Insert or update categories
+        if (categoryData.length > 0) {
+          await tx.insert(categories).values(categoryData)
+            .onConflictDoUpdate({
+              target: [categories.id],
+              set: {
+                name: sql`EXCLUDED.name`,
+                color: sql`EXCLUDED.color`,
+                icon: sql`EXCLUDED.icon`,
+                user_id: sql`EXCLUDED.user_id`
+              }
+            });
         }
 
-        if (!backupData.bills || !Array.isArray(backupData.bills)) {
-          throw new Error('Invalid backup structure: missing bills array');
+        // Insert or update bills
+        if (billData.length > 0) {
+          await tx.insert(bills).values(billData)
+            .onConflictDoUpdate({
+              target: [bills.id],
+              set: {
+                name: sql`EXCLUDED.name`,
+                amount: sql`EXCLUDED.amount`,
+                day: sql`EXCLUDED.day`,
+                category_id: sql`EXCLUDED.category_id`,
+                user_id: sql`EXCLUDED.user_id`
+              }
+            });
         }
 
-        console.log(`Found ${backupData.categories.length} categories and ${backupData.bills.length} bills`);
-      } catch (parseError) {
-        console.error('Error parsing backup data:', parseError);
-        throw new Error(`Invalid backup file format: ${parseError instanceof Error ? parseError.message : 'Parse error'}`);
-      }
-
-      // Reset sequences
-      await tx.execute(sql`ALTER SEQUENCE categories_id_seq RESTART WITH 1`);
-      await tx.execute(sql`ALTER SEQUENCE bills_id_seq RESTART WITH 1`);
-      console.log('Reset sequences');
-
-      // Process categories first
-      if (backupData.categories?.length > 0) {
-        console.log(`Processing ${backupData.categories.length} categories`);
-
-        // Clear existing data
-        await tx.execute(sql`TRUNCATE TABLE categories RESTART IDENTITY CASCADE`);
-        console.log('Cleared existing categories');
-
-        // Map to store old category IDs to new ones
-        const categoryIdMap = new Map<number, number>();
-
-        // Insert categories and collect their new IDs
-        for (const category of backupData.categories) {
-          try {
-            console.log('Inserting category:', category.name);
-            const result = await tx.execute(sql`
-              INSERT INTO categories (name, color, icon, user_id, created_at)
-              VALUES (
-                ${category.name},
-                ${category.color},
-                ${category.icon || null},
-                ${category.user_id || null},
-                ${category.created_at}::timestamp
-              )
-              RETURNING id
-            `);
-
-            const newId = Array.isArray(result) && result[0]?.id
-              ? result[0].id
-              : result.rows?.[0]?.id;
-
-            if (typeof newId !== 'number') {
-              throw new Error(`Failed to get new ID for category ${category.id}`);
-            }
-
-            categoryIdMap.set(category.id, newId);
-            console.log(`Mapped category ${category.id} to ${newId}`);
-          } catch (insertError) {
-            console.error('Error inserting category:', category, insertError);
-            throw insertError;
-          }
+        // Insert or update transactions
+        if (transactionData.length > 0) {
+          await tx.insert(transactions).values(transactionData)
+            .onConflictDoUpdate({
+              target: [transactions.id],
+              set: {
+                description: sql`EXCLUDED.description`,
+                amount: sql`EXCLUDED.amount`,
+                date: sql`EXCLUDED.date`,
+                type: sql`EXCLUDED.type`,
+                category_id: sql`EXCLUDED.category_id`,
+                user_id: sql`EXCLUDED.user_id`
+              }
+            });
         }
-
-        // Process bills next
-        if (backupData.bills?.length > 0) {
-          console.log(`Processing ${backupData.bills.length} bills`);
-
-          // Clear existing bills
-          await tx.execute(sql`TRUNCATE TABLE bills RESTART IDENTITY`);
-          console.log('Cleared existing bills');
-
-          // Insert bills with mapped category IDs
-          for (const bill of backupData.bills) {
-            const newCategoryId = categoryIdMap.get(bill.category_id);
-            if (typeof newCategoryId !== 'number') {
-              console.log(`Skipping bill with invalid category_id: ${bill.category_id}`);
-              continue;
-            }
-
-            try {
-              console.log('Inserting bill:', bill.name);
-              await tx.execute(sql`
-                INSERT INTO bills (name, amount, day, category_id, user_id, created_at)
-                VALUES (
-                  ${bill.name},
-                  ${bill.amount}::numeric,
-                  ${bill.day},
-                  ${newCategoryId},
-                  ${bill.user_id || null},
-                  ${bill.created_at}::timestamp
-                )
-              `);
-            } catch (insertError) {
-              console.error('Error inserting bill:', bill, insertError);
-              throw insertError;
-            }
-          }
-        }
-
-        // Update sequences
-        await tx.execute(sql`
-          SELECT setval('categories_id_seq', (SELECT COALESCE(MAX(id), 1) FROM categories))
-        `);
-        await tx.execute(sql`
-          SELECT setval('bills_id_seq', (SELECT COALESCE(MAX(id), 1) FROM bills))
-        `);
 
         return {
           success: true,
-          message: 'Database restored successfully'
+          message: 'Database restored successfully',
+          summary: {
+            categories: categoryData.length,
+            bills: billData.length,
+            transactions: transactionData.length
+          }
         };
-      } else {
-        throw new Error('No categories found in backup file');
+      } catch (error) {
+        console.error('Error in restore process:', error);
+        throw error;
       }
-    } catch (error) {
-      console.error('Error in restore process:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
-  });
+    });
+  } catch (error) {
+    console.error('Error in restore process:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
 }
