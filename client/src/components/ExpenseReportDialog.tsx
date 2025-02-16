@@ -272,7 +272,7 @@ export default function ExpenseReportDialog({
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [bills, transactions, selectedValue, date, today]);
 
-  // Update the itemTotals calculation for individual expenses
+  // Update the occurrence calculation in itemTotals
   const itemTotals = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
@@ -291,23 +291,23 @@ export default function ExpenseReportDialog({
         const billDate = currentMonth.date(bill.day);
 
         // Only include if bill date falls within our date range
-        if (billDate.isSameOrAfter(dayjs(date.from), 'day') &&
-            billDate.isSameOrBefore(dayjs(date.to), 'day')) {
+        if (billDate.isSameOrAfter(dayjs(date.from)) && 
+            billDate.isSameOrBefore(dayjs(date.to))) {
           occurrences.push({
             date: billDate.format('YYYY-MM-DD'),
-            isPaid: dayjs(billDate).isSameOrBefore(today)
+            isPaid: billDate.isSameOrBefore(today)
           });
         }
         currentMonth = currentMonth.add(1, 'month');
       }
 
+      const occurredOccurrences = occurrences.filter(o => o.isPaid);
+      const pendingOccurrences = occurrences.filter(o => !o.isPaid);
+
       // Get actual transactions for this bill within date range
       const billTransactions = filteredTransactions
         .filter(t => t.description.toLowerCase().trim() === bill.name.toLowerCase().trim())
         .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
-
-      const occurredOccurrences = occurrences.filter(o => o.isPaid);
-      const pendingOccurrences = occurrences.filter(o => !o.isPaid);
 
       return [{
         category: bill.name,
@@ -331,7 +331,6 @@ export default function ExpenseReportDialog({
         }))
       }];
     }
-
     // Handle all categories combined
     else if (selectedValue === "all_categories") {
       const totals: Record<string, CategoryTotal> = {};
