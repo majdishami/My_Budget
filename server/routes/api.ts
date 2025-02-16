@@ -13,8 +13,8 @@ router.get('/api/reports/expenses', async (req, res) => {
           date_trunc('month', CURRENT_DATE) as start_date,
           date_trunc('month', CURRENT_DATE) + INTERVAL '1 month' - INTERVAL '1 day' as end_date
       ),
-      MatchedTransactions AS (
-        SELECT DISTINCT ON (b.id)
+      MonthlyBills AS (
+        SELECT DISTINCT ON (b.id, b.category_id)
           b.id as bill_id,
           b.name as bill_name,
           b.amount as bill_amount,
@@ -35,23 +35,22 @@ router.get('/api/reports/expenses', async (req, res) => {
           AND t.date >= (SELECT start_date FROM CurrentMonth)
           AND t.date <= (SELECT end_date FROM CurrentMonth)
         WHERE b.category_id IS NOT NULL
-        ORDER BY b.id, ABS(EXTRACT(DAY FROM t.date) - b.day)
+        ORDER BY b.id, b.category_id, t.date
       )
       SELECT 
         c.id as category_id,
         c.name as category_name,
         c.color as category_color,
         c.icon as category_icon,
-        COUNT(DISTINCT mt.bill_id) as total_bills,
-        COUNT(DISTINCT CASE WHEN mt.transaction_id IS NOT NULL THEN mt.bill_id END) as paid_count,
-        COUNT(DISTINCT CASE WHEN mt.transaction_id IS NULL THEN mt.bill_id END) as pending_count,
-        COALESCE(SUM(CASE WHEN mt.transaction_id IS NOT NULL THEN mt.bill_amount ELSE 0 END), 0) as paid_amount,
-        COALESCE(SUM(CASE WHEN mt.transaction_id IS NULL THEN mt.bill_amount ELSE 0 END), 0) as pending_amount,
-        COALESCE(SUM(mt.bill_amount), 0) as total_amount
+        1 as total_bills,
+        COUNT(DISTINCT CASE WHEN mb.transaction_id IS NOT NULL THEN mb.bill_id END) as paid_count,
+        CASE WHEN COUNT(DISTINCT CASE WHEN mb.transaction_id IS NOT NULL THEN mb.bill_id END) = 0 THEN 1 ELSE 0 END as pending_count,
+        COALESCE(SUM(CASE WHEN mb.transaction_id IS NOT NULL THEN mb.bill_amount ELSE 0 END), 0) as paid_amount,
+        COALESCE(SUM(CASE WHEN mb.transaction_id IS NULL THEN mb.bill_amount ELSE 0 END), 0) as pending_amount,
+        mb.bill_amount as total_amount
       FROM categories c
-      LEFT JOIN MatchedTransactions mt ON c.id = mt.category_id
-      GROUP BY c.id, c.name, c.color, c.icon
-      HAVING COUNT(DISTINCT mt.bill_id) > 0
+      JOIN MonthlyBills mb ON c.id = mb.category_id
+      GROUP BY c.id, c.name, c.color, c.icon, mb.bill_amount
       ORDER BY c.name;
     `;
 
