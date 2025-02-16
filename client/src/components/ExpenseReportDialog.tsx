@@ -187,48 +187,13 @@ export default function ExpenseReportDialog({
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
-    // Filter transactions by exact date range first
+    // Filter transactions exactly like DateRangeReportDialog does
     return transactions.filter(t => {
       const transactionDate = dayjs(t.date);
-      return transactionDate.isSameOrAfter(dayjs(date.from).startOf('day')) && 
-             transactionDate.isSameOrBefore(dayjs(date.to).endOf('day'));
-    }).map(t => {
-      // For income transactions, keep original details but ensure consistent formatting
-      if (t.type === 'income') {
-        return {
-          ...t,
-          category_name: 'Income',
-          category_color: '#10B981', // Green color for income
-          category_icon: 'dollar-sign',
-          category_id: null
-        };
-      }
-
-      // For expenses, try to match with a bill
-      const matchingBill = bills.find(b => 
-        b.name.toLowerCase().trim() === t.description.toLowerCase().trim()
-      );
-
-      if (matchingBill) {
-        return {
-          ...t,
-          category_name: matchingBill.category_name,
-          category_color: matchingBill.category_color,
-          category_icon: matchingBill.category_icon,
-          category_id: matchingBill.category_id
-        };
-      }
-
-      // Otherwise use original transaction details with fallbacks
-      return {
-        ...t,
-        category_name: t.category_name || 'Uncategorized',
-        category_color: t.category_color || '#D3D3D3',
-        category_icon: t.category_icon || null,
-        category_id: t.category_id || null
-      };
+      return transactionDate.isSameOrAfter(dayjs(date.from)) && 
+             transactionDate.isSameOrBefore(dayjs(date.to));
     });
-  }, [transactions, date, bills]);
+  }, [transactions, date]);
 
   // Update groupedExpenses to properly track occurrences
   const groupedExpenses = useMemo(() => {

@@ -71,85 +71,35 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
     }
   }, [isOpen, today]);
 
+  const filteredTransactions = useMemo(() => {
+    if (!date?.from || !date?.to) return [];
+
+    // Filter transactions exactly like DateRangeReportDialog does
+    return transactions.filter(t => {
+      const transactionDate = dayjs(t.date);
+      return transactionDate.isSameOrAfter(dayjs(date.from)) &&
+             transactionDate.isSameOrBefore(dayjs(date.to));
+    });
+  }, [transactions, date]);
+
+
   // Generate transactions when date range is selected
   useEffect(() => {
     if (!showReport || !date?.from || !date?.to) return;
 
-    const startDate = dayjs(date.from);
-    const endDate = dayjs(date.to);
-
-    const generateTransactions = () => {
-      const mockTransactions: Transaction[] = [];
-
-      // Helper function to check if a date has occurred
-      const hasDateOccurred = (checkDate: dayjs.Dayjs) => {
-        return checkDate.isBefore(today) || checkDate.isSame(today, 'day');
-      };
-
-      incomes.forEach(income => {
-        const incomeDate = dayjs(income.date);
-
-        if (income.source === "Ruba's Salary") {
-          // Start from January 10, 2025, for bi-weekly payments
-          let payDate = dayjs('2025-01-10');
-
-          // Find the first payment date within or before the range
-          while (payDate.isBefore(startDate)) {
-            payDate = payDate.add(14, 'day');
-          }
-
-          // Generate bi-weekly payments within the date range
-          while (payDate.isSameOrBefore(endDate)) {
-            if (payDate.day() === 5) { // Only on Fridays
-              mockTransactions.push({
-                date: payDate.format('YYYY-MM-DD'),
-                description: income.source,
-                amount: income.amount,
-                occurred: hasDateOccurred(payDate)
-              });
-            }
-            payDate = payDate.add(14, 'day');
-          }
-        } else {
-          // For Majdi's salary and other regular incomes
-          // Calculate the actual date for each month in the range
-          let currentDate = startDate.clone().startOf('month');
-
-          while (currentDate.isSameOrBefore(endDate)) {
-            // Add salary on 1st and 15th of each month
-            const firstPayDay = currentDate.date(1);
-            const fifteenthPayDay = currentDate.date(15);
-
-            if (firstPayDay.isBetween(startDate, endDate, 'day', '[]')) {
-              mockTransactions.push({
-                date: firstPayDay.format('YYYY-MM-DD'),
-                description: income.source,
-                amount: income.amount,
-                occurred: hasDateOccurred(firstPayDay)
-              });
-            }
-
-            if (fifteenthPayDay.isBetween(startDate, endDate, 'day', '[]')) {
-              mockTransactions.push({
-                date: fifteenthPayDay.format('YYYY-MM-DD'),
-                description: income.source,
-                amount: income.amount,
-                occurred: hasDateOccurred(fifteenthPayDay)
-              });
-            }
-
-            currentDate = currentDate.add(1, 'month');
-          }
-        }
-      });
-
-      return mockTransactions.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
-    };
-
-    const newTransactions = generateTransactions();
+    const filteredTransactions = useMemo(() => {
+        if (!date?.from || !date?.to) return [];
+    
+        // Filter transactions exactly like DateRangeReportDialog does
+        return transactions.filter(t => {
+          const transactionDate = dayjs(t.date);
+          return transactionDate.isSameOrAfter(dayjs(date.from)) && 
+                 transactionDate.isSameOrBefore(dayjs(date.to));
+        });
+      }, [transactions, date]);
 
     // Calculate summary totals
-    const totals = newTransactions.reduce(
+    const totals = filteredTransactions.reduce(
       (acc, transaction) => {
         if (transaction.occurred) {
           acc.occurred += transaction.amount;
@@ -161,9 +111,9 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
       { occurred: 0, pending: 0 }
     );
 
-    setTransactions(newTransactions);
+    setTransactions(filteredTransactions);
     setSummaryTotals(totals);
-  }, [showReport, date?.from, date?.to, incomes, today]);
+  }, [showReport, date?.from, date?.to, transactions]);
 
   if (!showReport) {
     return (
@@ -259,7 +209,7 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((transaction, index) => (
+              {filteredTransactions.map((transaction, index) => (
                 <TableRow key={`${transaction.date}-${index}`}>
                   <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                   <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-100'}>
