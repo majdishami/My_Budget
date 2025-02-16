@@ -219,15 +219,49 @@ export default function ExpenseReportDialog({
     };
   }, [bills]);
 
-  // Filter transactions based on date range
+  // Update filteredTransactions to prevent double counting
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
-    return [...generatedTransactions, ...transactions].filter(t => { //Use both generated and original transactions
-      const transactionDate = dayjs(t.date);
-      return transactionDate.isSameOrAfter(dayjs(date.from)) &&
-             transactionDate.isSameOrBefore(dayjs(date.to));
+    const startDate = dayjs(date.from);
+    const endDate = dayjs(date.to);
+
+    // Create a Set to track unique transaction IDs
+    const processedIds = new Set<string>();
+    const uniqueTransactions: Transaction[] = [];
+
+    // First add actual transactions
+    transactions.forEach(t => {
+      if (!processedIds.has(t.id)) {
+        const transactionDate = dayjs(t.date);
+        if (transactionDate.isSameOrAfter(startDate) &&
+            transactionDate.isSameOrBefore(endDate)) {
+          processedIds.add(t.id);
+          uniqueTransactions.push(t);
+        }
+      }
     });
+
+    // Then add generated transactions only if they don't overlap with actual ones
+    generatedTransactions.forEach(t => {
+      const key = `${t.description}-${t.date}`;
+      // Only add if we don't have a matching actual transaction
+      const hasMatchingTransaction = transactions.some(actual =>
+        actual.description === t.description &&
+        actual.date === t.date
+      );
+
+      if (!hasMatchingTransaction && !processedIds.has(t.id)) {
+        const transactionDate = dayjs(t.date);
+        if (transactionDate.isSameOrAfter(startDate) &&
+            transactionDate.isSameOrBefore(endDate)) {
+          processedIds.add(t.id);
+          uniqueTransactions.push(t);
+        }
+      }
+    });
+
+    return uniqueTransactions;
   }, [generatedTransactions, transactions, date]);
 
   // Update groupedExpenses to use simpler filtering like MonthlyReportDialog
@@ -330,11 +364,11 @@ export default function ExpenseReportDialog({
 
         // Update counts and amounts
         if (isOccurred) {
-          entry.occurredCount = 1;
-          entry.occurredAmount = transaction.amount;
+          entry.occurredCount++;
+          entry.occurredAmount += transaction.amount;
         } else {
-          entry.pendingCount = 1;
-          entry.pendingAmount = transaction.amount;
+          entry.pendingCount++;
+          entry.pendingAmount += transaction.amount;
         }
 
         entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
@@ -921,8 +955,8 @@ export default function ExpenseReportDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0 border-b pb-4">
           <div className="flex justify-between items-start">
             <div>
               <DialogTitle className="text-xl">
@@ -933,7 +967,7 @@ export default function ExpenseReportDialog({
               </DialogTitle>
             </div>
             <div className="flex gap-2 items-center">
-              <Button variant="outline" onClick={handleBackToSelection}>
+              <Button variant="outlineonClick={handleBackToSelection}>
                 Back to Selection
               </Button>
               <DialogClose asChild>
@@ -943,12 +977,13 @@ export default function ExpenseReportDialog({
                 >
                   <X className="h-4 w-4" />
                   <span className="sr-only">Close</span>
-                </button></DialogClose>
+                </button>
+              </DialogClose>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="flex-1`overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
           {filteredTransactions.length === 0 && showReport ? (
             <Alert>
               <AlertCircle className="h-4 w-4"/>
@@ -959,8 +994,8 @@ export default function ExpenseReportDialog({
               </AlertDescription>
             </Alert>
           ) : (
-            <>
-              <div className="grid gap-4 mb-4">{/* Main Summary Cards */}
+            <div className="space-y-4">
+              <div className="grid gap-4 mb-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {selectedValue.startsWith('expense_') && (
                     <Card>
@@ -1343,7 +1378,7 @@ export default function ExpenseReportDialog({
                   </div>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
       </DialogContent>
