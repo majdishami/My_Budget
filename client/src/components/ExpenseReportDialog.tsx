@@ -183,20 +183,21 @@ export default function ExpenseReportDialog({
     };
   }, [bills]);
 
-  // Update filteredTransactions to properly include category information
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
     // Get transactions within date range
-    const dateRangeTransactions = transactions.filter(t =>
-      dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
-      dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day') &&
-      (selectedValue === "all" || selectedValue === "all_categories" ? t.type === 'expense' : true)
-    );
+    const dateRangeTransactions = transactions.filter(t => {
+      const transactionDate = dayjs(t.date);
+      return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
+             transactionDate.isSameOrBefore(dayjs(date.to), 'day') &&
+             (selectedValue === "all" || selectedValue === "all_categories" ? t.type === 'expense' : true);
+    });
 
     // Find matching bills to ensure we have proper category info
     return dateRangeTransactions.map(t => {
-      const matchingBill = bills.find(b =>
+      // Try to find a matching bill by exact name match first
+      const matchingBill = bills.find(b => 
         b.name.toLowerCase().trim() === t.description.toLowerCase().trim()
       );
 
@@ -205,11 +206,12 @@ export default function ExpenseReportDialog({
           ...t,
           category_name: matchingBill.category_name,
           category_color: matchingBill.category_color,
-          category_icon: matchingBill.category_icon,
+          category_icon: matchingBill.category_icon || null,
           category_id: matchingBill.category_id
         };
       }
 
+      // If no matching bill found, keep existing category info
       return {
         ...t,
         category_name: t.category_name || 'Uncategorized',
@@ -284,9 +286,8 @@ export default function ExpenseReportDialog({
 
       // Calculate monthly occurrences within date range
       const occurrences: { date: string; isPaid: boolean }[] = [];
-      const startMonth = dayjs(date.from).startOf('month');
+      let currentMonth = dayjs(date.from).startOf('month');
       const endMonth = dayjs(date.to).endOf('month');
-      let currentMonth = startMonth;
 
       while (currentMonth.isSameOrBefore(endMonth, 'month')) {
         const billDate = currentMonth.date(bill.day);
@@ -296,7 +297,7 @@ export default function ExpenseReportDialog({
             billDate.isSameOrBefore(dayjs(date.to))) {
           occurrences.push({
             date: billDate.format('YYYY-MM-DD'),
-            isPaid: billDate.isBefore(dayjs()) // Compare with current date
+            isPaid: billDate.isBefore(dayjs())
           });
         }
         currentMonth = currentMonth.add(1, 'month');
