@@ -4,8 +4,8 @@ import path from 'path';
 import fs from 'fs';
 import type { UploadedFile } from 'express-fileupload';
 import { db } from '@db';
-import { bills, transactions, categories, users } from '@db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { bills, transactions, categories } from '@db/schema';
+import { sql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -40,12 +40,7 @@ const validateBackupData = (data: any) => {
 
 router.post('/api/sync/backup', async (req, res) => {
   try {
-    // Ensure user is authenticated
-    if (!req.session?.userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const result = await generateDatabaseBackup(req.session.userId);
+    const result = await generateDatabaseBackup();
 
     if (!result.success) {
       console.error('Backup generation failed:', result.error);
@@ -105,11 +100,6 @@ router.post('/api/sync/restore', async (req, res) => {
   let tempPath = '';
 
   try {
-    // Ensure user is authenticated
-    if (!req.session?.userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
     if (!req.files?.backup || Array.isArray(req.files.backup)) {
       return res.status(400).json({ error: 'No backup file provided' });
     }
@@ -148,26 +138,11 @@ router.post('/api/sync/restore', async (req, res) => {
         // Validate backup structure
         validateBackupData(parsedData);
 
-        // Get current user data
-        const user = await db.query.users.findFirst({
-          where: eq(users.id, req.session.userId)
-        });
-
-        if (!user) {
-          throw new Error('User not found');
-        }
-
         // Start transaction for atomic restore
         await db.transaction(async (tx) => {
-          // Update categories to associate with current user
-          const categoryData = parsedData.categories.map((cat: any) => ({
-            ...cat,
-            user_id: user.id
-          }));
-
           // Restore categories first (if any new ones)
-          if (categoryData.length > 0) {
-            await tx.insert(categories).values(categoryData)
+          if (parsedData.categories.length > 0) {
+            await tx.insert(categories).values(parsedData.categories)
               .onConflictDoUpdate({
                 target: [categories.id],
                 set: {
@@ -179,15 +154,9 @@ router.post('/api/sync/restore', async (req, res) => {
               });
           }
 
-          // Update bills to associate with current user
-          const billData = parsedData.bills.map((bill: any) => ({
-            ...bill,
-            user_id: user.id
-          }));
-
           // Restore bills
-          if (billData.length > 0) {
-            await tx.insert(bills).values(billData)
+          if (parsedData.bills.length > 0) {
+            await tx.insert(bills).values(parsedData.bills)
               .onConflictDoUpdate({
                 target: [bills.id],
                 set: {
@@ -200,15 +169,9 @@ router.post('/api/sync/restore', async (req, res) => {
               });
           }
 
-          // Update transactions to associate with current user
-          const transactionData = parsedData.transactions.map((trans: any) => ({
-            ...trans,
-            user_id: user.id
-          }));
-
           // Restore transactions
-          if (transactionData.length > 0) {
-            await tx.insert(transactions).values(transactionData)
+          if (parsedData.transactions.length > 0) {
+            await tx.insert(transactions).values(parsedData.transactions)
               .onConflictDoUpdate({
                 target: [transactions.id],
                 set: {

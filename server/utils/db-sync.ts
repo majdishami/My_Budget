@@ -2,10 +2,9 @@ import { db } from '@db';
 import path from 'path';
 import fs from 'fs';
 import { sql } from 'drizzle-orm';
-import { eq } from 'drizzle-orm';
-import { categories, bills, transactions, users } from '@db/schema';
+import { categories, bills, transactions } from '@db/schema';
 
-export async function generateDatabaseBackup(userId: number) {
+export async function generateDatabaseBackup() {
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = path.join(process.cwd(), 'tmp');
@@ -16,25 +15,19 @@ export async function generateDatabaseBackup(userId: number) {
       fs.mkdirSync(backupPath, { recursive: true });
     }
 
-    // Get user-specific data
-    const userCategories = await db.select().from(categories)
-      .where(eq(categories.user_id, userId));
+    // Get all data
+    const allCategories = await db.select().from(categories);
+    const allBills = await db.select().from(bills);
+    const allTransactions = await db.select().from(transactions);
 
-    const userBills = await db.select().from(bills)
-      .where(eq(bills.user_id, userId));
-
-    const userTransactions = await db.select().from(transactions)
-      .where(eq(transactions.user_id, userId));
-
-    // Create backup object with user's data
+    // Create backup object with data
     const backup = {
-      categories: userCategories,
-      bills: userBills,
-      transactions: userTransactions,
+      categories: allCategories,
+      bills: allBills,
+      transactions: allTransactions,
       metadata: {
         version: '1.0',
-        timestamp: new Date().toISOString(),
-        userId: userId
+        timestamp: new Date().toISOString()
       }
     };
 
@@ -63,7 +56,6 @@ interface BackupData {
   metadata?: {
     version: string;
     timestamp: string;
-    userId: number;
   };
 }
 
@@ -105,7 +97,7 @@ export async function validateBackupData(data: BackupData): Promise<{ valid: boo
   }
 }
 
-export async function restoreDatabaseBackup(backupFile: string, userId: number) {
+export async function restoreDatabaseBackup(backupFile: string) {
   console.log('Starting database restore process...');
 
   try {
@@ -126,25 +118,9 @@ export async function restoreDatabaseBackup(backupFile: string, userId: number) 
     // Start transaction for atomic restore
     return await db.transaction(async (tx) => {
       try {
-        // Update all data to be associated with the current user
-        const categoryData = backupData.categories.map(cat => ({
-          ...cat,
-          user_id: userId
-        }));
-
-        const billData = backupData.bills.map(bill => ({
-          ...bill,
-          user_id: userId
-        }));
-
-        const transactionData = backupData.transactions.map(trans => ({
-          ...trans,
-          user_id: userId
-        }));
-
-        // Insert or update categories
-        if (categoryData.length > 0) {
-          await tx.insert(categories).values(categoryData)
+        // Restore categories first (if any new ones)
+        if (backupData.categories.length > 0) {
+          await tx.insert(categories).values(backupData.categories)
             .onConflictDoUpdate({
               target: [categories.id],
               set: {
@@ -156,9 +132,9 @@ export async function restoreDatabaseBackup(backupFile: string, userId: number) 
             });
         }
 
-        // Insert or update bills
-        if (billData.length > 0) {
-          await tx.insert(bills).values(billData)
+        // Restore bills
+        if (backupData.bills.length > 0) {
+          await tx.insert(bills).values(backupData.bills)
             .onConflictDoUpdate({
               target: [bills.id],
               set: {
@@ -171,9 +147,9 @@ export async function restoreDatabaseBackup(backupFile: string, userId: number) 
             });
         }
 
-        // Insert or update transactions
-        if (transactionData.length > 0) {
-          await tx.insert(transactions).values(transactionData)
+        // Restore transactions
+        if (backupData.transactions.length > 0) {
+          await tx.insert(transactions).values(backupData.transactions)
             .onConflictDoUpdate({
               target: [transactions.id],
               set: {
@@ -191,9 +167,9 @@ export async function restoreDatabaseBackup(backupFile: string, userId: number) 
           success: true,
           message: 'Database restored successfully',
           summary: {
-            categories: categoryData.length,
-            bills: billData.length,
-            transactions: transactionData.length
+            categories: backupData.categories.length,
+            bills: backupData.bills.length,
+            transactions: backupData.transactions.length
           }
         };
       } catch (error) {
