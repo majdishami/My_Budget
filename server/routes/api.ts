@@ -14,7 +14,7 @@ router.get('/api/reports/expenses', async (req, res) => {
           date_trunc('month', CURRENT_DATE) + INTERVAL '1 month' - INTERVAL '1 day' as end_date
       ),
       MonthlyBills AS (
-        SELECT DISTINCT ON (b.id, b.category_id)
+        SELECT DISTINCT ON (b.id)
           b.id as bill_id,
           b.name as bill_name,
           b.amount as bill_amount,
@@ -23,9 +23,8 @@ router.get('/api/reports/expenses', async (req, res) => {
           c.name as category_name,
           c.color as category_color,
           c.icon as category_icon,
-          t.id as transaction_id,
-          t.amount as transaction_amount,
-          t.date as transaction_date
+          CASE WHEN t.id IS NOT NULL THEN true ELSE false END as is_paid,
+          CASE WHEN t.id IS NOT NULL THEN t.amount ELSE NULL END as paid_amount
         FROM bills b
         JOIN categories c ON b.category_id = c.id
         LEFT JOIN transactions t ON 
@@ -35,7 +34,7 @@ router.get('/api/reports/expenses', async (req, res) => {
           AND t.date >= (SELECT start_date FROM CurrentMonth)
           AND t.date <= (SELECT end_date FROM CurrentMonth)
         WHERE b.category_id IS NOT NULL
-        ORDER BY b.id, b.category_id, t.date
+        ORDER BY b.id, t.date DESC
       )
       SELECT 
         c.id as category_id,
@@ -43,14 +42,16 @@ router.get('/api/reports/expenses', async (req, res) => {
         c.color as category_color,
         c.icon as category_icon,
         1 as total_bills,
-        COUNT(DISTINCT CASE WHEN mb.transaction_id IS NOT NULL THEN mb.bill_id END) as paid_count,
-        CASE WHEN COUNT(DISTINCT CASE WHEN mb.transaction_id IS NOT NULL THEN mb.bill_id END) = 0 THEN 1 ELSE 0 END as pending_count,
-        COALESCE(SUM(CASE WHEN mb.transaction_id IS NOT NULL THEN mb.bill_amount ELSE 0 END), 0) as paid_amount,
-        COALESCE(SUM(CASE WHEN mb.transaction_id IS NULL THEN mb.bill_amount ELSE 0 END), 0) as pending_amount,
+        COUNT(CASE WHEN mb.is_paid THEN 1 END) as paid_count,
+        COUNT(CASE WHEN NOT mb.is_paid THEN 1 END) as pending_count,
+        COALESCE(SUM(mb.paid_amount), 0) as paid_amount,
+        COALESCE(SUM(CASE WHEN NOT mb.is_paid THEN mb.bill_amount END), 0) as pending_amount,
         mb.bill_amount as total_amount
       FROM categories c
       JOIN MonthlyBills mb ON c.id = mb.category_id
-      GROUP BY c.id, c.name, c.color, c.icon, mb.bill_amount
+      GROUP BY 
+        c.id, c.name, c.color, c.icon,
+        mb.bill_amount
       ORDER BY c.name;
     `;
 
