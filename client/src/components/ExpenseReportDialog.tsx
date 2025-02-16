@@ -960,14 +960,16 @@ export default function ExpenseReportDialog({
           <div className="flex justify-between items-start">
             <div>
               <DialogTitle className="text-xl">
-                {summary.title}
-                <div className="text-sm font-normal text-muted-foreground mt-1">
-                  {date?.from && date?.to && `${dayjs(date?.from).format('MMM D, YYYY')} - ${dayjs(date?.to).format('MMM D, YYYY')}`}
-                </div>
+                {getDialogTitle()}
+                {date?.from && date?.to && (
+                  <div className="text-sm font-normal text-muted-foreground mt-1">
+                    {dayjs(date?.from).format('MMM D, YYYY')} - {dayjs(date?.to).format('MMM D, YYYY')}
+                  </div>
+                )}
               </DialogTitle>
             </div>
             <div className="flex gap-2 items-center">
-              <Button variant="outlineonClick={handleBackToSelection}>
+              <Button variant="outline" onClick={handleBackToSelection}>
                 Back to Selection
               </Button>
               <DialogClose asChild>
@@ -983,19 +985,18 @@ export default function ExpenseReportDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto p-4">
           {filteredTransactions.length === 0 && showReport ? (
             <Alert>
               <AlertCircle className="h-4 w-4"/>
               <AlertDescription>
-                {bills.length === 0
-                  ? "No bills have been added yet. Please add some bills to generate a report."
-                  : "No transactions found for the selected date range and filters."}
+                No transactions found for the selected date range and filter.
               </AlertDescription>
             </Alert>
           ) : (
             <div className="space-y-4">
               <div className="grid gap-4 mb-4">
+                {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {selectedValue.startsWith('expense_') && (
                     <Card>
