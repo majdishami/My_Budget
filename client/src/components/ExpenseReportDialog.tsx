@@ -190,8 +190,8 @@ export default function ExpenseReportDialog({
     // Get transactions within date range
     const dateRangeTransactions = transactions.filter(t => {
       const transactionDate = dayjs(t.date).startOf('day');
-      const startDate = dayjs(date.from).startOf('day');
-      const endDate = dayjs(date.to).endOf('day');
+      const startDate = dayjs(date.from).startOf('month');
+      const endDate = dayjs(date.to).endOf('month');
 
       return transactionDate.isSameOrAfter(startDate) &&
              transactionDate.isSameOrBefore(endDate) &&
@@ -215,7 +215,7 @@ export default function ExpenseReportDialog({
         };
       }
 
-      // If no matching bill found, keep existing category info
+      // If no matching bill found, ensure we have category info
       return {
         ...t,
         category_name: t.category_name || 'Uncategorized',
@@ -228,55 +228,99 @@ export default function ExpenseReportDialog({
 
   // Update groupedExpenses to properly track occurrences
   const groupedExpenses = useMemo(() => {
-    if (selectedValue !== "all" || !date?.from || !date?.to) return [];
+    if (!date?.from || !date?.to) return [];
 
     const groups: Record<string, GroupedExpense> = {};
+    const startDate = dayjs(date.from).startOf('month');
+    const endDate = dayjs(date.to).endOf('month');
 
-    // Filter transactions within date range and only include expenses
-    const dateRangeTransactions = transactions.filter(t =>
-      dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
-      dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day') &&
-      t.type === 'expense'
-    );
+    // First, process bills to ensure they're included
+    bills.forEach(bill => {
+      let currentMonth = startDate.clone();
 
-    // Group transactions by expense description and category
-    dateRangeTransactions.forEach(transaction => {
-      const key = transaction.description;
-      if (!groups[key]) {
-        // Find matching bill to get category info
-        const matchingBill = bills.find(b => b.name === transaction.description);
+      while (currentMonth.isSameOrBefore(endDate, 'month')) {
+        const billDate = currentMonth.date(bill.day);
 
-        groups[key] = {
-          description: key,
-          category: matchingBill?.category_name || 'Uncategorized',
-          totalAmount: 0,
-          occurredAmount: 0,
-          pendingAmount: 0,
-          occurredCount: 0,
-          pendingCount: 0,
-          color: matchingBill?.category_color || '#D3D3D3',
-          transactions: []
-        };
+        if (billDate.isSameOrAfter(startDate) && billDate.isSameOrBefore(endDate)) {
+          const key = bill.name;
+          if (!groups[key]) {
+            groups[key] = {
+              description: key,
+              category: bill.category_name,
+              totalAmount: 0,
+              occurredAmount: 0,
+              pendingAmount: 0,
+              occurredCount: 0,
+              pendingCount: 0,
+              color: bill.category_color,
+              transactions: []
+            };
+          }
+
+          const entry = groups[key];
+          const isOccurred = billDate.isSameOrBefore(today);
+
+          if (isOccurred) {
+            entry.occurredAmount += bill.amount;
+            entry.occurredCount++;
+          } else {
+            entry.pendingAmount += bill.amount;
+            entry.pendingCount++;
+          }
+
+          entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
+          entry.transactions.push({
+            id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
+            date: billDate.format('YYYY-MM-DD'),
+            description: bill.name,
+            amount: bill.amount,
+            type: 'expense',
+            category_name: bill.category_name,
+            category_color: bill.category_color,
+            category_icon: bill.category_icon || null,
+            category_id: bill.category_id
+          });
+        }
+        currentMonth = currentMonth.add(1, 'month');
       }
-
-      const entry = groups[key];
-      const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
-
-      // Update amounts and counts based on transaction date
-      if (isOccurred) {
-        entry.occurredAmount += transaction.amount;
-        entry.occurredCount++;
-      } else {
-        entry.pendingAmount += transaction.amount;
-        entry.pendingCount++;
-      }
-
-      entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
-      entry.transactions.push(transaction);
     });
 
+    // Then add any actual transactions that occurred
+    filteredTransactions
+      .filter(t => t.type === 'expense')
+      .forEach(transaction => {
+        const key = transaction.description;
+        if (!groups[key]) {
+          groups[key] = {
+            description: key,
+            category: transaction.category_name,
+            totalAmount: 0,
+            occurredAmount: 0,
+            pendingAmount: 0,
+            occurredCount: 0,
+            pendingCount: 0,
+            color: transaction.category_color,
+            transactions: []
+          };
+        }
+
+        const entry = groups[key];
+        const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
+
+        if (isOccurred) {
+          entry.occurredAmount += transaction.amount;
+          entry.occurredCount++;
+        } else {
+          entry.pendingAmount += transaction.amount;
+          entry.pendingCount++;
+        }
+
+        entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
+        entry.transactions.push(transaction);
+      });
+
     return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
-  }, [bills, transactions, selectedValue, date, today]);
+  }, [bills, filteredTransactions, date, today]);
 
   // Update the occurrence calculation in itemTotals
   const itemTotals = useMemo(() => {
@@ -407,7 +451,6 @@ export default function ExpenseReportDialog({
         .sort((a, b) => b.total - a.total)
         .filter(entry => entry.total > 0);
     }
-
     // Handle all expenses combined
     else if (selectedValue === "all") {
       const totals: Record<string, CategoryTotal> = {};
@@ -883,8 +926,7 @@ export default function ExpenseReportDialog({
                             <TableRow key={ct.category}>
                               <TableCell>
                                 <CategoryDisplay
-                                  category={ct.category}
-                                  color={ct.color}
+                                  category={ct.category}                                  color={ct.color}
                                   icon={ct.icon}
                                 />
                               </TableCell>
