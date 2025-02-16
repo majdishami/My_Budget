@@ -187,14 +187,11 @@ export default function ExpenseReportDialog({
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
-    // Filter transactions by exact date range
+    // Filter transactions by exact date range first
     return transactions.filter(t => {
       const transactionDate = dayjs(t.date);
-      const startDate = dayjs(date.from).startOf('day');
-      const endDate = dayjs(date.to).endOf('day');
-
-      return transactionDate.isSameOrAfter(startDate) && 
-             transactionDate.isSameOrBefore(endDate);
+      return transactionDate.isSameOrAfter(dayjs(date.from).startOf('day')) && 
+             transactionDate.isSameOrBefore(dayjs(date.to).endOf('day'));
     }).map(t => {
       // For income transactions, keep original details but ensure consistent formatting
       if (t.type === 'income') {
@@ -217,7 +214,7 @@ export default function ExpenseReportDialog({
           ...t,
           category_name: matchingBill.category_name,
           category_color: matchingBill.category_color,
-          category_icon: matchingBill.category_icon || null,
+          category_icon: matchingBill.category_icon,
           category_id: matchingBill.category_id
         };
       }
@@ -955,7 +952,7 @@ export default function ExpenseReportDialog({
                               <CategoryDisplay
                                 category={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_name || 'Uncategorized'}
                                 color={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_color || '#D3D3D3'}
-                                icon={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_icon || null}
+                                icon={bills.find(b => b.id.toString()=== selectedValue.replace('expense_', ''))?.category_icon || null}
                               />
                             </div>
                             <div className="text-sm text-muted-foreground">
