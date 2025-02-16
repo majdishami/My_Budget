@@ -1,4 +1,8 @@
-// Import statements remain unchanged
+import { Router } from 'express';
+import { db } from '@db';
+import { sql } from 'drizzle-orm';
+
+const router = Router();
 
 router.get('/api/reports/expenses', async (req, res) => {
   try {
@@ -10,17 +14,35 @@ router.get('/api/reports/expenses', async (req, res) => {
           b.amount as bill_amount,
           b.day as bill_day,
           b.category_id,
+          c.name as category_name,
+          c.color as category_color,
+          c.icon as category_icon,
           (
             SELECT t.id
             FROM transactions t
             WHERE t.category_id = b.category_id 
             AND t.amount = b.amount
+            AND t.type = 'expense'
             AND DATE_PART('month', t.date::timestamp) = DATE_PART('month', CURRENT_DATE)
             AND DATE_PART('year', t.date::timestamp) = DATE_PART('year', CURRENT_DATE)
+            AND (
+              -- Match on exact description
+              LOWER(t.description) = LOWER(b.name)
+              OR
+              -- Or match on similar description (removing special characters and spaces)
+              REGEXP_REPLACE(LOWER(t.description), '[^a-zA-Z0-9]', '', 'g') = 
+              REGEXP_REPLACE(LOWER(b.name), '[^a-zA-Z0-9]', '', 'g')
+              OR
+              -- Or match if description contains the bill name
+              LOWER(t.description) LIKE '%' || LOWER(b.name) || '%'
+              OR
+              LOWER(b.name) LIKE '%' || LOWER(t.description) || '%'
+            )
             ORDER BY ABS(DATE_PART('day', t.date::timestamp) - b.day)
             LIMIT 1
           ) as matched_transaction_id
         FROM bills b
+        JOIN categories c ON b.category_id = c.id
       )
       SELECT 
         c.id as category_id,
@@ -40,7 +62,7 @@ router.get('/api/reports/expenses', async (req, res) => {
     `;
 
     const results = await db.execute(sql.raw(query));
-    
+
     const expenseReport = results.rows.map(row => ({
       category: {
         id: row.category_id,
@@ -66,3 +88,5 @@ router.get('/api/reports/expenses', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate expense report' });
   }
 });
+
+export default router;
