@@ -6,7 +6,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
@@ -134,6 +134,7 @@ export default function ExpenseReportDialog({
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
   const [previousReport, setPreviousReport] = useState<{ value: string, date: DateRange | undefined } | null>(null);
+  const [generatedTransactions, setTransactions] = useState<Transaction[]>([]); // Added state for generated transactions
   const today = useMemo(() => dayjs(), []);
 
   // Add back handleBackToSelection function
@@ -142,6 +143,7 @@ export default function ExpenseReportDialog({
     setSelectedValue("all");
     setDate(undefined);
     setPreviousReport(null);
+    setTransactions([]); //Clear generated transactions on back
   };
 
   // Force refresh when dialog opens
@@ -158,8 +160,42 @@ export default function ExpenseReportDialog({
       setShowReport(false);
       setDateError(null);
       setPreviousReport(null);
+      setTransactions([]); //Clear generated transactions on close
     }
   }, [isOpen]);
+
+  // Generate transactions when date range changes
+  useEffect(() => {
+    if (!showReport || !date?.from || !date?.to) return;
+
+    const startDate = dayjs(date.from);
+    const endDate = dayjs(date.to);
+    const newGeneratedTransactions: Transaction[] = [];
+
+    // Generate expense transactions from bills
+    bills.forEach(bill => {
+      let currentMonth = startDate.startOf('month');
+      while (currentMonth.isSameOrBefore(endDate)) {
+        const billDate = currentMonth.date(bill.day);
+        if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
+          newGeneratedTransactions.push({
+            id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
+            date: billDate.format('YYYY-MM-DD'),
+            description: bill.name,
+            amount: bill.amount,
+            type: 'expense',
+            category_name: bill.category_name,
+            category_color: bill.category_color,
+            category_icon: bill.category_icon || null,
+            category_id: bill.category_id
+          });
+        }
+        currentMonth = currentMonth.add(1, 'month');
+      }
+    });
+
+    setTransactions(newGeneratedTransactions);
+  }, [showReport, date?.from, date?.to, bills, today]);
 
   // Update the dropdown options with fresh data.
   const dropdownOptions = useMemo(() => {
@@ -183,17 +219,16 @@ export default function ExpenseReportDialog({
     };
   }, [bills]);
 
-  // Update filteredTransactions logic
+  // Filter transactions based on date range
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
-    // Filter transactions exactly like DateRangeReportDialog does
-    return transactions.filter(t => {
+    return [...generatedTransactions, ...transactions].filter(t => { //Use both generated and original transactions
       const transactionDate = dayjs(t.date);
-      return transactionDate.isSameOrAfter(dayjs(date.from)) && 
+      return transactionDate.isSameOrAfter(dayjs(date.from)) &&
              transactionDate.isSameOrBefore(dayjs(date.to));
     });
-  }, [transactions, date]);
+  }, [generatedTransactions, transactions, date]);
 
   // Update groupedExpenses to properly track occurrences
   const groupedExpenses = useMemo(() => {
@@ -915,7 +950,7 @@ export default function ExpenseReportDialog({
                           <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2 text-lg">
                               <CategoryDisplay
-                                category={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_name || 'Uncategorized'}
+                                category={bills.find(b => b.id.toString() === selectedValue.replace(''expense_', ''))?.category_name || 'Uncategorized'}
                                 color={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_color || '#D3D3D3'}
                                 icon={bills.find(b => b.id.toString()=== selectedValue.replace('expense_', ''))?.category_icon || null}
                               />

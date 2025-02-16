@@ -46,7 +46,7 @@ interface IncomeReportDialogProps {
 }
 
 export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: IncomeReportDialogProps) {
-  const today = useMemo(() => getCurrentDate(), []); // Use getCurrentDate utility
+  const today = useMemo(() => getCurrentDate(), []); 
   const [date, setDate] = useState<DateRange | undefined>({
     from: today.toDate(),
     to: undefined
@@ -71,49 +71,73 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
     }
   }, [isOpen, today]);
 
-  const filteredTransactions = useMemo(() => {
-    if (!date?.from || !date?.to) return [];
-
-    // Filter transactions exactly like DateRangeReportDialog does
-    return transactions.filter(t => {
-      const transactionDate = dayjs(t.date);
-      return transactionDate.isSameOrAfter(dayjs(date.from)) &&
-             transactionDate.isSameOrBefore(dayjs(date.to));
-    });
-  }, [transactions, date]);
-
-
   // Generate transactions when date range is selected
   useEffect(() => {
     if (!showReport || !date?.from || !date?.to) return;
 
-    const filteredTransactions = useMemo(() => {
-        if (!date?.from || !date?.to) return [];
-    
-        // Filter transactions exactly like DateRangeReportDialog does
-        return transactions.filter(t => {
-          const transactionDate = dayjs(t.date);
-          return transactionDate.isSameOrAfter(dayjs(date.from)) && 
-                 transactionDate.isSameOrBefore(dayjs(date.to));
+    const startDate = dayjs(date.from);
+    const endDate = dayjs(date.to);
+    const generatedTransactions: Transaction[] = [];
+
+    // Generate Majdi's salary transactions
+    const majdiPayDates = Array.from({ length: 12 }, (_, i) => {
+      const month = startDate.add(i, 'month');
+      return [month.date(1), month.date(15)];
+    }).flat();
+
+    majdiPayDates.forEach(payDate => {
+      if (payDate.isBetween(startDate, endDate, 'day', '[]')) {
+        generatedTransactions.push({
+          date: payDate.format('YYYY-MM-DD'),
+          description: "Majdi's Salary",
+          amount: 4739,
+          occurred: payDate.isSameOrBefore(today)
         });
-      }, [transactions, date]);
+      }
+    });
 
-    // Calculate summary totals
-    const totals = filteredTransactions.reduce(
-      (acc, transaction) => {
-        if (transaction.occurred) {
-          acc.occurred += transaction.amount;
-        } else {
-          acc.pending += transaction.amount;
-        }
-        return acc;
-      },
-      { occurred: 0, pending: 0 }
-    );
+    // Generate Ruba's salary transactions
+    let rubaPayDate = dayjs('2025-01-10');
+    while (rubaPayDate.isSameOrBefore(endDate)) {
+      if (rubaPayDate.isBetween(startDate, endDate, 'day', '[]')) {
+        generatedTransactions.push({
+          date: rubaPayDate.format('YYYY-MM-DD'),
+          description: "Ruba's Salary",
+          amount: 2168,
+          occurred: rubaPayDate.isSameOrBefore(today)
+        });
+      }
+      rubaPayDate = rubaPayDate.add(14, 'day');
+    }
 
-    setTransactions(filteredTransactions);
-    setSummaryTotals(totals);
-  }, [showReport, date?.from, date?.to, transactions]);
+    setTransactions(generatedTransactions);
+  }, [showReport, date?.from, date?.to, today]);
+
+  // Filter transactions based on date range
+  const filteredTransactions = useMemo(() => {
+    if (!date?.from || !date?.to) return [];
+
+    return transactions.filter(t => {
+      const transactionDate = dayjs(t.date);
+      return transactionDate.isSameOrAfter(dayjs(date.from)) && 
+             transactionDate.isSameOrBefore(dayjs(date.to));
+    });
+  }, [transactions, date]);
+
+  // Calculate summary totals
+  const totals = filteredTransactions.reduce(
+    (acc, transaction) => {
+      if (transaction.occurred) {
+        acc.occurred += transaction.amount;
+      } else {
+        acc.pending += transaction.amount;
+      }
+      return acc;
+    },
+    { occurred: 0, pending: 0 }
+  );
+  setSummaryTotals(totals);
+
 
   if (!showReport) {
     return (
