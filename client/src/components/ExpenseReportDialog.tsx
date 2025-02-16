@@ -196,7 +196,7 @@ export default function ExpenseReportDialog({
 
     // Find matching bills to ensure we have proper category info
     return dateRangeTransactions.map(t => {
-      const matchingBill = bills.find(b =>
+      const matchingBill = bills.find(b => 
         b.name.toLowerCase().trim() === t.description.toLowerCase().trim()
       );
 
@@ -210,7 +210,13 @@ export default function ExpenseReportDialog({
         };
       }
 
-      return t;
+      return {
+        ...t,
+        category_name: t.category_name || 'Uncategorized',
+        category_color: t.category_color || '#D3D3D3',
+        category_icon: t.category_icon || null,
+        category_id: t.category_id || null
+      };
     });
   }, [transactions, date, selectedValue, bills]);
 
@@ -276,19 +282,22 @@ export default function ExpenseReportDialog({
       const bill = bills.find(b => b.id.toString() === billId);
       if (!bill) return [];
 
-      // Get all occurrences within date range
+      // Calculate occurrences within date range
       const occurrences: { date: string; isPaid: boolean }[] = [];
-      let currentDate = dayjs(date.from).startOf('day');
-      const endDate = dayjs(date.to).endOf('day');
+      let currentDate = dayjs(date.from).startOf('month');
+      const endDate = dayjs(date.to).endOf('month');
 
-      while (currentDate.isSameOrBefore(endDate)) {
-        if (currentDate.date() === bill.day) {
+      while (currentDate.isSameOrBefore(endDate, 'month')) {
+        const billDate = currentDate.date(bill.day);
+
+        // Only include if bill date falls within our date range
+        if (billDate.isSameOrAfter(date.from, 'day') && billDate.isSameOrBefore(date.to, 'day')) {
           occurrences.push({
-            date: currentDate.format('YYYY-MM-DD'),
-            isPaid: currentDate.isSameOrBefore(today)
+            date: billDate.format('YYYY-MM-DD'),
+            isPaid: billDate.isSameOrBefore(today)
           });
         }
-        currentDate = currentDate.add(1, 'day');
+        currentDate = currentDate.add(1, 'month');
       }
 
       const occurredOccurrences = occurrences.filter(o => o.isPaid);
@@ -917,7 +926,7 @@ export default function ExpenseReportDialog({
                               <TableCell className="text-right text-red-600">
                                 {formatCurrency(ct.occurred)}
                               </TableCell>
-                              <TableCell className="text-right text-orange-500">
+                              <TableCell className="text-right textorange-500">
                                 {formatCurrency(ct.pending)}
                               </TableCell>
                               <TableCell className="text-right text-red-600">{ct.occurredCount}
