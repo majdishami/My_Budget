@@ -187,22 +187,30 @@ export default function ExpenseReportDialog({
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return [];
 
-    // Get transactions within date range
-    return transactions.map(t => {
-      // Try to find a matching bill by exact name match first
-      const matchingBill = bills.find(b =>
-        b.name.toLowerCase().trim() === t.description.toLowerCase().trim()
-      );
+    // Filter transactions by exact date range
+    return transactions.filter(t => {
+      const transactionDate = dayjs(t.date);
+      const startDate = dayjs(date.from).startOf('day');
+      const endDate = dayjs(date.to).endOf('day');
 
+      return transactionDate.isSameOrAfter(startDate) && 
+             transactionDate.isSameOrBefore(endDate);
+    }).map(t => {
+      // For income transactions, keep original details but ensure consistent formatting
       if (t.type === 'income') {
         return {
           ...t,
-          category_name: t.category_name || 'Income',
-          category_color: t.category_color || '#10B981', // Green color for income
-          category_icon: t.category_icon || 'dollar-sign',
-          category_id: t.category_id || null
+          category_name: 'Income',
+          category_color: '#10B981', // Green color for income
+          category_icon: 'dollar-sign',
+          category_id: null
         };
       }
+
+      // For expenses, try to match with a bill
+      const matchingBill = bills.find(b => 
+        b.name.toLowerCase().trim() === t.description.toLowerCase().trim()
+      );
 
       if (matchingBill) {
         return {
@@ -214,7 +222,7 @@ export default function ExpenseReportDialog({
         };
       }
 
-      // If no matching bill found, ensure we have category info
+      // Otherwise use original transaction details with fallbacks
       return {
         ...t,
         category_name: t.category_name || 'Uncategorized',
@@ -223,7 +231,7 @@ export default function ExpenseReportDialog({
         category_id: t.category_id || null
       };
     });
-  }, [transactions, bills]);
+  }, [transactions, date, bills]);
 
   // Update groupedExpenses to properly track occurrences
   const groupedExpenses = useMemo(() => {
@@ -951,7 +959,7 @@ export default function ExpenseReportDialog({
                               />
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              Monthly Amount: {formatCurrency(bills.find(b => b.id.toString() === selectedvalue.replace('expense_', ''))?.amount || 0)}
+                              Monthly Amount: {formatCurrency(bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.amount || 0)}
                             </div>
                           </div>
                         </CardTitle>
