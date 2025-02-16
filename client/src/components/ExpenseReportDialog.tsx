@@ -235,34 +235,36 @@ export default function ExpenseReportDialog({
     if (!date?.from || !date?.to) return [];
 
     const groups: Record<string, GroupedExpense> = {};
-    const startDate = dayjs(date.from).startOf('month');
-    const endDate = dayjs(date.to).endOf('month');
+    const startDate = dayjs(date.from);
+    const endDate = dayjs(date.to);
 
     // First, process bills to ensure they're included
     bills.forEach(bill => {
-      let currentMonth = startDate.clone();
+      let currentMonth = startDate.clone().startOf('month');
+      const key = bill.name;
 
-      while (currentMonth.isSameOrBefore(endDate)) {
+      if (!groups[key]) {
+        groups[key] = {
+          description: key,
+          category: bill.category_name,
+          totalAmount: 0,
+          occurredAmount: 0,
+          pendingAmount: 0,
+          occurredCount: 0,
+          pendingCount: 0,
+          color: bill.category_color,
+          transactions: []
+        };
+      }
+
+      // Count one occurrence per month within the date range
+      while (currentMonth.isSameOrBefore(endDate, 'month')) {
         const billDate = currentMonth.date(bill.day);
 
-        if (billDate.isSameOrAfter(startDate) && billDate.isSameOrBefore(endDate)) {
-          const key = bill.name;
-          if (!groups[key]) {
-            groups[key] = {
-              description: key,
-              category: bill.category_name,
-              totalAmount: 0,
-              occurredAmount: 0,
-              pendingAmount: 0,
-              occurredCount: 0,
-              pendingCount: 0,
-              color: bill.category_color,
-              transactions: []
-            };
-          }
-
-          const entry = groups[key];
+        // Only count if the bill date falls within our date range
+        if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
           const isOccurred = billDate.isSameOrBefore(today);
+          const entry = groups[key];
 
           if (isOccurred) {
             entry.occurredAmount += bill.amount;
@@ -294,6 +296,13 @@ export default function ExpenseReportDialog({
       .filter(t => t.type === 'expense')
       .forEach(transaction => {
         const key = transaction.description;
+        // Skip if this transaction is already accounted for in bills
+        if (groups[key] && groups[key].transactions.some(t => 
+          dayjs(t.date).format('YYYY-MM-DD') === dayjs(transaction.date).format('YYYY-MM-DD')
+        )) {
+          return;
+        }
+
         if (!groups[key]) {
           groups[key] = {
             description: key,
@@ -1053,13 +1062,15 @@ export default function ExpenseReportDialog({
                             <TableHead className="text-right">Paid Amount</TableHead>
                             <TableHead className="text-right">Pending Amount</TableHead>
                             <TableHead className="text-right">Paid Occurrences</TableHead>
-                            <TableHead className="text-right">Pending Occurrences</TableHead>                          </TableRow>
+                            <TableHead className="text-right">Pending Occurrences</TableHead>
+                          </TableRow>
                         </TableHeader>
                         <TableBody>
                           {itemTotals.map((ct) => (
                             <TableRow key={ct.category}>
                               <TableCell><CategoryDisplay
-                                  category={ct.category}                                  color={ct.color}
+                                  category={ct.category}
+                                  color={ct.color}
                                   icon={ct.icon}
                                 />
                               </TableCell>
@@ -1096,7 +1107,8 @@ export default function ExpenseReportDialog({
                         <TableHeader>
                           <TableRow>
                             <TableHead>Date</TableHead>
-                            <TableHead>Description</TableHead><TableHead className="text-right">Amount</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
                             <TableHead>Status</TableHead>
                           </TableRow>
                         </TableHeader>
