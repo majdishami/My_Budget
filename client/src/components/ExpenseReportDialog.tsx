@@ -238,7 +238,7 @@ export default function ExpenseReportDialog({
     const startDate = dayjs(date.from);
     const endDate = dayjs(date.to);
 
-    // Track processed bill-month combinations
+    // Track processed bill-month combinations to avoid double counting
     const processedEntries = new Set<string>();
 
     bills.forEach(bill => {
@@ -278,27 +278,29 @@ export default function ExpenseReportDialog({
           const entry = groups[key];
           const isOccurred = billDate.isSameOrBefore(today);
 
-          // Add exactly one occurrence for this month
-          if (isOccurred) {
-            entry.occurredAmount += bill.amount;
-            entry.occurredCount++;
-          } else {
-            entry.pendingAmount += bill.amount;
-            entry.pendingCount++;
-          }
-
-          // Record the transaction
-          entry.transactions.push({
+          // Add transaction record first
+          const transaction = {
             id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
             date: billDate.format('YYYY-MM-DD'),
             description: bill.name,
             amount: bill.amount,
-            type: 'expense',
+            type: 'expense' as const,
             category_name: bill.category_name,
             category_color: bill.category_color,
             category_icon: bill.category_icon || null,
             category_id: bill.category_id
-          });
+          };
+
+          // Update counts and amounts only once per month
+          if (isOccurred) {
+            entry.occurredCount++;
+            entry.occurredAmount = entry.occurredCount * bill.amount;
+          } else {
+            entry.pendingCount++;
+            entry.pendingAmount = entry.pendingCount * bill.amount;
+          }
+
+          entry.transactions.push(transaction);
         }
         currentMonth = currentMonth.add(1, 'month');
       }
@@ -339,11 +341,11 @@ export default function ExpenseReportDialog({
         const isOccurred = transactionDate.isSameOrBefore(today);
 
         if (isOccurred) {
-          entry.occurredAmount += transaction.amount;
           entry.occurredCount++;
+          entry.occurredAmount = transaction.amount;
         } else {
-          entry.pendingAmount += transaction.amount;
           entry.pendingCount++;
+          entry.pendingAmount = transaction.amount;
         }
 
         entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
