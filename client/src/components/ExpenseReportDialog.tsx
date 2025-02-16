@@ -423,12 +423,14 @@ export default function ExpenseReportDialog({
     // Handle all expenses combined
     else if (selectedValue === "all") {
       const totals: Record<string, CategoryTotal> = {};
+      const processedTransactions = new Set<string>(); // Track which bill occurrences we've seen
 
-      // Process all expense transactions using their database categories
+      // First, process all actual transactions
       filteredTransactions
         .filter(t => t.type === 'expense')
         .forEach(transaction => {
           const categoryName = transaction.category_name;
+          const transactionKey = `${transaction.description}-${dayjs(transaction.date).format('YYYY-MM-DD')}`;
 
           if (!totals[categoryName]) {
             totals[categoryName] = {
@@ -456,11 +458,74 @@ export default function ExpenseReportDialog({
           }
 
           entry.transactions.push(transaction);
+          processedTransactions.add(transactionKey);
         });
 
-      // Calculate totals
+      // Then, add expected bill occurrences that haven't been processed
+      bills.forEach(bill => {
+        const categoryName = bill.category_name;
+        if (!totals[categoryName]) {
+          totals[categoryName] = {
+            category: categoryName,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            occurredCount: 0,
+            pendingCount: 0,
+            color: bill.category_color,
+            icon: bill.category_icon,
+            transactions: []
+          };
+        }
+
+        // Calculate bill occurrences within the date range
+        let currentDate = dayjs(date.from).clone().date(bill.day);
+
+        // If the bill day in the first month has passed, start from next month
+        if (currentDate.isBefore(dayjs(date.from))) {
+          currentDate = currentDate.add(1, 'month');
+        }
+
+        // Add expected occurrences if we don't have an actual transaction
+        while (currentDate.isSameOrBefore(dayjs(date.to))) {
+          const billKey = `${bill.name}-${currentDate.format('YYYY-MM-DD')}`;
+
+          // Only add if we don't have a transaction for this occurrence
+          if (!processedTransactions.has(billKey)) {
+            const entry = totals[categoryName];
+            const isOccurred = currentDate.isSameOrBefore(today);
+
+            if (isOccurred) {
+              entry.occurred += bill.amount;
+              entry.occurredCount++;
+            } else {
+              entry.pending += bill.amount;
+              entry.pendingCount++;
+            }
+
+            // Add as an expected transaction
+            entry.transactions.push({
+              id: billKey,
+              date: currentDate.format('YYYY-MM-DD'),
+              description: bill.name,
+              amount: bill.amount,
+              type: 'expense',
+              category_name: bill.category_name,
+              category_color: bill.category_color,
+              category_icon: bill.category_icon,
+              category_id: bill.category_id
+            });
+          }
+
+          currentDate = currentDate.add(1, 'month');
+        }
+      });
+
+      // Calculate totals and sort
       Object.values(totals).forEach(entry => {
         entry.total = entry.occurred + entry.pending;
+        // Sort transactions by date
+        entry.transactions.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
       });
 
       return Object.values(totals)
@@ -862,8 +927,7 @@ export default function ExpenseReportDialog({
                       <CardTitle>Transaction Details</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <Table>
-                        <TableHeader>
+                      <Table><TableHeader>
                           <TableRow>
                             <TableHead>Date</TableHead>
                             <TableHead>Description</TableHead>
