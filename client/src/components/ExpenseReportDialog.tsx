@@ -183,14 +183,36 @@ export default function ExpenseReportDialog({
     };
   }, [bills]);
 
+  // Update filteredTransactions to properly include category information
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return [];
-    return transactions.filter(t =>
+
+    // Get transactions within date range
+    const transactions = transactions.filter(t =>
       dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
       dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day') &&
       (selectedValue === "all" || selectedValue === "all_categories" ? t.type === 'expense' : true)
     );
-  }, [transactions, date, selectedValue]);
+
+    // Find matching bills to ensure we have proper category info
+    return transactions.map(t => {
+      const matchingBill = bills.find(b =>
+        b.name.toLowerCase().trim() === t.description.toLowerCase().trim()
+      );
+
+      if (matchingBill) {
+        return {
+          ...t,
+          category_name: matchingBill.category_name,
+          category_color: matchingBill.category_color,
+          category_icon: matchingBill.category_icon,
+          category_id: matchingBill.category_id
+        };
+      }
+
+      return t;
+    });
+  }, [transactions, date, selectedValue, bills]);
 
   // Update groupedExpenses to properly track occurrences
   const groupedExpenses = useMemo(() => {
@@ -907,8 +929,7 @@ export default function ExpenseReportDialog({
                               </TableCell>
                               <TableCell className="text-right text-red-600">
                                 {ct.occurredCount}
-                              </TableCell>
-                              <TableCell className="text-right text-orange-500">
+                              </TableCell<TableCell className="text-right text-orange-500">
                                 {ct.pendingCount}
                               </TableCell>
                             </TableRow>
