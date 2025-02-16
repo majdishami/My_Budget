@@ -9,8 +9,7 @@ import { sql } from 'drizzle-orm';
 
 const router = Router();
 
-// Helper function to validate backup data structure with detailed error messages
-const validateBackupData = (data: any) => {
+const validateAndPreprocessData = (data: any) => {
   try {
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid backup format: data must be a JSON object');
@@ -24,37 +23,50 @@ const validateBackupData = (data: any) => {
       }
     }
 
-    // Validate categories structure
-    for (const category of data.categories) {
+    // Process and validate categories
+    data.categories = data.categories.map((category: any) => {
       if (!category.id || !category.name || !category.color || !category.icon) {
         throw new Error(`Invalid category format: Each category must have id, name, color, and icon fields`);
       }
-    }
+      // Remove created_at if present to let DB handle it
+      const { created_at, ...rest } = category;
+      return rest;
+    });
 
     // Create a set of category IDs for reference
     const categoryIds = new Set(data.categories.map((cat: any) => cat.id));
 
-    // Validate bills structure and references
-    for (const bill of data.bills) {
+    // Process and validate bills
+    data.bills = data.bills.map((bill: any) => {
       if (!bill.id || !bill.name || !bill.amount || typeof bill.day !== 'number') {
         throw new Error(`Invalid bill format: Each bill must have id, name, amount, and day fields`);
       }
-      if (bill.category_id && !categoryIds.has(bill.category_id)) {
-        console.warn(`Warning: Bill "${bill.name}" references non-existent category ${bill.category_id}`);
+      // Remove created_at if present to let DB handle it
+      const { created_at, ...rest } = bill;
+      if (rest.category_id && !categoryIds.has(rest.category_id)) {
+        console.warn(`Warning: Bill "${rest.name}" references non-existent category ${rest.category_id}`);
       }
-    }
+      return rest;
+    });
 
-    // Validate transactions structure and references
-    for (const transaction of data.transactions) {
+    // Process and validate transactions
+    data.transactions = data.transactions.map((transaction: any) => {
       if (!transaction.id || !transaction.description || !transaction.amount || !transaction.date) {
         throw new Error(`Invalid transaction format: Each transaction must have id, description, amount, and date fields`);
       }
+      // Format date string to match SQL timestamp format
+      const { created_at, date, ...rest } = transaction;
+      const formattedDate = new Date(date).toISOString();
       if (transaction.category_id && !categoryIds.has(transaction.category_id)) {
         console.warn(`Warning: Transaction "${transaction.description}" references non-existent category ${transaction.category_id}`);
       }
-    }
+      return {
+        ...rest,
+        date: formattedDate
+      };
+    });
 
-    return true;
+    return data;
   } catch (error) {
     throw error;
   }
@@ -140,8 +152,7 @@ router.post('/api/sync/restore', async (req, res) => {
     }
 
     // Generate a unique filename
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    tempPath = path.join(tmpDir, `restore_${timestamp}.json`);
+    tempPath = path.join(tmpDir, `restore_${Date.now()}.json`);
 
     try {
       // Move the uploaded file to tmp directory
@@ -153,19 +164,19 @@ router.post('/api/sync/restore', async (req, res) => {
       console.log('File content length:', fileContent.length);
 
       try {
-        // Parse and validate the JSON content
+        // Parse and preprocess the data
         const parsedData = JSON.parse(fileContent);
-        console.log('Data parsed successfully, validating structure...');
+        console.log('Data parsed successfully, preprocessing data...');
 
-        // Validate backup structure
-        validateBackupData(parsedData);
+        const processedData = validateAndPreprocessData(parsedData);
+        console.log('Data validation and preprocessing completed');
 
         // Start transaction for atomic restore
         await db.transaction(async (tx) => {
           // Restore categories first
-          if (parsedData.categories.length > 0) {
+          if (processedData.categories.length > 0) {
             console.log('Restoring categories...');
-            await tx.insert(categories).values(parsedData.categories)
+            await tx.insert(categories).values(processedData.categories)
               .onConflictDoUpdate({
                 target: [categories.id],
                 set: {
@@ -178,9 +189,9 @@ router.post('/api/sync/restore', async (req, res) => {
           }
 
           // Restore bills
-          if (parsedData.bills.length > 0) {
+          if (processedData.bills.length > 0) {
             console.log('Restoring bills...');
-            await tx.insert(bills).values(parsedData.bills)
+            await tx.insert(bills).values(processedData.bills)
               .onConflictDoUpdate({
                 target: [bills.id],
                 set: {
@@ -194,9 +205,9 @@ router.post('/api/sync/restore', async (req, res) => {
           }
 
           // Restore transactions
-          if (parsedData.transactions.length > 0) {
+          if (processedData.transactions.length > 0) {
             console.log('Restoring transactions...');
-            await tx.insert(transactions).values(parsedData.transactions)
+            await tx.insert(transactions).values(processedData.transactions)
               .onConflictDoUpdate({
                 target: [transactions.id],
                 set: {
@@ -214,9 +225,9 @@ router.post('/api/sync/restore', async (req, res) => {
         res.json({ 
           message: 'Backup restored successfully',
           summary: {
-            categories: parsedData.categories.length,
-            bills: parsedData.bills.length,
-            transactions: parsedData.transactions.length
+            categories: processedData.categories.length,
+            bills: processedData.bills.length,
+            transactions: processedData.transactions.length
           }
         });
       } catch (parseError: any) {
