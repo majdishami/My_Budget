@@ -950,9 +950,9 @@ export default function ExpenseReportDialog({
                           <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2 text-lg">
                               <CategoryDisplay
-                                category={bills.find(b => b.id.toString() === selectedValue.replace(''expense_', ''))?.category_name || 'Uncategorized'}
+                                category={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_name || 'Uncategorized'}
                                 color={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_color || '#D3D3D3'}
-                                icon={bills.find(b => b.id.toString()=== selectedValue.replace('expense_', ''))?.category_icon || null}
+                                icon={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_icon || null}
                               />
                             </div>
                             <div className="text-sm text-muted-foreground">
