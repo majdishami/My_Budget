@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { generateDatabaseBackup, restoreDatabaseBackup } from '../utils/db-sync';
+import { generateDatabaseBackup } from '../utils/db-sync';
 import path from 'path';
 import fs from 'fs';
 import type { UploadedFile } from 'express-fileupload';
@@ -65,7 +65,9 @@ const validateAndPreprocessData = (data: any) => {
       const { created_at, date, ...rest } = transaction;
       let formattedDate;
       try {
-        formattedDate = new Date(date).toISOString();
+        // Ensure date is in the correct format for PostgreSQL
+        const dateObj = new Date(date);
+        formattedDate = dateObj.toISOString().split('T')[0] + ' ' + dateObj.toTimeString().split(' ')[0];
       } catch (error) {
         console.error(`Error formatting date for transaction ${transaction.id}:`, error);
         formattedDate = date; // Keep original format if parsing fails
@@ -248,6 +250,8 @@ router.post('/api/sync/restore', async (req, res) => {
               });
           }
         });
+
+        console.log('Database restore completed successfully');
 
         res.json({ 
           message: 'Backup restored successfully',
