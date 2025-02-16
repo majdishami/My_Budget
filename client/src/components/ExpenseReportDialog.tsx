@@ -256,45 +256,52 @@ export default function ExpenseReportDialog({
         };
       }
 
-      // Get all months between start and end date
-      const months = new Set();
-      let currentDate = startDate.clone();
-      while (currentDate.isSameOrBefore(endDate, 'month')) {
-        months.add(currentDate.format('YYYY-MM'));
+      // Track processed months to avoid duplicates
+      const processedMonths = new Set<string>();
+
+      // Get unique months between start and end date
+      let currentDate = startDate.clone().startOf('month');
+      const endMonth = endDate.clone().endOf('month');
+
+      while (currentDate.isSameOrBefore(endMonth, 'month')) {
+        const monthKey = currentDate.format('YYYY-MM');
+
+        // Only process each month once
+        if (!processedMonths.has(monthKey)) {
+          processedMonths.add(monthKey);
+
+          const billDate = currentDate.date(bill.day);
+
+          // Only count if bill date falls within our date range
+          if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
+            const entry = groups[key];
+            const isOccurred = billDate.isSameOrBefore(today);
+
+            if (isOccurred) {
+              entry.occurredAmount += bill.amount;
+              entry.occurredCount++;
+            } else {
+              entry.pendingAmount += bill.amount;
+              entry.pendingCount++;
+            }
+
+            entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
+            entry.transactions.push({
+              id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
+              date: billDate.format('YYYY-MM-DD'),
+              description: bill.name,
+              amount: bill.amount,
+              type: 'expense',
+              category_name: bill.category_name,
+              category_color: bill.category_color,
+              category_icon: bill.category_icon || null,
+              category_id: bill.category_id
+            });
+          }
+        }
+
         currentDate = currentDate.add(1, 'month');
       }
-
-      // For each unique month, add one occurrence if the bill date falls within range
-      months.forEach(monthStr => {
-        const billDate = dayjs(monthStr).date(bill.day);
-
-        // Only count if bill date falls within our date range
-        if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
-          const entry = groups[key];
-          const isOccurred = billDate.isSameOrBefore(today);
-
-          if (isOccurred) {
-            entry.occurredAmount += bill.amount;
-            entry.occurredCount++;
-          } else {
-            entry.pendingAmount += bill.amount;
-            entry.pendingCount++;
-          }
-
-          entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
-          entry.transactions.push({
-            id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
-            date: billDate.format('YYYY-MM-DD'),
-            description: bill.name,
-            amount: bill.amount,
-            type: 'expense',
-            category_name: bill.category_name,
-            category_color: bill.category_color,
-            category_icon: bill.category_icon || null,
-            category_id: bill.category_id
-          });
-        }
-      });
     });
 
     // Then add any actual transactions that occurred
@@ -302,9 +309,11 @@ export default function ExpenseReportDialog({
       .filter(t => t.type === 'expense')
       .forEach(transaction => {
         const key = transaction.description;
-        // Skip if this transaction is already accounted for in bills
+        const transactionMonth = dayjs(transaction.date).format('YYYY-MM');
+
+        // Skip if this transaction is already accounted for in bills for this month
         if (groups[key] && groups[key].transactions.some(t => 
-          dayjs(t.date).format('YYYY-MM-DD') === dayjs(transaction.date).format('YYYY-MM-DD')
+          dayjs(t.date).format('YYYY-MM') === transactionMonth
         )) {
           return;
         }
@@ -948,7 +957,7 @@ export default function ExpenseReportDialog({
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {bills.length === 0
+                {bills.length ===0
                   ? "No bills have been added yet. Please add some bills to generate a report."
                   : "No transactions found for the selected date range and filters."}
               </AlertDescription>
