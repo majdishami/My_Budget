@@ -50,6 +50,7 @@ const validateAndPreprocessData = (data: any) => {
       const { created_at, ...rest } = bill;
       if (rest.category_id && !categoryIds.has(rest.category_id)) {
         console.warn(`Warning: Bill "${rest.name}" references non-existent category ${rest.category_id}`);
+        rest.category_id = 17; // Default to General Expenses if category not found
       }
       return rest;
     });
@@ -70,8 +71,16 @@ const validateAndPreprocessData = (data: any) => {
         formattedDate = date; // Keep original format if parsing fails
       }
 
-      if (transaction.category_id && !categoryIds.has(transaction.category_id)) {
-        console.warn(`Warning: Transaction "${transaction.description}" references non-existent category ${transaction.category_id}`);
+      // Ensure type is either 'expense' or 'income'
+      if (!rest.type || !['expense', 'income'].includes(rest.type)) {
+        console.warn(`Warning: Transaction "${rest.description}" has invalid type, defaulting to 'expense'`);
+        rest.type = 'expense';
+      }
+
+      // Set default category if missing or invalid
+      if (!rest.category_id || !categoryIds.has(rest.category_id)) {
+        console.warn(`Warning: Transaction "${rest.description}" missing or has invalid category, using General Expenses`);
+        rest.category_id = 17; // Default to General Expenses
       }
 
       return {
@@ -87,7 +96,7 @@ const validateAndPreprocessData = (data: any) => {
   }
 };
 
-// Backup endpoint remains unchanged
+// Backup endpoint
 router.post('/api/sync/backup', async (req, res) => {
   try {
     const result = await generateDatabaseBackup();
@@ -111,7 +120,7 @@ router.post('/api/sync/backup', async (req, res) => {
   }
 });
 
-// Download endpoint remains unchanged
+// Download endpoint
 router.get('/api/sync/download/:filename', (req, res) => {
   try {
     const { filename } = req.params;
