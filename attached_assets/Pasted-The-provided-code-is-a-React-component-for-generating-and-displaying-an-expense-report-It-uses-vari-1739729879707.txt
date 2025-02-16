@@ -1,0 +1,99 @@
+The provided code is a React component for generating and displaying an expense report. It uses various UI components from a custom UI library (likely based on shadcn/ui) and integrates with the `react-day-picker` library for date range selection. The component allows users to generate reports based on different views (e.g., all expenses, all categories, individual expenses, etc.) and displays the results in a tabular format.
+
+### Key Features:
+1. **Date Range Selection**: Users can select a date range using a calendar component.
+2. **View Options**: Users can choose different views for the report:
+   - All expenses combined
+   - All categories combined
+   - Individual categories
+   - Individual expenses
+3. **Dynamic Icon Handling**: The component dynamically renders icons based on the category.
+4. **Transaction Generation**: The component generates transactions for recurring bills within the selected date range.
+5. **Summary and Details**: The report includes summary cards and detailed tables for expenses, categories, and transactions.
+
+### Potential Issues and Debugging Steps:
+
+1. **Date Range Validation**:
+   - **Issue**: The component does not explicitly validate if the end date is after the start date.
+   - **Debugging**: Add validation to ensure the end date is after the start date.
+     ```typescript
+     useEffect(() => {
+       if (date?.from && date?.to && dayjs(date.from).isAfter(dayjs(date.to))) {
+         setDateError("End date must be after start date.");
+       } else {
+         setDateError(null);
+       }
+     }, [date]);
+     ```
+
+2. **Duplicate Transactions**:
+   - **Issue**: The component might generate duplicate transactions if the same bill is processed multiple times.
+   - **Debugging**: Ensure that transactions are uniquely identified by their `id` and `date`. The code already uses a `Set` to track processed IDs, but double-check the logic in `filteredTransactions` and `groupedExpenses`.
+
+3. **Performance Issues**:
+   - **Issue**: The component might experience performance issues with a large number of transactions or bills.
+   - **Debugging**: Optimize the `useMemo` and `useEffect` hooks to reduce unnecessary recalculations. Consider memoizing expensive computations or breaking them into smaller functions.
+
+4. **Missing Category Icons**:
+   - **Issue**: If a category does not have an icon, the component might display incorrectly.
+   - **Debugging**: Ensure that the `DynamicIcon` component handles `null` or `undefined` icon names gracefully. The current implementation should handle this, but verify that the `iconName` is correctly passed.
+
+5. **Inconsistent Styling**:
+   - **Issue**: The styling for pending and paid amounts might be inconsistent.
+   - **Debugging**: Ensure that the `text-orange-500` and `text-red-600` classes are consistently applied. Check the `TableRow` components in the `TableBody` for any discrepancies.
+
+6. **Error Handling**:
+   - **Issue**: The component does not handle errors gracefully, such as API failures or missing data.
+   - **Debugging**: Add error handling for API calls and missing data. Display appropriate error messages to the user.
+
+### Example Debugging Scenario:
+
+**Scenario**: The component is not displaying transactions for a specific bill.
+
+**Steps to Debug**:
+1. **Check the `bills` prop**: Ensure that the `bills` prop contains the expected data.
+2. **Verify the `selectedValue`**: Ensure that the `selectedValue` matches the bill ID.
+3. **Inspect the `filteredTransactions`**: Log the `filteredTransactions` to ensure that the transactions for the selected bill are included.
+4. **Check the `itemTotals`**: Log the `itemTotals` to verify that the transactions are correctly aggregated.
+
+```typescript
+console.log('Filtered Transactions:', filteredTransactions);
+console.log('Item Totals:', itemTotals);
+```
+
+5. **Review the `generateTransactions` logic**: Ensure that the transactions are correctly generated for the selected date range.
+
+```typescript
+useEffect(() => {
+  if (!showReport || !date?.from || !date?.to) return;
+
+  const startDate = dayjs(date.from);
+  const endDate = dayjs(date.to);
+  const newGeneratedTransactions: Transaction[] = [];
+
+  bills.forEach(bill => {
+    let currentMonth = startDate.startOf('month');
+    while (currentMonth.isSameOrBefore(endDate)) {
+      const billDate = currentMonth.date(bill.day);
+      if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
+        newGeneratedTransactions.push({
+          id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
+          date: billDate.format('YYYY-MM-DD'),
+          description: bill.name,
+          amount: bill.amount,
+          type: 'expense',
+          category_name: bill.category_name,
+          category_color: bill.category_color,
+          category_icon: bill.category_icon || null,
+          category_id: bill.category_id
+        });
+      }
+      currentMonth = currentMonth.add(1, 'month');
+    }
+  });
+
+  setTransactions(newGeneratedTransactions);
+}, [showReport, date?.from, date?.to, bills, today]);
+```
+
+By following these steps, you can identify and resolve issues in the component.
