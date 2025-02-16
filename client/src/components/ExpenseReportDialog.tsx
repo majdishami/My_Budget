@@ -183,14 +183,14 @@ export default function ExpenseReportDialog({
     };
   }, [bills]);
 
-  // Filter transactions based on date range
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return [];
     return transactions.filter(t =>
       dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
-      dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
+      dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day') &&
+      (selectedValue === "all" || selectedValue === "all_categories" ? t.type === 'expense' : true)
     );
-  }, [transactions, date]);
+  }, [transactions, date, selectedValue]);
 
   // Update groupedExpenses to properly track occurrences
   const groupedExpenses = useMemo(() => {
@@ -198,10 +198,11 @@ export default function ExpenseReportDialog({
 
     const groups: Record<string, GroupedExpense> = {};
 
-    // Filter transactions within date range first
+    // Filter transactions within date range and only include expenses
     const dateRangeTransactions = transactions.filter(t =>
       dayjs(t.date).isSameOrAfter(dayjs(date.from), 'day') &&
-      dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day')
+      dayjs(t.date).isSameOrBefore(dayjs(date.to), 'day') &&
+      t.type === 'expense'
     );
 
     // Group transactions by expense description and category
