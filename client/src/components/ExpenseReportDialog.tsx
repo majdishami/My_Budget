@@ -303,6 +303,7 @@ export default function ExpenseReportDialog({
 
       // Calculate amounts based on occurrence counts
       const entry = groups[key];
+      // Set amounts directly based on occurrence count and bill amount
       entry.occurredAmount = entry.occurredCount * bill.amount;
       entry.pendingAmount = entry.pendingCount * bill.amount;
       entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
@@ -958,12 +959,12 @@ export default function ExpenseReportDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1`overflow-y-auto">
           {filteredTransactions.length === 0 && showReport ? (
             <Alert>
-              <AlertCircle className="h-4 w4"/>
+              <AlertCircle className="h-4 w-4"/>
               <AlertDescription>
-                {bills.length ===0
+                {bills.length === 0
                   ? "No bills have been added yet. Please add some bills to generate a report."
                   : "No transactions found for the selected date range and filters."}
               </AlertDescription>
