@@ -423,6 +423,8 @@ export default function ExpenseReportDialog({
     // Handle all expenses combined
     else if (selectedValue === "all") {
       const totals: Record<string, CategoryTotal> = {};
+
+      // First get all expense categories from the bills
       bills.forEach(bill => {
         if (!totals[bill.category_name]) {
           totals[bill.category_name] = {
@@ -433,30 +435,47 @@ export default function ExpenseReportDialog({
             occurredCount: 0,
             pendingCount: 0,
             color: bill.category_color,
-            icon: bill.category_icon || bill.category?.icon || null
+            icon: bill.category_icon || bill.category?.icon || null,
+            transactions: []
           };
-        }
-
-        let currentDate = dayjs(date.from).clone().date(bill.day);
-
-        if (currentDate.isBefore(dayjs(date.from))) {
-          currentDate = currentDate.add(1, 'month');
-        }
-
-        while (currentDate.isSameOrBefore(dayjs(date.to))) {
-          const entry = totals[bill.category_name];
-          if (currentDate.isSameOrBefore(today)) {
-            entry.occurred += bill.amount;
-            entry.occurredCount++;
-          } else {
-            entry.pending += bill.amount;
-            entry.pendingCount++;
-          }
-
-          currentDate = currentDate.add(1, 'month');
         }
       });
 
+      // Add all expense transactions to their categories
+      filteredTransactions
+        .filter(t => t.type === 'expense')
+        .forEach(transaction => {
+          // Ensure we have a category for this transaction
+          if (!totals[transaction.category_name]) {
+            const matchingBill = bills.find(b => b.name === transaction.description);
+            totals[transaction.category_name] = {
+              category: transaction.category_name,
+              total: 0,
+              occurred: 0,
+              pending: 0,
+              occurredCount: 0,
+              pendingCount: 0,
+              color: matchingBill?.category_color || '#D3D3D3',
+              icon: matchingBill?.category_icon || matchingBill?.category?.icon || null,
+              transactions: []
+            };
+          }
+
+          const entry = totals[transaction.category_name];
+          const isOccurred = dayjs(transaction.date).isSameOrBefore(today);
+
+          if (isOccurred) {
+            entry.occurred += transaction.amount;
+            entry.occurredCount++;
+          } else {
+            entry.pending += transaction.amount;
+            entry.pendingCount++;
+          }
+
+          entry.transactions.push(transaction);
+        });
+
+      // Calculate totals
       Object.values(totals).forEach(entry => {
         entry.total = entry.occurred + entry.pending;
       });
@@ -908,7 +927,7 @@ export default function ExpenseReportDialog({
                     <CardContent>
                       <Table>
                         <TableHeader>
-                          <TableRow>
+                                                    <TableRow>
                             <TableHead>Category</TableHead>
                             <TableHead className="text-right">Total Amount</TableHead>
                             <TableHead className="text-right">Paid Amount</TableHead>
