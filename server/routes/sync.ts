@@ -9,33 +9,55 @@ import { sql } from 'drizzle-orm';
 
 const router = Router();
 
-// Helper function to validate backup data structure
+// Helper function to validate backup data structure with detailed error messages
 const validateBackupData = (data: any) => {
-  if (!data || typeof data !== 'object') {
-    throw new Error('Invalid backup format: data must be an object');
-  }
-
-  const requiredArrays = ['categories', 'bills', 'transactions'];
-  for (const arrayName of requiredArrays) {
-    if (!Array.isArray(data[arrayName])) {
-      throw new Error(`Invalid backup format: missing or invalid ${arrayName} array`);
+  try {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid backup format: data must be a JSON object');
     }
-  }
 
-  // Validate data relationships
-  for (const transaction of data.transactions) {
-    if (transaction.category_id && !data.categories.some(cat => cat.id === transaction.category_id)) {
-      throw new Error(`Invalid category reference in transaction: ${transaction.id}`);
+    // Check required arrays exist
+    const requiredArrays = ['categories', 'bills', 'transactions'];
+    for (const arrayName of requiredArrays) {
+      if (!Array.isArray(data[arrayName])) {
+        throw new Error(`Invalid backup format: "${arrayName}" must be an array`);
+      }
     }
-  }
 
-  for (const bill of data.bills) {
-    if (bill.category_id && !data.categories.some(cat => cat.id === bill.category_id)) {
-      throw new Error(`Invalid category reference in bill: ${bill.id}`);
+    // Validate categories structure
+    for (const category of data.categories) {
+      if (!category.id || !category.name || !category.color || !category.icon) {
+        throw new Error(`Invalid category format: Each category must have id, name, color, and icon fields`);
+      }
     }
-  }
 
-  return true;
+    // Create a set of category IDs for reference
+    const categoryIds = new Set(data.categories.map((cat: any) => cat.id));
+
+    // Validate bills structure and references
+    for (const bill of data.bills) {
+      if (!bill.id || !bill.name || !bill.amount || typeof bill.day !== 'number') {
+        throw new Error(`Invalid bill format: Each bill must have id, name, amount, and day fields`);
+      }
+      if (bill.category_id && !categoryIds.has(bill.category_id)) {
+        console.warn(`Warning: Bill "${bill.name}" references non-existent category ${bill.category_id}`);
+      }
+    }
+
+    // Validate transactions structure and references
+    for (const transaction of data.transactions) {
+      if (!transaction.id || !transaction.description || !transaction.amount || !transaction.date) {
+        throw new Error(`Invalid transaction format: Each transaction must have id, description, amount, and date fields`);
+      }
+      if (transaction.category_id && !categoryIds.has(transaction.category_id)) {
+        console.warn(`Warning: Transaction "${transaction.description}" references non-existent category ${transaction.category_id}`);
+      }
+    }
+
+    return true;
+  } catch (error) {
+    throw error;
+  }
 };
 
 router.post('/api/sync/backup', async (req, res) => {
@@ -126,7 +148,7 @@ router.post('/api/sync/restore', async (req, res) => {
       await uploadedFile.mv(tempPath);
       console.log('Backup file saved to:', tempPath);
 
-      // Read and validate file content
+      // Read and parse file content
       const fileContent = fs.readFileSync(tempPath, 'utf8');
       console.log('File content length:', fileContent.length);
 
@@ -140,8 +162,9 @@ router.post('/api/sync/restore', async (req, res) => {
 
         // Start transaction for atomic restore
         await db.transaction(async (tx) => {
-          // Restore categories first (if any new ones)
+          // Restore categories first
           if (parsedData.categories.length > 0) {
+            console.log('Restoring categories...');
             await tx.insert(categories).values(parsedData.categories)
               .onConflictDoUpdate({
                 target: [categories.id],
@@ -156,6 +179,7 @@ router.post('/api/sync/restore', async (req, res) => {
 
           // Restore bills
           if (parsedData.bills.length > 0) {
+            console.log('Restoring bills...');
             await tx.insert(bills).values(parsedData.bills)
               .onConflictDoUpdate({
                 target: [bills.id],
@@ -171,6 +195,7 @@ router.post('/api/sync/restore', async (req, res) => {
 
           // Restore transactions
           if (parsedData.transactions.length > 0) {
+            console.log('Restoring transactions...');
             await tx.insert(transactions).values(parsedData.transactions)
               .onConflictDoUpdate({
                 target: [transactions.id],
