@@ -238,7 +238,7 @@ export default function ExpenseReportDialog({
     const startDate = dayjs(date.from);
     const endDate = dayjs(date.to);
 
-    // Track processed bill-month combinations to avoid double counting
+    // Track processed bill-month combinations
     const processedEntries = new Set<string>();
 
     bills.forEach(bill => {
@@ -278,8 +278,15 @@ export default function ExpenseReportDialog({
           const entry = groups[key];
           const isOccurred = billDate.isSameOrBefore(today);
 
-          // Add transaction record first
-          const transaction = {
+          // Update counts first
+          if (isOccurred) {
+            entry.occurredCount++;
+          } else {
+            entry.pendingCount++;
+          }
+
+          // Add transaction record
+          entry.transactions.push({
             id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
             date: billDate.format('YYYY-MM-DD'),
             description: bill.name,
@@ -289,24 +296,15 @@ export default function ExpenseReportDialog({
             category_color: bill.category_color,
             category_icon: bill.category_icon || null,
             category_id: bill.category_id
-          };
-
-          // Update counts and amounts only once per month
-          if (isOccurred) {
-            entry.occurredCount++;
-            entry.occurredAmount = entry.occurredCount * bill.amount;
-          } else {
-            entry.pendingCount++;
-            entry.pendingAmount = entry.pendingCount * bill.amount;
-          }
-
-          entry.transactions.push(transaction);
+          });
         }
         currentMonth = currentMonth.add(1, 'month');
       }
 
-      // Update total amount after processing all months
+      // Calculate amounts based on occurrence counts
       const entry = groups[key];
+      entry.occurredAmount = entry.occurredCount * bill.amount;
+      entry.pendingAmount = entry.pendingCount * bill.amount;
       entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
     });
 
@@ -340,12 +338,13 @@ export default function ExpenseReportDialog({
         const entry = groups[key];
         const isOccurred = transactionDate.isSameOrBefore(today);
 
+        // Update counts and amounts
         if (isOccurred) {
           entry.occurredCount++;
-          entry.occurredAmount = transaction.amount;
+          entry.occurredAmount += transaction.amount;
         } else {
           entry.pendingCount++;
-          entry.pendingAmount = transaction.amount;
+          entry.pendingAmount += transaction.amount;
         }
 
         entry.totalAmount = entry.occurredAmount + entry.pendingAmount;
