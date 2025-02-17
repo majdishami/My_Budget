@@ -31,6 +31,13 @@ router.get('/api/reports/expenses', async (req, res) => {
           DATE_TRUNC('month', CURRENT_DATE) as start_date,
           (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')::date as end_date
       ),
+      MonthDays AS MATERIALIZED (
+        SELECT generate_series(
+          (SELECT start_date FROM CurrentMonth),
+          (SELECT end_date FROM CurrentMonth),
+          '1 day'::interval
+        )::date as date
+      ),
       BillOccurrences AS MATERIALIZED (
         SELECT 
           b.id as bill_id,
@@ -40,21 +47,23 @@ router.get('/api/reports/expenses', async (req, res) => {
           b.category_id,
           c.name as category_name,
           c.color as category_color,
-          COALESCE(c.icon, 'circle') as category_icon
+          c.icon as category_icon,
+          d.date as due_date
         FROM bills b
+        CROSS JOIN MonthDays d
         JOIN categories c ON b.category_id = c.id
-        WHERE b.category_id IS NOT NULL
+        WHERE EXTRACT(day FROM d.date) = b.day
       ),
       TransactionMatches AS MATERIALIZED (
         SELECT 
           bo.*,
           EXISTS (
-            SELECT 1 FROM transactions t 
+            SELECT 1 
+            FROM transactions t 
             WHERE t.category_id = bo.category_id 
             AND t.amount = bo.bill_amount 
             AND t.type = 'expense'
-            AND DATE_TRUNC('month', t.date::timestamp) = (SELECT DATE_TRUNC('month', start_date) FROM CurrentMonth)
-            AND EXTRACT(DAY FROM t.date) = bo.bill_day
+            AND DATE_TRUNC('day', t.date) = bo.due_date
           ) as is_paid
         FROM BillOccurrences bo
       )
@@ -63,9 +72,9 @@ router.get('/api/reports/expenses', async (req, res) => {
         c.name as category_name,
         c.color as category_color,
         COALESCE(c.icon, 'circle') as category_icon,
-        COUNT(tm.*) as total_bills,
-        SUM(CASE WHEN tm.is_paid THEN 1 ELSE 0 END) as paid_count,
-        SUM(CASE WHEN NOT tm.is_paid THEN 1 ELSE 0 END) as pending_count,
+        COUNT(DISTINCT tm.bill_id) as total_bills,
+        COUNT(DISTINCT CASE WHEN tm.is_paid THEN tm.bill_id END) as paid_count,
+        COUNT(DISTINCT CASE WHEN NOT tm.is_paid THEN tm.bill_id END) as pending_count,
         SUM(CASE WHEN tm.is_paid THEN tm.bill_amount ELSE 0 END)::numeric(10,2) as paid_amount,
         SUM(CASE WHEN NOT tm.is_paid THEN tm.bill_amount ELSE 0 END)::numeric(10,2) as pending_amount,
         SUM(tm.bill_amount)::numeric(10,2) as total_amount
@@ -82,7 +91,7 @@ router.get('/api/reports/expenses', async (req, res) => {
         id: row.category_id,
         name: row.category_name,
         color: row.category_color,
-        icon: row.category_icon
+        icon: row.category_icon || 'circle'
       },
       occurrences: {
         paid: Number(row.paid_count) || 0,
