@@ -51,7 +51,9 @@ export function AddExpenseDialog({
   const [reminderDays, setReminderDays] = useState(7);
   const [showReminderDialog, setShowReminderDialog] = useState(false);
   const [isMonthly, setIsMonthly] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  // Separate dates for monthly and one-time expenses
+  const [monthlyDueDate, setMonthlyDueDate] = useState<Date | undefined>(new Date());
+  const [oneTimeDate, setOneTimeDate] = useState<Date | undefined>(new Date());
 
   // Fetch categories
   const { data: categories = [] } = useQuery<Category[]>({
@@ -62,8 +64,9 @@ export function AddExpenseDialog({
   const [errors, setErrors] = useState<{
     name?: string;
     amount?: string;
-    date?: string;
     category?: string;
+    monthlyDate?: string;
+    oneTimeDate?: string;
   }>({});
 
   // Reset form on close
@@ -81,7 +84,8 @@ export function AddExpenseDialog({
     setReminderDays(7);
     setErrors({});
     setIsMonthly(true);
-    setSelectedDate(new Date());
+    setMonthlyDueDate(new Date());
+    setOneTimeDate(new Date());
   };
 
   const validateForm = (): boolean => {
@@ -96,8 +100,12 @@ export function AddExpenseDialog({
       newErrors.amount = 'Please enter a valid amount greater than 0';
     }
 
-    if (!selectedDate) {
-      newErrors.date = 'Please select a date';
+    if (isMonthly && !monthlyDueDate) {
+      newErrors.monthlyDate = 'Please select a monthly due date';
+    }
+
+    if (!isMonthly && !oneTimeDate) {
+      newErrors.oneTimeDate = 'Please select a date for the one-time expense';
     }
 
     if (!categoryId) {
@@ -112,13 +120,14 @@ export function AddExpenseDialog({
     if (!validateForm()) return;
 
     const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
+    const selectedDate = isMonthly ? monthlyDueDate : oneTimeDate;
 
     const newBill: Bill = {
       id: generateId(),
       name: name.trim(),
       amount: parseFloat(amount),
-      day: isMonthly ? dayjs(selectedDate).date() : undefined,
-      date: !isMonthly ? selectedDate?.toISOString() : undefined,
+      day: isMonthly ? dayjs(monthlyDueDate).date() : undefined,
+      date: !isMonthly ? oneTimeDate?.toISOString() : undefined,
       category_id: parseInt(categoryId),
       category_name: selectedCategory?.name || 'Uncategorized',
       category_color: selectedCategory?.color || '#D3D3D3',
@@ -156,6 +165,7 @@ export function AddExpenseDialog({
           </DialogHeader>
           <div className="flex flex-col space-y-4 overflow-y-auto py-4">
             <div className="grid gap-4">
+              {/* Name Input */}
               <div className="grid gap-2">
                 <label htmlFor="expense-name" className="text-sm font-medium">Name</label>
                 <Input
@@ -177,6 +187,7 @@ export function AddExpenseDialog({
                 )}
               </div>
 
+              {/* Amount Input */}
               <div className="grid gap-2">
                 <label htmlFor="expense-amount" className="text-sm font-medium">Amount</label>
                 <Input
@@ -201,6 +212,7 @@ export function AddExpenseDialog({
                 )}
               </div>
 
+              {/* Expense Type Toggle */}
               <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="monthly-toggle" className="text-sm font-medium">
                   {isMonthly ? "Monthly Recurring Expense" : "One-time Expense"}
@@ -212,32 +224,61 @@ export function AddExpenseDialog({
                 />
               </div>
 
-              <div className="grid gap-2">
-                <label className="text-sm font-medium">
-                  {isMonthly ? "Select Monthly Due Date" : "Select Date"}
-                </label>
-                <div className="border rounded-md p-2">
-                  <CalendarComponent
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    className="rounded-md border"
-                    initialFocus
-                  />
+              {/* Monthly Recurring Date Picker */}
+              {isMonthly && (
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Select Monthly Due Date</label>
+                  <div className="border rounded-md p-2">
+                    <CalendarComponent
+                      mode="single"
+                      selected={monthlyDueDate}
+                      onSelect={setMonthlyDueDate}
+                      className="rounded-md border"
+                      initialFocus
+                    />
+                  </div>
+                  {errors.monthlyDate && (
+                    <Alert variant="destructive" className="py-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription id="monthly-date-error">{errors.monthlyDate}</AlertDescription>
+                    </Alert>
+                  )}
+                  {monthlyDueDate && (
+                    <p className="text-sm text-muted-foreground">
+                      This expense will be due on day {dayjs(monthlyDueDate).date()} of each month
+                    </p>
+                  )}
                 </div>
-                {errors.date && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription id="date-error">{errors.date}</AlertDescription>
-                  </Alert>
-                )}
-                {isMonthly && selectedDate && (
-                  <p className="text-sm text-muted-foreground">
-                    This expense will be due on day {dayjs(selectedDate).date()} of each month
-                  </p>
-                )}
-              </div>
+              )}
 
+              {/* One-time Date Picker */}
+              {!isMonthly && (
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Select One-time Expense Date</label>
+                  <div className="border rounded-md p-2">
+                    <CalendarComponent
+                      mode="single"
+                      selected={oneTimeDate}
+                      onSelect={setOneTimeDate}
+                      className="rounded-md border"
+                      initialFocus
+                    />
+                  </div>
+                  {errors.oneTimeDate && (
+                    <Alert variant="destructive" className="py-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription id="one-time-date-error">{errors.oneTimeDate}</AlertDescription>
+                    </Alert>
+                  )}
+                  {oneTimeDate && (
+                    <p className="text-sm text-muted-foreground">
+                      This expense will be due on {dayjs(oneTimeDate).format('MMMM D, YYYY')}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Category Selection */}
               <div className="grid gap-2">
                 <label htmlFor="expense-category" className="text-sm font-medium">Category</label>
                 <Select
@@ -279,6 +320,7 @@ export function AddExpenseDialog({
                 )}
               </div>
 
+              {/* Reminder Button */}
               <Button
                 variant="outline"
                 onClick={() => setShowReminderDialog(true)}
@@ -298,19 +340,21 @@ export function AddExpenseDialog({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reminder Dialog */}
       <ReminderDialog
         bill={{
           id: generateId(),
           name,
           amount: parseFloat(amount || '0'),
-          day: selectedDate ? dayjs(selectedDate).date() : 1,
+          day: isMonthly ? dayjs(monthlyDueDate).date() : undefined,
+          date: !isMonthly ? oneTimeDate?.toISOString() : undefined,
           category_id: parseInt(categoryId || '1'),
           category_name: categories.find(cat => cat.id.toString() === categoryId)?.name || 'Uncategorized',
           category_color: categories.find(cat => cat.id.toString() === categoryId)?.color || '#D3D3D3',
           user_id: 1,
           created_at: new Date().toISOString(),
           isOneTime: !isMonthly,
-          date: !isMonthly ? selectedDate?.toISOString() : undefined,
           reminderEnabled,
           reminderDays
         }}
