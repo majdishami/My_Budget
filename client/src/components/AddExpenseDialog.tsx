@@ -46,7 +46,6 @@ export function AddExpenseDialog({
   // Form state
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
-  const [day, setDay] = useState('1');
   const [categoryId, setCategoryId] = useState<string>('');
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDays, setReminderDays] = useState(7);
@@ -63,9 +62,8 @@ export function AddExpenseDialog({
   const [errors, setErrors] = useState<{
     name?: string;
     amount?: string;
-    day?: string;
-    category?: string;
     date?: string;
+    category?: string;
   }>({});
 
   // Reset form on close
@@ -78,7 +76,6 @@ export function AddExpenseDialog({
   const resetForm = () => {
     setName('');
     setAmount('');
-    setDay('1');
     setCategoryId('');
     setReminderEnabled(false);
     setReminderDays(7);
@@ -99,15 +96,8 @@ export function AddExpenseDialog({
       newErrors.amount = 'Please enter a valid amount greater than 0';
     }
 
-    if (isMonthly) {
-      const dayNum = parseInt(day);
-      if (!day || isNaN(dayNum) || dayNum < 1 || dayNum > 31) {
-        newErrors.day = 'Please enter a valid day between 1 and 31';
-      }
-    } else {
-      if (!selectedDate) {
-        newErrors.date = 'Please select a date';
-      }
+    if (!selectedDate) {
+      newErrors.date = 'Please select a date';
     }
 
     if (!categoryId) {
@@ -127,14 +117,14 @@ export function AddExpenseDialog({
       id: generateId(),
       name: name.trim(),
       amount: parseFloat(amount),
-      day: isMonthly ? parseInt(day) : dayjs(selectedDate).date(),
+      day: isMonthly ? dayjs(selectedDate).date() : undefined,
+      date: !isMonthly ? selectedDate?.toISOString() : undefined,
       category_id: parseInt(categoryId),
       category_name: selectedCategory?.name || 'Uncategorized',
       category_color: selectedCategory?.color || '#D3D3D3',
       user_id: 1,
       created_at: new Date().toISOString(),
       isOneTime: !isMonthly,
-      oneTimeDate: !isMonthly ? selectedDate?.toISOString() : undefined,
       reminderEnabled,
       reminderDays,
     };
@@ -212,7 +202,9 @@ export function AddExpenseDialog({
               </div>
 
               <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="monthly-toggle" className="text-sm font-medium">Monthly Recurring Expense</Label>
+                <Label htmlFor="monthly-toggle" className="text-sm font-medium">
+                  {isMonthly ? "Monthly Recurring Expense" : "One-time Expense"}
+                </Label>
                 <Switch
                   id="monthly-toggle"
                   checked={isMonthly}
@@ -220,50 +212,31 @@ export function AddExpenseDialog({
                 />
               </div>
 
-              {isMonthly ? (
-                <div className="grid gap-2">
-                  <label htmlFor="expense-day" className="text-sm font-medium">Day of Month</label>
-                  <Input
-                    id="expense-day"
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={day}
-                    onChange={(e) => {
-                      setDay(e.target.value);
-                      setErrors(prev => ({ ...prev, day: undefined }));
-                    }}
-                    placeholder="Enter day"
-                    aria-invalid={!!errors.day}
-                    aria-describedby={errors.day ? "day-error" : undefined}
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">
+                  {isMonthly ? "Select Monthly Due Date" : "Select Date"}
+                </label>
+                <div className="border rounded-md p-2">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    className="rounded-md border"
+                    initialFocus
                   />
-                  {errors.day && (
-                    <Alert variant="destructive" className="py-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription id="day-error">{errors.day}</AlertDescription>
-                    </Alert>
-                  )}
                 </div>
-              ) : (
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">Select Date</label>
-                  <div className="border rounded-md p-2">
-                    <CalendarComponent
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      className="rounded-md border"
-                      initialFocus
-                    />
-                  </div>
-                  {errors.date && (
-                    <Alert variant="destructive" className="py-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription id="date-error">{errors.date}</AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-              )}
+                {errors.date && (
+                  <Alert variant="destructive" className="py-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription id="date-error">{errors.date}</AlertDescription>
+                  </Alert>
+                )}
+                {isMonthly && selectedDate && (
+                  <p className="text-sm text-muted-foreground">
+                    This expense will be due on day {dayjs(selectedDate).date()} of each month
+                  </p>
+                )}
+              </div>
 
               <div className="grid gap-2">
                 <label htmlFor="expense-category" className="text-sm font-medium">Category</label>
@@ -330,14 +303,14 @@ export function AddExpenseDialog({
           id: generateId(),
           name,
           amount: parseFloat(amount || '0'),
-          day: parseInt(day || '1'),
+          day: selectedDate ? dayjs(selectedDate).date() : 1,
           category_id: parseInt(categoryId || '1'),
           category_name: categories.find(cat => cat.id.toString() === categoryId)?.name || 'Uncategorized',
           category_color: categories.find(cat => cat.id.toString() === categoryId)?.color || '#D3D3D3',
           user_id: 1,
           created_at: new Date().toISOString(),
           isOneTime: !isMonthly,
-          oneTimeDate: !isMonthly ? selectedDate?.toISOString() : undefined,
+          date: !isMonthly ? selectedDate?.toISOString() : undefined,
           reminderEnabled,
           reminderDays
         }}
