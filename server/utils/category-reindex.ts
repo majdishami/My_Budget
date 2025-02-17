@@ -12,70 +12,110 @@ export async function reindexCategories() {
       const existingCategories = await tx.select().from(categories).orderBy(categories.name);
       console.log(`Found ${existingCategories.length} categories to reindex`);
 
+      // First, ensure all categories have icons
+      const updatedCategories = existingCategories.map(cat => ({
+        ...cat,
+        icon: cat.icon || getDefaultIcon(cat.name),
+        color: cat.color || getDefaultColor(cat.name)
+      }));
+
       // Create a mapping of old to new IDs
       const idMapping = new Map<number, number>();
-      existingCategories.forEach((cat, index) => {
-        idMapping.set(cat.id, index + 1000); // Temporary high IDs to avoid conflicts
+      updatedCategories.forEach((cat, index) => {
+        idMapping.set(cat.id, index + 1); // Start from 1 for the new sequential IDs
       });
 
-      // First pass: Update to temporary high IDs
-      for (const category of existingCategories) {
-        const tempId = idMapping.get(category.id);
-        if (!tempId) continue;
-
-        // Update bills references to temp ID
+      // Update references and categories
+      for (const [oldId, newId] of idMapping) {
+        // Update bills references
         await tx.update(bills)
-          .set({ category_id: tempId })
-          .where(eq(bills.category_id, category.id));
+          .set({ category_id: newId })
+          .where(eq(bills.category_id, oldId));
 
-        // Update transactions references to temp ID
+        // Update transactions references
         await tx.update(transactions)
-          .set({ category_id: tempId })
-          .where(eq(transactions.category_id, category.id));
+          .set({ category_id: newId })
+          .where(eq(transactions.category_id, oldId));
 
-        // Update category to temp ID
-        await tx.update(categories)
-          .set({ id: tempId })
-          .where(eq(categories.id, category.id));
-      }
-
-      // Second pass: Update from temp IDs to final sequential IDs
-      const finalIdMapping = new Map<number, number>();
-      existingCategories.forEach((cat, index) => {
-        finalIdMapping.set(index + 1000, index + 1); // Map temp IDs to final sequential IDs
-      });
-
-      for (const [tempId, finalId] of finalIdMapping.entries()) {
-        // Update bills references to final ID
-        await tx.update(bills)
-          .set({ category_id: finalId })
-          .where(eq(bills.category_id, tempId));
-
-        // Update transactions references to final ID
-        await tx.update(transactions)
-          .set({ category_id: finalId })
-          .where(eq(transactions.category_id, tempId));
-
-        // Update category to final ID
-        await tx.update(categories)
-          .set({ id: finalId })
-          .where(eq(categories.id, tempId));
+        // Update category
+        const category = updatedCategories.find(c => c.id === oldId);
+        if (category) {
+          await tx.update(categories)
+            .set({ 
+              id: newId,
+              icon: category.icon,
+              color: category.color 
+            })
+            .where(eq(categories.id, oldId));
+        }
       }
 
       // Reset the sequence
       await tx.execute(sql`SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories))`);
 
       // Verify the results
-      const updatedCategories = await tx.select().from(categories).orderBy(categories.id);
+      const reindexedCategories = await tx.select().from(categories).orderBy(categories.id);
 
       return {
         success: true,
-        message: 'Categories reindexed successfully',
-        categories: updatedCategories
+        message: 'Categories reindexed and standardized successfully',
+        categories: reindexedCategories
       };
     });
   } catch (error) {
     console.error('Error reindexing categories:', error);
     throw error;
   }
+}
+
+// Helper functions for default values
+function getDefaultIcon(categoryName: string): string {
+  const defaultIcons: Record<string, string> = {
+    'Rent': 'home',
+    'Groceries': 'shopping-cart',
+    'Transport': 'car',
+    'Utilities': 'zap',
+    'Entertainment': 'film',
+    'Healthcare': 'heart',
+    'Insurance': 'shield',
+    'Education': 'book',
+    'Shopping': 'shopping-bag',
+    'Food': 'utensils',
+    'Travel': 'plane',
+    'Phone': 'phone',
+    'Internet': 'wifi',
+    'Gym': 'activity',
+    'Savings': 'piggy-bank',
+    'Investment': 'trending-up',
+    'Salary': 'dollar-sign',
+    'Freelance': 'briefcase',
+    'Other': 'circle'
+  };
+
+  const lowercaseName = categoryName.toLowerCase();
+  for (const [key, icon] of Object.entries(defaultIcons)) {
+    if (lowercaseName.includes(key.toLowerCase())) {
+      return icon;
+    }
+  }
+  return 'circle'; // Default fallback icon
+}
+
+function getDefaultColor(categoryName: string): string {
+  const defaultColors: Record<string, string> = {
+    'Rent': '#FF5733',
+    'Groceries': '#33FF57',
+    'Transport': '#3357FF',
+    'Utilities': '#FF33F5',
+    'Entertainment': '#33FFF5',
+    'Other': '#808080'
+  };
+
+  const lowercaseName = categoryName.toLowerCase();
+  for (const [key, color] of Object.entries(defaultColors)) {
+    if (lowercaseName.includes(key.toLowerCase())) {
+      return color;
+    }
+  }
+  return '#808080'; // Default gray color
 }
