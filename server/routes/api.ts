@@ -21,7 +21,7 @@ router.post('/api/categories/reindex', async (req, res) => {
   }
 });
 
-// Optimized expense report endpoint using materialized CTEs and indexes
+// Optimized expense report endpoint with proper occurrence handling
 router.get('/api/reports/expenses', async (req, res) => {
   try {
     const query = `
@@ -38,7 +38,7 @@ router.get('/api/reports/expenses', async (req, res) => {
           '1 day'::interval
         )::date as date
       ),
-      BillDates AS MATERIALIZED (
+      BillOccurrences AS MATERIALIZED (
         SELECT 
           b.id as bill_id,
           b.name as bill_name,
@@ -47,28 +47,76 @@ router.get('/api/reports/expenses', async (req, res) => {
           c.name as category_name,
           c.color as category_color,
           c.icon as category_icon,
-          d.date as due_date,
-          EXTRACT(day from d.date) as day_of_month
+          CASE
+            WHEN b.day <= 15 AND EXISTS (
+              SELECT 1 FROM transactions t 
+              WHERE t.category_id = b.category_id 
+              AND t.amount = b.amount 
+              AND t.type = 'expense'
+              AND EXTRACT(DAY FROM t.date) > 15
+              AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
+            ) THEN 2  -- Bill appears twice in the month
+            WHEN EXISTS (
+              SELECT 1 FROM transactions t 
+              WHERE t.category_id = b.category_id 
+              AND t.amount = b.amount 
+              AND t.type = 'expense'
+              AND t.date != (SELECT start_date FROM DateRange + (b.day - 1 || ' days')::interval)
+              AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
+            ) THEN 2  -- Bill has another occurrence
+            ELSE 1    -- Single occurrence
+          END as occurrence_count,
+          generate_series(1, 
+            CASE
+              WHEN b.day <= 15 AND EXISTS (
+                SELECT 1 FROM transactions t 
+                WHERE t.category_id = b.category_id 
+                AND t.amount = b.amount 
+                AND t.type = 'expense'
+                AND EXTRACT(DAY FROM t.date) > 15
+                AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
+              ) THEN 2  -- Bill appears twice in the month
+              WHEN EXISTS (
+                SELECT 1 FROM transactions t 
+                WHERE t.category_id = b.category_id 
+                AND t.amount = b.amount 
+                AND t.type = 'expense'
+                AND t.date != (SELECT start_date FROM DateRange + (b.day - 1 || ' days')::interval)
+                AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
+              ) THEN 2  -- Bill has another occurrence
+              ELSE 1    -- Single occurrence
+            END
+          ) as occurrence_number,
+          CASE 
+            WHEN generate_series = 1 THEN b.day
+            ELSE (
+              SELECT EXTRACT(DAY FROM t.date)::integer
+              FROM transactions t 
+              WHERE t.category_id = b.category_id 
+              AND t.amount = b.amount 
+              AND t.type = 'expense'
+              AND EXTRACT(DAY FROM t.date) > 15
+              AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
+              LIMIT 1
+            )
+          END as due_day
         FROM bills b
-        CROSS JOIN MonthDates d
         JOIN categories c ON b.category_id = c.id
-        WHERE EXTRACT(day from d.date) = b.day
+        CROSS JOIN generate_series(1, 2)
       ),
       TransactionMatches AS MATERIALIZED (
         SELECT 
-          bd.*,
-          COALESCE(
-            EXISTS (
-              SELECT 1 
-              FROM transactions t 
-              WHERE t.category_id = bd.category_id
-              AND t.amount = bd.bill_amount
-              AND t.type = 'expense'
-              AND DATE_TRUNC('day', t.date) = bd.due_date
-            ),
-            false
+          bo.*,
+          EXISTS (
+            SELECT 1 
+            FROM transactions t 
+            WHERE t.category_id = bo.category_id
+            AND t.amount = bo.bill_amount
+            AND t.type = 'expense'
+            AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
+            AND EXTRACT(DAY FROM t.date) = bo.due_day
           ) as is_paid
-        FROM BillDates bd
+        FROM BillOccurrences bo
       )
       SELECT 
         c.id as category_id,
