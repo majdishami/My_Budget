@@ -143,34 +143,32 @@ export function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] max-h-[90vh]">
+        <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-2">
+          <div className="space-y-4 py-2">
             {/* Expense Type Selection */}
-            <div className="p-2 border rounded-lg bg-muted/50">
-              <div className="flex flex-col gap-2">
-                <Label className="text-sm font-semibold">Expense Type</Label>
-                <div className="flex items-center justify-between gap-4">
-                  <Button 
-                    variant={isMonthly ? "default" : "outline"}
-                    className="flex-1"
-                    onClick={() => setIsMonthly(true)}
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Monthly
-                  </Button>
-                  <Button 
-                    variant={!isMonthly ? "default" : "outline"}
-                    className="flex-1"
-                    onClick={() => setIsMonthly(false)}
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    One-time
-                  </Button>
-                </div>
+            <div className="grid gap-2">
+              <Label className="text-sm font-semibold">Expense Type</Label>
+              <div className="flex gap-2">
+                <Button 
+                  variant={isMonthly ? "default" : "outline"}
+                  className={`flex-1 ${isMonthly ? 'bg-primary hover:bg-primary/90' : ''}`}
+                  onClick={() => setIsMonthly(true)}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Monthly
+                </Button>
+                <Button 
+                  variant={!isMonthly ? "default" : "outline"}
+                  className={`flex-1 ${!isMonthly ? 'bg-primary hover:bg-primary/90' : ''}`}
+                  onClick={() => setIsMonthly(false)}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  One-time
+                </Button>
               </div>
             </div>
 
@@ -225,7 +223,7 @@ export function AddExpenseDialog({
                   mode="single"
                   selected={isMonthly ? monthlyDueDate : oneTimeDate}
                   onSelect={isMonthly ? setMonthlyDueDate : setOneTimeDate}
-                  className="rounded-md [&_.rdp-month]:!w-[160px] [&_.rdp-cell]:!w-4 [&_.rdp-cell]:!h-4 [&_.rdp-head_th]:!w-4 [&_.rdp-head_th]:!h-4 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-4 [&_.rdp-caption]:!h-4"
+                  className="rounded-md [&_.rdp-month]:!w-[160px] [&_.rdp-cell]:!w-4 [&_.rdp-cell]:!h-4 [&_.rdp-head_th]:!w-4 [&_.rdp-head_th]:!h-4 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-4 [&_.rdp-caption]:!h-4 [&_.rdp-day_selected]:!bg-primary [&_.rdp-day_selected]:!text-primary-foreground [&_.rdp-day_selected]:!font-bold"
                 />
               </div>
               {(isMonthly ? errors.monthlyDate : errors.oneTimeDate) && (
@@ -299,7 +297,7 @@ export function AddExpenseDialog({
             </Button>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button onClick={handleConfirm}>Add Expense</Button>
           </DialogFooter>
