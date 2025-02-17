@@ -251,7 +251,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Generate Expense Report</DialogTitle>
+            <DialogTitle>
+              Generate Expense Report
+              {date?.from && date?.to && (
+                <div className="text-sm font-normal text-muted-foreground mt-1">
+                  {dayjs(date.from).format('MMM D, YYYY')} - {dayjs(date.to).format('MMM D, YYYY')}
+                </div>
+              )}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col space-y-4">
@@ -347,17 +354,22 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {selectedValue === 'all' ? 'All Expenses' :
-             selectedValue === 'categories' ? 'Expenses by Category' :
-             selectedValue.startsWith('category_') ? `Category: ${selectedValue.replace('category_', '')}` :
-             selectedValue.startsWith('expense_') ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name :
-             'Expense Report'}
-            <div className="text-sm font-normal text-muted-foreground mt-1">
-              {dayjs(date?.from).format('MMM D, YYYY')} - {dayjs(date?.to).format('MMM D, YYYY')}
-            </div>
-          </DialogTitle>
+        <DialogHeader className="flex flex-col space-y-2">
+          <div className="flex justify-between items-center">
+            <DialogTitle>
+              {selectedValue === 'all' ? 'All Expenses' :
+               selectedValue === 'categories' ? 'Expenses by Category' :
+               selectedValue.startsWith('category_') ? `Category: ${selectedValue.replace('category_', '')}` :
+               selectedValue.startsWith('expense_') ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name :
+               'Expense Report'}
+            </DialogTitle>
+            <Button variant="outline" onClick={() => setShowReport(false)}>
+              Back to Selection
+            </Button>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {dayjs(date?.from).format('MMM D, YYYY')} - {dayjs(date?.to).format('MMM D, YYYY')}
+          </div>
         </DialogHeader>
 
         <div className="mt-4 space-y-4">
@@ -384,7 +396,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Paid</div>
-                    <div className="text-2xl font-bold text-green-600">{formatCurrency(summary.occurred)}</div>
+                    <div className="text-2xl font-bold text-red-600">{formatCurrency(summary.occurred)}</div>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Pending</div>
@@ -396,6 +408,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-16">#</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
@@ -405,8 +418,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                     <TableBody>
                       {summary.transactions
                         .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                        .map((transaction) => (
+                        .map((transaction, idx) => (
                           <TableRow key={transaction.id}>
+                            <TableCell>{idx + 1}</TableCell>
                             <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
@@ -422,7 +436,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                             </TableCell>
                             <TableCell className="text-right">{formatCurrency(transaction.amount)}</TableCell>
                             <TableCell>
-                              <span className={transaction.occurred ? "text-green-600" : "text-yellow-600"}>
+                              <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
                                 {transaction.occurred ? 'Paid' : 'Pending'}
                               </span>
                             </TableCell>
@@ -435,12 +449,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
             </Card>
           ))}
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setShowReport(false)}>
-            Back to Selection
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
