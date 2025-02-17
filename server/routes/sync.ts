@@ -15,81 +15,54 @@ const validateAndPreprocessData = (data: any) => {
       throw new Error('Invalid backup format: data must be a JSON object');
     }
 
-    // Handle optional session array
-    if ('session' in data && !Array.isArray(data.session)) {
-      data.session = [];
+    // Convert bills from object to array if needed
+    if (typeof data.bills === 'object' && !Array.isArray(data.bills)) {
+      data.bills = Object.entries(data.bills).map(([id, bill]: [string, any]) => ({
+        ...bill,
+        id: parseInt(id)
+      }));
+    } else if (!Array.isArray(data.bills)) {
+      throw new Error('Invalid backup format: "bills" must be an object or array');
     }
-
-    // Check required arrays exist
-    const requiredArrays = ['categories', 'bills', 'transactions'];
-    for (const arrayName of requiredArrays) {
-      if (!Array.isArray(data[arrayName])) {
-        throw new Error(`Invalid backup format: "${arrayName}" must be an array`);
-      }
-    }
-
-    // Process and validate categories
-    data.categories = data.categories.map((category: any) => {
-      if (!category.id || !category.name || !category.color || !category.icon) {
-        throw new Error(`Invalid category format: Each category must have id, name, color, and icon fields`);
-      }
-      // Remove created_at if present to let DB handle it
-      const { created_at, ...rest } = category;
-      return rest;
-    });
 
     // Create a set of category IDs for reference
     const categoryIds = new Set(data.categories.map((cat: any) => cat.id));
 
     // Process and validate bills
-    data.bills = data.bills.map((bill: any) => {
+    const processedBills = data.bills.map((bill: any) => {
       if (!bill.id || !bill.name || !bill.amount || typeof bill.day !== 'number') {
         throw new Error(`Invalid bill format: Each bill must have id, name, amount, and day fields`);
       }
+
+      // Convert amount to numeric if it's a string
+      const amount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
+
       // Remove created_at if present to let DB handle it
-      const { created_at, ...rest } = bill;
-      if (rest.category_id && !categoryIds.has(rest.category_id)) {
-        console.warn(`Warning: Bill "${rest.name}" references non-existent category ${rest.category_id}`);
-        rest.category_id = 17; // Default to General Expenses if category not found
-      }
-      return rest;
-    });
+      const { created_at, category, ...rest } = bill;
 
-    // Process and validate transactions
-    data.transactions = data.transactions.map((transaction: any) => {
-      if (!transaction.id || !transaction.description || !transaction.amount || !transaction.date) {
-        throw new Error(`Invalid transaction format: Each transaction must have id, description, amount, and date fields`);
-      }
-
-      // Format date string to match SQL timestamp format
-      const { created_at, date, ...rest } = transaction;
-      let formattedDate;
-      try {
-        // Ensure date is in the correct format for PostgreSQL
-        const dateObj = new Date(date);
-        formattedDate = dateObj.toISOString().split('T')[0] + ' ' + dateObj.toTimeString().split(' ')[0];
-      } catch (error) {
-        console.error(`Error formatting date for transaction ${transaction.id}:`, error);
-        formattedDate = date; // Keep original format if parsing fails
-      }
-
-      // Ensure type is either 'expense' or 'income'
-      if (!rest.type || !['expense', 'income'].includes(rest.type)) {
-        console.warn(`Warning: Transaction "${rest.description}" has invalid type, defaulting to 'expense'`);
-        rest.type = 'expense';
-      }
-
-      // Set default category if missing or invalid
-      if (!rest.category_id || !categoryIds.has(rest.category_id)) {
-        console.warn(`Warning: Transaction "${rest.description}" missing or has invalid category, using General Expenses`);
-        rest.category_id = 17; // Default to General Expenses
+      // If category name is provided instead of ID, look up the ID
+      if (category && !rest.category_id) {
+        const categoryEntry = data.categories.find((cat: any) => cat.name === category);
+        if (categoryEntry) {
+          rest.category_id = categoryEntry.id;
+        } else {
+          console.warn(`Warning: Bill "${rest.name}" references non-existent category ${category}`);
+          rest.category_id = 17; // Default to General Expenses
+        }
       }
 
       return {
         ...rest,
-        date: formattedDate
+        amount,
+        day: parseInt(rest.day.toString())
       };
     });
+
+    // Convert processed bills back to dictionary format
+    data.bills = processedBills.reduce((acc: any, bill: any) => {
+      acc[bill.id] = bill;
+      return acc;
+    }, {});
 
     return data;
   } catch (error) {
@@ -98,7 +71,7 @@ const validateAndPreprocessData = (data: any) => {
   }
 };
 
-// Backup endpoint
+// Backup endpoint - Format data as dictionary
 router.post('/api/sync/backup', async (req, res) => {
   try {
     const result = await generateDatabaseBackup();
@@ -109,6 +82,16 @@ router.post('/api/sync/backup', async (req, res) => {
         error: result.error || 'Failed to generate backup' 
       });
     }
+
+    // Transform bills array to dictionary before sending
+    const backupData = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'tmp', result.fileName), 'utf8'));
+    backupData.bills = backupData.bills.reduce((acc: any, bill: any) => {
+      acc[bill.id] = bill;
+      return acc;
+    }, {});
+
+    // Write transformed data back to file
+    fs.writeFileSync(path.join(process.cwd(), 'tmp', result.fileName), JSON.stringify(backupData, null, 2));
 
     res.json({
       message: 'Backup generated successfully',
@@ -122,7 +105,7 @@ router.post('/api/sync/backup', async (req, res) => {
   }
 });
 
-// Download endpoint
+// Download endpoint remains unchanged
 router.get('/api/sync/download/:filename', (req, res) => {
   try {
     const { filename } = req.params;
@@ -158,7 +141,7 @@ router.get('/api/sync/download/:filename', (req, res) => {
   }
 });
 
-// Restore endpoint
+// Restore endpoint - Handle both dictionary and array formats
 router.post('/api/sync/restore', async (req, res) => {
   let tempPath = '';
 
@@ -168,11 +151,7 @@ router.post('/api/sync/restore', async (req, res) => {
     }
 
     const uploadedFile = req.files.backup as UploadedFile;
-    console.log('Received file:', {
-      name: uploadedFile.name,
-      size: uploadedFile.size,
-      mimetype: uploadedFile.mimetype
-    });
+    tempPath = path.join(process.cwd(), 'tmp', `restore_${Date.now()}.json`);
 
     // Create tmp directory if it doesn't exist
     const tmpDir = path.join(process.cwd(), 'tmp');
@@ -180,100 +159,79 @@ router.post('/api/sync/restore', async (req, res) => {
       fs.mkdirSync(tmpDir, { recursive: true });
     }
 
-    // Generate a unique filename
-    tempPath = path.join(tmpDir, `restore_${Date.now()}.json`);
+    await uploadedFile.mv(tempPath);
+    const fileContent = fs.readFileSync(tempPath, 'utf8');
 
     try {
-      // Move the uploaded file to tmp directory
-      await uploadedFile.mv(tempPath);
-      console.log('Backup file saved to:', tempPath);
+      const parsedData = JSON.parse(fileContent);
+      const processedData = validateAndPreprocessData(parsedData);
 
-      // Read and parse file content
-      const fileContent = fs.readFileSync(tempPath, 'utf8');
-      console.log('File content length:', fileContent.length);
+      await db.transaction(async (tx) => {
+        // Convert bills back to array for database insertion
+        const billsArray = Object.values(processedData.bills);
 
-      try {
-        // Parse and preprocess the data
-        const parsedData = JSON.parse(fileContent);
-        console.log('Data parsed successfully, preprocessing data...');
+        if (billsArray.length > 0) {
+          console.log('Restoring bills...');
+          await tx.insert(bills).values(billsArray)
+            .onConflictDoUpdate({
+              target: [bills.id],
+              set: {
+                name: sql`EXCLUDED.name`,
+                amount: sql`EXCLUDED.amount`,
+                day: sql`EXCLUDED.day`,
+                category_id: sql`EXCLUDED.category_id`,
+                user_id: sql`EXCLUDED.user_id`
+              }
+            });
+        }
 
-        const processedData = validateAndPreprocessData(parsedData);
-        console.log('Data validation and preprocessing completed');
+        // Restore categories first
+        if (processedData.categories.length > 0) {
+          console.log('Restoring categories...');
+          await tx.insert(categories).values(processedData.categories)
+            .onConflictDoUpdate({
+              target: [categories.id],
+              set: {
+                name: sql`EXCLUDED.name`,
+                color: sql`EXCLUDED.color`,
+                icon: sql`EXCLUDED.icon`,
+                user_id: sql`EXCLUDED.user_id`
+              }
+            });
+        }
 
-        // Start transaction for atomic restore
-        await db.transaction(async (tx) => {
-          // Restore categories first
-          if (processedData.categories.length > 0) {
-            console.log('Restoring categories...');
-            await tx.insert(categories).values(processedData.categories)
-              .onConflictDoUpdate({
-                target: [categories.id],
-                set: {
-                  name: sql`EXCLUDED.name`,
-                  color: sql`EXCLUDED.color`,
-                  icon: sql`EXCLUDED.icon`,
-                  user_id: sql`EXCLUDED.user_id`
-                }
-              });
-          }
+        // Restore transactions
+        if (processedData.transactions.length > 0) {
+          console.log('Restoring transactions...');
+          await tx.insert(transactions).values(processedData.transactions)
+            .onConflictDoUpdate({
+              target: [transactions.id],
+              set: {
+                description: sql`EXCLUDED.description`,
+                amount: sql`EXCLUDED.amount`,
+                date: sql`EXCLUDED.date`,
+                type: sql`EXCLUDED.type`,
+                category_id: sql`EXCLUDED.category_id`,
+                user_id: sql`EXCLUDED.user_id`
+              }
+            });
+        }
+      });
 
-          // Restore bills
-          if (processedData.bills.length > 0) {
-            console.log('Restoring bills...');
-            await tx.insert(bills).values(processedData.bills)
-              .onConflictDoUpdate({
-                target: [bills.id],
-                set: {
-                  name: sql`EXCLUDED.name`,
-                  amount: sql`EXCLUDED.amount`,
-                  day: sql`EXCLUDED.day`,
-                  category_id: sql`EXCLUDED.category_id`,
-                  user_id: sql`EXCLUDED.user_id`
-                }
-              });
-          }
-
-          // Restore transactions
-          if (processedData.transactions.length > 0) {
-            console.log('Restoring transactions...');
-            await tx.insert(transactions).values(processedData.transactions)
-              .onConflictDoUpdate({
-                target: [transactions.id],
-                set: {
-                  description: sql`EXCLUDED.description`,
-                  amount: sql`EXCLUDED.amount`,
-                  date: sql`EXCLUDED.date`,
-                  type: sql`EXCLUDED.type`,
-                  category_id: sql`EXCLUDED.category_id`,
-                  user_id: sql`EXCLUDED.user_id`
-                }
-              });
-          }
-        });
-
-        console.log('Database restore completed successfully');
-
-        res.json({ 
-          message: 'Backup restored successfully',
-          summary: {
-            categories: processedData.categories.length,
-            bills: processedData.bills.length,
-            transactions: processedData.transactions.length
-          }
-        });
-      } catch (parseError: any) {
-        console.error('Error processing backup data:', parseError);
-        res.status(400).json({ 
-          error: 'Invalid backup file content',
-          details: parseError.message || 'Unknown parse error'
-        });
-      }
-    } finally {
-      // Clean up the temporary file
-      if (fs.existsSync(tempPath)) {
-        fs.unlinkSync(tempPath);
-        console.log('Temporary file cleaned up');
-      }
+      res.json({ 
+        message: 'Backup restored successfully',
+        summary: {
+          categories: processedData.categories.length,
+          bills: Object.keys(processedData.bills).length,
+          transactions: processedData.transactions.length
+        }
+      });
+    } catch (parseError: any) {
+      console.error('Error processing backup data:', parseError);
+      res.status(400).json({ 
+        error: 'Invalid backup file content',
+        details: parseError.message || 'Unknown parse error'
+      });
     }
   } catch (error: any) {
     console.error('Error in restore endpoint:', error);
@@ -282,6 +240,10 @@ router.post('/api/sync/restore', async (req, res) => {
         error: error instanceof Error ? error.message : 'Unknown error occurred',
         details: error instanceof Error ? error.stack : undefined
       });
+    }
+  } finally {
+    if (fs.existsSync(tempPath)) {
+      fs.unlinkSync(tempPath);
     }
   }
 });
