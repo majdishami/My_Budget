@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest } from '@/lib/queryClient';
 
 interface Category {
   id: number;
@@ -38,7 +38,7 @@ const DynamicIcon = ({ iconName }: { iconName: string | null | undefined }) => {
 
   // Convert icon name to match Lucide naming convention (e.g., "shopping-cart" to "ShoppingCart")
   const formatIconName = (name: string) => {
-    return name.split('-').map(part => 
+    return name.split('-').map(part =>
       part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
     ).join('');
   };
@@ -65,9 +65,10 @@ export function CategoryManager() {
     queryFn: async () => {
       try {
         console.log('[Categories] Starting fetch request...');
-        const response = await apiRequest('/api/categories');
-        console.log('[Categories] Response received:', response);
-        return response;
+        const response = await fetch('/api/categories');
+        const data = await response.json();
+        console.log('[Categories] Response received:', data);
+        return data;
       } catch (error) {
         console.error('[Categories] Error:', error);
         throw error;
@@ -77,27 +78,28 @@ export function CategoryManager() {
 
   const createMutation = useMutation({
     mutationFn: async (data: CategoryFormData) => {
-      try {
-        const response = await apiRequest('/api/categories', {
-          method: 'POST',
-          body: JSON.stringify(data),
-        });
-        return response;
-      } catch (error) {
-        console.error('[Categories] Create error:', error);
-        throw error;
-      }
+      console.log('[Categories] Creating category with data:', data);
+      const response = await apiRequest(
+        'POST',
+        '/api/categories',
+        {
+          name: data.name,
+          color: data.color,
+          icon: data.icon || null
+        }
+      );
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({ title: "Success", description: "Category created successfully" });
       setIsAddOpen(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('[Categories] Create mutation error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create category",
+        description: error.message || "Failed to create category",
         variant: "destructive",
       });
     },
@@ -105,48 +107,47 @@ export function CategoryManager() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: { id: number } & CategoryFormData) => {
-      try {
-        const response = await apiRequest(`/api/categories/${data.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            name: data.name,
-            color: data.color,
-            icon: data.icon
-          }),
-        });
-        return response;
-      } catch (error) {
-        console.error('[Categories] Update error:', error);
-        throw error;
-      }
+      console.log('[Categories] Updating category:', data);
+      const response = await apiRequest(
+        'PATCH',
+        `/api/categories/${data.id}`,
+        {
+          name: data.name,
+          color: data.color,
+          icon: data.icon || null
+        }
+      );
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({ title: "Success", description: "Category updated successfully" });
       setEditCategory(null);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('[Categories] Update mutation error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update category",
+        description: error.message || "Failed to update category",
         variant: "destructive",
       });
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) =>
-      apiRequest(`/api/categories/${id}`, { method: 'DELETE' }),
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/categories/${id}`);
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({ title: "Success", description: "Category deleted successfully" });
       setDeleteCategory(null);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete category",
+        description: error.message || "Failed to delete category",
         variant: "destructive",
       });
     },
