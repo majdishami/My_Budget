@@ -52,7 +52,7 @@ export function CategoryManager() {
   const queryClient = useQueryClient();
 
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editCategory, setEditCategory] = useState<CategoryFormData | null>(null);
+  const [editCategory, setEditCategory] = useState<Category | null>(null);
   const [deleteCategory, setDeleteCategory] = useState<Category | null>(null);
 
   const {
@@ -60,7 +60,7 @@ export function CategoryManager() {
     isLoading,
     error: queryError,
     refetch
-  } = useQuery({
+  } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     queryFn: async () => {
       try {
@@ -76,17 +76,25 @@ export function CategoryManager() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: CategoryFormData) =>
-      apiRequest('/api/categories', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+    mutationFn: async (data: CategoryFormData) => {
+      try {
+        const response = await apiRequest('/api/categories', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+        return response;
+      } catch (error) {
+        console.error('[Categories] Create error:', error);
+        throw error;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({ title: "Success", description: "Category created successfully" });
       setIsAddOpen(false);
     },
     onError: (error) => {
+      console.error('[Categories] Create mutation error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create category",
@@ -96,21 +104,29 @@ export function CategoryManager() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { id: number } & CategoryFormData) =>
-      apiRequest(`/api/categories/${data.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          name: data.name,
-          color: data.color,
-          icon: data.icon
-        }),
-      }),
+    mutationFn: async (data: { id: number } & CategoryFormData) => {
+      try {
+        const response = await apiRequest(`/api/categories/${data.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: data.name,
+            color: data.color,
+            icon: data.icon
+          }),
+        });
+        return response;
+      } catch (error) {
+        console.error('[Categories] Update error:', error);
+        throw error;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({ title: "Success", description: "Category updated successfully" });
       setEditCategory(null);
     },
     onError: (error) => {
+      console.error('[Categories] Update mutation error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update category",
@@ -120,7 +136,7 @@ export function CategoryManager() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) =>
+    mutationFn: async (id: number) =>
       apiRequest(`/api/categories/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
@@ -138,18 +154,10 @@ export function CategoryManager() {
 
   const handleSubmit = (data: CategoryFormData) => {
     if (editCategory) {
-      const categoryToUpdate = categories.find(c =>
-        c.name === editCategory.name &&
-        c.color === editCategory.color &&
-        c.icon === editCategory.icon
-      );
-
-      if (categoryToUpdate) {
-        updateMutation.mutate({
-          id: categoryToUpdate.id,
-          ...data
-        });
-      }
+      updateMutation.mutate({
+        id: editCategory.id,
+        ...data
+      });
     } else {
       createMutation.mutate(data);
     }
@@ -227,11 +235,7 @@ export function CategoryManager() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setEditCategory({
-                    name: category.name,
-                    color: category.color,
-                    icon: category.icon
-                  })}
+                  onClick={() => setEditCategory(category)}
                   disabled={updateMutation.isPending}
                 >
                   <Edit className="h-4 w-4" />
@@ -259,10 +263,10 @@ export function CategoryManager() {
           }
         }}
         onSubmit={handleSubmit}
-        initialData={editCategory}
+        initialData={editCategory || undefined}
       />
 
-      <AlertDialog open={!!deleteCategory}>
+      <AlertDialog open={!!deleteCategory} onOpenChange={() => setDeleteCategory(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Category</AlertDialogTitle>

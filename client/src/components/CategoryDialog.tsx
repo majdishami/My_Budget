@@ -81,6 +81,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                     <Input 
                       placeholder="Enter category name" 
                       {...field} 
+                      autoComplete="off"
                     />
                   </FormControl>
                   <FormMessage />
@@ -109,7 +110,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                         <ChromePicker 
                           color={field.value}
                           onChange={(color) => {
-                            field.onChange(color?.hex || "#000000");
+                            field.onChange(color.hex);
                             setColorPickerOpen(false);
                           }}
                         />
@@ -133,6 +134,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       {...field}
                       value={field.value || ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
+                      autoComplete="off"
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground mt-1">
