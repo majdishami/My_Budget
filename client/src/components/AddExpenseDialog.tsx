@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { Bill } from "@/types";
 import { ReminderDialog } from "@/components/ReminderDialog";
-import { Bell, AlertCircle } from "lucide-react";
+import { Bell, AlertCircle, Calendar } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import { generateId } from "@/lib/utils";
@@ -21,6 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import dayjs from "dayjs";
 
 interface Category {
   id: number;
@@ -47,6 +51,8 @@ export function AddExpenseDialog({
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDays, setReminderDays] = useState(7);
   const [showReminderDialog, setShowReminderDialog] = useState(false);
+  const [isMonthly, setIsMonthly] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
   // Fetch categories
   const { data: categories = [] } = useQuery<Category[]>({
@@ -59,6 +65,7 @@ export function AddExpenseDialog({
     amount?: string;
     day?: string;
     category?: string;
+    date?: string;
   }>({});
 
   // Reset form on close
@@ -76,6 +83,8 @@ export function AddExpenseDialog({
     setReminderEnabled(false);
     setReminderDays(7);
     setErrors({});
+    setIsMonthly(true);
+    setSelectedDate(new Date());
   };
 
   const validateForm = (): boolean => {
@@ -90,9 +99,15 @@ export function AddExpenseDialog({
       newErrors.amount = 'Please enter a valid amount greater than 0';
     }
 
-    const dayNum = parseInt(day);
-    if (!day || isNaN(dayNum) || dayNum < 1 || dayNum > 31) {
-      newErrors.day = 'Please enter a valid day between 1 and 31';
+    if (isMonthly) {
+      const dayNum = parseInt(day);
+      if (!day || isNaN(dayNum) || dayNum < 1 || dayNum > 31) {
+        newErrors.day = 'Please enter a valid day between 1 and 31';
+      }
+    } else {
+      if (!selectedDate) {
+        newErrors.date = 'Please select a date';
+      }
     }
 
     if (!categoryId) {
@@ -112,13 +127,14 @@ export function AddExpenseDialog({
       id: generateId(),
       name: name.trim(),
       amount: parseFloat(amount),
-      day: parseInt(day),
+      day: isMonthly ? parseInt(day) : dayjs(selectedDate).date(),
       category_id: parseInt(categoryId),
       category_name: selectedCategory?.name || 'Uncategorized',
       category_color: selectedCategory?.color || '#D3D3D3',
       user_id: 1,
       created_at: new Date().toISOString(),
-      isOneTime: false,
+      isOneTime: !isMonthly,
+      oneTimeDate: !isMonthly ? selectedDate?.toISOString() : undefined,
       reminderEnabled,
       reminderDays,
     };
@@ -195,6 +211,60 @@ export function AddExpenseDialog({
                 )}
               </div>
 
+              <div className="flex items-center justify-between space-x-2">
+                <Label htmlFor="monthly-toggle" className="text-sm font-medium">Monthly Recurring Expense</Label>
+                <Switch
+                  id="monthly-toggle"
+                  checked={isMonthly}
+                  onCheckedChange={setIsMonthly}
+                />
+              </div>
+
+              {isMonthly ? (
+                <div className="grid gap-2">
+                  <label htmlFor="expense-day" className="text-sm font-medium">Day of Month</label>
+                  <Input
+                    id="expense-day"
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={day}
+                    onChange={(e) => {
+                      setDay(e.target.value);
+                      setErrors(prev => ({ ...prev, day: undefined }));
+                    }}
+                    placeholder="Enter day"
+                    aria-invalid={!!errors.day}
+                    aria-describedby={errors.day ? "day-error" : undefined}
+                  />
+                  {errors.day && (
+                    <Alert variant="destructive" className="py-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription id="day-error">{errors.day}</AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Select Date</label>
+                  <div className="border rounded-md p-2">
+                    <CalendarComponent
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      className="rounded-md border"
+                      initialFocus
+                    />
+                  </div>
+                  {errors.date && (
+                    <Alert variant="destructive" className="py-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription id="date-error">{errors.date}</AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
+
               <div className="grid gap-2">
                 <label htmlFor="expense-category" className="text-sm font-medium">Category</label>
                 <Select
@@ -211,13 +281,7 @@ export function AddExpenseDialog({
                   >
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    align="start"
-                    side="bottom"
-                    sideOffset={4}
-                    className="max-h-[200px] overflow-y-auto"
-                  >
+                  <SelectContent>
                     {categories.map((category) => (
                       <SelectItem
                         key={category.id}
@@ -238,30 +302,6 @@ export function AddExpenseDialog({
                   <Alert variant="destructive" className="py-2">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription id="category-error">{errors.category}</AlertDescription>
-                  </Alert>
-                )}
-              </div>
-
-              <div className="grid gap-2">
-                <label htmlFor="expense-day" className="text-sm font-medium">Day of Month</label>
-                <Input
-                  id="expense-day"
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={day}
-                  onChange={(e) => {
-                    setDay(e.target.value);
-                    setErrors(prev => ({ ...prev, day: undefined }));
-                  }}
-                  placeholder="Enter day"
-                  aria-invalid={!!errors.day}
-                  aria-describedby={errors.day ? "day-error" : undefined}
-                />
-                {errors.day && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription id="day-error">{errors.day}</AlertDescription>
                   </Alert>
                 )}
               </div>
@@ -296,7 +336,8 @@ export function AddExpenseDialog({
           category_color: categories.find(cat => cat.id.toString() === categoryId)?.color || '#D3D3D3',
           user_id: 1,
           created_at: new Date().toISOString(),
-          isOneTime: false,
+          isOneTime: !isMonthly,
+          oneTimeDate: !isMonthly ? selectedDate?.toISOString() : undefined,
           reminderEnabled,
           reminderDays
         }}

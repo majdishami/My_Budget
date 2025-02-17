@@ -19,6 +19,7 @@ export const billSchema = z.object({
   user_id: z.number(),
   created_at: z.string(),
   isOneTime: z.boolean(),
+  oneTimeDate: z.string().optional(),
   date: z.string().optional(),
   category: z.string().optional(),
   category_name: z.string(),
