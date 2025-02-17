@@ -61,6 +61,7 @@ interface Transaction {
   category_color: string;
   category_icon: string | null;
   category_id: number | null;
+  occurred: boolean; // Added occurred field
 }
 
 interface Category {
@@ -187,7 +188,8 @@ export default function ExpenseReportDialog({
             category_name: bill.category_name,
             category_color: bill.category_color,
             category_icon: bill.category_icon || null,
-            category_id: bill.category_id
+            category_id: bill.category_id,
+            occurred: billDate.isSameOrBefore(today) // Added occurred field
           });
         }
         currentMonth = currentMonth.add(1, 'month');
@@ -326,7 +328,8 @@ export default function ExpenseReportDialog({
             category_name: bill.category_name,
             category_color: bill.category_color,
             category_icon: bill.category_icon || null,
-            category_id: bill.category_id
+            category_id: bill.category_id,
+            occurred: isOccurred // Added occurred field
           });
         }
       }
@@ -450,7 +453,8 @@ export default function ExpenseReportDialog({
           category_name: bill.category_name,
           category_color: bill.category_color,
           category_icon: bill.category_icon || null,
-          category_id: bill.category_id
+          category_id: bill.category_id,
+          occurred: o.isPaid // Added occurred field
         }))
       }];
     }
@@ -643,7 +647,8 @@ export default function ExpenseReportDialog({
                 category_name: bill.category_name,
                 category_color: bill.category_color,
                 category_icon: bill.category_icon || null,
-                category_id: bill.category_id
+                category_id: bill.category_id,
+                occurred: isOccurred // Added occurred field
               });
             }
           }
@@ -952,6 +957,11 @@ export default function ExpenseReportDialog({
       </div>
     );
   }
+
+  //Added to filter income and expenses
+  const monthIncomes = filteredTransactions.filter(t => t.type === 'income');
+  const monthExpenses = filteredTransactions.filter(t => t.type === 'expense');
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -1379,6 +1389,79 @@ export default function ExpenseReportDialog({
                   </div>
                 )}
               </div>
+
+              {/*Added Income and Expense Tables here*/}
+              {/* Occurred Income */}
+              {monthIncomes.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium mb-2">Income</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>#</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {monthIncomes
+                        .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                        .map((transaction, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{index + 1}</TableCell>
+                            <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                            <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-300'}>
+                              {transaction.description}
+                            </TableCell>
+                            <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-300'}`}>
+                              {formatCurrency(transaction.amount)}
+                            </TableCell>
+                            <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-300'}>
+                              {transaction.occurred ? 'Occurred' : 'Pending'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Occurred Expenses */}
+              {monthExpenses.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Expenses</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>#</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {monthExpenses
+                        .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                        .map((transaction, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{index + 1}</TableCell>
+                            <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                            <TableCell>{transaction.description}</TableCell>
+                            <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                              {formatCurrency(transaction.amount)}
+                            </TableCell>
+                            <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
+                              {transaction.occurred ? 'Occurred' : 'Pending'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
           )}
         </div>
