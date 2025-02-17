@@ -28,8 +28,8 @@ router.get('/api/reports/expenses', async (req, res) => {
       WITH RECURSIVE 
       CurrentMonth AS MATERIALIZED (
         SELECT 
-          DATE '2025-02-01' as start_date,
-          DATE '2025-02-28' as end_date
+          DATE_TRUNC('month', CURRENT_DATE) as start_date,
+          (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')::date as end_date
       ),
       BillOccurrences AS MATERIALIZED (
         SELECT 
@@ -40,43 +40,21 @@ router.get('/api/reports/expenses', async (req, res) => {
           b.category_id,
           c.name as category_name,
           c.color as category_color,
-          COALESCE(c.icon, 'circle') as category_icon,
-          b.frequency,
-          CASE 
-            WHEN b.frequency = 'weekly' THEN 
-              ARRAY(SELECT generate_series(1, 4))
-            WHEN b.frequency = 'biweekly' THEN 
-              ARRAY(SELECT generate_series(1, 2))
-            ELSE 
-              ARRAY[1]
-          END as occurrences
+          COALESCE(c.icon, 'circle') as category_icon
         FROM bills b
         JOIN categories c ON b.category_id = c.id
         WHERE b.category_id IS NOT NULL
       ),
-      BillTransactions AS MATERIALIZED (
+      TransactionMatches AS MATERIALIZED (
         SELECT 
           bo.*,
-          unnest(bo.occurrences) as occurrence_number,
           EXISTS (
             SELECT 1 FROM transactions t 
             WHERE t.category_id = bo.category_id 
             AND t.amount = bo.bill_amount 
             AND t.type = 'expense'
-            AND DATE_TRUNC('day', t.date::timestamp) >= (SELECT start_date FROM CurrentMonth)
-            AND DATE_TRUNC('day', t.date::timestamp) <= (SELECT end_date FROM CurrentMonth)
-            AND EXTRACT(DAY FROM t.date) >= 
-              CASE 
-                WHEN bo.frequency = 'weekly' THEN ((occurrence_number - 1) * 7 + 1)
-                WHEN bo.frequency = 'biweekly' THEN ((occurrence_number - 1) * 14 + 1)
-                ELSE bo.bill_day
-              END
-            AND EXTRACT(DAY FROM t.date) <= 
-              CASE 
-                WHEN bo.frequency = 'weekly' THEN (occurrence_number * 7)
-                WHEN bo.frequency = 'biweekly' THEN (occurrence_number * 14)
-                ELSE bo.bill_day
-              END
+            AND DATE_TRUNC('month', t.date::timestamp) = (SELECT DATE_TRUNC('month', start_date) FROM CurrentMonth)
+            AND EXTRACT(DAY FROM t.date) = bo.bill_day
           ) as is_paid
         FROM BillOccurrences bo
       )
@@ -85,14 +63,14 @@ router.get('/api/reports/expenses', async (req, res) => {
         c.name as category_name,
         c.color as category_color,
         COALESCE(c.icon, 'circle') as category_icon,
-        COUNT(bt.*) as total_bills,
-        SUM(CASE WHEN bt.is_paid THEN 1 ELSE 0 END) as paid_count,
-        SUM(CASE WHEN NOT bt.is_paid THEN 1 ELSE 0 END) as pending_count,
-        SUM(CASE WHEN bt.is_paid THEN bt.bill_amount ELSE 0 END)::numeric(10,2) as paid_amount,
-        SUM(CASE WHEN NOT bt.is_paid THEN bt.bill_amount ELSE 0 END)::numeric(10,2) as pending_amount,
-        SUM(bt.bill_amount)::numeric(10,2) as total_amount
+        COUNT(tm.*) as total_bills,
+        SUM(CASE WHEN tm.is_paid THEN 1 ELSE 0 END) as paid_count,
+        SUM(CASE WHEN NOT tm.is_paid THEN 1 ELSE 0 END) as pending_count,
+        SUM(CASE WHEN tm.is_paid THEN tm.bill_amount ELSE 0 END)::numeric(10,2) as paid_amount,
+        SUM(CASE WHEN NOT tm.is_paid THEN tm.bill_amount ELSE 0 END)::numeric(10,2) as pending_amount,
+        SUM(tm.bill_amount)::numeric(10,2) as total_amount
       FROM categories c
-      LEFT JOIN BillTransactions bt ON c.id = bt.category_id
+      LEFT JOIN TransactionMatches tm ON c.id = tm.category_id
       GROUP BY c.id, c.name, c.color, c.icon
       ORDER BY c.name;
     `;
@@ -107,14 +85,14 @@ router.get('/api/reports/expenses', async (req, res) => {
         icon: row.category_icon
       },
       occurrences: {
-        paid: Number(row.paid_count),
-        pending: Number(row.pending_count),
-        total: Number(row.total_bills)
+        paid: Number(row.paid_count) || 0,
+        pending: Number(row.pending_count) || 0,
+        total: Number(row.total_bills) || 0
       },
       amounts: {
-        paid: Number(row.paid_amount),
-        pending: Number(row.pending_amount),
-        total: Number(row.total_amount)
+        paid: Number(row.paid_amount) || 0,
+        pending: Number(row.pending_amount) || 0,
+        total: Number(row.total_amount) || 0
       }
     }));
 
