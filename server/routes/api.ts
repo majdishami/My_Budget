@@ -1,9 +1,24 @@
 import { Router } from 'express';
 import { db } from '@db';
 import { sql } from 'drizzle-orm';
+import { reindexCategories } from '../utils/category-reindex';
 
 const router = Router();
 
+// Add reindex endpoint
+router.post('/api/categories/reindex', async (req, res) => {
+  try {
+    const result = await reindexCategories();
+    res.json(result);
+  } catch (error) {
+    console.error('Failed to reindex categories:', error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'Failed to reindex categories' 
+    });
+  }
+});
+
+// Keep existing expense report endpoint
 router.get('/api/reports/expenses', async (req, res) => {
   try {
     const query = `
