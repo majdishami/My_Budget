@@ -312,8 +312,8 @@ export default function MonthlyToDateReport() {
                     {transactions
                       .filter(t => t.type === 'income')
                       .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                      .map((transaction, index) => (
-                        <TableRow key={index}>
+                      .map((transaction) => (
+                        <TableRow key={transaction.date}>
                           <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                           <TableCell>{transaction.description}</TableCell>
                           <TableCell className="text-right text-green-600">
@@ -343,8 +343,8 @@ export default function MonthlyToDateReport() {
                     {transactions
                       .filter(t => t.type === 'expense')
                       .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                      .map((transaction, index) => (
-                        <TableRow key={index}>
+                      .map((transaction) => (
+                        <TableRow key={transaction.date}>
                           <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                           <TableCell>{transaction.description}</TableCell>
                           <TableCell className="text-right text-red-600">
