@@ -143,7 +143,7 @@ export function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
@@ -322,21 +322,19 @@ export function AddExpenseDialog({
         }}
         isOpen={showReminderDialog}
         onOpenChange={setShowReminderDialog}
-        onSave={handleReminderSave}
+        onSave={(enabled, days) => {
+          if (days < 1 || days > 30) {
+            setErrors(prev => ({
+              ...prev,
+              reminderDays: 'Reminder days must be between 1 and 30'
+            }));
+            return;
+          }
+          setReminderEnabled(enabled);
+          setReminderDays(days);
+          setErrors(prev => ({ ...prev, reminderDays: undefined }));
+        }}
       />
     </>
   );
-}
-
-function handleReminderSave(enabled: boolean, days: number) {
-  if (days < 1 || days > 30) {
-    setErrors(prev => ({
-      ...prev,
-      reminderDays: 'Reminder days must be between 1 and 30'
-    }));
-    return;
-  }
-  setReminderEnabled(enabled);
-  setReminderDays(days);
-  setErrors(prev => ({ ...prev, reminderDays: undefined }));
 }
