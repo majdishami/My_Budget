@@ -21,119 +21,50 @@ router.post('/api/categories/reindex', async (req, res) => {
   }
 });
 
-// Optimized expense report endpoint with proper occurrence handling
+// Expense report endpoint with occurrence tracking based on actual transactions
 router.get('/api/reports/expenses', async (req, res) => {
   try {
     const query = `
       WITH RECURSIVE 
-      DateRange AS MATERIALIZED (
+      DateRange AS (
         SELECT 
           DATE_TRUNC('month', CURRENT_DATE) as start_date,
           (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')::date as end_date
       ),
-      MonthDates AS MATERIALIZED (
-        SELECT generate_series(
-          (SELECT start_date FROM DateRange),
-          (SELECT end_date FROM DateRange),
-          '1 day'::interval
-        )::date as date
-      ),
-      BillOccurrences AS MATERIALIZED (
+      ActualTransactions AS (
         SELECT 
-          b.id as bill_id,
-          b.name as bill_name,
-          b.amount as bill_amount,
+          t.category_id,
+          t.amount,
+          COUNT(*) as occurrence_count,
+          SUM(t.amount) as paid_amount
+        FROM transactions t
+        WHERE t.type = 'expense'
+          AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
+        GROUP BY t.category_id, t.amount
+      ),
+      ExpectedOccurrences AS (
+        SELECT 
           b.category_id,
-          c.name as category_name,
-          c.color as category_color,
-          c.icon as category_icon,
-          CASE
-            WHEN b.day <= 15 AND EXISTS (
-              SELECT 1 FROM transactions t 
-              WHERE t.category_id = b.category_id 
-              AND t.amount = b.amount 
-              AND t.type = 'expense'
-              AND EXTRACT(DAY FROM t.date) > 15
-              AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
-            ) THEN 2  -- Bill appears twice in the month
-            WHEN EXISTS (
-              SELECT 1 FROM transactions t 
-              WHERE t.category_id = b.category_id 
-              AND t.amount = b.amount 
-              AND t.type = 'expense'
-              AND t.date != (SELECT start_date FROM DateRange + (b.day - 1 || ' days')::interval)
-              AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
-            ) THEN 2  -- Bill has another occurrence
-            ELSE 1    -- Single occurrence
-          END as occurrence_count,
-          generate_series(1, 
-            CASE
-              WHEN b.day <= 15 AND EXISTS (
-                SELECT 1 FROM transactions t 
-                WHERE t.category_id = b.category_id 
-                AND t.amount = b.amount 
-                AND t.type = 'expense'
-                AND EXTRACT(DAY FROM t.date) > 15
-                AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
-              ) THEN 2  -- Bill appears twice in the month
-              WHEN EXISTS (
-                SELECT 1 FROM transactions t 
-                WHERE t.category_id = b.category_id 
-                AND t.amount = b.amount 
-                AND t.type = 'expense'
-                AND t.date != (SELECT start_date FROM DateRange + (b.day - 1 || ' days')::interval)
-                AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
-              ) THEN 2  -- Bill has another occurrence
-              ELSE 1    -- Single occurrence
-            END
-          ) as occurrence_number,
-          CASE 
-            WHEN generate_series = 1 THEN b.day
-            ELSE (
-              SELECT EXTRACT(DAY FROM t.date)::integer
-              FROM transactions t 
-              WHERE t.category_id = b.category_id 
-              AND t.amount = b.amount 
-              AND t.type = 'expense'
-              AND EXTRACT(DAY FROM t.date) > 15
-              AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
-              LIMIT 1
-            )
-          END as due_day
+          b.amount,
+          COUNT(*) as expected_occurrences
         FROM bills b
-        JOIN categories c ON b.category_id = c.id
-        CROSS JOIN generate_series(1, 2)
-      ),
-      TransactionMatches AS MATERIALIZED (
-        SELECT 
-          bo.*,
-          EXISTS (
-            SELECT 1 
-            FROM transactions t 
-            WHERE t.category_id = bo.category_id
-            AND t.amount = bo.bill_amount
-            AND t.type = 'expense'
-            AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
-            AND EXTRACT(DAY FROM t.date) = bo.due_day
-          ) as is_paid
-        FROM BillOccurrences bo
+        GROUP BY b.category_id, b.amount
       )
       SELECT 
         c.id as category_id,
         c.name as category_name,
         c.color as category_color,
         COALESCE(c.icon, 'circle') as category_icon,
-        COUNT(DISTINCT tm.bill_id) as total_bills,
-        COUNT(DISTINCT CASE WHEN tm.is_paid THEN tm.bill_id END) as paid_bills,
-        COUNT(DISTINCT CASE WHEN NOT tm.is_paid THEN tm.bill_id END) as pending_bills,
-        COALESCE(SUM(CASE WHEN tm.is_paid THEN 1 END), 0) as paid_count,
-        COALESCE(SUM(CASE WHEN NOT tm.is_paid THEN 1 END), 0) as pending_count,
-        COALESCE(SUM(CASE WHEN tm.is_paid THEN tm.bill_amount END), 0)::numeric(10,2) as paid_amount,
-        COALESCE(SUM(CASE WHEN NOT tm.is_paid THEN tm.bill_amount END), 0)::numeric(10,2) as pending_amount,
-        COALESCE(SUM(tm.bill_amount), 0)::numeric(10,2) as total_amount
+        COALESCE(at.occurrence_count, 0) as paid_count,
+        COALESCE(eo.expected_occurrences - COALESCE(at.occurrence_count, 0), 0) as pending_count,
+        COALESCE(eo.expected_occurrences, 0) as total_occurrences,
+        COALESCE(at.paid_amount, 0)::numeric(10,2) as paid_amount,
+        COALESCE((eo.expected_occurrences - COALESCE(at.occurrence_count, 0)) * b.amount, 0)::numeric(10,2) as pending_amount,
+        COALESCE(eo.expected_occurrences * b.amount, 0)::numeric(10,2) as total_amount
       FROM categories c
-      LEFT JOIN TransactionMatches tm ON c.id = tm.category_id
-      GROUP BY c.id, c.name, c.color, c.icon
+      LEFT JOIN bills b ON c.id = b.category_id
+      LEFT JOIN ActualTransactions at ON c.id = at.category_id AND at.amount = b.amount
+      LEFT JOIN ExpectedOccurrences eo ON c.id = eo.category_id AND eo.amount = b.amount
       ORDER BY c.name;
     `;
 
@@ -149,7 +80,7 @@ router.get('/api/reports/expenses', async (req, res) => {
       occurrences: {
         paid: Number(row.paid_count) || 0,
         pending: Number(row.pending_count) || 0,
-        total: (Number(row.paid_count) || 0) + (Number(row.pending_count) || 0)
+        total: Number(row.total_occurrences) || 0
       },
       amounts: {
         paid: Number(row.paid_amount) || 0,
