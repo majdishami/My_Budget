@@ -303,13 +303,16 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
                   <TableRow key={`${transaction.date}-${index}`}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                    <TableCell className={transaction.occurred ? 'text-red-600' : 'text-yellow-600'}>
+                    <TableCell className="text-green-600">
                       {transaction.description}
                     </TableCell>
-                    <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-yellow-600'}`}>
+                    <TableCell className="text-right font-medium text-green-600">
                       {formatCurrency(transaction.amount)}</TableCell>
-                    <TableCell className={transaction.occurred ? 'text-red-600' : 'text-yellow-600'}>
-                      {transaction.occurred ? 'Received' : 'Pending'}</TableCell>
+                    <TableCell>
+                      <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
+                        {transaction.occurred ? 'Received' : 'Pending'}
+                      </span>
+                    </TableCell>
                   </TableRow>
                 ))}
             </TableBody>
