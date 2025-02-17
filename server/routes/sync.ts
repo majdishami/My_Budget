@@ -15,6 +15,16 @@ const validateAndPreprocessData = (data: any) => {
       throw new Error('Invalid backup format: data must be a JSON object');
     }
 
+    // Convert categories from object to array if needed
+    if (typeof data.categories === 'object' && !Array.isArray(data.categories)) {
+      data.categories = Object.entries(data.categories).map(([id, category]: [string, any]) => ({
+        ...category,
+        id: parseInt(id),
+        color: category.color || '#000000',
+        icon: category.icon || 'circle'
+      }));
+    }
+
     // Convert bills from object to array if needed
     if (typeof data.bills === 'object' && !Array.isArray(data.bills)) {
       data.bills = Object.entries(data.bills).map(([id, bill]: [string, any]) => ({
@@ -22,12 +32,10 @@ const validateAndPreprocessData = (data: any) => {
         id: parseInt(id),
         amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount
       }));
-    } else if (!Array.isArray(data.bills)) {
-      throw new Error('Invalid backup format: "bills" must be an object or array');
     }
 
-    // Create a set of category IDs for reference
-    const categoryIds = new Set(data.categories.map((cat: any) => cat.id));
+    // Create a map of category IDs for faster lookups
+    const categoryMap = new Map(data.categories.map((cat: any) => [cat.id, cat]));
 
     // Process and validate bills
     const processedBills = data.bills.map((bill: any) => {
@@ -46,7 +54,7 @@ const validateAndPreprocessData = (data: any) => {
 
       // If category name is provided instead of ID, look up the ID
       if (category && !rest.category_id) {
-        const categoryEntry = data.categories.find((cat: any) => cat.name === category);
+        const categoryEntry = Array.from(categoryMap.values()).find((cat: any) => cat.name === category);
         if (categoryEntry) {
           rest.category_id = categoryEntry.id;
         } else {
@@ -62,25 +70,17 @@ const validateAndPreprocessData = (data: any) => {
       };
     });
 
-    // Process transactions to ensure numeric amounts
-    if (Array.isArray(data.transactions)) {
-      data.transactions = data.transactions.map((transaction: any) => {
-        const amount = typeof transaction.amount === 'string' ? 
-          parseFloat(transaction.amount) : transaction.amount;
+    // Convert processed data back to dictionary format
+    const processedCategories = data.categories.reduce((acc: any, category: any) => {
+      acc[category.id] = {
+        ...category,
+        color: category.color || '#000000',
+        icon: category.icon || 'circle'
+      };
+      return acc;
+    }, {});
 
-        if (isNaN(amount)) {
-          throw new Error(`Invalid amount format for transaction "${transaction.description}": amount must be a valid number`);
-        }
-
-        return {
-          ...transaction,
-          amount
-        };
-      });
-    }
-
-    // Convert processed bills back to dictionary format with numeric amounts
-    data.bills = processedBills.reduce((acc: any, bill: any) => {
+    const processedBillsDict = processedBills.reduce((acc: any, bill: any) => {
       acc[bill.id] = {
         ...bill,
         amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount
@@ -88,27 +88,42 @@ const validateAndPreprocessData = (data: any) => {
       return acc;
     }, {});
 
-    return data;
+    return {
+      ...data,
+      categories: processedCategories,
+      bills: processedBillsDict,
+      transactions: data.transactions.map((t: any) => ({
+        ...t,
+        amount: typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount
+      }))
+    };
   } catch (error) {
     console.error('Data validation error:', error);
     throw error;
   }
 };
 
-// Backup endpoint - Format data as dictionary with numeric amounts
+// Backup endpoint - Format data as dictionary
 router.post('/api/sync/backup', async (req, res) => {
   try {
     const result = await generateDatabaseBackup();
 
     if (!result.success) {
-      console.error('Backup generation failed:', result.error);
       return res.status(500).json({ 
         error: result.error || 'Failed to generate backup' 
       });
     }
 
-    // Transform bills array to dictionary and ensure numeric amounts
+    // Transform data to dictionary format
     const backupData = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'tmp', result.fileName), 'utf8'));
+
+    // Convert categories to dictionary
+    backupData.categories = backupData.categories.reduce((acc: any, category: any) => {
+      acc[category.id] = category;
+      return acc;
+    }, {});
+
+    // Convert bills to dictionary
     backupData.bills = backupData.bills.reduce((acc: any, bill: any) => {
       acc[bill.id] = {
         ...bill,
@@ -139,7 +154,6 @@ router.get('/api/sync/download/:filename', (req, res) => {
     const filePath = path.join(process.cwd(), 'tmp', filename);
 
     if (!fs.existsSync(filePath)) {
-      console.error('Missing backup file:', filePath);
       return res.status(404).json({ error: 'Backup file not found' });
     }
 
@@ -168,7 +182,7 @@ router.get('/api/sync/download/:filename', (req, res) => {
   }
 });
 
-// Restore endpoint - Handle both dictionary and array formats
+// Restore endpoint - Handle dictionary format
 router.post('/api/sync/restore', async (req, res) => {
   let tempPath = '';
 
@@ -194,14 +208,29 @@ router.post('/api/sync/restore', async (req, res) => {
       const processedData = validateAndPreprocessData(parsedData);
 
       await db.transaction(async (tx) => {
-        // Convert bills back to array for database insertion
-        const billsArray = Object.values(processedData.bills).map(bill => ({
+        // Convert dictionary data back to arrays for database insertion
+        const categoriesArray = Object.values(processedData.categories);
+        const billsArray = Object.values(processedData.bills).map((bill: any) => ({
           ...bill,
           amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount
         }));
 
+        // Restore categories first
+        if (categoriesArray.length > 0) {
+          await tx.insert(categories).values(categoriesArray)
+            .onConflictDoUpdate({
+              target: [categories.id],
+              set: {
+                name: sql`EXCLUDED.name`,
+                color: sql`EXCLUDED.color`,
+                icon: sql`EXCLUDED.icon`,
+                user_id: sql`EXCLUDED.user_id`
+              }
+            });
+        }
+
+        // Restore bills
         if (billsArray.length > 0) {
-          console.log('Restoring bills...');
           await tx.insert(bills).values(billsArray)
             .onConflictDoUpdate({
               target: [bills.id],
@@ -215,31 +244,9 @@ router.post('/api/sync/restore', async (req, res) => {
             });
         }
 
-        // Restore categories first
-        if (processedData.categories.length > 0) {
-          console.log('Restoring categories...');
-          await tx.insert(categories).values(processedData.categories)
-            .onConflictDoUpdate({
-              target: [categories.id],
-              set: {
-                name: sql`EXCLUDED.name`,
-                color: sql`EXCLUDED.color`,
-                icon: sql`EXCLUDED.icon`,
-                user_id: sql`EXCLUDED.user_id`
-              }
-            });
-        }
-
-        // Restore transactions with numeric amounts
+        // Restore transactions
         if (processedData.transactions.length > 0) {
-          console.log('Restoring transactions...');
-          const processedTransactions = processedData.transactions.map((transaction: any) => ({
-            ...transaction,
-            amount: typeof transaction.amount === 'string' ? 
-              parseFloat(transaction.amount) : transaction.amount
-          }));
-
-          await tx.insert(transactions).values(processedTransactions)
+          await tx.insert(transactions).values(processedData.transactions)
             .onConflictDoUpdate({
               target: [transactions.id],
               set: {
@@ -257,7 +264,7 @@ router.post('/api/sync/restore', async (req, res) => {
       res.json({ 
         message: 'Backup restored successfully',
         summary: {
-          categories: processedData.categories.length,
+          categories: Object.keys(processedData.categories).length,
           bills: Object.keys(processedData.bills).length,
           transactions: processedData.transactions.length
         }
