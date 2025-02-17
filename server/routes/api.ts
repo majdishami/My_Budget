@@ -24,13 +24,14 @@ router.get('/api/reports/expenses', async (req, res) => {
           c.color as category_color,
           COALESCE(c.icon, 'circle') as category_icon,
           b.frequency,
-          generate_series(1, 
-            CASE 
-              WHEN b.frequency = 'weekly' THEN 4
-              WHEN b.frequency = 'biweekly' THEN 2
-              ELSE 1
-            END
-          ) as occurrence_number
+          CASE 
+            WHEN b.frequency = 'weekly' THEN 
+              ARRAY(SELECT generate_series(1, 4))
+            WHEN b.frequency = 'biweekly' THEN 
+              ARRAY(SELECT generate_series(1, 2))
+            ELSE 
+              ARRAY[1]
+          END as occurrences
         FROM bills b
         JOIN categories c ON b.category_id = c.id
         WHERE b.category_id IS NOT NULL
@@ -38,6 +39,7 @@ router.get('/api/reports/expenses', async (req, res) => {
       BillTransactions AS (
         SELECT 
           bo.*,
+          unnest(bo.occurrences) as occurrence_number,
           EXISTS (
             SELECT 1 FROM transactions t 
             WHERE t.category_id = bo.category_id 
@@ -47,17 +49,16 @@ router.get('/api/reports/expenses', async (req, res) => {
             AND DATE_TRUNC('day', t.date::timestamp) <= (SELECT end_date FROM CurrentMonth)
             AND EXTRACT(DAY FROM t.date) >= 
               CASE 
-                WHEN bo.frequency = 'weekly' THEN (bo.occurrence_number - 1) * 7 + 1
-                WHEN bo.frequency = 'biweekly' THEN (bo.occurrence_number - 1) * 14 + 1
+                WHEN bo.frequency = 'weekly' THEN ((occurrence_number - 1) * 7 + 1)
+                WHEN bo.frequency = 'biweekly' THEN ((occurrence_number - 1) * 14 + 1)
                 ELSE bo.bill_day
               END
             AND EXTRACT(DAY FROM t.date) <= 
               CASE 
-                WHEN bo.frequency = 'weekly' THEN bo.occurrence_number * 7
-                WHEN bo.frequency = 'biweekly' THEN bo.occurrence_number * 14
+                WHEN bo.frequency = 'weekly' THEN (occurrence_number * 7)
+                WHEN bo.frequency = 'biweekly' THEN (occurrence_number * 14)
                 ELSE bo.bill_day
               END
-            LIMIT 1
           ) as is_paid
         FROM BillOccurrences bo
       )
@@ -73,7 +74,7 @@ router.get('/api/reports/expenses', async (req, res) => {
         SUM(CASE WHEN NOT bt.is_paid THEN bt.bill_amount ELSE 0 END) as pending_amount,
         SUM(bt.bill_amount) as total_amount
       FROM categories c
-      JOIN BillTransactions bt ON c.id = bt.category_id
+      LEFT JOIN BillTransactions bt ON c.id = bt.category_id
       GROUP BY c.id, c.name, c.color, c.icon
       ORDER BY c.name;
     `;
