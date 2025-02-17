@@ -56,6 +56,7 @@ interface CategoryTotal {
   color: string;
   icon: string | null;
   transactions: Transaction[];
+  categories?: CategoryTotal[];
 }
 
 interface ExpenseReportDialogProps {
@@ -131,6 +132,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
   const [dateError, setDateError] = useState<string | null>(null);
   const [generatedTransactions, setGeneratedTransactions] = useState<Transaction[]>([]);
   const today = useMemo(() => dayjs(), []);
+
+  // Handle date selection
+  const handleDateSelect = (selectedDate: DateRange | undefined) => {
+    if (selectedDate?.from && !selectedDate.to) {
+      // If only start date is selected, automatically set end date to the same date
+      setDate({ 
+        from: selectedDate.from,
+        to: selectedDate.from 
+      });
+    } else {
+      setDate(selectedDate);
+    }
+  };
 
   const { data: bills = [], isLoading: billsLoading } = useQuery({
     queryKey: ['/api/bills'],
@@ -323,7 +337,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
               <Calendar
                 mode="range"
                 selected={date}
-                onSelect={setDate}
+                onSelect={handleDateSelect}
                 numberOfMonths={1}
                 defaultMonth={today.toDate()}
               />
