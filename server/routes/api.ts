@@ -13,8 +13,8 @@ router.get('/api/reports/expenses', async (req, res) => {
           DATE '2025-02-01' as start_date,
           DATE '2025-02-28' as end_date
       ),
-      MonthlyBills AS (
-        SELECT DISTINCT ON (b.id)
+      BillTransactions AS (
+        SELECT 
           b.id as bill_id,
           b.name as bill_name,
           b.amount as bill_amount,
@@ -22,29 +22,16 @@ router.get('/api/reports/expenses', async (req, res) => {
           b.category_id,
           c.name as category_name,
           c.color as category_color,
-          c.icon as category_icon,
-          CASE 
-            WHEN EXISTS (
-              SELECT 1 FROM transactions t 
-              WHERE t.category_id = b.category_id 
-              AND t.amount = b.amount 
-              AND t.type = 'expense'
-              AND DATE_TRUNC('day', t.date::timestamp) >= (SELECT start_date FROM CurrentMonth)
-              AND DATE_TRUNC('day', t.date::timestamp) <= (SELECT end_date FROM CurrentMonth)
-            ) THEN 1 
-            ELSE 0 
-          END as paid_occurrences,
-          CASE 
-            WHEN EXISTS (
-              SELECT 1 FROM transactions t 
-              WHERE t.category_id = b.category_id 
-              AND t.amount = b.amount 
-              AND t.type = 'expense'
-              AND DATE_TRUNC('day', t.date::timestamp) >= (SELECT start_date FROM CurrentMonth)
-              AND DATE_TRUNC('day', t.date::timestamp) <= (SELECT end_date FROM CurrentMonth)
-            ) THEN b.amount 
-            ELSE 0 
-          END as paid_amount
+          COALESCE(c.icon, 'circle') as category_icon,
+          EXISTS (
+            SELECT 1 FROM transactions t 
+            WHERE t.category_id = b.category_id 
+            AND t.amount = b.amount 
+            AND t.type = 'expense'
+            AND DATE_TRUNC('day', t.date::timestamp) >= (SELECT start_date FROM CurrentMonth)
+            AND DATE_TRUNC('day', t.date::timestamp) <= (SELECT end_date FROM CurrentMonth)
+            LIMIT 1
+          ) as is_paid
         FROM bills b
         JOIN categories c ON b.category_id = c.id
         WHERE b.category_id IS NOT NULL
@@ -53,15 +40,15 @@ router.get('/api/reports/expenses', async (req, res) => {
         c.id as category_id,
         c.name as category_name,
         c.color as category_color,
-        c.icon as category_icon,
-        1 as total_bills,
-        MAX(mb.paid_occurrences) as paid_count,
-        1 - MAX(mb.paid_occurrences) as pending_count,
-        SUM(mb.paid_amount) as paid_amount,
-        SUM(mb.bill_amount - mb.paid_amount) as pending_amount,
-        SUM(mb.bill_amount) as total_amount
+        COALESCE(c.icon, 'circle') as category_icon,
+        COUNT(bt.*) as total_bills,
+        SUM(CASE WHEN bt.is_paid THEN 1 ELSE 0 END) as paid_count,
+        SUM(CASE WHEN NOT bt.is_paid THEN 1 ELSE 0 END) as pending_count,
+        SUM(CASE WHEN bt.is_paid THEN bt.bill_amount ELSE 0 END) as paid_amount,
+        SUM(CASE WHEN NOT bt.is_paid THEN bt.bill_amount ELSE 0 END) as pending_amount,
+        SUM(bt.bill_amount) as total_amount
       FROM categories c
-      JOIN MonthlyBills mb ON c.id = mb.category_id
+      JOIN BillTransactions bt ON c.id = bt.category_id
       GROUP BY c.id, c.name, c.color, c.icon
       ORDER BY c.name;
     `;

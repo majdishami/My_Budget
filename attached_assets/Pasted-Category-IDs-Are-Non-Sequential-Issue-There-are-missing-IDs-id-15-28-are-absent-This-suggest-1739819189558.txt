@@ -1,0 +1,56 @@
+Category IDs Are Non-Sequential
+🔴 Issue: There are missing IDs (id: 15-28 are absent). This suggests deleted or unused categories.
+✅ Fix: Consider refactoring categories or ensuring IDs remain contiguous.
+Duplicate Expenses for Maid Service
+🔴 Issue: "Maid Service" appears twice (₹120.00 on 1st and 17th).
+✅ Fix: If this is intentional, renaming them (First Payment, Second Payment) improves clarity.
+Inconsistent Icons in Categories
+🔴 Issue: "icon": null for "Phone Bill", while others have icons.
+✅ Fix: Assign a relevant icon (e.g., "phone") for consistency.
+Category IDs Not Matching All Expenses
+🔴 Issue: "category_id": 29 is assigned to "Phone Bill", but most other categories are under id ≤ 14.
+✅ Fix: Consider reordering category IDs or checking for missing category definitions.
+🚀 Performance Optimization
+
+Normalize Data Storage
+Instead of repeating "user_id": 1 for every bill, a relational database (SQL) could link bills to a user table.
+Moving categories to a separate lookup table would reduce redundancy.
+Optimize JSON Structure for Faster Parsing
+Current Approach:
+{
+   "bills": [
+      { "id": 21, "name": "Rent", "amount": "3750.00", "day": 1, "category_id": 1, "user_id": 1 }
+   ]
+}
+Optimized Approach:
+
+{
+   "bills": {
+      "21": { "name": "Rent", "amount": "3750.00", "day": 1, "category": "Rent", "user_id": 1 }
+   }
+}
+Using dictionary objects (keys as IDs) instead of lists improves look-up speed.
+Convert Amounts to Numeric Data Type
+🔴 Issue: "amount": "3750.00" is stored as a string instead of a number.
+✅ Fix: "amount": 3750.00 to improve calculations & reduce parsing overhead.
+🏗 Structure & Schema Improvement
+
+Proposed JSON Schema
+To enhance the structure, a schema like this can improve validation:
+
+{
+   "users": [
+      { "id": 1, "username": "default_user", "password_hash": "hashed_value" }
+   ],
+   "categories": {
+      "Rent": { "id": 1, "color": "#3B82F6", "icon": "home" },
+      "Groceries": { "id": 2, "color": "#10B981", "icon": "shopping-cart" }
+   },
+   "bills": {
+      "21": { "name": "Rent", "amount": 3750.00, "day": 1, "category": "Rent", "user_id": 1 }
+   }
+}
+🔹 Why This is Better?
+
+Faster lookups using key-based dictionaries
+Reduced redundant category_id references
