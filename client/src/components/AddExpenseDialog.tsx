@@ -143,7 +143,7 @@ export function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[800px]">
+        <DialogContent className="sm:max-w-[800px] h-fit">
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
@@ -151,7 +151,7 @@ export function AddExpenseDialog({
           <div className="space-y-3 py-2">
             {/* Expense Type Selection */}
             <div className="grid gap-1">
-              <Label className="text-sm font-medium">Expense Type</Label>
+              <Label htmlFor="expense-type" className="text-sm font-medium">Expense Type</Label>
               <div className="flex gap-2">
                 <Button 
                   variant={isMonthly ? "default" : "outline"}
