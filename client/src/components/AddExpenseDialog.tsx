@@ -145,15 +145,15 @@ export function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-hidden">
+        <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col space-y-4 overflow-y-auto py-4">
-            <div className="grid gap-4">
+          <div className="flex flex-col space-y-3 overflow-y-auto py-3">
+            <div className="grid gap-3">
               {/* Expense Type Selection */}
-              <div className="p-3 border rounded-lg bg-muted/50">
-                <div className="flex flex-col gap-3">
+              <div className="p-2 border rounded-lg bg-muted/50">
+                <div className="flex flex-col gap-2">
                   <Label className="text-sm font-semibold">Expense Type</Label>
                   <div className="flex items-center justify-between gap-4">
                     <Button 
@@ -177,7 +177,7 @@ export function AddExpenseDialog({
               </div>
 
               {/* Name Input */}
-              <div className="grid gap-2">
+              <div className="grid gap-1.5">
                 <Label htmlFor="expense-name">Name</Label>
                 <Input
                   id="expense-name"
@@ -190,7 +190,7 @@ export function AddExpenseDialog({
                   aria-invalid={!!errors.name}
                 />
                 {errors.name && (
-                  <Alert variant="destructive" className="py-2">
+                  <Alert variant="destructive" className="py-1">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{errors.name}</AlertDescription>
                   </Alert>
@@ -198,7 +198,7 @@ export function AddExpenseDialog({
               </div>
 
               {/* Amount Input */}
-              <div className="grid gap-2">
+              <div className="grid gap-1.5">
                 <Label htmlFor="expense-amount">Amount</Label>
                 <Input
                   id="expense-amount"
@@ -214,7 +214,7 @@ export function AddExpenseDialog({
                   aria-invalid={!!errors.amount}
                 />
                 {errors.amount && (
-                  <Alert variant="destructive" className="py-2">
+                  <Alert variant="destructive" className="py-1">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{errors.amount}</AlertDescription>
                   </Alert>
@@ -222,18 +222,18 @@ export function AddExpenseDialog({
               </div>
 
               {/* Date Selection */}
-              <div className="grid gap-2">
+              <div className="grid gap-1.5">
                 <Label>{isMonthly ? "Monthly Due Date" : "Expense Date"}</Label>
                 <div className="border rounded-md">
                   <CalendarComponent
                     mode="single"
                     selected={isMonthly ? monthlyDueDate : oneTimeDate}
                     onSelect={isMonthly ? setMonthlyDueDate : setOneTimeDate}
-                    className="rounded-md [&_.rdp-month]:!w-[220px] [&_.rdp-cell]:!w-8 [&_.rdp-cell]:!h-8 [&_.rdp-head_th]:!w-8 [&_.rdp-head_th]:!h-8"
+                    className="rounded-md [&_.rdp-month]:!w-[200px] [&_.rdp-cell]:!w-6 [&_.rdp-cell]:!h-6 [&_.rdp-head_th]:!w-6 [&_.rdp-head_th]:!h-6 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-6"
                   />
                 </div>
                 {(isMonthly ? errors.monthlyDate : errors.oneTimeDate) && (
-                  <Alert variant="destructive" className="py-2">
+                  <Alert variant="destructive" className="py-1">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       {isMonthly ? errors.monthlyDate : errors.oneTimeDate}
@@ -253,7 +253,7 @@ export function AddExpenseDialog({
               </div>
 
               {/* Category Selection */}
-              <div className="grid gap-2">
+              <div className="grid gap-1.5">
                 <Label htmlFor="expense-category">Category</Label>
                 <Select
                   value={categoryId}
@@ -286,7 +286,7 @@ export function AddExpenseDialog({
                   </SelectContent>
                 </Select>
                 {errors.category && (
-                  <Alert variant="destructive" className="py-2">
+                  <Alert variant="destructive" className="py-1">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{errors.category}</AlertDescription>
                   </Alert>
