@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Bill } from "@/types";
 import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle, Calendar } from "lucide-react";
@@ -144,11 +144,12 @@ export function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] h-fit overflow-y-auto">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+
+          <div className="space-y-2">
             {/* Expense Type Selection */}
             <div className="p-2 border rounded-lg bg-muted/50">
               <div className="flex flex-col gap-2">
@@ -175,7 +176,7 @@ export function AddExpenseDialog({
             </div>
 
             {/* Name Input */}
-            <div className="grid gap-1.5">
+            <div className="grid gap-1">
               <Label htmlFor="expense-name">Name</Label>
               <Input
                 id="expense-name"
@@ -195,7 +196,7 @@ export function AddExpenseDialog({
             </div>
 
             {/* Amount Input */}
-            <div className="grid gap-1.5">
+            <div className="grid gap-1">
               <Label htmlFor="expense-amount">Amount</Label>
               <Input
                 id="expense-amount"
@@ -218,7 +219,7 @@ export function AddExpenseDialog({
             </div>
 
             {/* Date Selection */}
-            <div className="grid gap-1.5">
+            <div className="grid gap-1">
               <Label>{isMonthly ? "Monthly Due Date" : "Expense Date"}</Label>
               <div className="border rounded-md">
                 <CalendarComponent
@@ -249,7 +250,7 @@ export function AddExpenseDialog({
             </div>
 
             {/* Category Selection */}
-            <div className="grid gap-1.5">
+            <div className="grid gap-1">
               <Label htmlFor="expense-category">Category</Label>
               <Select
                 value={categoryId}
