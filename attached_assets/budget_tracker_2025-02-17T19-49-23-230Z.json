@@ -1,0 +1,349 @@
+{
+  "categories": {
+    "Rent": {
+      "id": 1,
+      "color": "#3B82F6",
+      "icon": "home"
+    },
+    "Groceries": {
+      "id": 2,
+      "color": "#10B981",
+      "icon": "shopping-cart"
+    },
+    "Personal Loan": {
+      "id": 3,
+      "color": "#6366F1",
+      "icon": "credit-card"
+    },
+    "Car Insurance": {
+      "id": 4,
+      "color": "#F59E0B",
+      "icon": "car"
+    },
+    "Maid's Service": {
+      "id": 5,
+      "color": "#EC4899",
+      "icon": "home"
+    },
+    "Credit Card Payments": {
+      "id": 6,
+      "color": "#8B5CF6",
+      "icon": "credit-card"
+    },
+    "Utilities - Electricity": {
+      "id": 7,
+      "color": "#F97316",
+      "icon": "zap"
+    },
+    "Utilities - Gas": {
+      "id": 8,
+      "color": "#EF4444",
+      "icon": "flame"
+    },
+    "Utilities - Water": {
+      "id": 9,
+      "color": "#3B82F6",
+      "icon": "droplet"
+    },
+    "TV Service": {
+      "id": 10,
+      "color": "#8B5CF6",
+      "icon": "tv"
+    },
+    "Internet": {
+      "id": 11,
+      "color": "#2563EB",
+      "icon": "wifi"
+    },
+    "Online Services": {
+      "id": 12,
+      "color": "#6366F1",
+      "icon": "globe"
+    },
+    "Life Insurance": {
+      "id": 13,
+      "color": "#059669",
+      "icon": "heart"
+    },
+    "Others": {
+      "id": 14,
+      "color": "#71717A",
+      "icon": "more-horizontal"
+    },
+    "Phone": {
+      "id": 15,
+      "color": "#32af37",
+      "icon": "phone"
+    },
+    "General Expenses": {
+      "id": 17,
+      "color": "#6366F1",
+      "icon": "shopping-cart"
+    }
+  },
+  "bills": {
+    "2": {
+      "name": "ATT Phone Bill ($115 Rund Roaming)",
+      "amount": 429,
+      "day": 1,
+      "category": "Phone"
+    },
+    "3": {
+      "name": "Maid Service - Beginning of Month Payment",
+      "amount": 120,
+      "day": 1,
+      "category": "Maid's Service"
+    },
+    "4": {
+      "name": "Rent",
+      "amount": 3750,
+      "day": 1,
+      "category": "Rent"
+    },
+    "5": {
+      "name": "Sling TV (CC 9550)",
+      "amount": 75,
+      "day": 3,
+      "category": "TV Service"
+    },
+    "6": {
+      "name": "Cox Internet",
+      "amount": 81,
+      "day": 6,
+      "category": "Internet"
+    },
+    "7": {
+      "name": "Water Bill",
+      "amount": 80,
+      "day": 7,
+      "category": "Utilities - Water"
+    },
+    "8": {
+      "name": "NV Energy Electrical ($100 winter months)",
+      "amount": 250,
+      "day": 7,
+      "category": "Utilities - Electricity"
+    },
+    "9": {
+      "name": "TransAmerica Life Insurance",
+      "amount": 77,
+      "day": 9,
+      "category": "Life Insurance"
+    },
+    "10": {
+      "name": "Credit Card minimum payments",
+      "amount": 225,
+      "day": 14,
+      "category": "Credit Card Payments"
+    },
+    "11": {
+      "name": "Apple/Google/YouTube (CC 9550)",
+      "amount": 130,
+      "day": 14,
+      "category": "Online Services"
+    },
+    "12": {
+      "name": "Expenses & Groceries charged on (CC 2647)",
+      "amount": 3000,
+      "day": 16,
+      "category": "Groceries"
+    },
+    "13": {
+      "name": "Maid Service - Mid-Month Payment",
+      "amount": 120,
+      "day": 17,
+      "category": "Maid's Service"
+    },
+    "14": {
+      "name": "SoFi Personal Loan",
+      "amount": 1915,
+      "day": 17,
+      "category": "Personal Loan"
+    },
+    "15": {
+      "name": "Southwest Gas ($200 in winter/$45 in summer)",
+      "amount": 75,
+      "day": 17,
+      "category": "Utilities - Gas"
+    },
+    "16": {
+      "name": "Car Insurance for 3 cars ($268 + $169 + $303 + $21)",
+      "amount": 704,
+      "day": 28,
+      "category": "Car Insurance"
+    }
+  },
+  "transactions": [
+    {
+      "id": 5,
+      "description": "Rent",
+      "amount": 3750,
+      "date": "2025-02-01T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 1,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 15,
+      "description": "Groceries & Others charged on (CC 2647)",
+      "amount": 3000,
+      "date": "2025-02-16T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 2,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 7,
+      "description": "AT&T (+$115 Rund Roaming)",
+      "amount": 429,
+      "date": "2025-02-01T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 15,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 16,
+      "description": "maid's 2nd Monthly Payment",
+      "amount": 120,
+      "date": "2025-02-17T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 5,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 6,
+      "description": "maid's 1st monthly payment",
+      "amount": 120,
+      "date": "2025-02-01T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 5,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 1,
+      "description": "Majdi's Salary",
+      "amount": 4739,
+      "date": "2025-02-01T00:00:00.000Z",
+      "type": "income",
+      "category_id": 17,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 2,
+      "description": "Majdi's Salary",
+      "amount": 4739,
+      "date": "2025-02-15T00:00:00.000Z",
+      "type": "income",
+      "category_id": 17,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 3,
+      "description": "Ruba's Salary",
+      "amount": 2168,
+      "date": "2025-02-07T00:00:00.000Z",
+      "type": "income",
+      "category_id": 17,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 4,
+      "description": "Ruba's Salary",
+      "amount": 2168,
+      "date": "2025-02-21T00:00:00.000Z",
+      "type": "income",
+      "category_id": 17,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 8,
+      "description": "Sling TV (CC 9550)",
+      "amount": 75,
+      "date": "2025-02-02T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 8,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 9,
+      "description": "Cox Internet",
+      "amount": 81,
+      "date": "2025-02-05T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 11,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 10,
+      "description": "Water Bill",
+      "amount": 80,
+      "date": "2025-02-06T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 9,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 11,
+      "description": "NV Energy Electrical ($100 winter months)",
+      "amount": 250,
+      "date": "2025-02-06T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 7,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 12,
+      "description": "TransAmerica Life Insurance",
+      "amount": 77,
+      "date": "2025-02-08T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 13,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 13,
+      "description": "Credit Card minimum payments",
+      "amount": 225,
+      "date": "2025-02-13T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 6,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 14,
+      "description": "Apple/Google/YouTube (CC 9550)",
+      "amount": 130,
+      "date": "2025-02-13T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 12,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 17,
+      "description": "SoFi Personal Loan",
+      "amount": 1915,
+      "date": "2025-02-17T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 3,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 18,
+      "description": "Southwest Gas ($200 in winter/$45 in summer)",
+      "amount": 75,
+      "date": "2025-02-17T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 8,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    },
+    {
+      "id": 19,
+      "description": "Car Insurance for 3 cars ($268 + $169 + $303 + $21)",
+      "amount": 704,
+      "date": "2025-02-27T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 4,
+      "created_at": "2025-02-14T07:01:56.328Z"
+    }
+  ]
+}
