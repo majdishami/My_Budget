@@ -11,9 +11,9 @@ import { ChromePicker } from 'react-color';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const categorySchema = z.object({
-  name: z.string().min(1, "Category name is required").transform(val => val.trim()),
-  color: z.string().min(1, "Color is required").transform(val => val.trim()),
-  icon: z.string().nullable().optional().transform(val => (val?.trim() === '' ? null : val?.trim()))
+  name: z.string().min(1, "Category name is required"),
+  color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Invalid color format"),
+  icon: z.string().nullable().optional()
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -48,10 +48,11 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
 
   const handleSubmit = async (data: CategoryFormData) => {
     try {
-      // Ensure icon is properly handled
+      // Ensure proper data formatting
       const formattedData = {
         ...data,
-        icon: data.icon || null // Convert empty string to null
+        color: data.color.toLowerCase(), // Normalize color to lowercase
+        icon: data.icon?.trim() || null // Trim icon name and convert empty string to null
       };
 
       await onSubmit(formattedData);
@@ -110,7 +111,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                         <ChromePicker 
                           color={field.value}
                           onChange={(color) => {
-                            field.onChange(color.hex);
+                            field.onChange(color.hex.toLowerCase());
                             setColorPickerOpen(false);
                           }}
                         />
