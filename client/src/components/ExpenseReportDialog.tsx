@@ -156,14 +156,183 @@ const generateTransactions = (dateRange: DateRange, billsList: Bill[], currentDa
   return newGeneratedTransactions;
 };
 
-export default function ExpenseReportDialog({ isOpen, onOpenChange, }: ExpenseReportDialogProps) {
+export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseReportDialogProps) {
   const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
   const [previousReport, setPreviousReport] = useState<{ value: string, date: DateRange | undefined } | null>(null);
-  const [generatedTransactions, setTransactions] = useState<Transaction[]>([]); // Added state for generated transactions
+  const [generatedTransactions, setTransactions] = useState<Transaction[]>([]);
   const today = useMemo(() => dayjs(), []);
+
+  // Add queries first to ensure data is available
+  const { data: transactionsData = [], isLoading: transactionsLoading } = useQuery({
+    queryKey: ['/api/transactions'],
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    cacheTime: 1000 * 60 * 10, // Keep cache for 10 minutes
+  });
+
+  const { data: categoriesData = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['/api/categories'],
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 10,
+  });
+
+  const { data: billsData = [], isLoading: billsLoading } = useQuery({
+    queryKey: ['/api/bills'],
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 10,
+  });
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedValue("all");
+      setDate(undefined);
+      setShowReport(false);
+      setDateError(null);
+      setPreviousReport(null);
+      setTransactions([]);
+    }
+  }, [isOpen]);
+
+  // Update the useEffect hook with proper checks
+  useEffect(() => {
+    if (!showReport || !date?.from || !date?.to || !billsData) return;
+
+    setTransactions((prev) => {
+      const prevState = JSON.stringify(prev);
+      const newTransactions = generateTransactions(date, billsData, today);
+      return JSON.stringify(newTransactions) === prevState ? prev : newTransactions;
+    });
+  }, [showReport, date && JSON.stringify(date), billsData && JSON.stringify(billsData), today]);
+
+  // Handle loading and error states in the Dialog
+  if (!showReport || transactionsLoading || categoriesLoading || billsLoading) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[425px] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">
+              Generate Expense Report
+              {date?.from && date?.to && (
+                <div className="text-sm font-normal text-muted-foreground mt-1">
+                  {dayjs(date.from).format('MMM D, YYYY')} - {dayjs(date.to).format('MMM D, YYYY')}
+                </div>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Select View Option</label>
+              <Select value={selectedValue} onValueChange={setSelectedValue}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select an option" />
+                </SelectTrigger>
+                <SelectContent
+                  position="popper"
+                  align="start"
+                  side="bottom"
+                  sideOffset={4}
+                  className="max-h-[200px] overflow-y-auto"
+                >
+                  {/* Combined Views */}
+                  <SelectGroup>
+                    <SelectLabel>Combined Views</SelectLabel>
+                    <SelectItem value="all">All Expenses Combined</SelectItem>
+                    <SelectItem value="all_categories">All Categories Combined</SelectItem>
+                  </SelectGroup>
+
+                  {/* Individual Categories */}
+                  {!categoriesLoading && (
+                    <SelectGroup>
+                      <SelectLabel>Individual Categories</SelectLabel>
+                      {categoriesData.map((category) => (
+                        <SelectItem
+                          key={`category_${category.name}`}
+                          value={`category_${category.name}`}
+                          className="text-blue-600"
+                        >
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+
+                  {/* Individual Expenses */}
+                  {!billsLoading && (
+                    <SelectGroup>
+                      <SelectLabel>Individual Expenses</SelectLabel>
+                      {billsData.map((bill) => (
+                        <SelectItem
+                          key={`expense_${bill.id}`}
+                          value={`expense_${bill.id}`}
+                          className="text-green-600"
+                        >
+                          {bill.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="border rounded-lg p-4 bg-background">
+              <Calendar
+                mode="range"
+                selected={date}
+                onSelect={(newDate) => {
+                  setDate(newDate);
+                  setDateError(null);
+                }}
+                numberOfMonths={1}
+                defaultMonth={today.toDate()}
+                className="rounded-md w-full max-h-[300px]"
+              />
+            </div>
+
+            {dateError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{dateError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="text-sm font-medium text-muted-foreground">
+              {date?.from ? (
+                <>
+                  Selected Range: {dayjs(date.from).format('MMM D, YYYY')}
+                  {date.to ? ` - ${dayjs(date.to).format('MMM D, YYYY')}` : ''}
+                </>
+              ) : (
+                'Select start and end dates'
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (transactionsLoading || categoriesLoading || billsLoading) {
+                  return;
+                }
+                setShowReport(true);
+                setPreviousReport({ value: selectedValue, date: date });
+              }}
+              disabled={!date?.from || !date?.to || !!dateError || transactionsLoading || categoriesLoading || billsLoading}
+            >
+              {(transactionsLoading || categoriesLoading || billsLoading) ? 'Loading...' : 'Generate Report'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   // Add back handleBackToSelection function
   const handleBackToSelection = () => {
@@ -174,34 +343,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, }: ExpenseRe
     setTransactions([]); //Clear generated transactions on back
   };
 
-  // Force refresh when dialog opens
-  useEffect(() => {
-    //This section remains unchanged
-  }, [isOpen]);
-
-
-  // Reset state when dialog closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedValue("all");
-      setDate(undefined);
-      setShowReport(false);
-      setDateError(null);
-      setPreviousReport(null);
-      setTransactions([]); //Clear generated transactions on close
-    }
-  }, [isOpen]);
-
-  // Update the useEffect hook
-  useEffect(() => {
-    if (!showReport || !date?.from || !date?.to) return;
-
-    setTransactions((prev) => {
-      const prevState = JSON.stringify(prev);
-      const newTransactions = generateTransactions(date, billsData, today);
-      return JSON.stringify(newTransactions) === prevState ? prev : newTransactions;
-    });
-  }, [showReport, JSON.stringify(date), JSON.stringify(billsData), today]);
 
   // Update the dropdown options with fresh data.
   const dropdownOptions = useMemo(() => {
@@ -823,142 +964,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, }: ExpenseRe
   };
 
   // Update the existing useQuery configuration
-  const { data: transactionsData = [], isLoading: transactionsLoading } = useQuery({
-    queryKey: ['/api/transactions'],
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    cacheTime: 1000 * 60 * 10, // Keep cache for 10 minutes
-  });
+  //These are already moved to the top
+
 
   // Update any other useQuery hooks in the file similarly
-  const { data: categoriesData = [], isLoading: categoriesLoading } = useQuery({
-    queryKey: ['/api/categories'],
-    staleTime: 1000 * 60 * 5,
-    cacheTime: 1000 * 60 * 10,
-  });
+  //These are already moved to the top
 
-  const { data: billsData = [], isLoading: billsLoading } = useQuery({
-    queryKey: ['/api/bills'],
-    staleTime: 1000 * 60 * 5,
-    cacheTime: 1000 * 60 * 10,
-  });
 
-  if (!showReport || transactionsLoading || categoriesLoading || billsLoading) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
-              Generate Expense Report
-              {date?.from && date?.to && (
-                <div className="text-sm font-normal text-muted-foreground mt-1">
-                  {dayjs(date.from).format('MMM D, YYYY')} - {dayjs(date.to).format('MMM D, YYYY')}
-                </div>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="flex flex-col space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Select View Option</label>
-              <Select value={selectedValue} onValueChange={setSelectedValue}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select an option" />
-                </SelectTrigger>
-                <SelectContent
-                  position="popper"
-                  align="start"
-                  side="bottom"
-                  sideOffset={4}
-                  className="max-h-[200px] overflow-y-auto"
-                >
-                  {/* Combined Views */}
-                  <SelectGroup>
-                    <SelectLabel>Combined Views</SelectLabel>
-                    <SelectItem value="all">All Expenses Combined</SelectItem>
-                    <SelectItem value="all_categories">All Categories Combined</SelectItem>
-                  </SelectGroup>
-
-                  {/* Individual Categories */}
-                  <SelectGroup>
-                    <SelectLabel>Individual Categories</SelectLabel>
-                    {categoriesData.map((category) => (
-                      <SelectItem
-                        key={`category_${category.name}`}
-                        value={`category_${category.name}`}
-                        className="text-blue-600"
-                      >
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-
-                  {/* Individual Expenses */}
-                  <SelectGroup>
-                    <SelectLabel>Individual Expenses</SelectLabel>
-                    {billsData.map((bill) => (
-                      <SelectItem
-                        key={`expense_${bill.id}`}
-                        value={`expense_${bill.id}`}
-                        className="text-green-600"
-                      >
-                        {bill.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="border rounded-lg p-4 bg-background">
-              <Calendar
-                mode="range"
-                selected={date}
-                onSelect={(newDate) => {
-                  setDate(newDate);
-                  setDateError(null);
-                }}
-                numberOfMonths={1}
-                defaultMonth={today.toDate()}
-                className="rounded-md w-full max-h-[300px]"
-              />
-            </div>
-
-            {dateError && (
-              <div className="text-sm text-red-500">
-                {dateError}
-              </div>
-            )}
-
-            <div className="text-sm font-medium text-muted-foreground">
-              {date?.from ? (
-                <>
-                  Selected Range: {dayjs(date.from).format('MMM D, YYYY')}
-                  {date.to ? ` - ${dayjs(date.to).format('MMM D, YYYY')}` : ''}
-                </>
-              ) : (
-                'Select start and end dates'
-              )}
-            </div>
-          </div>
-
-          <DialogFooter className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                setShowReport(true);
-                setPreviousReport({ value: selectedValue, date: date });
-              }}
-              disabled={!date?.from || !date?.to || !!dateError}
-            >
-              Generate Report
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  //This section is already moved to the top
 
   // Update CategoryDisplay component interface
   interface CategoryDisplayProps {
@@ -987,10 +1000,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, }: ExpenseRe
 
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        if (!open) {
+          // Ensure we can always close the dialog
+          setShowReport(false);
+          onOpenChange(false);
+        }
+      }}
+    >
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
         <DialogHeader className="flex-shrink-0 border-b pb-4">
-          <div className="flexjustify-between items-start">
+          <div className="flex justify-between items-start">
             <div>
               <DialogTitle className="text-xl">
                 {getDialogTitle()}
