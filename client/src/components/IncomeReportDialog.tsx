@@ -113,31 +113,30 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
     setTransactions(generatedTransactions);
   }, [showReport, date?.from, date?.to, today]);
 
-  // Filter transactions based on date range
-  const filteredTransactions = useMemo(() => {
-    if (!date?.from || !date?.to) return [];
+  // Filter transactions and calculate totals
+  useEffect(() => {
+    if (!date?.from || !date?.to) return;
 
-    return transactions.filter(t => {
+    const filtered = transactions.filter(t => {
       const transactionDate = dayjs(t.date);
       return transactionDate.isSameOrAfter(dayjs(date.from)) && 
              transactionDate.isSameOrBefore(dayjs(date.to));
     });
+
+    const totals = filtered.reduce(
+      (acc, transaction) => {
+        if (transaction.occurred) {
+          acc.occurred += transaction.amount;
+        } else {
+          acc.pending += transaction.amount;
+        }
+        return acc;
+      },
+      { occurred: 0, pending: 0 }
+    );
+
+    setSummaryTotals(totals);
   }, [transactions, date]);
-
-  // Calculate summary totals
-  const totals = filteredTransactions.reduce(
-    (acc, transaction) => {
-      if (transaction.occurred) {
-        acc.occurred += transaction.amount;
-      } else {
-        acc.pending += transaction.amount;
-      }
-      return acc;
-    },
-    { occurred: 0, pending: 0 }
-  );
-  setSummaryTotals(totals);
-
 
   if (!showReport) {
     return (
@@ -233,18 +232,20 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTransactions.map((transaction, index) => (
-                <TableRow key={`${transaction.date}-${index}`}>
-                  <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                  <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-100'}>
-                    {transaction.description}
-                  </TableCell>
-                  <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-100'}`}>
-                    {formatCurrency(transaction.amount)}</TableCell>
-                  <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-100'}>
-                    {transaction.occurred ? 'Paid' : 'Pending'}</TableCell>
-                </TableRow>
-              ))}
+              {transactions
+                .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                .map((transaction, index) => (
+                  <TableRow key={`${transaction.date}-${index}`}>
+                    <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                    <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-100'}>
+                      {transaction.description}
+                    </TableCell>
+                    <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-100'}`}>
+                      {formatCurrency(transaction.amount)}</TableCell>
+                    <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-100'}>
+                      {transaction.occurred ? 'Paid' : 'Pending'}</TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </div>
