@@ -20,8 +20,7 @@ const validateAndPreprocessData = (data: any) => {
       id: category.id,
       name,
       color: category.color || '#808080',
-      icon: category.icon || 'circle',
-      user_id: 1 // Default user
+      icon: category.icon || 'circle'
     }));
 
     // Create a map for quick category lookups
@@ -44,13 +43,11 @@ const validateAndPreprocessData = (data: any) => {
         name: bill.name,
         amount,
         day: bill.day,
-        category_id: category.id,
-        user_id: bill.user_id || 1
+        category_id: category.id
       };
     });
 
     return {
-      users: data.users || [],
       categories: categoriesArray,
       bills: billsArray,
       transactions: (data.transactions || []).map((t: any) => ({
@@ -94,15 +91,13 @@ router.post('/api/sync/backup', async (req, res) => {
         name: bill.name,
         amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount,
         day: bill.day,
-        category: category?.name || 'Other',
-        user_id: bill.user_id
+        category: category?.name || 'Other'
       };
       return acc;
     }, {});
 
     // Structure the data according to the new schema
     const transformedData = {
-      users: backupData.users || [],
       categories: categoriesDict,
       bills: billsDict,
       transactions: backupData.transactions.map((t: any) => ({
@@ -198,8 +193,7 @@ router.post('/api/sync/restore', async (req, res) => {
               set: {
                 name: sql`EXCLUDED.name`,
                 color: sql`EXCLUDED.color`,
-                icon: sql`EXCLUDED.icon`,
-                user_id: sql`EXCLUDED.user_id`
+                icon: sql`EXCLUDED.icon`
               }
             });
         }
@@ -213,8 +207,7 @@ router.post('/api/sync/restore', async (req, res) => {
                 name: sql`EXCLUDED.name`,
                 amount: sql`EXCLUDED.amount`,
                 day: sql`EXCLUDED.day`,
-                category_id: sql`EXCLUDED.category_id`,
-                user_id: sql`EXCLUDED.user_id`
+                category_id: sql`EXCLUDED.category_id`
               }
             });
         }
@@ -229,8 +222,7 @@ router.post('/api/sync/restore', async (req, res) => {
                 amount: sql`EXCLUDED.amount`,
                 date: sql`EXCLUDED.date`,
                 type: sql`EXCLUDED.type`,
-                category_id: sql`EXCLUDED.category_id`,
-                user_id: sql`EXCLUDED.user_id`
+                category_id: sql`EXCLUDED.category_id`
               }
             });
         }
