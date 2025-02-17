@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 const categorySchema = z.object({
   name: z.string().trim().min(1, "Category name is required"),
-  color: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Invalid color format"),
+  color: z.string().min(1, "Color is required"),
   icon: z.string().nullable().optional()
 });
 
@@ -48,13 +48,13 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
 
   const handleSubmit = async (data: CategoryFormData) => {
     try {
-      // Ensure proper data formatting
+      console.log('Submitting category data:', data);
       const formattedData = {
-        ...data,
         name: data.name.trim(),
-        color: data.color.toLowerCase(),
+        color: data.color,
         icon: data.icon?.trim() || null
       };
+      console.log('Formatted category data:', formattedData);
 
       await onSubmit(formattedData);
       form.reset();
@@ -72,7 +72,13 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form 
+            onSubmit={form.handleSubmit(handleSubmit)} 
+            className="space-y-4"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
+          >
             <FormField
               control={form.control}
               name="name"
@@ -84,7 +90,10 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       placeholder="Enter category name" 
                       {...field} 
                       autoComplete="off"
-                      aria-autocomplete="none"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      name="category_name_field"
                     />
                   </FormControl>
                   <FormMessage />
@@ -113,7 +122,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                         <ChromePicker 
                           color={field.value}
                           onChange={(color) => {
-                            field.onChange(color.hex.toLowerCase());
+                            field.onChange(color.hex);
                             setColorPickerOpen(false);
                           }}
                         />
@@ -138,7 +147,10 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       value={field.value || ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
                       autoComplete="off"
-                      aria-autocomplete="none"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      name="category_icon_field"
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground mt-1">
