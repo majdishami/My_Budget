@@ -3,7 +3,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,14 +134,15 @@ export function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[900px]">
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-2">
-            {/* Expense Type Selection */}
-            <div className="grid gap-1">
+          <div className="grid grid-cols-[1fr_300px] gap-4">
+            {/* Left Column */}
+            <div className="space-y-4">
+              {/* Expense Type Selection */}
               <div className="flex gap-2">
                 <Button
                   variant={isMonthly ? "default" : "outline"}
@@ -161,128 +161,132 @@ export function AddExpenseDialog({
                   One-time
                 </Button>
               </div>
-            </div>
 
-            {/* Name Input */}
-            <div className="grid gap-1">
-              <Label htmlFor="expense-name">Name</Label>
-              <Input
-                id="expense-name"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setErrors(prev => ({ ...prev, name: undefined }));
-                }}
-                placeholder="Enter expense name"
-                autoComplete="off"
-              />
-              {errors.name && (
-                <Alert variant="destructive" className="py-1">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{errors.name}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-
-            {/* Amount Input */}
-            <div className="grid gap-1">
-              <Label htmlFor="expense-amount">Amount</Label>
-              <Input
-                id="expense-amount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value);
-                  setErrors(prev => ({ ...prev, amount: undefined }));
-                }}
-                placeholder="Enter amount"
-                autoComplete="off"
-              />
-              {errors.amount && (
-                <Alert variant="destructive" className="py-1">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{errors.amount}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-
-            {/* Date Selection */}
-            <div className="grid gap-1">
-              <Label>{isMonthly ? "Monthly Due Date" : "Expense Date"}</Label>
-              <div className="border rounded-md">
-                <CalendarComponent
-                  mode="single"
-                  selected={isMonthly ? monthlyDueDate : oneTimeDate}
-                  onSelect={isMonthly ? setMonthlyDueDate : setOneTimeDate}
-                  className="rounded-md [&_.rdp-month]:!w-[280px] [&_.rdp-cell]:!p-0 [&_.rdp-cell]:!w-8 [&_.rdp-cell]:!h-8 [&_.rdp-head_th]:!w-8 [&_.rdp-head_th]:!h-8 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-8 [&_.rdp-caption]:!h-8"
+              {/* Name Input */}
+              <div className="grid gap-1">
+                <Label htmlFor="expense-name">Name</Label>
+                <Input
+                  id="expense-name"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setErrors(prev => ({ ...prev, name: undefined }));
+                  }}
+                  placeholder="Enter expense name"
+                  autoComplete="off"
                 />
+                {errors.name && (
+                  <Alert variant="destructive" className="py-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{errors.name}</AlertDescription>
+                  </Alert>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {isMonthly && monthlyDueDate
-                  ? `Repeats monthly on day ${dayjs(monthlyDueDate).date()}`
-                  : !isMonthly && oneTimeDate
-                  ? `One-time expense on ${dayjs(oneTimeDate).format('MMMM D, YYYY')}`
-                  : ''}
-              </p>
+
+              {/* Amount Input */}
+              <div className="grid gap-1">
+                <Label htmlFor="expense-amount">Amount</Label>
+                <Input
+                  id="expense-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    setErrors(prev => ({ ...prev, amount: undefined }));
+                  }}
+                  placeholder="Enter amount"
+                  autoComplete="off"
+                />
+                {errors.amount && (
+                  <Alert variant="destructive" className="py-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{errors.amount}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
+              {/* Calendar */}
+              <div className="grid gap-1">
+                <Label>{isMonthly ? "Monthly Due Date" : "Expense Date"}</Label>
+                <div className="border rounded-md">
+                  <CalendarComponent
+                    mode="single"
+                    selected={isMonthly ? monthlyDueDate : oneTimeDate}
+                    onSelect={isMonthly ? setMonthlyDueDate : setOneTimeDate}
+                    className="rounded-md [&_.rdp-month]:!w-[280px] [&_.rdp-cell]:!p-0 [&_.rdp-cell]:!w-8 [&_.rdp-cell]:!h-8 [&_.rdp-head_th]:!w-8 [&_.rdp-head_th]:!h-8 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-8 [&_.rdp-caption]:!h-8"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {isMonthly && monthlyDueDate
+                    ? `Repeats monthly on day ${dayjs(monthlyDueDate).date()}`
+                    : !isMonthly && oneTimeDate
+                      ? `One-time expense on ${dayjs(oneTimeDate).format('MMMM D, YYYY')}`
+                      : ''}
+                </p>
+              </div>
             </div>
 
-            {/* Category Selection */}
-            <div className="grid gap-1">
-              <Label htmlFor="expense-category">Category</Label>
-              <Select
-                value={categoryId}
-                onValueChange={(value) => {
-                  setCategoryId(value);
-                  setErrors(prev => ({ ...prev, category: undefined }));
-                }}
+            {/* Right Column */}
+            <div className="space-y-4">
+              {/* Category Selection */}
+              <div className="grid gap-1">
+                <Label htmlFor="expense-category">Category</Label>
+                <Select
+                  value={categoryId}
+                  onValueChange={(value) => {
+                    setCategoryId(value);
+                    setErrors(prev => ({ ...prev, category: undefined }));
+                  }}
+                >
+                  <SelectTrigger id="expense-category">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem
+                        key={category.id}
+                        value={category.id.toString()}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {category.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.category && (
+                  <Alert variant="destructive" className="py-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{errors.category}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
+              {/* Reminder Button */}
+              <Button
+                variant="outline"
+                onClick={() => setShowReminderDialog(true)}
+                className="w-full"
               >
-                <SelectTrigger id="expense-category">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem
-                      key={category.id}
-                      value={category.id.toString()}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        />
-                        {category.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.category && (
-                <Alert variant="destructive" className="py-1">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{errors.category}</AlertDescription>
-                </Alert>
-              )}
+                <Bell className="mr-2 h-4 w-4" />
+                {reminderEnabled
+                  ? `Reminder: ${reminderDays} days before due date`
+                  : 'Set payment reminder'}
+              </Button>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-2 mt-auto pt-4">
+                <Button onClick={handleConfirm} className="w-full">Add Expense</Button>
+                <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">Cancel</Button>
+              </div>
             </div>
-
-            {/* Reminder Button */}
-            <Button
-              variant="outline"
-              onClick={() => setShowReminderDialog(true)}
-              className="w-full"
-            >
-              <Bell className="mr-2 h-4 w-4" />
-              {reminderEnabled
-                ? `Reminder: ${reminderDays} days before due date`
-                : 'Set payment reminder'}
-            </Button>
           </div>
-
-          <DialogFooter className="mt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={handleConfirm}>Add Expense</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
