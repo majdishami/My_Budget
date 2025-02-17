@@ -26,46 +26,49 @@ router.get('/api/reports/expenses', async (req, res) => {
   try {
     const query = `
       WITH RECURSIVE 
-      CurrentMonth AS MATERIALIZED (
+      DateRange AS MATERIALIZED (
         SELECT 
           DATE_TRUNC('month', CURRENT_DATE) as start_date,
           (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')::date as end_date
       ),
-      MonthDays AS MATERIALIZED (
+      MonthDates AS MATERIALIZED (
         SELECT generate_series(
-          (SELECT start_date FROM CurrentMonth),
-          (SELECT end_date FROM CurrentMonth),
+          (SELECT start_date FROM DateRange),
+          (SELECT end_date FROM DateRange),
           '1 day'::interval
         )::date as date
       ),
-      BillOccurrences AS MATERIALIZED (
+      BillDates AS MATERIALIZED (
         SELECT 
           b.id as bill_id,
           b.name as bill_name,
-          b.amount::numeric(10,2) as bill_amount,
-          b.day as bill_day,
+          b.amount as bill_amount,
           b.category_id,
           c.name as category_name,
           c.color as category_color,
           c.icon as category_icon,
-          d.date as due_date
+          d.date as due_date,
+          EXTRACT(day from d.date) as day_of_month
         FROM bills b
-        CROSS JOIN MonthDays d
+        CROSS JOIN MonthDates d
         JOIN categories c ON b.category_id = c.id
-        WHERE EXTRACT(day FROM d.date) = b.day
+        WHERE EXTRACT(day from d.date) = b.day
       ),
       TransactionMatches AS MATERIALIZED (
         SELECT 
-          bo.*,
-          EXISTS (
-            SELECT 1 
-            FROM transactions t 
-            WHERE t.category_id = bo.category_id 
-            AND t.amount = bo.bill_amount 
-            AND t.type = 'expense'
-            AND DATE_TRUNC('day', t.date) = bo.due_date
+          bd.*,
+          COALESCE(
+            EXISTS (
+              SELECT 1 
+              FROM transactions t 
+              WHERE t.category_id = bd.category_id
+              AND t.amount = bd.bill_amount
+              AND t.type = 'expense'
+              AND DATE_TRUNC('day', t.date) = bd.due_date
+            ),
+            false
           ) as is_paid
-        FROM BillOccurrences bo
+        FROM BillDates bd
       )
       SELECT 
         c.id as category_id,
@@ -73,11 +76,13 @@ router.get('/api/reports/expenses', async (req, res) => {
         c.color as category_color,
         COALESCE(c.icon, 'circle') as category_icon,
         COUNT(DISTINCT tm.bill_id) as total_bills,
-        COUNT(DISTINCT CASE WHEN tm.is_paid THEN tm.bill_id END) as paid_count,
-        COUNT(DISTINCT CASE WHEN NOT tm.is_paid THEN tm.bill_id END) as pending_count,
-        SUM(CASE WHEN tm.is_paid THEN tm.bill_amount ELSE 0 END)::numeric(10,2) as paid_amount,
-        SUM(CASE WHEN NOT tm.is_paid THEN tm.bill_amount ELSE 0 END)::numeric(10,2) as pending_amount,
-        SUM(tm.bill_amount)::numeric(10,2) as total_amount
+        COUNT(DISTINCT CASE WHEN tm.is_paid THEN tm.bill_id END) as paid_bills,
+        COUNT(DISTINCT CASE WHEN NOT tm.is_paid THEN tm.bill_id END) as pending_bills,
+        COALESCE(SUM(CASE WHEN tm.is_paid THEN 1 END), 0) as paid_count,
+        COALESCE(SUM(CASE WHEN NOT tm.is_paid THEN 1 END), 0) as pending_count,
+        COALESCE(SUM(CASE WHEN tm.is_paid THEN tm.bill_amount END), 0)::numeric(10,2) as paid_amount,
+        COALESCE(SUM(CASE WHEN NOT tm.is_paid THEN tm.bill_amount END), 0)::numeric(10,2) as pending_amount,
+        COALESCE(SUM(tm.bill_amount), 0)::numeric(10,2) as total_amount
       FROM categories c
       LEFT JOIN TransactionMatches tm ON c.id = tm.category_id
       GROUP BY c.id, c.name, c.color, c.icon
@@ -96,7 +101,7 @@ router.get('/api/reports/expenses', async (req, res) => {
       occurrences: {
         paid: Number(row.paid_count) || 0,
         pending: Number(row.pending_count) || 0,
-        total: Number(row.total_bills) || 0
+        total: (Number(row.paid_count) || 0) + (Number(row.pending_count) || 0)
       },
       amounts: {
         paid: Number(row.paid_amount) || 0,
