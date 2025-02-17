@@ -2,7 +2,7 @@ import { pgTable, text, serial, integer, timestamp, decimal, date } from "drizzl
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
-// User table
+// User table - Base table for authentication and user management
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
@@ -10,17 +10,17 @@ export const users = pgTable("users", {
   created_at: timestamp("created_at").defaultNow(),
 });
 
-// Categories table
+// Categories table - Lookup table for transaction and bill categories
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   color: text("color").notNull(),
   icon: text("icon"),
-  user_id: integer("user_id").references(() => users.id),
+  user_id: integer("user_id").references(() => users.id).notNull(),
   created_at: timestamp("created_at").defaultNow(),
 });
 
-// Transactions table
+// Transactions table with proper foreign keys
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   description: text("description").notNull(),
@@ -32,14 +32,14 @@ export const transactions = pgTable("transactions", {
   created_at: timestamp("created_at").defaultNow(),
 });
 
-// Bills table
+// Bills table with proper foreign keys
 export const bills = pgTable("bills", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   day: integer("day").notNull(),
   category_id: integer("category_id").references(() => categories.id),
-  user_id: integer("user_id").references(() => users.id),
+  user_id: integer("user_id").references(() => users.id).notNull(),
   created_at: timestamp("created_at").defaultNow(),
 });
 
