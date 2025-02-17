@@ -13,7 +13,7 @@ router.get('/api/reports/expenses', async (req, res) => {
           DATE '2025-02-01' as start_date,
           DATE '2025-02-28' as end_date
       ),
-      BillTransactions AS (
+      BillOccurrences AS (
         SELECT 
           b.id as bill_id,
           b.name as bill_name,
@@ -23,18 +23,43 @@ router.get('/api/reports/expenses', async (req, res) => {
           c.name as category_name,
           c.color as category_color,
           COALESCE(c.icon, 'circle') as category_icon,
-          EXISTS (
-            SELECT 1 FROM transactions t 
-            WHERE t.category_id = b.category_id 
-            AND t.amount = b.amount 
-            AND t.type = 'expense'
-            AND DATE_TRUNC('day', t.date::timestamp) >= (SELECT start_date FROM CurrentMonth)
-            AND DATE_TRUNC('day', t.date::timestamp) <= (SELECT end_date FROM CurrentMonth)
-            LIMIT 1
-          ) as is_paid
+          b.frequency,
+          generate_series(1, 
+            CASE 
+              WHEN b.frequency = 'weekly' THEN 4
+              WHEN b.frequency = 'biweekly' THEN 2
+              ELSE 1
+            END
+          ) as occurrence_number
         FROM bills b
         JOIN categories c ON b.category_id = c.id
         WHERE b.category_id IS NOT NULL
+      ),
+      BillTransactions AS (
+        SELECT 
+          bo.*,
+          EXISTS (
+            SELECT 1 FROM transactions t 
+            WHERE t.category_id = bo.category_id 
+            AND t.amount = bo.bill_amount 
+            AND t.type = 'expense'
+            AND DATE_TRUNC('day', t.date::timestamp) >= (SELECT start_date FROM CurrentMonth)
+            AND DATE_TRUNC('day', t.date::timestamp) <= (SELECT end_date FROM CurrentMonth)
+            AND EXTRACT(DAY FROM t.date) >= 
+              CASE 
+                WHEN bo.frequency = 'weekly' THEN (bo.occurrence_number - 1) * 7 + 1
+                WHEN bo.frequency = 'biweekly' THEN (bo.occurrence_number - 1) * 14 + 1
+                ELSE bo.bill_day
+              END
+            AND EXTRACT(DAY FROM t.date) <= 
+              CASE 
+                WHEN bo.frequency = 'weekly' THEN bo.occurrence_number * 7
+                WHEN bo.frequency = 'biweekly' THEN bo.occurrence_number * 14
+                ELSE bo.bill_day
+              END
+            LIMIT 1
+          ) as is_paid
+        FROM BillOccurrences bo
       )
       SELECT 
         c.id as category_id,
