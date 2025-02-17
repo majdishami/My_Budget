@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import dayjs from "dayjs";
 
@@ -145,167 +144,161 @@ export function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-hidden">
+        <DialogContent className="sm:max-w-[425px] h-fit overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col space-y-3 overflow-y-auto py-3">
-            <div className="grid gap-3">
-              {/* Expense Type Selection */}
-              <div className="p-2 border rounded-lg bg-muted/50">
-                <div className="flex flex-col gap-2">
-                  <Label className="text-sm font-semibold">Expense Type</Label>
-                  <div className="flex items-center justify-between gap-4">
-                    <Button 
-                      variant={isMonthly ? "default" : "outline"}
-                      className="flex-1"
-                      onClick={() => setIsMonthly(true)}
-                    >
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Monthly
-                    </Button>
-                    <Button 
-                      variant={!isMonthly ? "default" : "outline"}
-                      className="flex-1"
-                      onClick={() => setIsMonthly(false)}
-                    >
-                      <Calendar className="w-4 h-4 mr-2" />
-                      One-time
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Name Input */}
-              <div className="grid gap-1.5">
-                <Label htmlFor="expense-name">Name</Label>
-                <Input
-                  id="expense-name"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    setErrors(prev => ({ ...prev, name: undefined }));
-                  }}
-                  placeholder="Enter expense name"
-                  aria-invalid={!!errors.name}
-                />
-                {errors.name && (
-                  <Alert variant="destructive" className="py-1">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{errors.name}</AlertDescription>
-                  </Alert>
-                )}
-              </div>
-
-              {/* Amount Input */}
-              <div className="grid gap-1.5">
-                <Label htmlFor="expense-amount">Amount</Label>
-                <Input
-                  id="expense-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => {
-                    setAmount(e.target.value);
-                    setErrors(prev => ({ ...prev, amount: undefined }));
-                  }}
-                  placeholder="Enter amount"
-                  aria-invalid={!!errors.amount}
-                />
-                {errors.amount && (
-                  <Alert variant="destructive" className="py-1">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{errors.amount}</AlertDescription>
-                  </Alert>
-                )}
-              </div>
-
-              {/* Date Selection */}
-              <div className="grid gap-1.5">
-                <Label>{isMonthly ? "Monthly Due Date" : "Expense Date"}</Label>
-                <div className="border rounded-md">
-                  <CalendarComponent
-                    mode="single"
-                    selected={isMonthly ? monthlyDueDate : oneTimeDate}
-                    onSelect={isMonthly ? setMonthlyDueDate : setOneTimeDate}
-                    className="rounded-md [&_.rdp-month]:!w-[200px] [&_.rdp-cell]:!w-6 [&_.rdp-cell]:!h-6 [&_.rdp-head_th]:!w-6 [&_.rdp-head_th]:!h-6 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-6"
-                  />
-                </div>
-                {(isMonthly ? errors.monthlyDate : errors.oneTimeDate) && (
-                  <Alert variant="destructive" className="py-1">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      {isMonthly ? errors.monthlyDate : errors.oneTimeDate}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {isMonthly && monthlyDueDate && (
-                  <p className="text-xs text-muted-foreground">
-                    Repeats monthly on day {dayjs(monthlyDueDate).date()}
-                  </p>
-                )}
-                {!isMonthly && oneTimeDate && (
-                  <p className="text-xs text-muted-foreground">
-                    One-time expense on {dayjs(oneTimeDate).format('MMMM D, YYYY')}
-                  </p>
-                )}
-              </div>
-
-              {/* Category Selection */}
-              <div className="grid gap-1.5">
-                <Label htmlFor="expense-category">Category</Label>
-                <Select
-                  value={categoryId}
-                  onValueChange={(value) => {
-                    setCategoryId(value);
-                    setErrors(prev => ({ ...prev, category: undefined }));
-                  }}
-                >
-                  <SelectTrigger
-                    id="expense-category"
-                    aria-invalid={!!errors.category}
+          <div className="space-y-3">
+            {/* Expense Type Selection */}
+            <div className="p-2 border rounded-lg bg-muted/50">
+              <div className="flex flex-col gap-2">
+                <Label className="text-sm font-semibold">Expense Type</Label>
+                <div className="flex items-center justify-between gap-4">
+                  <Button 
+                    variant={isMonthly ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => setIsMonthly(true)}
                   >
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem
-                        key={category.id}
-                        value={category.id.toString()}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: category.color }}
-                          />
-                          {category.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.category && (
-                  <Alert variant="destructive" className="py-1">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{errors.category}</AlertDescription>
-                  </Alert>
-                )}
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Monthly
+                  </Button>
+                  <Button 
+                    variant={!isMonthly ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => setIsMonthly(false)}
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    One-time
+                  </Button>
+                </div>
               </div>
-
-              {/* Reminder Button */}
-              <Button
-                variant="outline"
-                onClick={() => setShowReminderDialog(true)}
-                className="w-full"
-              >
-                <Bell className="mr-2 h-4 w-4" />
-                {reminderEnabled
-                  ? `Reminder: ${reminderDays} days before due date`
-                  : 'Set payment reminder'}
-              </Button>
             </div>
+
+            {/* Name Input */}
+            <div className="grid gap-1.5">
+              <Label htmlFor="expense-name">Name</Label>
+              <Input
+                id="expense-name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setErrors(prev => ({ ...prev, name: undefined }));
+                }}
+                placeholder="Enter expense name"
+              />
+              {errors.name && (
+                <Alert variant="destructive" className="py-1">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errors.name}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            {/* Amount Input */}
+            <div className="grid gap-1.5">
+              <Label htmlFor="expense-amount">Amount</Label>
+              <Input
+                id="expense-amount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={amount}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setErrors(prev => ({ ...prev, amount: undefined }));
+                }}
+                placeholder="Enter amount"
+              />
+              {errors.amount && (
+                <Alert variant="destructive" className="py-1">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errors.amount}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            {/* Date Selection */}
+            <div className="grid gap-1.5">
+              <Label>{isMonthly ? "Monthly Due Date" : "Expense Date"}</Label>
+              <div className="border rounded-md">
+                <CalendarComponent
+                  mode="single"
+                  selected={isMonthly ? monthlyDueDate : oneTimeDate}
+                  onSelect={isMonthly ? setMonthlyDueDate : setOneTimeDate}
+                  className="rounded-md [&_.rdp-month]:!w-[180px] [&_.rdp-cell]:!w-5 [&_.rdp-cell]:!h-5 [&_.rdp-head_th]:!w-5 [&_.rdp-head_th]:!h-5 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-6 [&_.rdp-caption]:!h-6"
+                />
+              </div>
+              {(isMonthly ? errors.monthlyDate : errors.oneTimeDate) && (
+                <Alert variant="destructive" className="py-1">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {isMonthly ? errors.monthlyDate : errors.oneTimeDate}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {isMonthly && monthlyDueDate && (
+                <p className="text-xs text-muted-foreground">
+                  Repeats monthly on day {dayjs(monthlyDueDate).date()}
+                </p>
+              )}
+              {!isMonthly && oneTimeDate && (
+                <p className="text-xs text-muted-foreground">
+                  One-time expense on {dayjs(oneTimeDate).format('MMMM D, YYYY')}
+                </p>
+              )}
+            </div>
+
+            {/* Category Selection */}
+            <div className="grid gap-1.5">
+              <Label htmlFor="expense-category">Category</Label>
+              <Select
+                value={categoryId}
+                onValueChange={(value) => {
+                  setCategoryId(value);
+                  setErrors(prev => ({ ...prev, category: undefined }));
+                }}
+              >
+                <SelectTrigger id="expense-category">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem
+                      key={category.id}
+                      value={category.id.toString()}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        {category.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.category && (
+                <Alert variant="destructive" className="py-1">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errors.category}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            {/* Reminder Button */}
+            <Button
+              variant="outline"
+              onClick={() => setShowReminderDialog(true)}
+              className="w-full"
+            >
+              <Bell className="mr-2 h-4 w-4" />
+              {reminderEnabled
+                ? `Reminder: ${reminderDays} days before due date`
+                : 'Set payment reminder'}
+            </Button>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button onClick={handleConfirm}>Add Expense</Button>
@@ -339,14 +332,14 @@ export function AddExpenseDialog({
 }
 
 const handleReminderSave = (enabled: boolean, days: number) => {
-    if (days < 1 || days > 30) {
-      setErrors(prev => ({
-        ...prev,
-        reminderDays: 'Reminder days must be between 1 and 30'
-      }));
-      return;
-    }
-    setReminderEnabled(enabled);
-    setReminderDays(days);
-    setErrors(prev => ({ ...prev, reminderDays: undefined }));
-  };
+  if (days < 1 || days > 30) {
+    setErrors(prev => ({
+      ...prev,
+      reminderDays: 'Reminder days must be between 1 and 30'
+    }));
+    return;
+  }
+  setReminderEnabled(enabled);
+  setReminderDays(days);
+  setErrors(prev => ({ ...prev, reminderDays: undefined }));
+};
