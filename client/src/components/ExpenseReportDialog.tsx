@@ -124,6 +124,40 @@ interface ExpenseOccurrence {
   status: 'occurred' | 'pending';
 }
 
+// Add generateTransactions function above the component
+const generateTransactions = (dateRange: DateRange, billsList: Bill[], currentDate: dayjs.Dayjs) => {
+  if (!dateRange?.from || !dateRange?.to) return [];
+
+  const startDate = dayjs(dateRange.from);
+  const endDate = dayjs(dateRange.to);
+  const newGeneratedTransactions: Transaction[] = [];
+
+  // Generate expense transactions from bills
+  billsList.forEach(bill => {
+    let currentMonth = startDate.startOf('month');
+    while (currentMonth.isSameOrBefore(endDate)) {
+      const billDate = currentMonth.date(bill.day);
+      if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
+        newGeneratedTransactions.push({
+          id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
+          date: billDate.format('YYYY-MM-DD'),
+          description: bill.name,
+          amount: bill.amount,
+          type: 'expense',
+          category_name: bill.category_name,
+          category_color: bill.category_color,
+          category_icon: bill.category_icon || null,
+          category_id: bill.category_id,
+          occurred: billDate.isSameOrBefore(currentDate)
+        });
+      }
+      currentMonth = currentMonth.add(1, 'month');
+    }
+  });
+
+  return newGeneratedTransactions;
+};
+
 export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, transactions }: ExpenseReportDialogProps) {
   const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
@@ -160,39 +194,16 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     }
   }, [isOpen]);
 
-  // Generate transactions when date range changes
+  // Update the useEffect hook
   useEffect(() => {
     if (!showReport || !date?.from || !date?.to) return;
 
-    const startDate = dayjs(date.from);
-    const endDate = dayjs(date.to);
-    const newGeneratedTransactions: Transaction[] = [];
-
-    // Generate expense transactions from bills
-    bills.forEach(bill => {
-      let currentMonth = startDate.startOf('month');
-      while (currentMonth.isSameOrBefore(endDate)) {
-        const billDate = currentMonth.date(bill.day);
-        if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
-          newGeneratedTransactions.push({
-            id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
-            date: billDate.format('YYYY-MM-DD'),
-            description: bill.name,
-            amount: bill.amount,
-            type: 'expense',
-            category_name: bill.category_name,
-            category_color: bill.category_color,
-            category_icon: bill.category_icon || null,
-            category_id: bill.category_id,
-            occurred: billDate.isSameOrBefore(today) // Added occurred field
-          });
-        }
-        currentMonth = currentMonth.add(1, 'month');
-      }
+    setTransactions((prev) => {
+      const prevState = JSON.stringify(prev);
+      const newTransactions = generateTransactions(date, bills, today);
+      return JSON.stringify(newTransactions) === prevState ? prev : newTransactions;
     });
-
-    setTransactions(newGeneratedTransactions);
-  }, [showReport, date?.from, date?.to, bills, today]);
+  }, [showReport, JSON.stringify(date), JSON.stringify(bills), today]);
 
   // Update the dropdown options with fresh data.
   const dropdownOptions = useMemo(() => {
