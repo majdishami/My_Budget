@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bill } from "@/types";
 import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle, Calendar } from "lucide-react";
@@ -50,7 +50,6 @@ export function AddExpenseDialog({
   const [reminderDays, setReminderDays] = useState(7);
   const [showReminderDialog, setShowReminderDialog] = useState(false);
   const [isMonthly, setIsMonthly] = useState(true);
-  // Separate dates for monthly and one-time expenses
   const [monthlyDueDate, setMonthlyDueDate] = useState<Date | undefined>(new Date());
   const [oneTimeDate, setOneTimeDate] = useState<Date | undefined>(new Date());
 
@@ -144,7 +143,7 @@ export function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
@@ -226,7 +225,7 @@ export function AddExpenseDialog({
                   mode="single"
                   selected={isMonthly ? monthlyDueDate : oneTimeDate}
                   onSelect={isMonthly ? setMonthlyDueDate : setOneTimeDate}
-                  className="rounded-md [&_.rdp-month]:!w-[180px] [&_.rdp-cell]:!w-5 [&_.rdp-cell]:!h-5 [&_.rdp-head_th]:!w-5 [&_.rdp-head_th]:!h-5 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-6 [&_.rdp-caption]:!h-6"
+                  className="rounded-md [&_.rdp-month]:!w-[160px] [&_.rdp-cell]:!w-4 [&_.rdp-cell]:!h-4 [&_.rdp-head_th]:!w-4 [&_.rdp-head_th]:!h-4 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-4 [&_.rdp-caption]:!h-4"
                 />
               </div>
               {(isMonthly ? errors.monthlyDate : errors.oneTimeDate) && (
@@ -332,7 +331,7 @@ export function AddExpenseDialog({
   );
 }
 
-const handleReminderSave = (enabled: boolean, days: number) => {
+function handleReminderSave(enabled: boolean, days: number) {
   if (days < 1 || days > 30) {
     setErrors(prev => ({
       ...prev,
@@ -343,4 +342,4 @@ const handleReminderSave = (enabled: boolean, days: number) => {
   setReminderEnabled(enabled);
   setReminderDays(days);
   setErrors(prev => ({ ...prev, reminderDays: undefined }));
-};
+}
