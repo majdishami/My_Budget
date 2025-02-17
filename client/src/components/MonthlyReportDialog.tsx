@@ -215,6 +215,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[50px]">#</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Category</TableHead>
@@ -224,6 +225,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                     <TableBody>
                       {occurredIncomes.map((t, i) => (
                         <TableRow key={i}>
+                          <TableCell>{i + 1}</TableCell>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
                           <TableCell>
@@ -257,6 +259,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[50px]">#</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Category</TableHead>
@@ -266,6 +269,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                     <TableBody>
                       {occurredExpenses.map((t, i) => (
                         <TableRow key={i}>
+                          <TableCell>{i + 1}</TableCell>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
                           <TableCell>
@@ -307,6 +311,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[50px]">#</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Category</TableHead>
@@ -316,6 +321,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                     <TableBody>
                       {pendingIncomes.map((t, i) => (
                         <TableRow key={i}>
+                          <TableCell>{i + 1}</TableCell>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
                           <TableCell>
@@ -349,6 +355,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[50px]">#</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Category</TableHead>
@@ -358,6 +365,7 @@ export default function MonthlyReportDialog({ isOpen, onOpenChange }: MonthlyRep
                     <TableBody>
                       {pendingExpenses.map((t, i) => (
                         <TableRow key={i}>
+                          <TableCell>{i + 1}</TableCell>
                           <TableCell>{dayjs(t.date).format('MMM D')}</TableCell>
                           <TableCell>{t.description}</TableCell>
                           <TableCell>
