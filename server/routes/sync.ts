@@ -11,57 +11,103 @@ const router = Router();
 
 const validateAndPreprocessData = (data: any) => {
   try {
+    console.log('Validating backup data:', JSON.stringify(data, null, 2));
+
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid backup format: data must be a JSON object');
     }
 
-    // Transform categories from dictionary to array format for database operations
-    const categoriesArray = Object.entries(data.categories || {}).map(([name, category]: [string, any]) => ({
-      id: category.id,
-      name,
-      color: category.color || '#808080',
-      icon: category.icon || 'circle'
-    }));
+    // Transform categories data
+    let categoriesArray = [];
+    if (data.categories) {
+      if (Array.isArray(data.categories)) {
+        categoriesArray = data.categories;
+      } else if (typeof data.categories === 'object') {
+        categoriesArray = Object.entries(data.categories).map(([name, category]: [string, any]) => ({
+          id: category.id,
+          name: name,
+          color: category.color || '#808080',
+          icon: category.icon || 'circle'
+        }));
+      } else {
+        throw new Error('Invalid categories format: must be an array or object');
+      }
+    }
 
     // Create a map for quick category lookups
-    const categoryMap = new Map(categoriesArray.map(cat => [cat.name, cat]));
+    const categoryMap = new Map(categoriesArray.map(cat => [
+      typeof cat === 'string' ? cat : cat.name,
+      typeof cat === 'string' ? { name: cat } : cat
+    ]));
 
-    // Transform bills from dictionary to array format
-    const billsArray = Object.entries(data.bills || {}).map(([id, bill]: [string, any]) => {
-      const amount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
+    // Transform bills data
+    let billsArray = [];
+    if (data.bills) {
+      if (Array.isArray(data.bills)) {
+        billsArray = data.bills;
+      } else if (typeof data.bills === 'object') {
+        billsArray = Object.entries(data.bills).map(([id, bill]: [string, any]) => {
+          const amount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
+
+          if (isNaN(amount)) {
+            console.warn(`Warning: Invalid amount for bill "${bill.name}", defaulting to 0`);
+            return null;
+          }
+
+          // Find category
+          let categoryId = bill.category_id;
+          if (!categoryId && bill.category) {
+            const category = Array.from(categoryMap.values()).find(c => c.name === bill.category);
+            if (category) {
+              categoryId = category.id;
+            } else {
+              console.warn(`Warning: Category "${bill.category}" not found for bill "${bill.name}"`);
+            }
+          }
+
+          return {
+            id: parseInt(id),
+            name: bill.name,
+            amount,
+            day: typeof bill.day === 'string' ? parseInt(bill.day) : bill.day,
+            category_id: categoryId
+          };
+        }).filter(Boolean);
+      } else {
+        throw new Error('Invalid bills format: must be an array or object');
+      }
+    }
+
+    // Transform transactions
+    const transactions = (data.transactions || []).map((t: any) => {
+      const amount = typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount;
       if (isNaN(amount)) {
-        throw new Error(`Invalid amount format for bill "${bill.name}": amount must be a valid number`);
+        console.warn(`Warning: Invalid amount for transaction "${t.description}", skipping`);
+        return null;
       }
-
-      const category = categoryMap.get(bill.category);
-      if (!category) {
-        throw new Error(`Invalid category "${bill.category}" for bill "${bill.name}"`);
-      }
-
       return {
-        id: parseInt(id),
-        name: bill.name,
+        ...t,
         amount,
-        day: bill.day,
-        category_id: category.id
+        date: new Date(t.date).toISOString()
       };
-    });
+    }).filter(Boolean);
 
-    return {
+    const processedData = {
       categories: categoriesArray,
       bills: billsArray,
-      transactions: (data.transactions || []).map((t: any) => ({
-        ...t,
-        amount: typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount
-      }))
+      transactions
     };
+
+    console.log('Processed data:', JSON.stringify(processedData, null, 2));
+    return processedData;
+
   } catch (error) {
     console.error('Data validation error:', error);
     throw error;
   }
 };
 
-// Backup endpoint - Format data in the new schema structure
+// Backup endpoint
 router.post('/api/sync/backup', async (req, res) => {
   try {
     const result = await generateDatabaseBackup();
@@ -74,17 +120,17 @@ router.post('/api/sync/backup', async (req, res) => {
 
     const backupData = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'tmp', result.fileName), 'utf8'));
 
-    // Transform categories to dictionary with name as key
+    // Transform categories to dictionary
     const categoriesDict = backupData.categories.reduce((acc: any, category: any) => {
       acc[category.name] = {
         id: category.id,
-        color: category.color,
+        color: category.color || '#808080',
         icon: category.icon || 'circle'
       };
       return acc;
     }, {});
 
-    // Transform bills to dictionary with ID as key
+    // Transform bills to dictionary
     const billsDict = backupData.bills.reduce((acc: any, bill: any) => {
       const category = backupData.categories.find((c: any) => c.id === bill.category_id);
       acc[bill.id] = {
@@ -96,7 +142,6 @@ router.post('/api/sync/backup', async (req, res) => {
       return acc;
     }, {});
 
-    // Structure the data according to the new schema
     const transformedData = {
       categories: categoriesDict,
       bills: billsDict,
@@ -106,9 +151,8 @@ router.post('/api/sync/backup', async (req, res) => {
       }))
     };
 
-    // Write transformed data back to file
     fs.writeFileSync(
-      path.join(process.cwd(), 'tmp', result.fileName), 
+      path.join(process.cwd(), 'tmp', result.fileName),
       JSON.stringify(transformedData, null, 2)
     );
 
@@ -124,7 +168,7 @@ router.post('/api/sync/backup', async (req, res) => {
   }
 });
 
-// Download endpoint remains unchanged
+// Download endpoint
 router.get('/api/sync/download/:filename', (req, res) => {
   try {
     const { filename } = req.params;
@@ -159,7 +203,7 @@ router.get('/api/sync/download/:filename', (req, res) => {
   }
 });
 
-// Restore endpoint - Handle the new schema structure
+// Restore endpoint
 router.post('/api/sync/restore', async (req, res) => {
   let tempPath = '';
 
@@ -178,53 +222,61 @@ router.post('/api/sync/restore', async (req, res) => {
     }
 
     await uploadedFile.mv(tempPath);
-    const fileContent = fs.readFileSync(tempPath, 'utf8');
 
     try {
+      const fileContent = fs.readFileSync(tempPath, 'utf8');
+      console.log('Uploaded file content:', fileContent);
+
       const parsedData = JSON.parse(fileContent);
       const processedData = validateAndPreprocessData(parsedData);
 
       await db.transaction(async (tx) => {
         // Restore categories first
         if (processedData.categories.length > 0) {
-          await tx.insert(categories).values(processedData.categories)
-            .onConflictDoUpdate({
-              target: [categories.id],
-              set: {
-                name: sql`EXCLUDED.name`,
-                color: sql`EXCLUDED.color`,
-                icon: sql`EXCLUDED.icon`
-              }
-            });
+          for (const category of processedData.categories) {
+            await tx.insert(categories).values(category)
+              .onConflictDoUpdate({
+                target: [categories.id],
+                set: {
+                  name: sql`EXCLUDED.name`,
+                  color: sql`EXCLUDED.color`,
+                  icon: sql`EXCLUDED.icon`
+                }
+              });
+          }
         }
 
         // Restore bills
         if (processedData.bills.length > 0) {
-          await tx.insert(bills).values(processedData.bills)
-            .onConflictDoUpdate({
-              target: [bills.id],
-              set: {
-                name: sql`EXCLUDED.name`,
-                amount: sql`EXCLUDED.amount`,
-                day: sql`EXCLUDED.day`,
-                category_id: sql`EXCLUDED.category_id`
-              }
-            });
+          for (const bill of processedData.bills) {
+            await tx.insert(bills).values(bill)
+              .onConflictDoUpdate({
+                target: [bills.id],
+                set: {
+                  name: sql`EXCLUDED.name`,
+                  amount: sql`EXCLUDED.amount`,
+                  day: sql`EXCLUDED.day`,
+                  category_id: sql`EXCLUDED.category_id`
+                }
+              });
+          }
         }
 
         // Restore transactions
         if (processedData.transactions.length > 0) {
-          await tx.insert(transactions).values(processedData.transactions)
-            .onConflictDoUpdate({
-              target: [transactions.id],
-              set: {
-                description: sql`EXCLUDED.description`,
-                amount: sql`EXCLUDED.amount`,
-                date: sql`EXCLUDED.date`,
-                type: sql`EXCLUDED.type`,
-                category_id: sql`EXCLUDED.category_id`
-              }
-            });
+          for (const transaction of processedData.transactions) {
+            await tx.insert(transactions).values(transaction)
+              .onConflictDoUpdate({
+                target: [transactions.id],
+                set: {
+                  description: sql`EXCLUDED.description`,
+                  amount: sql`EXCLUDED.amount`,
+                  date: sql`EXCLUDED.date`,
+                  type: sql`EXCLUDED.type`,
+                  category_id: sql`EXCLUDED.category_id`
+                }
+              });
+          }
         }
       });
 
@@ -240,7 +292,8 @@ router.post('/api/sync/restore', async (req, res) => {
       console.error('Error processing backup data:', parseError);
       res.status(400).json({ 
         error: 'Invalid backup file content',
-        details: parseError.message || 'Unknown parse error'
+        details: parseError.message || 'Unknown parse error',
+        stack: parseError.stack
       });
     }
   } catch (error: any) {
