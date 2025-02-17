@@ -143,17 +143,17 @@ export function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[800px] h-fit">
+        <DialogContent className="sm:max-w-[800px] h-[600px] overflow-auto"> {/* Added max-height and overflow-auto */}
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-3 py-2">
+          <div className="space-y-2 py-2"> {/* Reduced spacing */}
             {/* Expense Type Selection */}
             <div className="grid gap-1">
               <Label htmlFor="expense-type" className="text-sm font-medium">Expense Type</Label>
               <div className="flex gap-2">
-                <Button 
+                <Button
                   variant={isMonthly ? "default" : "outline"}
                   className={`flex-1 ${isMonthly ? 'bg-primary hover:bg-primary/90' : ''}`}
                   onClick={() => setIsMonthly(true)}
@@ -161,7 +161,7 @@ export function AddExpenseDialog({
                   <Calendar className="w-4 h-4 mr-2" />
                   Monthly
                 </Button>
-                <Button 
+                <Button
                   variant={!isMonthly ? "default" : "outline"}
                   className={`flex-1 ${!isMonthly ? 'bg-primary hover:bg-primary/90' : ''}`}
                   onClick={() => setIsMonthly(false)}
@@ -225,7 +225,7 @@ export function AddExpenseDialog({
                   mode="single"
                   selected={isMonthly ? monthlyDueDate : oneTimeDate}
                   onSelect={isMonthly ? setMonthlyDueDate : setOneTimeDate}
-                  className="rounded-md [&_.rdp-month]:!w-[150px] [&_.rdp-cell]:!w-4 [&_.rdp-cell]:!h-4 [&_.rdp-head_th]:!w-4 [&_.rdp-head_th]:!h-4 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-4 [&_.rdp-caption]:!h-4 [&_.rdp-day_selected]:!bg-primary [&_.rdp-day_selected]:!text-primary-foreground [&_.rdp-day_selected]:!font-bold"
+                  className="rounded-md [&_.rdp-month]:!w-[150px] [&_.rdp-cell]:!p-1 [&_.rdp-cell]:!w-6 [&_.rdp-cell]:!h-6 [&_.rdp-head_th]:!w-6 [&_.rdp-head_th]:!h-6 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-6 [&_.rdp-caption]:!h-6 [&_.rdp-day_selected]:!bg-primary [&_.rdp-day_selected]:!text-primary-foreground [&_.rdp-day_selected]:!font-bold"
                 />
               </div>
               <p className="text-xs text-muted-foreground">
