@@ -395,8 +395,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
 
     // Handle individual expense view
     if (selectedValue.startsWith('expense_')) {
-      const billId = selectedValue.replace('expense_', '');
-      const bill = bills.find(b => b.id.toString() === billId);
+      const billId = Number(selectedValue.replace('expense_', '')); // Corrected type
+      const bill = bills.find(b => b.id === billId);
       if (!bill) return [];
 
       // Calculate monthly occurrences within date range
@@ -775,8 +775,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     // Get title based on selection type
     let title = "";
     if (selectedValue.startsWith('expense_')) {
-      const billId = selectedValue.replace('expense_', '');
-      const bill = bills.find(b => b.id.toString() === billId);
+      const billId = Number(selectedValue.replace('expense_', '')); // Corrected type
+      const bill = bills.find(b => b.id === billId);
       if (bill) {
         title = `${bill.name}`; // Corrected title
       }
@@ -800,11 +800,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     if (selectedValue === "all") return "All Expenses Combined";
     if (selectedValue === "all_categories") return "All Categories Combined";
     if (selectedValue.startsWith('expense_')) {
-      const billId = selectedValue.replace('expense_', '');
+      const billId = Number(selectedValue.replace('expense_', '')); // Corrected type
+      // Convert billId to number and find matching bill
       const bill = bills.find(b => b.id === billId);
-      if (bill) {        return (
-          `${bill.name}` // Corrected title
-        );
+      if (bill) {
+        return bill.name;
       }
     }
     if (selectedValue.startsWith('category_')) {
@@ -961,7 +961,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0 border-b pb-4">
-          <div className="flex justify-between items-start">
+          <div className="flexjustify-between items-start">
             <div>
               <DialogTitle className="text-xl">
                 {getDialogTitle()}
@@ -1009,13 +1009,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
                           <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2 text-lg">
                               <CategoryDisplay
-                                category={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_name}
-                                color={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_color}
-                                icon={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_icon}
+                                category={bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.category_name}
+                                color={bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.category_color}
+                                icon={bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.category_icon}
                               />
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              Monthly Amount: {formatCurrency(bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.amount || 0)}
+                              Monthly Amount: {formatCurrency(bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.amount || 0)}
                             </div>
                           </div>
                         </CardTitle>
@@ -1319,7 +1319,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
                     <CardHeader>
                       <CardTitle className="flex flex-col space-y-2">
                         <div className="text-xl font-semibold">
-                          {bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name}
+                          {bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.name}
                         </div>
                         <div className="text-sm font-normal text-muted-foreground flex items-center gap-2">
                           <CategoryDisplay
@@ -1328,7 +1328,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
                             icon={itemTotals[0].icon}
                           />
                           <span className="text-foreground">
-                            {formatCurrency(bills.find(b => b.id === selectedValue.replace('expense_', ''))?.amount || 0)} per month
+                            {formatCurrency(bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.amount || 0)} per month
                           </span>
                         </div>
                       </CardTitle>
