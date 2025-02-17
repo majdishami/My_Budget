@@ -145,7 +145,7 @@ export function AddExpenseDialog({
               {/* Expense Type Selection */}
               <div className="flex gap-2">
                 <Button
-                  variant={isMonthly ? "default" : "outline"}
+                  variant={isMonthly ? "default" : "ghost"}
                   className="flex-1"
                   onClick={() => setIsMonthly(true)}
                 >
@@ -153,7 +153,7 @@ export function AddExpenseDialog({
                   Monthly
                 </Button>
                 <Button
-                  variant={!isMonthly ? "default" : "outline"}
+                  variant={!isMonthly ? "default" : "ghost"}
                   className="flex-1"
                   onClick={() => setIsMonthly(false)}
                 >
