@@ -15,84 +15,45 @@ const validateAndPreprocessData = (data: any) => {
       throw new Error('Invalid backup format: data must be a JSON object');
     }
 
-    // Convert categories from object to array if needed
-    if (typeof data.categories === 'object' && !Array.isArray(data.categories)) {
-      data.categories = Object.entries(data.categories).map(([id, category]: [string, any]) => ({
-        ...category,
-        id: parseInt(id),
-        color: category.color || '#000000',
-        icon: category.icon || 'circle'
-      }));
-    }
+    // Transform categories from dictionary to array format for database operations
+    const categoriesArray = Object.entries(data.categories || {}).map(([name, category]: [string, any]) => ({
+      id: category.id,
+      name,
+      color: category.color || '#808080',
+      icon: category.icon || 'circle',
+      user_id: 1 // Default user
+    }));
 
-    // Convert bills from object to array if needed
-    if (typeof data.bills === 'object' && !Array.isArray(data.bills)) {
-      data.bills = Object.entries(data.bills).map(([id, bill]: [string, any]) => ({
-        ...bill,
-        id: parseInt(id),
-        amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount
-      }));
-    }
+    // Create a map for quick category lookups
+    const categoryMap = new Map(categoriesArray.map(cat => [cat.name, cat]));
 
-    // Create a map of category IDs for faster lookups
-    const categoryMap = new Map(data.categories.map((cat: any) => [cat.id, cat]));
-
-    // Process and validate bills
-    const processedBills = data.bills.map((bill: any) => {
-      if (!bill.id || !bill.name || !bill.amount || typeof bill.day !== 'number') {
-        throw new Error(`Invalid bill format: Each bill must have id, name, amount, and day fields`);
-      }
-
-      // Ensure amount is numeric
+    // Transform bills from dictionary to array format
+    const billsArray = Object.entries(data.bills || {}).map(([id, bill]: [string, any]) => {
       const amount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
       if (isNaN(amount)) {
         throw new Error(`Invalid amount format for bill "${bill.name}": amount must be a valid number`);
       }
 
-      // Remove created_at if present to let DB handle it
-      const { created_at, category, ...rest } = bill;
-
-      // If category name is provided instead of ID, look up the ID
-      if (category && !rest.category_id) {
-        const categoryEntry = Array.from(categoryMap.values()).find((cat: any) => cat.name === category);
-        if (categoryEntry) {
-          rest.category_id = categoryEntry.id;
-        } else {
-          console.warn(`Warning: Bill "${rest.name}" references non-existent category ${category}`);
-          rest.category_id = 17; // Default to General Expenses
-        }
+      const category = categoryMap.get(bill.category);
+      if (!category) {
+        throw new Error(`Invalid category "${bill.category}" for bill "${bill.name}"`);
       }
 
       return {
-        ...rest,
+        id: parseInt(id),
+        name: bill.name,
         amount,
-        day: parseInt(rest.day.toString())
+        day: bill.day,
+        category_id: category.id,
+        user_id: bill.user_id || 1
       };
     });
 
-    // Convert processed data back to dictionary format
-    const processedCategories = data.categories.reduce((acc: any, category: any) => {
-      acc[category.id] = {
-        ...category,
-        color: category.color || '#000000',
-        icon: category.icon || 'circle'
-      };
-      return acc;
-    }, {});
-
-    const processedBillsDict = processedBills.reduce((acc: any, bill: any) => {
-      acc[bill.id] = {
-        ...bill,
-        amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount
-      };
-      return acc;
-    }, {});
-
     return {
-      ...data,
-      categories: processedCategories,
-      bills: processedBillsDict,
-      transactions: data.transactions.map((t: any) => ({
+      users: data.users || [],
+      categories: categoriesArray,
+      bills: billsArray,
+      transactions: (data.transactions || []).map((t: any) => ({
         ...t,
         amount: typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount
       }))
@@ -103,7 +64,7 @@ const validateAndPreprocessData = (data: any) => {
   }
 };
 
-// Backup endpoint - Format data as dictionary
+// Backup endpoint - Format data in the new schema structure
 router.post('/api/sync/backup', async (req, res) => {
   try {
     const result = await generateDatabaseBackup();
@@ -114,26 +75,47 @@ router.post('/api/sync/backup', async (req, res) => {
       });
     }
 
-    // Transform data to dictionary format
     const backupData = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'tmp', result.fileName), 'utf8'));
 
-    // Convert categories to dictionary
-    backupData.categories = backupData.categories.reduce((acc: any, category: any) => {
-      acc[category.id] = category;
-      return acc;
-    }, {});
-
-    // Convert bills to dictionary
-    backupData.bills = backupData.bills.reduce((acc: any, bill: any) => {
-      acc[bill.id] = {
-        ...bill,
-        amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount
+    // Transform categories to dictionary with name as key
+    const categoriesDict = backupData.categories.reduce((acc: any, category: any) => {
+      acc[category.name] = {
+        id: category.id,
+        color: category.color,
+        icon: category.icon || 'circle'
       };
       return acc;
     }, {});
 
+    // Transform bills to dictionary with ID as key
+    const billsDict = backupData.bills.reduce((acc: any, bill: any) => {
+      const category = backupData.categories.find((c: any) => c.id === bill.category_id);
+      acc[bill.id] = {
+        name: bill.name,
+        amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount,
+        day: bill.day,
+        category: category?.name || 'Other',
+        user_id: bill.user_id
+      };
+      return acc;
+    }, {});
+
+    // Structure the data according to the new schema
+    const transformedData = {
+      users: backupData.users || [],
+      categories: categoriesDict,
+      bills: billsDict,
+      transactions: backupData.transactions.map((t: any) => ({
+        ...t,
+        amount: typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount
+      }))
+    };
+
     // Write transformed data back to file
-    fs.writeFileSync(path.join(process.cwd(), 'tmp', result.fileName), JSON.stringify(backupData, null, 2));
+    fs.writeFileSync(
+      path.join(process.cwd(), 'tmp', result.fileName), 
+      JSON.stringify(transformedData, null, 2)
+    );
 
     res.json({
       message: 'Backup generated successfully',
@@ -182,7 +164,7 @@ router.get('/api/sync/download/:filename', (req, res) => {
   }
 });
 
-// Restore endpoint - Handle dictionary format
+// Restore endpoint - Handle the new schema structure
 router.post('/api/sync/restore', async (req, res) => {
   let tempPath = '';
 
@@ -208,16 +190,9 @@ router.post('/api/sync/restore', async (req, res) => {
       const processedData = validateAndPreprocessData(parsedData);
 
       await db.transaction(async (tx) => {
-        // Convert dictionary data back to arrays for database insertion
-        const categoriesArray = Object.values(processedData.categories);
-        const billsArray = Object.values(processedData.bills).map((bill: any) => ({
-          ...bill,
-          amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount
-        }));
-
         // Restore categories first
-        if (categoriesArray.length > 0) {
-          await tx.insert(categories).values(categoriesArray)
+        if (processedData.categories.length > 0) {
+          await tx.insert(categories).values(processedData.categories)
             .onConflictDoUpdate({
               target: [categories.id],
               set: {
@@ -230,8 +205,8 @@ router.post('/api/sync/restore', async (req, res) => {
         }
 
         // Restore bills
-        if (billsArray.length > 0) {
-          await tx.insert(bills).values(billsArray)
+        if (processedData.bills.length > 0) {
+          await tx.insert(bills).values(processedData.bills)
             .onConflictDoUpdate({
               target: [bills.id],
               set: {
@@ -264,8 +239,8 @@ router.post('/api/sync/restore', async (req, res) => {
       res.json({ 
         message: 'Backup restored successfully',
         summary: {
-          categories: Object.keys(processedData.categories).length,
-          bills: Object.keys(processedData.bills).length,
+          categories: processedData.categories.length,
+          bills: processedData.bills.length,
           transactions: processedData.transactions.length
         }
       });
