@@ -124,7 +124,7 @@ interface ExpenseOccurrence {
   status: 'occurred' | 'pending';
 }
 
-export function ExpenseReportDialog({ isOpen, onOpenChange, bills, transactions }: ExpenseReportDialogProps) {
+export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, transactions }: ExpenseReportDialogProps) {
   const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
