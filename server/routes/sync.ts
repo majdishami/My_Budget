@@ -19,7 +19,8 @@ const validateAndPreprocessData = (data: any) => {
     if (typeof data.bills === 'object' && !Array.isArray(data.bills)) {
       data.bills = Object.entries(data.bills).map(([id, bill]: [string, any]) => ({
         ...bill,
-        id: parseInt(id)
+        id: parseInt(id),
+        amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount
       }));
     } else if (!Array.isArray(data.bills)) {
       throw new Error('Invalid backup format: "bills" must be an object or array');
@@ -34,8 +35,11 @@ const validateAndPreprocessData = (data: any) => {
         throw new Error(`Invalid bill format: Each bill must have id, name, amount, and day fields`);
       }
 
-      // Convert amount to numeric if it's a string
+      // Ensure amount is numeric
       const amount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
+      if (isNaN(amount)) {
+        throw new Error(`Invalid amount format for bill "${bill.name}": amount must be a valid number`);
+      }
 
       // Remove created_at if present to let DB handle it
       const { created_at, category, ...rest } = bill;
@@ -58,9 +62,29 @@ const validateAndPreprocessData = (data: any) => {
       };
     });
 
-    // Convert processed bills back to dictionary format
+    // Process transactions to ensure numeric amounts
+    if (Array.isArray(data.transactions)) {
+      data.transactions = data.transactions.map((transaction: any) => {
+        const amount = typeof transaction.amount === 'string' ? 
+          parseFloat(transaction.amount) : transaction.amount;
+
+        if (isNaN(amount)) {
+          throw new Error(`Invalid amount format for transaction "${transaction.description}": amount must be a valid number`);
+        }
+
+        return {
+          ...transaction,
+          amount
+        };
+      });
+    }
+
+    // Convert processed bills back to dictionary format with numeric amounts
     data.bills = processedBills.reduce((acc: any, bill: any) => {
-      acc[bill.id] = bill;
+      acc[bill.id] = {
+        ...bill,
+        amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount
+      };
       return acc;
     }, {});
 
@@ -71,7 +95,7 @@ const validateAndPreprocessData = (data: any) => {
   }
 };
 
-// Backup endpoint - Format data as dictionary
+// Backup endpoint - Format data as dictionary with numeric amounts
 router.post('/api/sync/backup', async (req, res) => {
   try {
     const result = await generateDatabaseBackup();
@@ -83,10 +107,13 @@ router.post('/api/sync/backup', async (req, res) => {
       });
     }
 
-    // Transform bills array to dictionary before sending
+    // Transform bills array to dictionary and ensure numeric amounts
     const backupData = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'tmp', result.fileName), 'utf8'));
     backupData.bills = backupData.bills.reduce((acc: any, bill: any) => {
-      acc[bill.id] = bill;
+      acc[bill.id] = {
+        ...bill,
+        amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount
+      };
       return acc;
     }, {});
 
@@ -168,7 +195,10 @@ router.post('/api/sync/restore', async (req, res) => {
 
       await db.transaction(async (tx) => {
         // Convert bills back to array for database insertion
-        const billsArray = Object.values(processedData.bills);
+        const billsArray = Object.values(processedData.bills).map(bill => ({
+          ...bill,
+          amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount
+        }));
 
         if (billsArray.length > 0) {
           console.log('Restoring bills...');
@@ -200,10 +230,16 @@ router.post('/api/sync/restore', async (req, res) => {
             });
         }
 
-        // Restore transactions
+        // Restore transactions with numeric amounts
         if (processedData.transactions.length > 0) {
           console.log('Restoring transactions...');
-          await tx.insert(transactions).values(processedData.transactions)
+          const processedTransactions = processedData.transactions.map((transaction: any) => ({
+            ...transaction,
+            amount: typeof transaction.amount === 'string' ? 
+              parseFloat(transaction.amount) : transaction.amount
+          }));
+
+          await tx.insert(transactions).values(processedTransactions)
             .onConflictDoUpdate({
               target: [transactions.id],
               set: {
