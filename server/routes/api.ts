@@ -21,21 +21,21 @@ router.post('/api/categories/reindex', async (req, res) => {
   }
 });
 
-// Keep existing expense report endpoint
+// Optimized expense report endpoint using materialized CTEs and indexes
 router.get('/api/reports/expenses', async (req, res) => {
   try {
     const query = `
       WITH RECURSIVE 
-      CurrentMonth AS (
+      CurrentMonth AS MATERIALIZED (
         SELECT 
           DATE '2025-02-01' as start_date,
           DATE '2025-02-28' as end_date
       ),
-      BillOccurrences AS (
+      BillOccurrences AS MATERIALIZED (
         SELECT 
           b.id as bill_id,
           b.name as bill_name,
-          b.amount as bill_amount,
+          b.amount::numeric(10,2) as bill_amount,
           b.day as bill_day,
           b.category_id,
           c.name as category_name,
@@ -54,7 +54,7 @@ router.get('/api/reports/expenses', async (req, res) => {
         JOIN categories c ON b.category_id = c.id
         WHERE b.category_id IS NOT NULL
       ),
-      BillTransactions AS (
+      BillTransactions AS MATERIALIZED (
         SELECT 
           bo.*,
           unnest(bo.occurrences) as occurrence_number,
@@ -88,9 +88,9 @@ router.get('/api/reports/expenses', async (req, res) => {
         COUNT(bt.*) as total_bills,
         SUM(CASE WHEN bt.is_paid THEN 1 ELSE 0 END) as paid_count,
         SUM(CASE WHEN NOT bt.is_paid THEN 1 ELSE 0 END) as pending_count,
-        SUM(CASE WHEN bt.is_paid THEN bt.bill_amount ELSE 0 END) as paid_amount,
-        SUM(CASE WHEN NOT bt.is_paid THEN bt.bill_amount ELSE 0 END) as pending_amount,
-        SUM(bt.bill_amount) as total_amount
+        SUM(CASE WHEN bt.is_paid THEN bt.bill_amount ELSE 0 END)::numeric(10,2) as paid_amount,
+        SUM(CASE WHEN NOT bt.is_paid THEN bt.bill_amount ELSE 0 END)::numeric(10,2) as pending_amount,
+        SUM(bt.bill_amount)::numeric(10,2) as total_amount
       FROM categories c
       LEFT JOIN BillTransactions bt ON c.id = bt.category_id
       GROUP BY c.id, c.name, c.color, c.icon
