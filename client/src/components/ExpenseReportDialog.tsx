@@ -245,19 +245,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
   // Selection view
   if (!showReport) {
     return (
-      <Dialog 
-        open={isOpen} 
+      <Dialog
+        open={isOpen}
         onOpenChange={onOpenChange}
       >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
               Generate Expense Report
-              {date?.from && date?.to && (
-                <div className="text-sm font-normal text-muted-foreground mt-1">
-                  {dayjs(date.from).format('MMM D, YYYY')} - {dayjs(date.to).format('MMM D, YYYY')}
-                </div>
-              )}
             </DialogTitle>
           </DialogHeader>
 
@@ -320,6 +315,17 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
               />
             </div>
 
+            <div className="text-sm font-medium text-muted-foreground">
+              {date?.from ? (
+                <>
+                  Selected Range: {dayjs(date.from).format('MMM D, YYYY')}
+                  {date.to ? ` - ${dayjs(date.to).format('MMM D, YYYY')}` : ''}
+                </>
+              ) : (
+                'Select start and end dates'
+              )}
+            </div>
+
             {dateError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -358,10 +364,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
           <div className="flex justify-between items-center">
             <DialogTitle>
               {selectedValue === 'all' ? 'All Expenses' :
-               selectedValue === 'categories' ? 'Expenses by Category' :
-               selectedValue.startsWith('category_') ? `Category: ${selectedValue.replace('category_', '')}` :
-               selectedValue.startsWith('expense_') ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name :
-               'Expense Report'}
+                selectedValue === 'categories' ? 'Expenses by Category' :
+                  selectedValue.startsWith('category_') ? `Category: ${selectedValue.replace('category_', '')}` :
+                    selectedValue.startsWith('expense_') ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name :
+                      'Expense Report'}
             </DialogTitle>
             <Button variant="outline" onClick={() => setShowReport(false)}>
               Back to Selection
