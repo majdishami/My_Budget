@@ -143,15 +143,15 @@ export function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[425px] max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-3 py-2">
             {/* Expense Type Selection */}
-            <div className="grid gap-2">
-              <Label className="text-sm font-semibold">Expense Type</Label>
+            <div className="grid gap-1">
+              <Label className="text-sm font-medium">Expense Type</Label>
               <div className="flex gap-2">
                 <Button 
                   variant={isMonthly ? "default" : "outline"}
@@ -183,6 +183,7 @@ export function AddExpenseDialog({
                   setErrors(prev => ({ ...prev, name: undefined }));
                 }}
                 placeholder="Enter expense name"
+                autoComplete="off"
               />
               {errors.name && (
                 <Alert variant="destructive" className="py-1">
@@ -206,6 +207,7 @@ export function AddExpenseDialog({
                   setErrors(prev => ({ ...prev, amount: undefined }));
                 }}
                 placeholder="Enter amount"
+                autoComplete="off"
               />
               {errors.amount && (
                 <Alert variant="destructive" className="py-1">
@@ -223,9 +225,16 @@ export function AddExpenseDialog({
                   mode="single"
                   selected={isMonthly ? monthlyDueDate : oneTimeDate}
                   onSelect={isMonthly ? setMonthlyDueDate : setOneTimeDate}
-                  className="rounded-md [&_.rdp-month]:!w-[160px] [&_.rdp-cell]:!w-4 [&_.rdp-cell]:!h-4 [&_.rdp-head_th]:!w-4 [&_.rdp-head_th]:!h-4 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-4 [&_.rdp-caption]:!h-4 [&_.rdp-day_selected]:!bg-primary [&_.rdp-day_selected]:!text-primary-foreground [&_.rdp-day_selected]:!font-bold"
+                  className="rounded-md [&_.rdp-month]:!w-[150px] [&_.rdp-cell]:!w-4 [&_.rdp-cell]:!h-4 [&_.rdp-head_th]:!w-4 [&_.rdp-head_th]:!h-4 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-4 [&_.rdp-caption]:!h-4 [&_.rdp-day_selected]:!bg-primary [&_.rdp-day_selected]:!text-primary-foreground [&_.rdp-day_selected]:!font-bold"
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                {isMonthly && monthlyDueDate
+                  ? `Repeats monthly on day ${dayjs(monthlyDueDate).date()}`
+                  : !isMonthly && oneTimeDate
+                  ? `One-time expense on ${dayjs(oneTimeDate).format('MMMM D, YYYY')}`
+                  : ''}
+              </p>
               {(isMonthly ? errors.monthlyDate : errors.oneTimeDate) && (
                 <Alert variant="destructive" className="py-1">
                   <AlertCircle className="h-4 w-4" />
@@ -233,16 +242,6 @@ export function AddExpenseDialog({
                     {isMonthly ? errors.monthlyDate : errors.oneTimeDate}
                   </AlertDescription>
                 </Alert>
-              )}
-              {isMonthly && monthlyDueDate && (
-                <p className="text-xs text-muted-foreground">
-                  Repeats monthly on day {dayjs(monthlyDueDate).date()}
-                </p>
-              )}
-              {!isMonthly && oneTimeDate && (
-                <p className="text-xs text-muted-foreground">
-                  One-time expense on {dayjs(oneTimeDate).format('MMMM D, YYYY')}
-                </p>
               )}
             </div>
 
@@ -297,7 +296,7 @@ export function AddExpenseDialog({
             </Button>
           </div>
 
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button onClick={handleConfirm}>Add Expense</Button>
           </DialogFooter>
