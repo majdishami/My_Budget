@@ -98,14 +98,6 @@ export function AddExpenseDialog({
       newErrors.amount = 'Please enter a valid amount greater than 0';
     }
 
-    if (isMonthly && !monthlyDueDate) {
-      newErrors.monthlyDate = 'Please select a monthly due date';
-    }
-
-    if (!isMonthly && !oneTimeDate) {
-      newErrors.oneTimeDate = 'Please select a date for the one-time expense';
-    }
-
     if (!categoryId) {
       newErrors.category = 'Please select a category';
     }
@@ -123,7 +115,7 @@ export function AddExpenseDialog({
       id: generateId(),
       name: name.trim(),
       amount: parseFloat(amount),
-      day: isMonthly ? dayjs(monthlyDueDate).date() : undefined,
+      day: isMonthly ? monthlyDueDate?.getDate() : undefined,
       date: !isMonthly ? oneTimeDate?.toISOString() : undefined,
       category_id: parseInt(categoryId),
       category_name: selectedCategory?.name || 'Uncategorized',
@@ -143,19 +135,18 @@ export function AddExpenseDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[800px] h-[600px] overflow-auto"> {/* Added max-height and overflow-auto */}
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-2 py-2"> {/* Reduced spacing */}
+          <div className="space-y-2">
             {/* Expense Type Selection */}
             <div className="grid gap-1">
-              <Label htmlFor="expense-type" className="text-sm font-medium">Expense Type</Label>
               <div className="flex gap-2">
                 <Button
                   variant={isMonthly ? "default" : "outline"}
-                  className={`flex-1 ${isMonthly ? 'bg-primary hover:bg-primary/90' : ''}`}
+                  className="flex-1"
                   onClick={() => setIsMonthly(true)}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
@@ -163,7 +154,7 @@ export function AddExpenseDialog({
                 </Button>
                 <Button
                   variant={!isMonthly ? "default" : "outline"}
-                  className={`flex-1 ${!isMonthly ? 'bg-primary hover:bg-primary/90' : ''}`}
+                  className="flex-1"
                   onClick={() => setIsMonthly(false)}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
@@ -225,7 +216,7 @@ export function AddExpenseDialog({
                   mode="single"
                   selected={isMonthly ? monthlyDueDate : oneTimeDate}
                   onSelect={isMonthly ? setMonthlyDueDate : setOneTimeDate}
-                  className="rounded-md [&_.rdp-month]:!w-[150px] [&_.rdp-cell]:!p-1 [&_.rdp-cell]:!w-6 [&_.rdp-cell]:!h-6 [&_.rdp-head_th]:!w-6 [&_.rdp-head_th]:!h-6 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-6 [&_.rdp-caption]:!h-6 [&_.rdp-day_selected]:!bg-primary [&_.rdp-day_selected]:!text-primary-foreground [&_.rdp-day_selected]:!font-bold"
+                  className="rounded-md [&_.rdp-month]:!w-[280px] [&_.rdp-cell]:!p-0 [&_.rdp-cell]:!w-8 [&_.rdp-cell]:!h-8 [&_.rdp-head_th]:!w-8 [&_.rdp-head_th]:!h-8 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-8 [&_.rdp-caption]:!h-8"
                 />
               </div>
               <p className="text-xs text-muted-foreground">
@@ -235,14 +226,6 @@ export function AddExpenseDialog({
                   ? `One-time expense on ${dayjs(oneTimeDate).format('MMMM D, YYYY')}`
                   : ''}
               </p>
-              {(isMonthly ? errors.monthlyDate : errors.oneTimeDate) && (
-                <Alert variant="destructive" className="py-1">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {isMonthly ? errors.monthlyDate : errors.oneTimeDate}
-                  </AlertDescription>
-                </Alert>
-              )}
             </div>
 
             {/* Category Selection */}
@@ -309,7 +292,7 @@ export function AddExpenseDialog({
           id: generateId(),
           name,
           amount: parseFloat(amount || '0'),
-          day: isMonthly ? dayjs(monthlyDueDate).date() : undefined,
+          day: isMonthly ? monthlyDueDate?.getDate() : undefined,
           date: !isMonthly ? oneTimeDate?.toISOString() : undefined,
           category_id: parseInt(categoryId || '1'),
           category_name: categories.find(cat => cat.id.toString() === categoryId)?.name || 'Uncategorized',
