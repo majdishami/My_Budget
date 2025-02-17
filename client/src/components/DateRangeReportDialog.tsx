@@ -47,7 +47,7 @@ interface RemainingCalculations {
 }
 
 export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRangeReportDialogProps) {
-  const today = useMemo(() => getCurrentDate(), []); // Use the current date utility
+  const today = useMemo(() => getCurrentDate(), []);
   const defaultDateRange = useMemo(() => ({
     from: today.toDate(),
     to: undefined
@@ -67,6 +67,19 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
       setDate(defaultDateRange);
     }
   }, [isOpen, defaultDateRange]);
+
+  // Handle date selection
+  const handleDateSelect = (selectedDate: DateRange | undefined) => {
+    if (selectedDate?.from && !selectedDate.to) {
+      // If only start date is selected, automatically set end date to the same date
+      setDate({ 
+        from: selectedDate.from,
+        to: selectedDate.from 
+      });
+    } else {
+      setDate(selectedDate);
+    }
+  };
 
   // Memoize the calculation function
   const calculateRemaining = useCallback((selectedDate: Date) => {
@@ -115,38 +128,42 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
     const endDate = dayjs(date.to);
     const generatedTransactions: Transaction[] = [];
 
-    // Generate Majdi's salary transactions
+    // Generate transactions for each person
+    const generatePersonTransactions = (
+      name: string,
+      amount: number,
+      dates: dayjs.Dayjs[]
+    ) => {
+      dates.forEach(payDate => {
+        if (payDate.isBetween(startDate, endDate, 'day', '[]')) {
+          generatedTransactions.push({
+            date: payDate.format('YYYY-MM-DD'),
+            description: `${name}'s Salary`,
+            amount: amount,
+            type: 'income',
+            occurred: payDate.isSameOrBefore(today)
+          });
+        }
+      });
+    };
+
+    // Generate Majdi's salary dates (1st and 15th of each month)
     const majdiPayDates = Array.from({ length: 12 }, (_, i) => {
       const month = startDate.add(i, 'month');
       return [month.date(1), month.date(15)];
     }).flat();
+    generatePersonTransactions("Majdi", 4739, majdiPayDates);
 
-    majdiPayDates.forEach(payDate => {
-      if (payDate.isBetween(startDate, endDate, 'day', '[]')) {
-        generatedTransactions.push({
-          date: payDate.format('YYYY-MM-DD'),
-          description: "Majdi's Salary",
-          amount: 4739,
-          type: 'income',
-          occurred: payDate.isSameOrBefore(today)
-        });
-      }
-    });
-
-    // Generate Ruba's salary transactions
+    // Generate Ruba's salary dates (every 14 days)
     let rubaPayDate = dayjs('2025-01-10');
+    const rubaDates: dayjs.Dayjs[] = [];
     while (rubaPayDate.isSameOrBefore(endDate)) {
       if (rubaPayDate.isBetween(startDate, endDate, 'day', '[]')) {
-        generatedTransactions.push({
-          date: rubaPayDate.format('YYYY-MM-DD'),
-          description: "Ruba's Salary",
-          amount: 2168,
-          type: 'income',
-          occurred: rubaPayDate.isSameOrBefore(today)
-        });
+        rubaDates.push(rubaPayDate);
       }
       rubaPayDate = rubaPayDate.add(14, 'day');
     }
+    generatePersonTransactions("Ruba", 2168, rubaDates);
 
     // Generate expense transactions
     const monthlyExpenses = [
@@ -234,7 +251,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Select Date Range</DialogTitle>
           </DialogHeader>
@@ -243,7 +260,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
               <Calendar
                 mode="range"
                 selected={date}
-                onSelect={setDate}
+                onSelect={handleDateSelect}
                 numberOfMonths={1}
                 defaultMonth={today.toDate()}
                 className="rounded-md"
@@ -269,10 +286,10 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                 </CardContent>
               </Card>
             )}
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm font-medium text-muted-foreground">
               {date?.from ? (
                 <>
-                  {dayjs(date.from).format('MMM D, YYYY')}
+                  Selected Range: {dayjs(date.from).format('MMM D, YYYY')}
                   {date.to ? ` - ${dayjs(date.to).format('MMM D, YYYY')}` : ''}
                 </>
               ) : (
@@ -305,54 +322,68 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl">
-            Financial Report: {dayjs(date?.from).format('MMM D, YYYY')} - {dayjs(date?.to).format('MMM D, YYYY')}
-          </DialogTitle>
-        </DialogHeader>
-        <div id="report-content-description" className="sr-only">
-          Financial report showing income and expenses between selected dates
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Occurred Transactions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                  <div className="text-green-600">
-                    Total Occurred Income: {formatCurrency(summary.occurredIncome)}
-                  </div>
-                  <div className="text-red-600">
-                    Total Incurred Expenses: {formatCurrency(summary.occurredExpenses)}
-                  </div>
-                  <div className="text-blue-600">
-                    Net Balance up today: {formatCurrency(occurredNet)}
-                  </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-medium">Future Transactions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-green-300">
-                  Income: {formatCurrency(summary.futureIncome)}
-                </div>
-                <div className="text-red-300">
-                  Expenses: {formatCurrency(summary.futureExpenses)}
-                </div>
-                <div className="text-blue-600">
-                  Net: {formatCurrency(futureNet)}
-                </div>
-              </CardContent>
-            </Card>
-
+        <DialogHeader className="flex flex-col space-y-2">
+          <div className="flex justify-between items-center">
+            <DialogTitle className="text-xl">
+              Financial Report
+            </DialogTitle>
+            <Button variant="outline" onClick={() => setShowReport(false)}>
+              Back to Selection
+            </Button>
           </div>
+          <div className="text-sm text-muted-foreground">
+            {dayjs(date?.from).format('MMM D, YYYY')} - {dayjs(date?.to).format('MMM D, YYYY')}
+          </div>
+        </DialogHeader>
+
+        {/* Overall Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Occurred Transactions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div>
+                <div className="text-sm text-muted-foreground">Income Received</div>
+                <div className="text-xl font-bold text-green-600">{formatCurrency(summary.occurredIncome)}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Expenses Paid</div>
+                <div className="text-xl font-bold text-red-600">{formatCurrency(summary.occurredExpenses)}</div>
+              </div>
+              <div className="pt-2 border-t">
+                <div className="text-sm text-muted-foreground">Net Balance</div>
+                <div className={`text-xl font-bold ${occurredNet >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(occurredNet)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-sm font-medium">Upcoming Transactions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div>
+                <div className="text-sm text-muted-foreground">Expected Income</div>
+                <div className="text-xl font-bold text-green-300">{formatCurrency(summary.futureIncome)}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Pending Expenses</div>
+                <div className="text-xl font-bold text-red-300">{formatCurrency(summary.futureExpenses)}</div>
+              </div>
+              <div className="pt-2 border-t">
+                <div className="text-sm text-muted-foreground">Expected Net</div>
+                <div className={`text-xl font-bold ${futureNet >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                  {formatCurrency(futureNet)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
+        {/* Monthly Breakdown */}
         <div className="space-y-4">
           {sortedMonths.map(monthKey => {
             const monthTransactions = groupedTransactions[monthKey];
@@ -367,29 +398,34 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
             return (
               <Card key={monthKey}>
                 <CardHeader className="py-4">
-                  <CardTitle className="text-lg font-medium">
-                    {dayjs(monthKey).format('MMMM YYYY')}
+                  <CardTitle className="text-lg font-medium flex justify-between items-center">
+                    <span>{dayjs(monthKey).format('MMMM YYYY')}</span>
+                    <span className={`text-base ${
+                      monthlyTotal.income - monthlyTotal.expenses >= 0 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      Net: {formatCurrency(monthlyTotal.income - monthlyTotal.expenses)}
+                    </span>
                   </CardTitle>
                   <div className="text-sm space-y-1">
                     <div className="text-green-600">
-                      Monthly Income: {formatCurrency(monthlyTotal.income)}
+                      Income: {formatCurrency(monthlyTotal.income)}
                     </div>
                     <div className="text-red-600">
-                      Monthly Expenses: {formatCurrency(monthlyTotal.expenses)}
-                    </div>
-                    <div className="text-blue-600">
-                      Monthly Net: {formatCurrency(monthlyTotal.income - monthlyTotal.expenses)}
+                      Expenses: {formatCurrency(monthlyTotal.expenses)}
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {/* Occurred Income */}
+                  {/* Income Transactions */}
                   {monthIncomes.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-sm font-medium mb-2">Income</h4>
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            <TableHead className="w-16">#</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Description</TableHead>
                             <TableHead className="text-right">Amount</TableHead>
@@ -399,17 +435,18 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                         <TableBody>
                           {monthIncomes
                             .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                            .map((transaction, index) => (
-                              <TableRow key={index}>
+                            .map((transaction, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell>{idx + 1}</TableCell>
                                 <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                                <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-300'}>
-                                  {transaction.description}
-                                </TableCell>
-                                <TableCell className={`text-right ${transaction.occurred ? 'text-green-600' : 'text-green-300'}`}>
+                                <TableCell>{transaction.description}</TableCell>
+                                <TableCell className="text-right font-medium text-green-600">
                                   {formatCurrency(transaction.amount)}
                                 </TableCell>
-                                <TableCell className={transaction.occurred ? 'text-green-600' : 'text-green-300'}>
-                                  {transaction.occurred ? 'Occurred' : 'Pending'}
+                                <TableCell>
+                                  <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
+                                    {transaction.occurred ? 'Received' : 'Expected'}
+                                  </span>
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -418,13 +455,14 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                     </div>
                   )}
 
-                  {/* Occurred Expenses */}
+                  {/* Expense Transactions */}
                   {monthExpenses.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium mb-2">Expenses</h4>
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            <TableHead className="w-16">#</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Description</TableHead>
                             <TableHead className="text-right">Amount</TableHead>
@@ -434,15 +472,18 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                         <TableBody>
                           {monthExpenses
                             .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                            .map((transaction, index) => (
-                              <TableRow key={index}>
+                            .map((transaction, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell>{idx + 1}</TableCell>
                                 <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                                 <TableCell>{transaction.description}</TableCell>
-                                <TableCell className={`text-right ${transaction.occurred ? 'text-red-600' : 'text-red-300'}`}>
+                                <TableCell className="text-right font-medium text-red-600">
                                   {formatCurrency(transaction.amount)}
                                 </TableCell>
-                                <TableCell className={transaction.occurred ? 'text-red-600' : 'text-red-300'}>
-                                  {transaction.occurred ? 'Occurred' : 'Pending'}
+                                <TableCell>
+                                  <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
+                                    {transaction.occurred ? 'Paid' : 'Due'}
+                                  </span>
                                 </TableCell>
                               </TableRow>
                             ))}
