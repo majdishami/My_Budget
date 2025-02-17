@@ -32,12 +32,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "user_id": {
-          "name": "user_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -47,26 +41,9 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "categories_user_id_users_id_fk": {
-          "name": "categories_user_id_users_id_fk",
-          "tableFrom": "categories",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "uniqueConstraints": {}
     },
     "public.goals": {
       "name": "goals",
@@ -509,19 +486,8 @@
           "name": "category_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "recurring_id": {
-          "name": "recurring_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "references": "categories.id"
         },
         "created_at": {
           "name": "created_at",
@@ -545,39 +511,10 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-        },
-        "transactions_user_id_users_id_fk": {
-          "name": "transactions_user_id_users_id_fk",
-          "tableFrom": "transactions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "transactions_recurring_id_recurring_transactions_id_fk": {
-          "name": "transactions_recurring_id_recurring_transactions_id_fk",
-          "tableFrom": "transactions",
-          "tableTo": "recurring_transactions",
-          "columnsFrom": [
-            "recurring_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "uniqueConstraints": {}
     },
     "public.users": {
       "name": "users",
@@ -624,6 +561,64 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+        "public.bills": {
+      "name": "bills",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day": {
+          "name": "day",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "references": "categories.id"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "bills_category_id_categories_id_fk": {
+          "name": "bills_category_id_categories_id_fk",
+          "tableFrom": "bills",
+          "tableTo": "categories",
+          "columnsFrom": ["category_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     }
   },
   "enums": {},
