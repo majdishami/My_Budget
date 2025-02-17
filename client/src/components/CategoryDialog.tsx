@@ -11,8 +11,8 @@ import { ChromePicker } from 'react-color';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const categorySchema = z.object({
-  name: z.string().min(1, "Category name is required"),
-  color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Invalid color format"),
+  name: z.string().trim().min(1, "Category name is required"),
+  color: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Invalid color format"),
   icon: z.string().nullable().optional()
 });
 
@@ -51,8 +51,9 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
       // Ensure proper data formatting
       const formattedData = {
         ...data,
-        color: data.color.toLowerCase(), // Normalize color to lowercase
-        icon: data.icon?.trim() || null // Trim icon name and convert empty string to null
+        name: data.name.trim(),
+        color: data.color.toLowerCase(),
+        icon: data.icon?.trim() || null
       };
 
       await onSubmit(formattedData);
@@ -83,6 +84,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       placeholder="Enter category name" 
                       {...field} 
                       autoComplete="off"
+                      aria-autocomplete="none"
                     />
                   </FormControl>
                   <FormMessage />
@@ -136,6 +138,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       value={field.value || ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
                       autoComplete="off"
+                      aria-autocomplete="none"
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground mt-1">

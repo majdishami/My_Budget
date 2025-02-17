@@ -16,7 +16,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { apiRequest } from '@/lib/queryClient';
 
 interface Category {
   id: number;
@@ -79,15 +78,23 @@ export function CategoryManager() {
   const createMutation = useMutation({
     mutationFn: async (data: CategoryFormData) => {
       console.log('[Categories] Creating category with data:', data);
-      const response = await apiRequest(
-        'POST',
-        '/api/categories',
-        {
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: data.name,
           color: data.color,
           icon: data.icon || null
-        }
-      );
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to create category');
+      }
+
       return response.json();
     },
     onSuccess: () => {
@@ -107,16 +114,23 @@ export function CategoryManager() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: { id: number } & CategoryFormData) => {
-      console.log('[Categories] Updating category:', data);
-      const response = await apiRequest(
-        'PATCH',
-        `/api/categories/${data.id}`,
-        {
+      const response = await fetch(`/api/categories/${data.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: data.name,
           color: data.color,
           icon: data.icon || null
-        }
-      );
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to update category');
+      }
+
       return response.json();
     },
     onSuccess: () => {
@@ -136,7 +150,18 @@ export function CategoryManager() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest('DELETE', `/api/categories/${id}`);
+      const response = await fetch(`/api/categories/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to delete category');
+      }
+
       return response.json();
     },
     onSuccess: () => {
