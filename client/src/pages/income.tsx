@@ -12,6 +12,7 @@ export default function IncomeReport() {
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
+      // Ensure we navigate back only when dialog is explicitly closed
       setLocation("/");
     }
   };
@@ -19,11 +20,13 @@ export default function IncomeReport() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Income Report</h1>
-      <IncomeReportDialog
-        isOpen={isDialogOpen}
-        onOpenChange={handleOpenChange}
-        incomes={incomes}
-      />
+      {isDialogOpen && (
+        <IncomeReportDialog
+          isOpen={isDialogOpen}
+          onOpenChange={handleOpenChange}
+          incomes={incomes}
+        />
+      )}
     </div>
   );
 }
