@@ -8,12 +8,15 @@ const router = Router();
 // Add reindex endpoint
 router.post('/api/categories/reindex', async (req, res) => {
   try {
+    console.log('Starting category reindexing process...');
     const result = await reindexCategories();
+    console.log('Reindexing completed:', result);
     res.json(result);
   } catch (error) {
     console.error('Failed to reindex categories:', error);
     res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to reindex categories' 
+      error: error instanceof Error ? error.message : 'Failed to reindex categories',
+      details: error instanceof Error ? error.stack : undefined
     });
   }
 });
