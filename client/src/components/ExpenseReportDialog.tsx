@@ -802,8 +802,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     if (selectedValue.startsWith('expense_')) {
       const billId = selectedValue.replace('expense_', '');
       const bill = bills.find(b => b.id === billId);
-      if (bill) {
-        return (
+      if (bill) {        return (
           `${bill.name}` // Corrected title
         );
       }
@@ -934,9 +933,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
 
   // Update CategoryDisplay component interface
   interface CategoryDisplayProps {
-    category: string;
-    color: string;
-    icon: string | null;
+    category: string | undefined;
+    color: string | undefined;
+    icon: string | null | undefined;
   }
 
   // Update the CategoryDisplay component to display consistent icons
@@ -945,10 +944,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
       <div className="flex items-center gap-2">
         <div
           className="w-3 h-3 rounded-full"
-          style={{ backgroundColor: color || '#6366F1' }}
+          style={{ backgroundColor: color || '#D3D3D3' }}
         />
         {icon && <DynamicIcon iconName={icon} />}
-        <span>{category}</span>
+        <span>{category || 'Uncategorized'}</span>
       </div>
     );
   }
@@ -1010,9 +1009,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
                           <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2 text-lg">
                               <CategoryDisplay
-                                category={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_name || 'Uncategorized'}
-                                color={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_color || '#D3D3D3'}
-                                icon={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_icon || null}
+                                category={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_name}
+                                color={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_color}
+                                icon={bills.find(b => b.id.toString() === selectedValue.replace('expense_', ''))?.category_icon}
                               />
                             </div>
                             <div className="text-sm text-muted-foreground">
@@ -1291,7 +1290,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
                                 <CategoryDisplay
                                   category={expense.category}
                                   color={expense.color}
-                                  icon={bills.find(b => b.category_name === expense.category)?.category_icon ?? null}
+                                  icon={bills.find(b => b.category_name === expense.category)?.category_icon}
                                 />
                               </TableCell>
                               <TableCell className="text-right font-medium">
