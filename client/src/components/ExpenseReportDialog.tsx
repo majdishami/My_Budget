@@ -114,8 +114,6 @@ interface GroupedExpense {
 interface ExpenseReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  bills: Bill[];
-  transactions: Transaction[];
 }
 
 interface ExpenseOccurrence {
@@ -158,7 +156,7 @@ const generateTransactions = (dateRange: DateRange, billsList: Bill[], currentDa
   return newGeneratedTransactions;
 };
 
-export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, transactions }: ExpenseReportDialogProps) {
+export default function ExpenseReportDialog({ isOpen, onOpenChange, }: ExpenseReportDialogProps) {
   const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
@@ -200,14 +198,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
 
     setTransactions((prev) => {
       const prevState = JSON.stringify(prev);
-      const newTransactions = generateTransactions(date, bills, today);
+      const newTransactions = generateTransactions(date, billsData, today);
       return JSON.stringify(newTransactions) === prevState ? prev : newTransactions;
     });
-  }, [showReport, JSON.stringify(date), JSON.stringify(bills), today]);
+  }, [showReport, JSON.stringify(date), JSON.stringify(billsData), today]);
 
   // Update the dropdown options with fresh data.
   const dropdownOptions = useMemo(() => {
-    const categorizedBills = bills.reduce<Record<string, (Bill & { categoryColor: string })[]>>((acc, bill) => {
+    const categorizedBills = billsData.reduce<Record<string, (Bill & { categoryColor: string })[]>>((acc, bill) => {
       const categoryName = bill.category_name || 'Uncategorized';
       if (!acc[categoryName]) {
         acc[categoryName] = [];
@@ -225,7 +223,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
       ),
       categorizedBills
     };
-  }, [bills]);
+  }, [billsData]);
 
   // Update filteredTransactions to prevent double counting
   const filteredTransactions = useMemo(() => {
@@ -239,7 +237,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     const uniqueTransactions: Transaction[] = [];
 
     // First add actual transactions
-    transactions.forEach(t => {
+    transactionsData.forEach(t => {
       if (!processedIds.has(t.id)) {
         const transactionDate = dayjs(t.date);
         if (transactionDate.isSameOrAfter(startDate) &&
@@ -254,7 +252,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     generatedTransactions.forEach(t => {
       const key = `${t.description}-${t.date}`;
       // Only add if we don't have a matching actual transaction
-      const hasMatchingTransaction = transactions.some(actual =>
+      const hasMatchingTransaction = transactionsData.some(actual =>
         actual.description === t.description &&
         actual.date === t.date
       );
@@ -270,7 +268,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     });
 
     return uniqueTransactions;
-  }, [generatedTransactions, transactions, date]);
+  }, [generatedTransactions, transactionsData, date]);
 
   // Update groupedExpenses to use simpler filtering like MonthlyReportDialog
   const groupedExpenses = useMemo(() => {
@@ -284,7 +282,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     const processedEntries = new Set<string>();
 
     // First handle bills
-    bills.forEach(bill => {
+    billsData.forEach(bill => {
       const key = bill.name;
 
       // Only process each bill once per month
@@ -388,7 +386,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
       .sort((a, b) => b.totalAmount - a.totalAmount)
       .filter(entry => entry.totalAmount > 0);
 
-  }, [bills, filteredTransactions, date, today]);
+  }, [billsData, filteredTransactions, date, today]);
 
   // Update itemTotals to properly handle both expenses and incomes
   const itemTotals = useMemo(() => {
@@ -407,7 +405,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     // Handle individual expense view
     if (selectedValue.startsWith('expense_')) {
       const billId = Number(selectedValue.replace('expense_', '')); // Corrected type
-      const bill = bills.find(b => b.id === billId);
+      const bill = billsData.find(b => b.id === billId);
       if (!bill) return [];
 
       // Calculate monthly occurrences within date range
@@ -501,7 +499,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
       });
 
       // Process bills for future occurrences
-      bills.forEach(bill => {
+      billsData.forEach(bill => {
         let currentMonth = startDate.clone();
 
         while (currentMonth.isSameOrBefore(endDate)) {
@@ -603,7 +601,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
         });
 
       // Then add any upcoming bills
-      bills.forEach(bill => {
+      billsData.forEach(bill => {
         let currentMonth = startDate.clone();
 
         while (currentMonth.isSameOrBefore(endDate)) {
@@ -711,7 +709,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
       });
 
       // Process bills for future occurrences
-      bills.forEach(bill => {
+      billsData.forEach(bill => {
         let currentMonth = startDate.clone();
 
         while (currentMonth.isSameOrBefore(endDate)) {
@@ -770,7 +768,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     }
 
     return [];
-  }, [bills, selectedValue, date, today, filteredTransactions]);
+  }, [billsData, selectedValue, date, today, filteredTransactions]);
 
   // Update summary calculations
   const summary = useMemo(() => {
@@ -787,7 +785,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     let title = "";
     if (selectedValue.startsWith('expense_')) {
       const billId = Number(selectedValue.replace('expense_', '')); // Corrected type
-      const bill = bills.find(b => b.id === billId);
+      const bill = billsData.find(b => b.id === billId);
       if (bill) {
         title = `${bill.name}`; // Corrected title
       }
@@ -805,7 +803,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
       occurredAmount: itemTotals.reduce((sum, item) => sum + item.occurred, 0),
       pendingAmount: itemTotals.reduce((sum, item) => sum + item.pending, 0)
     };
-  }, [selectedValue, date, itemTotals, bills]);
+  }, [selectedValue, date, itemTotals, billsData]);
 
   const getDialogTitle = () => {
     if (selectedValue === "all") return "All Expenses Combined";
@@ -813,7 +811,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     if (selectedValue.startsWith('expense_')) {
       const billId = Number(selectedValue.replace('expense_', '')); // Corrected type
       // Convert billId to number and find matching bill
-      const bill = bills.find(b => b.id === billId);
+      const bill = billsData.find(b => b.id === billId);
       if (bill) {
         return bill.name;
       }
@@ -824,7 +822,27 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
     return "Expense Report";
   };
 
-  if (!showReport) {
+  // Update the existing useQuery configuration
+  const { data: transactionsData = [], isLoading: transactionsLoading } = useQuery({
+    queryKey: ['/api/transactions'],
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    cacheTime: 1000 * 60 * 10, // Keep cache for 10 minutes
+  });
+
+  // Update any other useQuery hooks in the file similarly
+  const { data: categoriesData = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['/api/categories'],
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 10,
+  });
+
+  const { data: billsData = [], isLoading: billsLoading } = useQuery({
+    queryKey: ['/api/bills'],
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 10,
+  });
+
+  if (!showReport || transactionsLoading || categoriesLoading || billsLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px] overflow-hidden">
@@ -863,13 +881,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
                   {/* Individual Categories */}
                   <SelectGroup>
                     <SelectLabel>Individual Categories</SelectLabel>
-                    {dropdownOptions.categories.map((category) => (
+                    {categoriesData.map((category) => (
                       <SelectItem
-                        key={`category_${category}`}
-                        value={`category_${category}`}
+                        key={`category_${category.name}`}
+                        value={`category_${category.name}`}
                         className="text-blue-600"
                       >
-                        {category}
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -877,7 +895,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
                   {/* Individual Expenses */}
                   <SelectGroup>
                     <SelectLabel>Individual Expenses</SelectLabel>
-                    {bills.map((bill) => (
+                    {billsData.map((bill) => (
                       <SelectItem
                         key={`expense_${bill.id}`}
                         value={`expense_${bill.id}`}
@@ -1020,13 +1038,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
                           <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2 text-lg">
                               <CategoryDisplay
-                                category={bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.category_name}
-                                color={bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.category_color}
-                                icon={bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.category_icon}
+                                category={billsData.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.category_name}
+                                color={billsData.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.category_color}
+                                icon={billsData.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.category_icon}
                               />
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              Monthly Amount: {formatCurrency(bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.amount || 0)}
+                              Monthly Amount: {formatCurrency(billsData.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.amount || 0)}
                             </div>
                           </div>
                         </CardTitle>
@@ -1301,7 +1319,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
                                 <CategoryDisplay
                                   category={expense.category}
                                   color={expense.color}
-                                  icon={bills.find(b => b.category_name === expense.category)?.category_icon}
+                                  icon={billsData.find(b => b.category_name === expense.category)?.category_icon}
                                 />
                               </TableCell>
                               <TableCell className="text-right font-medium">
@@ -1330,7 +1348,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
                     <CardHeader>
                       <CardTitle className="flex flex-col space-y-2">
                         <div className="text-xl font-semibold">
-                          {bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.name}
+                          {billsData.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.name}
                         </div>
                         <div className="text-sm font-normal text-muted-foreground flex items-center gap-2">
                           <CategoryDisplay
@@ -1339,7 +1357,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange, bills, trans
                             icon={itemTotals[0].icon}
                           />
                           <span className="text-foreground">
-                            {formatCurrency(bills.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.amount || 0)} per month
+                            {formatCurrency(billsData.find(b => b.id === Number(selectedValue.replace('expense_', '')))?.amount || 0)} per month
                           </span>
                         </div>
                       </CardTitle>
