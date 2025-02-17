@@ -48,10 +48,49 @@ interface Transaction {
   occurred: boolean;
 }
 
+interface CategoryTotal {
+  category: string;
+  total: number;
+  occurred: number;
+  pending: number;
+  color: string;
+  icon: string | null;
+  transactions: Transaction[];
+}
+
 interface ExpenseReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+// DynamicIcon component for consistent icon rendering
+const DynamicIcon = ({ iconName, className = "h-4 w-4" }: { iconName: string | null | undefined, className?: string }) => {
+  if (!iconName) return null;
+  const formatIconName = (name: string) => {
+    return name.split('-').map(part =>
+      part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+    ).join('');
+  };
+  const IconComponent = (Icons as any)[formatIconName(iconName)];
+  return IconComponent ? <IconComponent className={className} /> : null;
+};
+
+interface CategoryDisplayProps {
+  category: string | undefined;
+  color: string | undefined;
+  icon: string | null | undefined;
+}
+
+const CategoryDisplay = ({ category, color, icon }: CategoryDisplayProps) => (
+  <div className="flex items-center gap-2">
+    <div
+      className="w-3 h-3 rounded-full"
+      style={{ backgroundColor: color || '#D3D3D3' }}
+    />
+    {icon && <DynamicIcon iconName={icon} />}
+    <span>{category || 'Uncategorized'}</span>
+  </div>
+);
 
 const generateTransactions = (dateRange: DateRange, bills: Bill[], currentDate: dayjs.Dayjs): Transaction[] => {
   if (!dateRange?.from || !dateRange?.to || !bills) return [];
@@ -95,8 +134,14 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
 
   const { data: bills = [], isLoading: billsLoading } = useQuery({
     queryKey: ['/api/bills'],
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    cacheTime: 1000 * 60 * 10 // Keep cache for 10 minutes
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 10
+  });
+
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['/api/categories'],
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 10
   });
 
   // Reset state when dialog closes
@@ -116,6 +161,86 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     const transactions = generateTransactions(date, bills, today);
     setGeneratedTransactions(transactions);
   }, [showReport, date, bills, today]);
+
+  // Calculate summaries based on selection
+  const summaries = useMemo(() => {
+    if (!generatedTransactions.length) return [];
+
+    if (selectedValue === 'all') {
+      return [{
+        total: generatedTransactions.reduce((sum, t) => sum + t.amount, 0),
+        occurred: generatedTransactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0),
+        pending: generatedTransactions.filter(t => !t.occurred).reduce((sum, t) => sum + t.amount, 0),
+        transactions: generatedTransactions
+      }];
+    }
+
+    if (selectedValue === 'categories') {
+      const categoryTotals: Record<string, CategoryTotal> = {};
+
+      generatedTransactions.forEach(t => {
+        if (!categoryTotals[t.category_name]) {
+          categoryTotals[t.category_name] = {
+            category: t.category_name,
+            total: 0,
+            occurred: 0,
+            pending: 0,
+            color: t.category_color,
+            icon: t.category_icon,
+            transactions: []
+          };
+        }
+
+        const total = categoryTotals[t.category_name];
+        total.total += t.amount;
+        if (t.occurred) {
+          total.occurred += t.amount;
+        } else {
+          total.pending += t.amount;
+        }
+        total.transactions.push(t);
+      });
+
+      return Object.values(categoryTotals).sort((a, b) => b.total - a.total);
+    }
+
+    if (selectedValue.startsWith('category_')) {
+      const categoryName = selectedValue.replace('category_', '');
+      const categoryTransactions = generatedTransactions.filter(t => t.category_name === categoryName);
+
+      if (categoryTransactions.length) {
+        return [{
+          category: categoryName,
+          total: categoryTransactions.reduce((sum, t) => sum + t.amount, 0),
+          occurred: categoryTransactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0),
+          pending: categoryTransactions.filter(t => !t.occurred).reduce((sum, t) => sum + t.amount, 0),
+          color: categoryTransactions[0].category_color,
+          icon: categoryTransactions[0].category_icon,
+          transactions: categoryTransactions
+        }];
+      }
+    }
+
+    if (selectedValue.startsWith('expense_')) {
+      const billId = selectedValue.replace('expense_', '');
+      const bill = bills.find(b => b.id === billId);
+      const billTransactions = generatedTransactions.filter(t => t.description === bill?.name);
+
+      if (billTransactions.length) {
+        return [{
+          category: bill?.category_name || '',
+          total: billTransactions.reduce((sum, t) => sum + t.amount, 0),
+          occurred: billTransactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0),
+          pending: billTransactions.filter(t => !t.occurred).reduce((sum, t) => sum + t.amount, 0),
+          color: bill?.category_color || '#000000',
+          icon: bill?.category_icon || null,
+          transactions: billTransactions
+        }];
+      }
+    }
+
+    return [];
+  }, [generatedTransactions, selectedValue, bills]);
 
   // Selection view
   if (!showReport) {
@@ -142,6 +267,38 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                     <SelectItem value="all">All Expenses</SelectItem>
                     <SelectItem value="categories">By Category</SelectItem>
                   </SelectGroup>
+
+                  {/* Categories */}
+                  {!categoriesLoading && categories.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>Individual Categories</SelectLabel>
+                      {categories.map((category) => (
+                        <SelectItem
+                          key={`category_${category.name}`}
+                          value={`category_${category.name}`}
+                          className="text-blue-600"
+                        >
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+
+                  {/* Individual Expenses */}
+                  {!billsLoading && bills.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>Individual Expenses</SelectLabel>
+                      {bills.map((bill) => (
+                        <SelectItem
+                          key={`expense_${bill.id}`}
+                          value={`expense_${bill.id}`}
+                          className="text-green-600"
+                        >
+                          {bill.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -176,9 +333,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                 }
                 setShowReport(true);
               }}
-              disabled={!date?.from || !date?.to || billsLoading}
+              disabled={!date?.from || !date?.to || billsLoading || categoriesLoading}
             >
-              {billsLoading ? "Loading..." : "Generate Report"}
+              {billsLoading || categoriesLoading ? "Loading..." : "Generate Report"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -192,58 +349,91 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            Expense Report
+            {selectedValue === 'all' ? 'All Expenses' :
+             selectedValue === 'categories' ? 'Expenses by Category' :
+             selectedValue.startsWith('category_') ? `Category: ${selectedValue.replace('category_', '')}` :
+             selectedValue.startsWith('expense_') ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name :
+             'Expense Report'}
             <div className="text-sm font-normal text-muted-foreground mt-1">
               {dayjs(date?.from).format('MMM D, YYYY')} - {dayjs(date?.to).format('MMM D, YYYY')}
             </div>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">Total Expenses</div>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(generatedTransactions.reduce((sum, t) => sum + t.amount, 0))}
+        <div className="mt-4 space-y-4">
+          {summaries.map((summary, index) => (
+            <Card key={index}>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {summary.category && (
+                      <CategoryDisplay
+                        category={summary.category}
+                        color={summary.color}
+                        icon={summary.icon}
+                      />
+                    )}
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Total</div>
+                    <div className="text-2xl font-bold">{formatCurrency(summary.total)}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Paid</div>
+                    <div className="text-2xl font-bold text-green-600">{formatCurrency(summary.occurred)}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Pending</div>
+                    <div className="text-2xl font-bold text-yellow-600">{formatCurrency(summary.pending)}</div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Total Transactions</div>
-                  <div className="text-2xl font-bold">{generatedTransactions.length}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          <div className="mt-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {generatedTransactions
-                  .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                  .map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                      <TableCell>{transaction.description}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(transaction.amount)}</TableCell>
-                      <TableCell>{transaction.occurred ? 'Paid' : 'Pending'}</TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </div>
+                <div className="mt-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {summary.transactions
+                        .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                        .map((transaction) => (
+                          <TableRow key={transaction.id}>
+                            <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {selectedValue === 'categories' && (
+                                  <CategoryDisplay
+                                    category={transaction.category_name}
+                                    color={transaction.category_color}
+                                    icon={transaction.category_icon}
+                                  />
+                                )}
+                                <span>{transaction.description}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">{formatCurrency(transaction.amount)}</TableCell>
+                            <TableCell>
+                              <span className={transaction.occurred ? "text-green-600" : "text-yellow-600"}>
+                                {transaction.occurred ? 'Paid' : 'Pending'}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         <DialogFooter>
