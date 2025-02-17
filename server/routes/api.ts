@@ -21,24 +21,35 @@ router.post('/api/categories/reindex', async (req, res) => {
   }
 });
 
-// Expense report endpoint with proper occurrence tracking
+// Expense report endpoint with date range support
 router.get('/api/reports/expenses', async (req, res) => {
   try {
+    // Get start and end dates from query params, default to current month
+    const startDate = req.query.start_date ? 
+      new Date(req.query.start_date as string) : 
+      new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+    const endDate = req.query.end_date ? 
+      new Date(req.query.end_date as string) : 
+      new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+
     const query = `
       WITH RECURSIVE 
       DateRange AS (
         SELECT 
-          DATE_TRUNC('month', CURRENT_DATE) as start_date,
-          (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')::date as end_date
+          $1::date as start_date,
+          $2::date as end_date
       ),
       TransactionPatterns AS (
         SELECT 
           t.category_id,
           t.amount,
-          COUNT(*) as occurrence_count
+          COUNT(*) as occurrence_count,
+          array_agg(t.date ORDER BY t.date) as occurrence_dates
         FROM transactions t
         WHERE t.type = 'expense'
-          AND DATE_TRUNC('month', t.date) = (SELECT start_date FROM DateRange)
+          AND t.date >= (SELECT start_date FROM DateRange)
+          AND t.date <= (SELECT end_date FROM DateRange)
         GROUP BY t.category_id, t.amount
       ),
       CategoryOccurrences AS (
@@ -50,8 +61,23 @@ router.get('/api/reports/expenses', async (req, res) => {
           b.amount as bill_amount,
           COALESCE(tp.occurrence_count, 0) as paid_occurrences,
           CASE 
-            WHEN tp.occurrence_count >= 2 THEN 2  -- If we see 2 or more occurrences, expect 2
-            WHEN tp.occurrence_count = 1 AND b.day <= 15 THEN 2  -- If paid once and due early, might have another
+            WHEN tp.occurrence_count >= 2 THEN tp.occurrence_count  -- Use actual count if 2 or more
+            WHEN tp.occurrence_count = 1 AND EXISTS (
+              SELECT 1 FROM transactions t2 
+              WHERE t2.category_id = c.id 
+              AND t2.amount = b.amount 
+              AND t2.type = 'expense'
+              AND t2.date < (SELECT start_date FROM DateRange)
+              AND DATE_TRUNC('month', t2.date) = DATE_TRUNC('month', (SELECT start_date FROM DateRange) - INTERVAL '1 month')
+              AND EXTRACT(DAY FROM t2.date) > 15
+            ) THEN 2  -- If one occurrence this month and one late last month, expect 2
+            WHEN tp.occurrence_count = 1 AND (
+              SELECT COUNT(*) FROM transactions t3 
+              WHERE t3.category_id = c.id 
+              AND t3.amount = b.amount 
+              AND t3.type = 'expense'
+              AND DATE_TRUNC('month', t3.date) = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+            ) >= 2 THEN 2  -- If one occurrence this month and pattern shows 2 last month, expect 2
             ELSE 1  -- Otherwise expect 1
           END as expected_occurrences
         FROM categories c
@@ -74,7 +100,7 @@ router.get('/api/reports/expenses', async (req, res) => {
       ORDER BY co.category_name;
     `;
 
-    const results = await db.execute(sql.raw(query));
+    const results = await db.execute(sql.raw(query, [startDate, endDate]));
 
     const expenseReport = results.rows.map(row => ({
       category: {
