@@ -49,6 +49,28 @@ interface ExpenseReportDialogProps {
   };
 }
 
+// Styling helper functions
+const getStatusClass = (isPending: boolean) =>
+  isPending ? "text-yellow-600 font-medium" : "text-green-600 font-medium";
+
+const getRowClass = (isPending: boolean) =>
+  isPending ? "bg-yellow-50" : "";
+
+const getAmountClass = () => "text-right text-red-600";
+
+const getStatusText = (isPending: boolean) =>
+  isPending ? "Pending" : "Completed";
+
+const getTotalClass = (type: 'completed' | 'pending' | 'total') => {
+  switch (type) {
+    case 'pending':
+      return "text-2xl font-bold text-yellow-600";
+    case 'total':
+    case 'completed':
+      return "text-2xl font-bold text-red-600";
+  }
+};
+
 // Safe sorting function for transactions
 const safeSortByDate = (a: ProcessedTransaction, b: ProcessedTransaction) => {
   const dateA = dayjs(a.displayDate);
@@ -148,7 +170,7 @@ export default function ExpenseReportDialog({
                 <CardTitle className="text-sm font-medium">Completed Expenses</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className={getTotalClass('completed')}>
                   {formatCurrency(totals.completed)}
                 </div>
               </CardContent>
@@ -159,7 +181,7 @@ export default function ExpenseReportDialog({
                 <CardTitle className="text-sm font-medium">Pending Expenses</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">
+                <div className={getTotalClass('pending')}>
                   {formatCurrency(totals.pending)}
                 </div>
               </CardContent>
@@ -170,7 +192,7 @@ export default function ExpenseReportDialog({
                 <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className={getTotalClass('total')}>
                   {formatCurrency(total)}
                 </div>
               </CardContent>
@@ -196,20 +218,18 @@ export default function ExpenseReportDialog({
                   {sortedTransactions.map((transaction) => (
                     <TableRow 
                       key={transaction.id}
-                      className={transaction.isPending ? "bg-yellow-50" : ""}
+                      className={getRowClass(transaction.isPending)}
                     >
                       <TableCell>{dayjs(transaction.displayDate).format('MMM D, YYYY')}</TableCell>
                       <TableCell>{transaction.description}</TableCell>
                       <TableCell>{transaction.category_name || 'Uncategorized'}</TableCell>
-                      <TableCell className="text-right text-red-600">
+                      <TableCell className={getAmountClass()}>
                         {formatCurrency(transaction.amount)}
                       </TableCell>
                       <TableCell>
-                        {transaction.isPending ? (
-                          <span className="text-yellow-600 font-medium">Pending</span>
-                        ) : (
-                          <span className="text-green-600 font-medium">Completed</span>
-                        )}
+                        <span className={getStatusClass(transaction.isPending)}>
+                          {getStatusText(transaction.isPending)}
+                        </span>
                       </TableCell>
                     </TableRow>
                   ))}
