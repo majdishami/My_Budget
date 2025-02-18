@@ -109,7 +109,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  // Query bills and categories with proper date filtering
+  // Query bills and categories
   const { data: bills = [], isLoading: billsLoading } = useQuery({
     queryKey: ['/api/bills'],
     gcTime: 0
@@ -120,35 +120,41 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     gcTime: 0
   });
 
-  // Query transactions with proper date range filter
+  // Query transactions for the entire date range
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
-    queryKey: ['/api/transactions', { 
+    queryKey: ['/api/transactions', {
       type: 'expense',
-      startDate: date?.from ? dayjs(date.from).format('YYYY-MM-DD') : undefined,
-      endDate: date?.to ? dayjs(date.to).format('YYYY-MM-DD') : undefined
+      startDate: date?.from ? dayjs(date.from).startOf('day').format('YYYY-MM-DD') : undefined,
+      endDate: date?.to ? dayjs(date.to).endOf('day').format('YYYY-MM-DD') : undefined
     }],
     enabled: showReport && !!date?.from && !!date?.to
   });
 
   const isLoading = billsLoading || transactionsLoading || categoriesLoading;
 
-  // Filter transactions by date range and update occurred status
+  // Filter and process transactions
   const filteredTransactions = useMemo(() => {
-    if (!date?.from || !date?.to) return transactions;
+    if (!date?.from || !date?.to) return [];
+
+    const startDate = dayjs(date.from).startOf('day');
+    const endDate = dayjs(date.to).endOf('day');
 
     return transactions
       .filter(transaction => {
         const transactionDate = dayjs(transaction.date);
-        return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
-               transactionDate.isSameOrBefore(dayjs(date.to), 'day');
+        return transactionDate.isSameOrAfter(startDate) &&
+               transactionDate.isSameOrBefore(endDate);
       })
-      .map(transaction => ({
-        ...transaction,
-        occurred: dayjs(transaction.date).isSameOrBefore(currentDate, 'day')
-      }));
+      .map(transaction => {
+        const transactionDate = dayjs(transaction.date);
+        return {
+          ...transaction,
+          occurred: transactionDate.isSameOrBefore(currentDate)
+        };
+      });
   }, [transactions, date, currentDate]);
 
-  // Calculate category totals with corrected occurred status
+  // Calculate category totals
   const categoryTotals = useMemo(() => {
     const totals: Record<string, CategoryTotal> = {};
 
@@ -170,24 +176,41 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       const total = totals[category_name];
       total.total += transaction.amount;
 
-      // Use the corrected occurred status
-      if (transaction.occurred) {
+      if (dayjs(transaction.date).isSameOrBefore(currentDate)) {
         total.occurred += transaction.amount;
       } else {
         total.pending += transaction.amount;
       }
+
       total.transactions.push(transaction);
     });
 
     return Object.values(totals).sort((a, b) => b.total - a.total);
-  }, [filteredTransactions]);
+  }, [filteredTransactions, currentDate]);
+
+  // Calculate totals for display
+  const displayTotals = useMemo(() => {
+    const paid = filteredTransactions
+      .filter(t => dayjs(t.date).isSameOrBefore(currentDate))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const pending = filteredTransactions
+      .filter(t => dayjs(t.date).isAfter(currentDate))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return {
+      total: paid + pending,
+      paid,
+      pending
+    };
+  }, [filteredTransactions, currentDate]);
 
   // Handle date selection
   const handleDateSelect = (selectedDate: DateRange | undefined) => {
     if (selectedDate?.from && !selectedDate.to) {
-      setDate({ 
+      setDate({
         from: selectedDate.from,
-        to: selectedDate.from 
+        to: selectedDate.from
       });
     } else {
       setDate(selectedDate);
@@ -292,8 +315,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
         <DialogHeader>
           <div className="flex justify-between items-center">
             <DialogTitle className="text-xl">
-              Expense Report ({selectedValue === 'all' ? 'All Categories' : 
-                selectedValue === 'categories' ? 'By Category' : 
+              Expense Report ({selectedValue === 'all' ? 'All Categories' :
+                selectedValue === 'categories' ? 'By Category' :
                 selectedValue.replace('category_', '')})
             </DialogTitle>
             <Button variant="outline" onClick={() => setShowReport(false)}>
@@ -319,27 +342,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatCurrency(filteredTransactions.reduce((sum, t) => sum + t.amount, 0))}
+                    {formatCurrency(displayTotals.total)}
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-4">
                     <div>
                       <div className="text-sm text-muted-foreground">Paid</div>
                       <div className="text-lg font-semibold text-red-600">
-                        {formatCurrency(
-                          filteredTransactions
-                            .filter(t => t.occurred)
-                            .reduce((sum, t) => sum + t.amount, 0)
-                        )}
+                        {formatCurrency(displayTotals.paid)}
                       </div>
                     </div>
                     <div>
                       <div className="text-sm text-muted-foreground">Pending</div>
                       <div className="text-lg font-semibold text-yellow-600">
-                        {formatCurrency(
-                          filteredTransactions
-                            .filter(t => !t.occurred)
-                            .reduce((sum, t) => sum + t.amount, 0)
-                        )}
+                        {formatCurrency(displayTotals.pending)}
                       </div>
                     </div>
                   </div>
