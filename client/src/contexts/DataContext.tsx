@@ -59,7 +59,7 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
     // For recurring entries, create a numeric ID based on the base ID
     const instanceId = baseIncome.occurrenceType === 'once'
       ? baseIncome.id
-      : parseInt(`${baseIncome.id}${i + 1}`);
+      : Number(`${baseIncome.id}${i + 1}`);
 
     incomes.push({
       ...baseIncome,
@@ -305,9 +305,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Failed to delete transaction: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
+        const errorMessage = errorData.error || errorData.message || response.statusText;
+        throw new Error(`Failed to delete transaction: ${response.status} ${errorMessage}`);
       }
 
+      const result = await response.json();
+      logger.info("[DataContext] Delete transaction response:", result);
 
       // Update local state
       if ('source' in transaction) {

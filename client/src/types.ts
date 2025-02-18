@@ -12,7 +12,7 @@
  * Represents a single income entry in the system
  */
 export interface Income {
-  id: string;
+  id: number;  // Changed from string to number
   source: string;
   amount: number;
   date: string;
@@ -26,7 +26,7 @@ export interface Income {
  * Represents a recurring bill or expense
  */
 export interface Bill {
-  id: string;
+  id: number;  // Changed from string to number
   name: string;
   amount: number;
   day: number | undefined;
@@ -54,7 +54,7 @@ export interface Bill {
  * Represents a specific reminder instance for a bill
  */
 export interface BillReminder {
-  billId: string;
+  billId: number;  // Changed from string to number
   billName: string;
   dueDate: string;
   amount: number;
