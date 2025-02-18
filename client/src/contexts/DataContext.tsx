@@ -2,8 +2,6 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { Income, Bill } from "@/types";
 import dayjs from "dayjs";
 import { logger } from "@/lib/logger";
-// import crypto from 'crypto'; // Removed as per the intention
-
 
 interface DataContextType {
   incomes: Income[];
@@ -58,9 +56,14 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         date = baseDate;
     }
 
+    // For recurring entries, create a numeric ID based on the base ID
+    const instanceId = baseIncome.occurrenceType === 'once'
+      ? baseIncome.id
+      : parseInt(`${baseIncome.id}${i + 1}`);
+
     incomes.push({
       ...baseIncome,
-      id: `${baseIncome.id}-${i}`,
+      id: instanceId,
       date: date.format('YYYY-MM-DD')
     });
   }
@@ -68,8 +71,8 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   return incomes;
 };
 
-// Helper function to get base ID from expanded ID
-const getBaseId = (id: string) => id.split('-')[0];
+// Helper function to get base ID from instance ID
+const getBaseId = (id: number) => Math.floor(id / 10);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -282,13 +285,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Invalid transaction: missing ID');
       }
 
+      // Get the base ID for the transaction
+      const baseId = 'source' in transaction
+        ? getBaseId(transaction.id)
+        : transaction.id;
+
       logger.info("[DataContext] Deleting transaction:", {
-        id: transaction.id,
+        id: baseId,
         type: 'source' in transaction ? 'income' : 'bill',
         details: transaction
       });
 
-      const response = await fetch(`/api/transactions/${transaction.id}`, {
+      const response = await fetch(`/api/transactions/${baseId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -304,11 +312,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Update local state
       if ('source' in transaction) {
         // For incomes, filter out all related recurring entries
-        const baseId = String(transaction.id).split('-')[0];
-        setIncomes(prev => prev.filter(inc => {
-          const incBaseId = String(inc.id).split('-')[0];
-          return incBaseId !== baseId;
-        }));
+        const baseTransactionId = getBaseId(transaction.id);
+        setIncomes(prev => prev.filter(inc => getBaseId(inc.id) !== baseTransactionId));
       } else {
         setBills(prev => prev.filter(bill => bill.id !== transaction.id));
       }

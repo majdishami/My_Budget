@@ -458,77 +458,56 @@ export function registerRoutes(app: Express): Server {
 
   app.delete('/api/transactions/:id', async (req, res) => {
     try {
-      const transactionId = req.params.id;
-      console.log('[Transactions API] Attempting to delete transaction:', { id: transactionId });
-
-      // Extract base ID if it's a recurring transaction ID (contains hyphen)
-      const baseId = transactionId.includes('-') ? transactionId.split('-')[0] : transactionId;
-
-      // Convert to number for database query
-      const numericId = parseInt(baseId, 10);
-      if (isNaN(numericId)) {
-        console.error('[Transactions API] Invalid numeric transaction ID:', { id: baseId });
+      const transactionId = parseInt(req.params.id, 10);
+      if (isNaN(transactionId)) {
         return res.status(400).json({ 
           message: 'Invalid transaction ID',
-          error: `Transaction ID must be a number: ${baseId}`
+          error: 'Transaction ID must be a number'
         });
       }
 
-      console.log('[Transactions API] Using numeric ID for deletion:', { numericId });
+      console.log('[Transactions API] Attempting to delete transaction:', { id: transactionId });
 
-      // Find the transaction first
       const transaction = await db.query.transactions.findFirst({
-        where: eq(transactions.id, numericId)
+        where: eq(transactions.id, transactionId)
       });
 
       if (!transaction) {
-        console.log('[Transactions API] Transaction not found:', { id: numericId });
+        console.log('[Transactions API] Transaction not found:', { id: transactionId });
         return res.status(404).json({ 
           message: 'Transaction not found',
-          error: `No transaction found with ID ${numericId}`
+          error: `No transaction found with ID ${transactionId}`
         });
       }
 
-      console.log('[Transactions API] Found transaction to delete:', {
-        id: transaction.id,
-        type: transaction.type,
-        description: transaction.description
+      const deleted = await db.delete(transactions)
+        .where(eq(transactions.id, transactionId))
+        .returning();
+
+      if (!deleted.length) {
+        throw new Error(`Failed to delete transaction ${transactionId}`);
+      }
+
+      console.log('[Transactions API] Successfully deleted transaction:', {
+        id: transactionId,
+        deletedCount: deleted.length
       });
 
-      // Delete the transaction
-      try {
-        const deleted = await db.delete(transactions)
-          .where(eq(transactions.id, numericId))
-          .returning();
-
-        console.log('[Transactions API] Deletion result:', {
-          id: numericId,
-          deletedCount: deleted.length,
-          deleted: deleted
-        });
-
-        if (!deleted.length) {
-          throw new Error(`No transactions were deleted with ID ${numericId}`);
-        }
-
-        return res.status(200).json({ 
-          message: 'Transaction deleted successfully',
-          deletedId: numericId
-        });
-      } catch (deleteError) {
-        console.error('[Transactions API] Error during deletion:', deleteError);
-        throw new Error(`Failed to delete transaction: ${deleteError instanceof Error ? deleteError.message : 'Unknown error'}`);
-      }
+      return res.status(200).json({ 
+        message: 'Transaction deleted successfully',
+        deletedId: transactionId
+      });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('[Transactions API] Error in delete transaction handler:', {
         id: req.params.id,
-        error: errorMessage
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
 
       return res.status(500).json({ 
         message: 'Failed to delete transaction',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal server error'
+        error: process.env.NODE_ENV === 'development' 
+          ? (error instanceof Error ? error.message : 'Unknown error')
+          : 'Internal server error'
       });
     }
   });
