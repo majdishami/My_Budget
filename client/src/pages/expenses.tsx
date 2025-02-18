@@ -199,11 +199,13 @@ export default function ExpenseReport() {
           </div>
 
           <div className="flex items-center gap-4">
-            <DateRangePicker
-              date={dateRange}
-              onDateChange={setDateRange}
-              className="w-full"
-            />
+            <div className="flex-1">
+              <DateRangePicker
+                date={dateRange}
+                onDateChange={setDateRange}
+                className="w-full"
+              />
+            </div>
             <Button 
               onClick={() => setDateRange({ from: undefined, to: undefined })}
               variant="outline"
