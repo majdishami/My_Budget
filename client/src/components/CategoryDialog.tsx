@@ -109,7 +109,6 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       autoCapitalize="off"
                       autoCorrect="off"
                       maxLength={50}
-                      pattern="[A-Za-z0-9\s\-_]+"
                     />
                   </FormControl>
                   <FormMessage />
