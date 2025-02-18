@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Income, Bill } from "@/types";
+import { logger } from "@/lib/logger";
 import {
   Plus,
   Edit,

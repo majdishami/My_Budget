@@ -225,16 +225,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to add income: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
+      const newTransaction = await response.json();
+      logger.info("[DataContext] Successfully added income to database:", newTransaction);
+
       // Expand the income if it's recurring and update state
       const expandedIncomes = expandRecurringIncome(income);
       setIncomes(prev => [...prev, ...expandedIncomes]);
 
       // Invalidate cache to ensure fresh data on next load
       sessionStorage.removeItem("transactions");
-      logger.info("Successfully added income", { income, expandedCount: expandedIncomes.length });
+
+      // Force a refresh of the data to update totals
+      await loadData();
+
+      logger.info("[DataContext] Successfully added income and refreshed data", { 
+        income, 
+        expandedCount: expandedIncomes.length 
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add income";
-      logger.error("Error in addIncome:", { error });
+      logger.error("[DataContext] Error in addIncome:", { error });
       setError(new Error(errorMessage));
       throw error;
     }
