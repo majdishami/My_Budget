@@ -56,10 +56,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
 
   // Fetch only expense transactions with date range
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery<ExpenseTransaction[]>({
-    queryKey: ['/api/transactions', { 
+    queryKey: ['/api/transactions', {
       type: 'expense',
-      startDate: date?.from ? dayjs(date.from).format('YYYY-MM-DD') : undefined,
-      endDate: date?.to ? dayjs(date.to).format('YYYY-MM-DD') : undefined
+      startDate: date?.from ? dayjs(date.from).startOf('day').format('YYYY-MM-DD') : undefined,
+      endDate: date?.to ? dayjs(date.to).endOf('day').format('YYYY-MM-DD') : undefined
     }],
     enabled: showReport && !!date?.from && !!date?.to
   });
