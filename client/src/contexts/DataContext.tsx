@@ -63,18 +63,18 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         date = baseDate.add(i, 'week');
         break;
       default:
-        logger.error("[DataContext] Unknown occurrence type:", { 
+        logger.error("[DataContext] Unknown occurrence type:", {
           type: baseIncome.occurrenceType,
-          income: baseIncome 
+          income: baseIncome
         });
         throw new Error(`Unknown occurrence type: ${baseIncome.occurrenceType}`);
     }
 
     // Validate generated date
     if (!date.isValid()) {
-      logger.error("[DataContext] Generated invalid date:", { 
+      logger.error("[DataContext] Generated invalid date:", {
         date: date.format(),
-        income: baseIncome 
+        income: baseIncome
       });
       continue;
     }
@@ -249,8 +249,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Failed to add income: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
+        // Log the raw response text first
+        const responseText = await response.text();
+        logger.error("[DataContext] Failed to add income. Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          responseText
+        });
+
+        // Try to parse as JSON if possible
+        let errorData = {};
+        try {
+          errorData = JSON.parse(responseText);
+        } catch (parseError) {
+          logger.error("[DataContext] Failed to parse error response as JSON:", {
+            parseError,
+            responseText
+          });
+        }
+
+        throw new Error(
+          `Failed to add income: ${response.status} ${response.statusText}${
+            errorData.message ? ` - ${errorData.message}` :
+              responseText ? ` - ${responseText}` : ''
+          }`
+        );
       }
 
       const newTransaction = await response.json();
@@ -293,8 +316,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Failed to add bill: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
+        // Log the raw response text first
+        const responseText = await response.text();
+        logger.error("[DataContext] Failed to add bill. Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          responseText
+        });
+
+        // Try to parse as JSON if possible
+        let errorData = {};
+        try {
+          errorData = JSON.parse(responseText);
+        } catch (parseError) {
+          logger.error("[DataContext] Failed to parse error response as JSON:", {
+            parseError,
+            responseText
+          });
+        }
+
+        throw new Error(
+          `Failed to add bill: ${response.status} ${response.statusText}${
+            errorData.message ? ` - ${errorData.message}` :
+              responseText ? ` - ${responseText}` : ''
+          }`
+        );
       }
 
       // Get the new transaction ID from the response
