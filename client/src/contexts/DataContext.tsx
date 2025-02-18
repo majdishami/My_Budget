@@ -228,20 +228,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const newTransaction = await response.json();
       logger.info("[DataContext] Successfully added income to database:", newTransaction);
 
-      // Expand the income if it's recurring and update state
-      const expandedIncomes = expandRecurringIncome(income);
-      setIncomes(prev => [...prev, ...expandedIncomes]);
-
-      // Invalidate cache to ensure fresh data on next load
+      // Clear cache first
       sessionStorage.removeItem("transactions");
 
-      // Force a refresh of the data to update totals
+      // Force a complete data refresh
       await loadData();
 
-      logger.info("[DataContext] Successfully added income and refreshed data", { 
-        income, 
-        expandedCount: expandedIncomes.length 
-      });
+      logger.info("[DataContext] Successfully added income and refreshed data");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add income";
       logger.error("[DataContext] Error in addIncome:", { error });
@@ -293,29 +286,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       logger.info("[DataContext] Starting deletion of transaction:", transaction);
 
       // Ensure we have a valid transaction object with an ID
-      if (!transaction) {
-        logger.error("[DataContext] Transaction object is null or undefined");
-        throw new Error('Invalid transaction: Transaction object is required');
+      if (!transaction || typeof transaction.id !== 'number') {
+        logger.error("[DataContext] Invalid transaction ID:", transaction);
+        throw new Error('Invalid transaction: Transaction object is required with a numeric ID');
       }
 
-      // Validate ID exists and is a number
-      if (typeof transaction.id !== 'number') {
-        logger.error("[DataContext] Invalid transaction ID type:", { id: transaction.id, type: typeof transaction.id });
-        throw new Error('Invalid transaction: ID must be a number');
-      }
-
-      // Get the base ID for the transaction (for recurring transactions)
-      const baseId = 'source' in transaction
-        ? getBaseId(transaction.id)
-        : transaction.id;
+      // For income, we need to delete the base transaction
+      // For bills, we use the direct ID
+      const transactionId = 'source' in transaction ? transaction.id : transaction.id;
 
       logger.info("[DataContext] Deleting transaction:", {
         originalId: transaction.id,
-        baseId,
+        transactionId,
         type: 'source' in transaction ? 'income' : 'bill'
       });
 
-      const response = await fetch(`/api/transactions/${baseId}`, {
+      const response = await fetch(`/api/transactions/${transactionId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -330,31 +316,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Update local state based on transaction type
       if ('source' in transaction) {
-        // For incomes, filter out all related recurring entries
-        const baseTransactionId = getBaseId(transaction.id);
-        setIncomes(prev => {
-          const filtered = prev.filter(inc => getBaseId(inc.id) !== baseTransactionId);
-          logger.info("[DataContext] Filtered incomes after deletion:", {
-            before: prev.length,
-            after: filtered.length
-          });
-          return filtered;
-        });
+        setIncomes(prev => prev.filter(inc => inc.id !== transaction.id));
       } else {
-        setBills(prev => {
-          const filtered = prev.filter(bill => bill.id !== transaction.id);
-          logger.info("[DataContext] Filtered bills after deletion:", {
-            before: prev.length,
-            after: filtered.length
-          });
-          return filtered;
-        });
+        setBills(prev => prev.filter(bill => bill.id !== transaction.id));
       }
 
       // Clear cache to ensure fresh data on next load
       sessionStorage.removeItem("transactions");
 
-      // Trigger a data refresh to update monthly totals
+      // Force a refresh to update all totals
       await loadData();
 
       logger.info("[DataContext] Successfully deleted transaction");
