@@ -28,6 +28,18 @@ export default function ExpenseReport() {
     to: undefined
   });
 
+  // Get unique expenses for the dropdown
+  const uniqueExpenses = useMemo(() => {
+    const uniqueMap = new Map<string, Bill>();
+    bills?.forEach(bill => {
+      const key = `${bill.name}-${bill.amount}`;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, bill);
+      }
+    });
+    return Array.from(uniqueMap.values());
+  }, [bills]);
+
   // Filter bills based on report type and selected filters
   const filteredExpenses = useMemo(() => {
     logger.info("[ExpenseReport] Filtering expenses:", {
@@ -61,7 +73,7 @@ export default function ExpenseReport() {
 
       // Apply individual expense filter if selected
       const expenseMatches = selectedExpense === 'all' || 
-                            bill.id === Number(selectedExpense);
+                            `${bill.name}-${bill.amount}` === selectedExpense;
 
       if (dateMatches && categoryMatches && expenseMatches) {
         filtered.push({
@@ -166,16 +178,19 @@ export default function ExpenseReport() {
               </Select>
             )}
 
-            {reportType === 'individual' && bills && bills.length > 0 && (
+            {reportType === 'individual' && uniqueExpenses && uniqueExpenses.length > 0 && (
               <Select value={selectedExpense} onValueChange={setSelectedExpense}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Select expense" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Expenses</SelectItem>
-                  {bills.map(bill => (
-                    <SelectItem key={bill.id} value={bill.id.toString()}>
-                      {bill.name}
+                  {uniqueExpenses.map(bill => (
+                    <SelectItem 
+                      key={`${bill.name}-${bill.amount}`} 
+                      value={`${bill.name}-${bill.amount}`}
+                    >
+                      {bill.name} (${bill.amount})
                     </SelectItem>
                   ))}
                 </SelectContent>
