@@ -249,12 +249,9 @@ export function Budget() {
     if (day <= 0 || day > daysInMonth) return [];
 
     return bills.map(bill => {
-      // Create unique IDs for each bill instance
       const uniqueId = `${bill.id}-${selectedMonth}-${selectedYear}`;
 
-      // Check if this bill should appear on this day
       if (bill.isOneTime && bill.date) {
-        // For one-time bills, check exact date match
         const billDate = dayjs(bill.date);
         if (billDate.year() === selectedYear && 
             billDate.month() === selectedMonth && 
@@ -262,14 +259,12 @@ export function Budget() {
           return { ...bill, id: uniqueId };
         }
       } else if (bill.isYearly && bill.yearly_date) {
-        // For yearly bills, check month and day match
         const yearlyDate = dayjs(bill.yearly_date);
         if (yearlyDate.month() === selectedMonth && 
             yearlyDate.date() === day) {
           return { ...bill, id: uniqueId };
         }
       } else if (bill.day === day) {
-        // For monthly bills, just check the day
         return { 
           ...bill, 
           id: uniqueId,
@@ -281,12 +276,11 @@ export function Budget() {
         };
       }
       return null;
-    }).filter(Boolean) as Bill[]; // Remove null entries and type assert
+    }).filter(Boolean) as Bill[];
   }, [bills, selectedYear, selectedMonth, daysInMonth]);
 
-  // Update monthly totals calculation to handle recurring bills
+  // Update monthly totals calculation
   const monthlyTotals = useMemo(() => {
-    // Calculate total income
     let totalIncome = 0;
 
     // Handle Majdi's salary (1st and 15th)
@@ -325,7 +319,7 @@ export function Budget() {
       expenses: totalExpenses,
       net: totalIncome - totalExpenses
     };
-  }, [bills, selectedMonth, selectedYear]);
+  }, [bills, selectedYear, selectedMonth]);
 
   // Calculate running totals for a specific day
   const calculateRunningTotals = useCallback((day: number) => {
