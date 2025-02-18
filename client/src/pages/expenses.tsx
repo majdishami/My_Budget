@@ -156,21 +156,21 @@ export default function ExpenseReport() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {categoryBills.map(bill => {
                 // Determine category-based color
-                const categoryColor = 
+                const categoryColor =
                   bill.category_id === 1 ? "text-blue-600" :
-                  bill.category_id === 2 ? "text-green-600" :
-                  bill.category_id === 3 ? "text-purple-600" :
-                  bill.category_id === 4 ? "text-red-600" :
-                  bill.category_id === 5 ? "text-pink-600" :
-                  bill.category_id === 6 ? "text-orange-600" :
-                  bill.category_id === 7 ? "text-yellow-600" :
-                  bill.category_id === 8 ? "text-lime-600" :
-                  bill.category_id === 9 ? "text-cyan-600" :
-                  bill.category_id === 10 ? "text-indigo-600" :
-                  bill.category_id === 11 ? "text-violet-600" :
-                  bill.category_id === 12 ? "text-amber-600" :
-                  bill.category_id === 13 ? "text-emerald-600" :
-                  "text-slate-600";
+                    bill.category_id === 2 ? "text-green-600" :
+                      bill.category_id === 3 ? "text-purple-600" :
+                        bill.category_id === 4 ? "text-red-600" :
+                          bill.category_id === 5 ? "text-pink-600" :
+                            bill.category_id === 6 ? "text-orange-600" :
+                              bill.category_id === 7 ? "text-yellow-600" :
+                                bill.category_id === 8 ? "text-lime-600" :
+                                  bill.category_id === 9 ? "text-cyan-600" :
+                                    bill.category_id === 10 ? "text-indigo-600" :
+                                      bill.category_id === 11 ? "text-violet-600" :
+                                        bill.category_id === 12 ? "text-amber-600" :
+                                          bill.category_id === 13 ? "text-emerald-600" :
+                                            "text-slate-600";
 
                 return (
                   <div
@@ -182,7 +182,7 @@ export default function ExpenseReport() {
                   >
                     <div className="font-medium">{bill.name}</div>
                     <div className="text-sm opacity-80">
-                      Due on day {bill.due_date}
+                      Due on day {bill.day}
                     </div>
                     <div className="mt-1 font-bold">
                       ${bill.amount.toFixed(2)}
