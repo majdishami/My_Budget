@@ -42,10 +42,14 @@ export default function ExpenseReport() {
   // Query bills and categories
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
+    staleTime: 1000 * 60 * 5,  // Cache for 5 minutes
+    cacheTime: 1000 * 60 * 10, // Keep cache for 10 minutes
   });
 
   const { data: bills = [], isLoading: billsLoading, error: billsError } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 10,
   });
 
   // Query transactions with proper dependency
