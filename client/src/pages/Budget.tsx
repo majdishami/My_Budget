@@ -246,8 +246,8 @@ export function Budget() {
   }, [incomes, selectedYear, selectedMonth]);
 
   // getBillsForDay function
-  const getBillsForDay = useCallback((day: number) => {
-    if (day <= 0 || day > daysInMonth) return [];
+  const getBillsForDay = (day: number) => {
+    if (day <= 0 || day > daysInMonth) return []; // Return empty if day is invalid
 
     return bills.filter(bill => {
       if (bill.isYearly && bill.yearly_date) {
@@ -265,7 +265,7 @@ export function Budget() {
         return bill.day === day;
       }
     });
-  }, [bills, selectedYear, selectedMonth, daysInMonth]);
+  };
 
   // Update monthly totals calculation to handle recurring bills
   const monthlyTotals = useMemo(() => {
