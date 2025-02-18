@@ -20,6 +20,10 @@ function Calendar({
   onDayClick,
   ...props
 }: CalendarProps) {
+  // Memoize bills and incomes arrays to prevent unnecessary re-renders
+  const memoizedBills = React.useMemo(() => bills ?? [], [bills]);
+  const memoizedIncomes = React.useMemo(() => incomes ?? [], [incomes]);
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -65,8 +69,8 @@ function Calendar({
         DayContent: ({ date, ...contentProps }) => (
           <DayContent 
             day={date} 
-            bills={bills ?? []} 
-            incomes={incomes ?? []} 
+            bills={memoizedBills} 
+            incomes={memoizedIncomes} 
             onClick={onDayClick}
             {...contentProps} 
           />
