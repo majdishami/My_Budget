@@ -330,95 +330,95 @@ const setCache = (transactions: any[]) => {
   }
 };
 
-// Update the processTransactions function
-const processTransactions = (transactions: any[]) => {
-  try {
-    logger.info("[DataContext] Processing transactions...");
-    const loadedIncomes: Income[] = [];
-    const loadedBills: Bill[] = [];
-    const loadedCategories = new Map<number, Category>();
-
-    transactions.forEach((t: any) => {
-      const date = dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : null;
-      if (!date) {
-        logger.warn(`[DataContext] Invalid date for transaction ID: ${t.id}, using today's date.`);
-      }
-
-      const finalDate = date || dayjs().format('YYYY-MM-DD');
-
-      if (t.type === 'income') {
-        const income = {
-          id: t.id,
-          source: t.description || 'Unknown Source',
-          amount: parseFloat(t.amount) || 0,
-          date: finalDate,
-          occurrenceType: t.recurring_type || 'once',
-          firstDate: t.first_date,
-          secondDate: t.second_date
-        };
-        // Expand recurring incomes
-        const expandedIncomes = expandRecurringIncome(income);
-        loadedIncomes.push(...expandedIncomes);
-      } else if (t.type === 'expense') {
-        // If this transaction has a category, add it to our categories map
-        if (t.category_id) {
-          loadedCategories.set(t.category_id, {
-            id: t.category_id,
-            name: t.category_name || 'Uncategorized',
-            color: t.category_color || '#808080',
-            icon: t.category_icon || 'help-circle'
-          });
-        }
-
-        const bill = {
-          id: t.id,
-          name: t.description || 'Unknown Expense',
-          amount: parseFloat(t.amount) || 0,
-          date: finalDate,
-          isOneTime: !t.recurring_id,
-          isYearly: t.is_yearly || false,
-          yearly_date: t.yearly_date,
-          day: dayjs(finalDate).date(),
-          category_id: t.category_id || null,
-          category_name: t.category_name || 'Uncategorized',
-          category_color: t.category_color || '#808080',
-          category_icon: t.category_icon || 'help-circle',
-          category: t.category_id ? {
-            name: t.category_name || 'Uncategorized',
-            color: t.category_color || '#808080',
-            icon: t.category_icon || 'help-circle'
-          } : undefined
-        };
-
-        // Expand recurring bills
-        const expandedBills = expandRecurringBill(bill);
-        // For calendar view, filter to show only one instance per month
-        const billsToAdd = window.location.pathname === '/' ? filterBillsForCalendar(expandedBills) : expandedBills;
-        loadedBills.push(...billsToAdd);
-      }
-    });
-
-    setIncomes(loadedIncomes);
-    setBills(loadedBills);
-    setCategories(Array.from(loadedCategories.values()));
-
-    logger.info("[DataContext] Successfully processed transactions:", {
-      incomesCount: loadedIncomes.length,
-      billsCount: loadedBills.length,
-      categoriesCount: loadedCategories.size
-    });
-  } catch (error) {
-    logger.error("[DataContext] Error processing transactions:", error);
-    throw error;
-  }
-};
-
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  // Update the processTransactions function
+  const processTransactions = (transactions: any[]) => {
+    try {
+      logger.info("[DataContext] Processing transactions...");
+      const loadedIncomes: Income[] = [];
+      const loadedBills: Bill[] = [];
+      const loadedCategories = new Map<number, Category>();
+
+      transactions.forEach((t: any) => {
+        const date = dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : null;
+        if (!date) {
+          logger.warn(`[DataContext] Invalid date for transaction ID: ${t.id}, using today's date.`);
+        }
+
+        const finalDate = date || dayjs().format('YYYY-MM-DD');
+
+        if (t.type === 'income') {
+          const income = {
+            id: t.id,
+            source: t.description || 'Unknown Source',
+            amount: parseFloat(t.amount) || 0,
+            date: finalDate,
+            occurrenceType: t.recurring_type || 'once',
+            firstDate: t.first_date,
+            secondDate: t.second_date
+          };
+          // Expand recurring incomes
+          const expandedIncomes = expandRecurringIncome(income);
+          loadedIncomes.push(...expandedIncomes);
+        } else if (t.type === 'expense') {
+          // If this transaction has a category, add it to our categories map
+          if (t.category_id) {
+            loadedCategories.set(t.category_id, {
+              id: t.category_id,
+              name: t.category_name || 'Uncategorized',
+              color: t.category_color || '#808080',
+              icon: t.category_icon || 'help-circle'
+            });
+          }
+
+          const bill = {
+            id: t.id,
+            name: t.description || 'Unknown Expense',
+            amount: parseFloat(t.amount) || 0,
+            date: finalDate,
+            isOneTime: !t.recurring_id,
+            isYearly: t.is_yearly || false,
+            yearly_date: t.yearly_date,
+            day: dayjs(finalDate).date(),
+            category_id: t.category_id || null,
+            category_name: t.category_name || 'Uncategorized',
+            category_color: t.category_color || '#808080',
+            category_icon: t.category_icon || 'help-circle',
+            category: t.category_id ? {
+              name: t.category_name || 'Uncategorized',
+              color: t.category_color || '#808080',
+              icon: t.category_icon || 'help-circle'
+            } : undefined
+          };
+
+          // Expand recurring bills
+          const expandedBills = expandRecurringBill(bill);
+          // For calendar view, filter to show only one instance per month
+          const billsToAdd = window.location.pathname === '/' ? filterBillsForCalendar(expandedBills) : expandedBills;
+          loadedBills.push(...billsToAdd);
+        }
+      });
+
+      setIncomes(loadedIncomes);
+      setBills(loadedBills);
+      setCategories(Array.from(loadedCategories.values()));
+
+      logger.info("[DataContext] Successfully processed transactions:", {
+        incomesCount: loadedIncomes.length,
+        billsCount: loadedBills.length,
+        categoriesCount: loadedCategories.size
+      });
+    } catch (error) {
+      logger.error("[DataContext] Error processing transactions:", error);
+      throw error;
+    }
+  };
 
   // Improved cache management
 
