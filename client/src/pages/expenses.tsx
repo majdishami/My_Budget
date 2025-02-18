@@ -48,10 +48,10 @@ export default function ExpenseReport() {
     queryKey: ['/api/bills'],
   });
 
-  // Query transactions
+  // Query transactions with proper dependency
   const { data: transactions = [], isLoading: transactionsLoading, error: transactionsError } = useQuery({
     queryKey: ['/api/transactions', { type: 'expense' }],
-    enabled: !billsLoading && bills.length > 0,
+    enabled: !!bills.length, // Only fetch if bills exist
   });
 
   const isLoading = billsLoading || transactionsLoading || categoriesLoading;
