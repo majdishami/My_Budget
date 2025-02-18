@@ -96,6 +96,9 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       type="text" 
                       placeholder="Enter category name"
                       autoComplete="off"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck="false"
                     />
                   </FormControl>
                   <FormMessage />
