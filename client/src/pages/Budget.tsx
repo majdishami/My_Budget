@@ -210,7 +210,7 @@ export function Budget() {
 
     // Only process if it's a Friday
     if (currentDate.day() === 5) {
-      const startDate = dayjs('2025-01-10'); // First payment date
+      const startDate = dayjs('2025-01-10'); 
 
       // Calculate if this is a valid payday by checking the exact number of weeks
       // from the start date
@@ -267,70 +267,81 @@ export function Budget() {
     });
   };
 
-  // Update monthly totals calculation to handle recurring bills
-  const monthlyTotals = useMemo(() => {
-    // Calculate total income
-    let totalIncome = 0;
-
-    // Handle Majdi's salary (1st and 15th)
-    totalIncome += 4739 * 2; // Majdi's salary occurs twice per month
-
-    // Handle Ruba's bi-weekly salary
-    const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth -1).startOf('month');
-    const lastDayOfMonth = firstDayOfMonth.endOf('month');
-    let currentDate = firstDayOfMonth;
-
-    while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
-      if (currentDate.day() === 5) { // Friday
-        const startDate = dayjs('2025-01-10');
-        const weeksDiff = Math.floor(currentDate.diff(startDate, 'days') / 7);
-        if (currentDate.isSameOrAfter(startDate) && weeksDiff % 2 === 0) {
-          totalIncome += 2168; // Add Ruba's bi-weekly salary
-        }
-      }
-      currentDate = currentDate.add(1, 'day');
-    }
-
-    // Calculate total expenses
-    let totalExpenses = 0;
-
-    // Add all bills to every month (matches the calendar display logic)
-    const uniqueBills = new Set();
-    bills.forEach(bill => {
-      if (!uniqueBills.has(bill.name)) {
-        totalExpenses += bill.amount;
-        uniqueBills.add(bill.name);
-      }
-    });
-
-    return {
-      income: totalIncome,
-      expenses: totalExpenses,
-      net: totalIncome - totalExpenses
-    };
-  }, [bills, selectedMonth, selectedYear]);
-
-  // Calculate running totals for a specific day
-  const calculateRunningTotals = useCallback((day: number) => {
+  // Calculate totals up to a specific day
+  const calculateTotalsUpToDay = (day: number) => {
     let totalIncome = 0;
     let totalBills = 0;
 
-    const targetDate = dayjs().year(selectedYear).month(selectedMonth -1).date(day);
-
-    // Calculate income up to target date
+    // Calculate for each day up to the selected day
     for (let currentDay = 1; currentDay <= day; currentDay++) {
+      // Add incomes for the day
       const dayIncomes = getIncomeForDay(currentDay);
       totalIncome += dayIncomes.reduce((sum, income) => sum + income.amount, 0);
-    }
 
-    // Calculate bills up to target date (all bills recur monthly)
-    for (let currentDay = 1; currentDay <= day; currentDay++) {
+      // Add bills for the day
       const dayBills = getBillsForDay(currentDay);
       totalBills += dayBills.reduce((sum, bill) => sum + bill.amount, 0);
     }
 
-    return { totalIncome, totalBills };
-  }, [getIncomeForDay, getBillsForDay, selectedYear, selectedMonth]);
+    return { totalIncome, totalBills }; // Return the totals
+  };
+
+  // Calculate monthly totals
+  const monthlyTotals = useMemo(() => {
+    let totalIncome = 0;
+    let totalBills = 0;
+
+    // Calculate total income for the selected month
+    incomes.forEach(income => {
+      const incomeDate = dayjs(income.date);
+
+      // Special case for Ruba's salary which is bi-weekly
+      if (income.source === "Ruba's Salary") {
+        const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month');
+        const lastDayOfMonth = firstDayOfMonth.endOf('month');
+        const startDate = dayjs('2025-01-10');
+
+        // Iterate through each day in the month
+        let currentDate = firstDayOfMonth;
+        while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
+          // Check if it's a Friday and matches bi-weekly schedule
+          if (currentDate.day() === 5) { // Friday
+            const weeksDiff = currentDate.diff(startDate, 'week');
+            if (currentDate.isSameOrAfter(startDate) && weeksDiff % 2 === 0) {
+              totalIncome += income.amount;
+            }
+          }
+          currentDate = currentDate.add(1, 'day');
+        }
+      } else {
+        const incomeYear = incomeDate.year();
+        const incomeMonth = incomeDate.month();
+        const incomeDay = incomeDate.date();
+
+        // Create a new date with the selected year/month but same day
+        const adjustedDate = dayjs()
+          .year(selectedYear)
+          .month(selectedMonth - 1)
+          .date(incomeDay);
+
+        // Only count if the day exists in the current month
+        if (adjustedDate.month() === selectedMonth - 1) {
+          totalIncome += income.amount;
+        }
+      }
+    });
+
+    // Calculate total bills for the selected month
+    bills.forEach(bill => {
+      totalBills += bill.amount;
+    });
+
+    return {
+      totalIncome,
+      totalBills,
+      balance: totalIncome - totalBills
+    };
+  }, [incomes, bills, selectedMonth, selectedYear]);
 
   // Handle month and year changes with validation
   const handleMonthChange = useCallback((month: number) => {
@@ -457,21 +468,21 @@ export function Budget() {
           <div>
             <p className="text-[10px] md:text-sm text-muted-foreground">Month Income</p>
             <p className="text-xs md:text-lg font-semibold text-green-600 dark:text-green-400">
-              {formatCurrency(monthlyTotals.income)}
+              {formatCurrency(monthlyTotals.totalIncome)}
             </p>
           </div>
           <div>
             <p className="text-[10px] md:text-sm text-muted-foreground">Month Bills</p>
             <p className="text-xs md:text-lg font-semibold text-red-600 dark:text-red-400">
-              {formatCurrency(monthlyTotals.expenses)}
+              {formatCurrency(monthlyTotals.totalBills)}
             </p>
           </div>
           <div>
             <p className="text-[10px] md:text-sm text-muted-foreground">Month Net</p>
             <p className={`text-xs md:text-lg font-semibold ${
-              monthlyTotals.net >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'
+              monthlyTotals.balance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'
             }`}>
-              {formatCurrency(monthlyTotals.net)}
+              {formatCurrency(monthlyTotals.balance)}
             </p>
           </div>
         </div>
@@ -531,8 +542,8 @@ export function Budget() {
         selectedYear={selectedYear}
         dayIncomes={getIncomeForDay(selectedDay)}
         dayBills={getBillsForDay(selectedDay)}
-        totalIncomeUpToToday={calculateRunningTotals(selectedDay).totalIncome}
-        totalBillsUpToToday={calculateRunningTotals(selectedDay).totalBills}
+        totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
+        totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
         monthlyTotals={monthlyTotals}
       />
     </div>
