@@ -11,9 +11,7 @@ const router = Router();
 
 const validateAndPreprocessData = (data: any) => {
   try {
-    console.log('Starting data validation...');
-
-    // Convert categories from object to array
+    // Convert categories from object to array with single log statement
     const categoriesArray = Object.entries(data.categories || {}).map(([name, category]: [string, any]) => ({
       id: category.id,
       name,
@@ -21,16 +19,16 @@ const validateAndPreprocessData = (data: any) => {
       icon: category.icon || 'circle'
     }));
 
-    // Create a map for category lookups
     const categoryMap = new Map(categoriesArray.map(cat => [cat.name, cat]));
+    const missingCategories: string[] = [];
 
-    // Convert bills from object to array
+    // Process bills with validation tracking
     const billsArray = Object.entries(data.bills || {}).map(([id, bill]: [string, any]) => {
       const amount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
       const category = categoryMap.get(bill.category);
 
       if (!category) {
-        console.warn(`Warning: Category "${bill.category}" not found for bill "${bill.name}"`);
+        missingCategories.push(bill.category);
         return null;
       }
 
@@ -43,20 +41,13 @@ const validateAndPreprocessData = (data: any) => {
       };
     }).filter(Boolean);
 
-    // Process transactions
+    // Process transactions with a single validation pass
     const transactionsArray = (data.transactions || []).map((t: any) => {
       const amount = typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount;
+      const date = new Date(t.date);
 
-      // Handle date explicitly
-      let date;
-      try {
-        date = new Date(t.date);
-        if (isNaN(date.getTime())) {
-          throw new Error('Invalid date');
-        }
-      } catch (e) {
-        console.warn(`Warning: Invalid date for transaction "${t.description}", using current date`);
-        date = new Date();
+      if (isNaN(date.getTime())) {
+        throw new Error(`Invalid date for transaction "${t.description}"`);
       }
 
       return {
@@ -69,58 +60,56 @@ const validateAndPreprocessData = (data: any) => {
       };
     });
 
-    const processedData = {
+    // Single consolidated log for data validation results
+    const summary = {
+      categories: categoriesArray.length,
+      bills: billsArray.length,
+      transactions: transactionsArray.length,
+      warnings: missingCategories.length > 0 ? 
+        `Missing categories for bills: ${missingCategories.join(', ')}` : undefined
+    };
+    console.log('Data validation completed:', summary);
+
+    return {
       categories: categoriesArray,
       bills: billsArray,
       transactions: transactionsArray
     };
-
-    console.log('Data validation completed successfully');
-    return processedData;
   } catch (error) {
-    console.error('Data validation error:', error);
+    console.error('Data validation error:', error instanceof Error ? error.message : 'Unknown error');
     throw error;
   }
 };
 
-// Backup endpoint
+// Backup endpoint with consolidated error handling
 router.post('/api/sync/backup', async (req, res) => {
   try {
     const result = await generateDatabaseBackup();
 
     if (!result.success || !result.fileName) {
-      return res.status(500).json({ 
-        error: result.error || 'Failed to generate backup' 
-      });
+      return res.status(500).json({ error: result.error || 'Failed to generate backup' });
     }
 
     const backupData = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'tmp', result.fileName), 'utf8'));
-
-    // Transform categories to dictionary
-    const categoriesDict = backupData.categories.reduce((acc: any, category: any) => {
-      acc[category.name] = {
-        id: category.id,
-        color: category.color || '#808080',
-        icon: category.icon || 'circle'
-      };
-      return acc;
-    }, {});
-
-    // Transform bills to dictionary
-    const billsDict = backupData.bills.reduce((acc: any, bill: any) => {
-      const category = backupData.categories.find((c: any) => c.id === bill.category_id);
-      acc[bill.id] = {
-        name: bill.name,
-        amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount,
-        day: bill.day,
-        category: category?.name || 'Other'
-      };
-      return acc;
-    }, {});
-
     const transformedData = {
-      categories: categoriesDict,
-      bills: billsDict,
+      categories: backupData.categories.reduce((acc: any, category: any) => {
+        acc[category.name] = {
+          id: category.id,
+          color: category.color || '#808080',
+          icon: category.icon || 'circle'
+        };
+        return acc;
+      }, {}),
+      bills: backupData.bills.reduce((acc: any, bill: any) => {
+        const category = backupData.categories.find((c: any) => c.id === bill.category_id);
+        acc[bill.id] = {
+          name: bill.name,
+          amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount,
+          day: bill.day,
+          category: category?.name || 'Other'
+        };
+        return acc;
+      }, {}),
       transactions: backupData.transactions.map((t: any) => ({
         ...t,
         amount: typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount
@@ -135,14 +124,13 @@ router.post('/api/sync/backup', async (req, res) => {
       downloadUrl: `/api/sync/download/${result.fileName}`
     });
   } catch (error) {
-    console.error('Error in backup endpoint:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Unknown error occurred' 
-    });
+    console.error('Backup generation failed:', error instanceof Error ? error.message : 'Unknown error');
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error occurred' });
   }
 });
 
-// Download endpoint
+// Download endpoint - Remains unchanged
+
 router.get('/api/sync/download/:filename', (req, res) => {
   try {
     const { filename } = req.params;
@@ -177,7 +165,7 @@ router.get('/api/sync/download/:filename', (req, res) => {
   }
 });
 
-// Restore endpoint
+// Restore endpoint with improved logging
 router.post('/api/sync/restore', async (req, res) => {
   let tempPath = '';
 
@@ -189,94 +177,93 @@ router.post('/api/sync/restore', async (req, res) => {
     const uploadedFile = req.files.backup as UploadedFile;
     tempPath = path.join(process.cwd(), 'tmp', `restore_${Date.now()}.json`);
 
-    // Create tmp directory if it doesn't exist
+    // Ensure tmp directory exists
     const tmpDir = path.join(process.cwd(), 'tmp');
     if (!fs.existsSync(tmpDir)) {
       fs.mkdirSync(tmpDir, { recursive: true });
     }
 
     await uploadedFile.mv(tempPath);
+    const fileContent = fs.readFileSync(tempPath, 'utf8');
+    const processedData = validateAndPreprocessData(JSON.parse(fileContent));
 
-    try {
-      const fileContent = fs.readFileSync(tempPath, 'utf8');
-      console.log('Processing backup file...');
+    await db.transaction(async (tx: any) => {
+      // Single log for restoration progress
+      const restored = {
+        categories: 0,
+        bills: 0,
+        transactions: 0
+      };
 
-      const parsedData = JSON.parse(fileContent);
-      const processedData = validateAndPreprocessData(parsedData);
+      // Restore categories
+      for (const category of processedData.categories) {
+        await tx.insert(categories).values(category)
+          .onConflictDoUpdate({
+            target: [categories.id],
+            set: {
+              name: sql`EXCLUDED.name`,
+              color: sql`EXCLUDED.color`,
+              icon: sql`EXCLUDED.icon`
+            }
+          });
+        restored.categories++;
+      }
 
-      await db.transaction(async (tx: any) => {
-        // Insert categories
-        console.log('Restoring categories...');
-        for (const category of processedData.categories) {
-          await tx.insert(categories).values(category)
-            .onConflictDoUpdate({
-              target: [categories.id],
-              set: {
-                name: sql`EXCLUDED.name`,
-                color: sql`EXCLUDED.color`,
-                icon: sql`EXCLUDED.icon`
-              }
-            });
-        }
+      // Restore bills
+      for (const bill of processedData.bills) {
+        await tx.insert(bills).values(bill)
+          .onConflictDoUpdate({
+            target: [bills.id],
+            set: {
+              name: sql`EXCLUDED.name`,
+              amount: sql`EXCLUDED.amount`,
+              day: sql`EXCLUDED.day`,
+              category_id: sql`EXCLUDED.category_id`
+            }
+          });
+        restored.bills++;
+      }
 
-        // Insert bills
-        console.log('Restoring bills...');
-        for (const bill of processedData.bills) {
-          await tx.insert(bills).values(bill)
-            .onConflictDoUpdate({
-              target: [bills.id],
-              set: {
-                name: sql`EXCLUDED.name`,
-                amount: sql`EXCLUDED.amount`,
-                day: sql`EXCLUDED.day`,
-                category_id: sql`EXCLUDED.category_id`
-              }
-            });
-        }
+      // Restore transactions
+      for (const transaction of processedData.transactions) {
+        await tx.insert(transactions).values({
+          ...transaction,
+          date: new Date(transaction.date)
+        })
+          .onConflictDoUpdate({
+            target: [transactions.id],
+            set: {
+              description: sql`EXCLUDED.description`,
+              amount: sql`EXCLUDED.amount`,
+              date: sql`EXCLUDED.date`,
+              type: sql`EXCLUDED.type`,
+              category_id: sql`EXCLUDED.category_id`
+            }
+          });
+        restored.transactions++;
+      }
 
-        // Insert transactions
-        console.log('Restoring transactions...');
-        for (const transaction of processedData.transactions) {
-          await tx.insert(transactions).values({
-            ...transaction,
-            date: new Date(transaction.date)
-          })
-            .onConflictDoUpdate({
-              target: [transactions.id],
-              set: {
-                description: sql`EXCLUDED.description`,
-                amount: sql`EXCLUDED.amount`,
-                date: sql`EXCLUDED.date`,
-                type: sql`EXCLUDED.type`,
-                category_id: sql`EXCLUDED.category_id`
-              }
-            });
-        }
-      });
+      console.log('Backup restoration completed:', restored);
+    });
 
-      console.log('Backup restored successfully');
-      res.json({ 
-        message: 'Backup restored successfully',
-        summary: {
-          categories: processedData.categories.length,
-          bills: processedData.bills.length,
-          transactions: processedData.transactions.length
-        }
-      });
-    } catch (parseError: any) {
-      console.error('Error processing backup data:', parseError);
-      res.status(400).json({ 
-        error: 'Invalid backup file content',
-        details: parseError.message,
-        stack: parseError.stack
-      });
-    }
+    res.json({ 
+      message: 'Backup restored successfully',
+      summary: {
+        categories: processedData.categories.length,
+        bills: processedData.bills.length,
+        transactions: processedData.transactions.length
+      }
+    });
   } catch (error: any) {
-    console.error('Error in restore endpoint:', error);
+    console.error('Restore operation failed:', {
+      error: error.message || 'Unknown error',
+      phase: error.phase || 'unknown'
+    });
+
     if (!res.headersSent) {
       res.status(500).json({ 
         error: error.message || 'Unknown error occurred',
-        details: error.stack
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
   } finally {
