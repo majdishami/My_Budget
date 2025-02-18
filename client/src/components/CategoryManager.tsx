@@ -97,9 +97,12 @@ export function CategoryManager() {
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (newCategory) => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      toast({ title: "Success", description: "Category created successfully" });
+      toast({ 
+        title: "Success", 
+        description: `Category "${newCategory.name}" created successfully` 
+      });
       setIsAddOpen(false);
     },
     onError: (error: Error) => {
@@ -290,6 +293,7 @@ export function CategoryManager() {
         }}
         onSubmit={handleSubmit}
         initialData={editCategory || undefined}
+        showSuccessMessage={false}
       />
 
       <AlertDialog open={!!deleteCategory} onOpenChange={() => setDeleteCategory(null)}>
