@@ -48,6 +48,7 @@ export interface Bill {
   isYearly?: boolean;
   date?: string | null;
   yearly_date?: string | null;
+  recurring_type?: 'monthly' | 'yearly' | 'once';
   category?: {
     name?: string;
     color?: string;

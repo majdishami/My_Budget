@@ -132,7 +132,7 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
 };
 
 // Helper function to expand recurring bills into multiple entries
-const expandRecurringBill = (baseBill: Bill, months: number = 12) => {
+const expandRecurringBill = (baseBill: Bill) => {
   const bills: Bill[] = [];
 
   // Validate date before processing
@@ -142,19 +142,20 @@ const expandRecurringBill = (baseBill: Bill, months: number = 12) => {
   }
 
   const baseDate = dayjs(baseBill.date);
+  // Look back 6 months and forward 12 months
   const startDate = dayjs().startOf('month').subtract(6, 'month');
-  const endDate = dayjs().endOf('month').add(6, 'month');
+  const endDate = dayjs().endOf('month').add(12, 'month');
 
-  // If it's explicitly marked as one-time, return as is
+  // If it's explicitly marked as one-time, only include if within range
   if (baseBill.isOneTime) {
     if (baseDate.isBetween(startDate, endDate, 'day', '[]')) {
-      return [baseBill];
+      bills.push(baseBill);
     }
-    return [];
+    return bills;
   }
 
-  // For monthly bills (any bill with a day set is considered monthly recurring)
-  if (baseBill.day) {
+  // Handle monthly recurring expenses
+  if (!baseBill.isYearly && baseBill.day) {
     let currentDate = startDate.date(baseBill.day);
 
     // Adjust if the day is greater than the days in the month
@@ -170,7 +171,8 @@ const expandRecurringBill = (baseBill: Bill, months: number = 12) => {
       bills.push({
         ...baseBill,
         id: instanceId,
-        date: currentDate.format('YYYY-MM-DD')
+        date: currentDate.format('YYYY-MM-DD'),
+        recurring_type: 'monthly'
       });
 
       // Move to next month
@@ -180,8 +182,9 @@ const expandRecurringBill = (baseBill: Bill, months: number = 12) => {
         currentDate = currentDate.endOf('month');
       }
     }
-  } else if (baseBill.isYearly && baseBill.yearly_date) {
-    // For yearly bills
+  } 
+  // Handle yearly recurring expenses
+  else if (baseBill.isYearly && baseBill.yearly_date) {
     const yearlyDate = dayjs(baseBill.yearly_date);
     let currentDate = yearlyDate;
 
@@ -193,16 +196,19 @@ const expandRecurringBill = (baseBill: Bill, months: number = 12) => {
         bills.push({
           ...baseBill,
           id: instanceId,
-          date: currentDate.format('YYYY-MM-DD')
+          date: currentDate.format('YYYY-MM-DD'),
+          recurring_type: 'yearly'
         });
       }
       currentDate = currentDate.add(1, 'year');
     }
-  } else {
-    // If no recurrence info is available, treat as one-time
-    if (baseDate.isBetween(startDate, endDate, 'day', '[]')) {
-      bills.push(baseBill);
-    }
+  } 
+  // Default handling for bills without explicit recurrence information
+  else {
+    bills.push({
+      ...baseBill,
+      recurring_type: 'monthly'  // Assume monthly by default for existing records
+    });
   }
 
   logger.info("[DataContext] Expanded recurring bill:", {
