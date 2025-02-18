@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Circle, Palette } from "lucide-react";
 import { ChromePicker } from 'react-color';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useToast } from "@/hooks/use-toast";
 
 const categorySchema = z.object({
-  name: z.string().min(1, "Category name is required"),
-  color: z.string().min(1, "Color is required"),
-  icon: z.string().nullable().optional(),
+  name: z.string().min(1, "Category name is required").max(255),
+  color: z.string().min(1, "Color is required").max(50),
+  icon: z.string().nullable().optional()
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -26,8 +27,8 @@ interface CategoryDialogProps {
 }
 
 export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: CategoryDialogProps) {
+  const { toast } = useToast();
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
-  const formId = useMemo(() => `category-form-${Math.random().toString(36).slice(2)}`, []);
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -36,27 +37,29 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
       color: initialData?.color || "#000000",
       icon: initialData?.icon || null,
     },
-    mode: "onChange"
+    mode: "onBlur"
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      form.reset({
-        name: initialData?.name || "",
-        color: initialData?.color || "#000000",
-        icon: initialData?.icon || null,
+  const handleSubmit = async (data: CategoryFormData) => {
+    try {
+      await onSubmit({
+        name: data.name.trim(),
+        color: data.color,
+        icon: data.icon?.trim() || null,
+      });
+      form.reset();
+      onOpenChange(false);
+      toast({
+        title: initialData ? "Category updated" : "Category created",
+        description: `Successfully ${initialData ? 'updated' : 'created'} category "${data.name}"`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save category",
+        variant: "destructive",
       });
     }
-  }, [isOpen, initialData, form]);
-
-  const handleSubmit = (data: CategoryFormData) => {
-    onSubmit({
-      name: data.name.trim(),
-      color: data.color,
-      icon: data.icon?.trim() || null,
-    });
-    form.reset();
-    onOpenChange(false);
   };
 
   return (
@@ -67,7 +70,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
         </DialogHeader>
 
         <Form {...form}>
-          <form id={formId} onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -75,12 +78,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field}
-                      form={formId}
-                      type="text"
-                      placeholder="Enter category name"
-                    />
+                    <Input {...field} type="text" placeholder="Enter category name" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -96,7 +94,11 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                   <FormControl>
                     <Popover open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full flex items-center justify-between" type="button">
+                        <Button 
+                          type="button"
+                          variant="outline" 
+                          className="w-full flex items-center justify-between"
+                        >
                           <span className="flex items-center gap-2">
                             <Circle className="h-4 w-4" fill={field.value} />
                             <span className="truncate">{field.value}</span>
@@ -111,6 +113,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                             field.onChange(color.hex);
                             setColorPickerOpen(false);
                           }}
+                          disableAlpha
                         />
                       </PopoverContent>
                     </Popover>
@@ -129,9 +132,8 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                   <FormControl>
                     <Input 
                       {...field}
-                      form={formId}
                       type="text"
-                      placeholder="e.g., shopping-cart, credit-card"
+                      placeholder="e.g., shopping-cart"
                       value={field.value || ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
                     />
@@ -145,7 +147,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
             />
 
             <DialogFooter>
-              <Button type="submit" form={formId}>
+              <Button type="submit">
                 {initialData ? "Save Changes" : "Add Category"}
               </Button>
             </DialogFooter>
