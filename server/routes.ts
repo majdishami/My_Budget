@@ -458,27 +458,59 @@ export function registerRoutes(app: Express): Server {
 
   app.delete('/api/transactions/:id', async (req, res) => {
     try {
-      console.log('[Transactions API] Deleting transaction:', req.params.id);
       const transactionId = parseInt(req.params.id);
+      console.log('[Transactions API] Attempting to delete transaction:', { id: transactionId });
 
+      // Find the transaction first
       const transaction = await db.query.transactions.findFirst({
         where: eq(transactions.id, transactionId)
       });
 
       if (!transaction) {
-        return res.status(404).json({ message: 'Transaction not found' });
+        console.log('[Transactions API] Transaction not found:', { id: transactionId });
+        return res.status(404).json({ 
+          message: 'Transaction not found',
+          error: `No transaction found with ID ${transactionId}`
+        });
       }
 
-      await db.delete(transactions)
-        .where(eq(transactions.id, transactionId));
+      console.log('[Transactions API] Found transaction to delete:', {
+        id: transaction.id,
+        type: transaction.type,
+        description: transaction.description
+      });
 
-      console.log('[Transactions API] Successfully deleted transaction:', req.params.id);
-      res.status(204).send();
+      // Perform the deletion
+      await db.transaction(async (tx) => {
+        const deleted = await tx.delete(transactions)
+          .where(eq(transactions.id, transactionId))
+          .returning();
+
+        if (!deleted.length) {
+          throw new Error(`Failed to delete transaction ${transactionId}`);
+        }
+
+        console.log('[Transactions API] Successfully deleted transaction:', {
+          id: transactionId,
+          deletedCount: deleted.length
+        });
+      });
+
+      return res.status(204).send();
     } catch (error) {
-      console.error('[Transactions API] Error deleting transaction:', error);
-      res.status(500).json({ message: 'Server error deleting transaction' });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('[Transactions API] Error deleting transaction:', {
+        id: req.params.id,
+        error: errorMessage
+      });
+
+      return res.status(500).json({ 
+        message: 'Failed to delete transaction',
+        error: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal server error'
+      });
     }
   });
+
   // Add proper update handling for bills
   app.patch('/api/bills/:id', async (req, res) => {
     try {
