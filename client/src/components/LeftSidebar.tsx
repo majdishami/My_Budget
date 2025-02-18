@@ -131,7 +131,7 @@ export function LeftSidebar({
           <div className="space-y-1">
             {incomes.map((income, index) => (
               <div
-                key={income.id}
+                key={income.id ?? `income-${index}`}
                 className="flex items-center justify-between p-2 hover:bg-accent rounded-lg"
               >
                 <div className="flex-1 min-w-0">
@@ -181,7 +181,7 @@ export function LeftSidebar({
           <div className="space-y-1">
             {sortedBills.map((bill, index) => (
               <div
-                key={bill.id}
+                key={bill.id ?? `bill-${index}`}
                 className="flex items-center justify-between p-2 hover:bg-accent rounded-lg"
               >
                 <div className="flex-1 min-w-0">
