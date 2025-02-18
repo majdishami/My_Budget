@@ -39,6 +39,17 @@ type ProcessedTransaction = ExpenseTransaction & {
   displayDate: string;
 };
 
+// Define type for category summary
+type CategorySummary = {
+  name: string;
+  color: string;
+  icon?: string;
+  total: number;
+  pendingTotal: number;
+  completedTotal: number;
+  transactions: ProcessedTransaction[];
+};
+
 interface ExpenseReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -117,6 +128,43 @@ export default function ExpenseReportDialog({
     };
   }), [expenses, today]);
 
+  // Group transactions by category
+  const categorySummaries = useMemo(() => {
+    const summaries = new Map<string, CategorySummary>();
+
+    processedTransactions.forEach(transaction => {
+      const categoryName = transaction.category_name || 'Uncategorized';
+
+      if (!summaries.has(categoryName)) {
+        summaries.set(categoryName, {
+          name: categoryName,
+          color: transaction.category_color || '#808080',
+          icon: transaction.category_icon,
+          total: 0,
+          pendingTotal: 0,
+          completedTotal: 0,
+          transactions: []
+        });
+      }
+
+      const summary = summaries.get(categoryName)!;
+      summary.total += transaction.amount;
+      if (transaction.isPending) {
+        summary.pendingTotal += transaction.amount;
+      } else {
+        summary.completedTotal += transaction.amount;
+      }
+      summary.transactions.push(transaction);
+    });
+
+    // Sort transactions within each category
+    summaries.forEach(summary => {
+      summary.transactions.sort(safeSortByDate);
+    });
+
+    return Array.from(summaries.values()).sort((a, b) => b.total - a.total);
+  }, [processedTransactions]);
+
   // Calculate totals with safe date handling
   const totals = useMemo(() => processedTransactions.reduce(
     (acc, t) => {
@@ -131,12 +179,6 @@ export default function ExpenseReportDialog({
   ), [processedTransactions]);
 
   const total = totals.completed + totals.pending;
-
-  // Memoize sorted transactions
-  const sortedTransactions = useMemo(() => 
-    [...processedTransactions].sort(safeSortByDate),
-    [processedTransactions]
-  );
 
   const handleBack = () => {
     if (onBack) {
@@ -209,31 +251,35 @@ export default function ExpenseReportDialog({
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Expense Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {sortedTransactions.length > 0 ? (
+          {/* Category Summaries */}
+          {categorySummaries.map(category => (
+            <Card key={category.name}>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span style={{ color: category.color }}>{category.name}</span>
+                  <span className="text-lg font-bold text-red-600">
+                    {formatCurrency(category.total)}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead>Category</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedTransactions.map((transaction) => (
+                    {category.transactions.map((transaction) => (
                       <TableRow 
                         key={transaction.id}
                         className={getRowClass(transaction.isPending)}
                       >
                         <TableCell>{dayjs(transaction.displayDate).format('MMM D, YYYY')}</TableCell>
                         <TableCell>{transaction.description}</TableCell>
-                        <TableCell>{transaction.category_name || 'Uncategorized'}</TableCell>
                         <TableCell className={getAmountClass()}>
                           {formatCurrency(transaction.amount)}
                         </TableCell>
@@ -244,20 +290,33 @@ export default function ExpenseReportDialog({
                         </TableCell>
                       </TableRow>
                     ))}
+                    <TableRow className="font-medium">
+                      <TableCell colSpan={2}>Category Total</TableCell>
+                      <TableCell className="text-right text-red-600 font-bold">
+                        {formatCurrency(category.total)}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-yellow-600">
+                          Pending: {formatCurrency(category.pendingTotal)}
+                        </span>
+                      </TableCell>
+                    </TableRow>
                   </TableBody>
                 </Table>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    No expenses found for the selected period.
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Try adjusting your filters or selecting a different date range.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ))}
+
+          {categorySummaries.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">
+                No expenses found for the selected period.
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Try adjusting your filters or selecting a different date range.
+              </p>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
