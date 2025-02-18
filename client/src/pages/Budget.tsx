@@ -155,9 +155,11 @@ export function Budget() {
   // Transform bills to have proper recurrence flags
   const bills = useMemo(() => rawBills.map(bill => ({
     ...bill,
-    isOneTime: false, // Default to monthly recurring bills
-    isYearly: false, // No yearly bills in this set
-    date: undefined, // Clear any date as these are monthly recurring
+    // Only set defaults if recurrence flags are not already set
+    isOneTime: bill.isOneTime ?? false,
+    isYearly: bill.isYearly ?? false,
+    date: bill.isOneTime ? bill.date : undefined,
+    yearly_date: bill.isYearly ? bill.yearly_date : undefined,
   })), [rawBills]);
 
   // Calculate daysInMonth early
@@ -171,7 +173,7 @@ export function Budget() {
       value: i + 1,
       label: dayjs().month(i).format('MMMM')
     })), 
-  []); 
+  ); 
 
   // Update years calculation to only show 2025 and future years
   const years = useMemo(() => 
@@ -179,7 +181,7 @@ export function Budget() {
       value: 2025 + i,
       label: (2025 + i).toString()
     })), 
-  []); 
+  ); 
 
   // Update getIncomeForDay to handle recurring incomes across all months
   const getIncomeForDay = useCallback((day: number) => {
