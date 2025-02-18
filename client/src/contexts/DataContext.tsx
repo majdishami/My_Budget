@@ -435,9 +435,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useData() {
-  const context = useContext(DataContext);
-  if (!context) {
-    throw new Error("[DataContext] `useData()` must be used within `<DataProvider>`.");
+  try {
+    const context = useContext(DataContext);
+    if (!context) {
+      // Get the calling component name from the error stack
+      const stack = new Error().stack;
+      const callerComponent = stack
+        ?.split('\n')[2] // Get the caller's line
+        ?.match(/at\s+([^\s]+)\s+/)?.[1] // Extract component name
+        || 'Unknown Component';
+
+      const errorMessage = `[DataContext] useData() must be used within <DataProvider>. Called from: ${callerComponent}`;
+      logger.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+    return context;
+  } catch (error) {
+    // Log the error with full stack trace
+    logger.error('[DataContext] Error in useData():', {
+      error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    throw error;
   }
-  return context;
 }
