@@ -61,11 +61,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  // Handle date selection
-  const handleDateSelect = (selectedDate: DateRange | undefined) => {
-    setDate(selectedDate);
-  };
-
   // Query transactions for the selected date range
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ['/api/transactions', { 
@@ -82,10 +77,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
 
     return transactions
       .filter(transaction => {
-        // Only include expense transactions
         if (transaction.type !== 'expense') return false;
-
-        // Check if transaction date is within the selected range
         const transactionDate = dayjs(transaction.date);
         return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
                transactionDate.isSameOrBefore(dayjs(date.to), 'day');
@@ -154,7 +146,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
               <Calendar
                 mode="range"
                 selected={date}
-                onSelect={handleDateSelect}
+                onSelect={setDate}
                 numberOfMonths={1}
                 defaultMonth={currentDate.toDate()}
               />
