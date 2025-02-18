@@ -33,21 +33,22 @@ export default function ExpenseReport() {
   // Filter bills based on report type and selected filters
   const filteredExpenses = useMemo(() => {
     return (bills || []).filter(bill => {
-      const billDate = dayjs(bill.date);
+      const billDate = dayjs(bill.date || new Date());
       let dateMatches = true;
 
       // Apply date filters based on report type
       if (reportType === 'monthly') {
-        const startOfMonth = dayjs(`${selectedYear}-${selectedMonth}-01`).startOf('month');
+        const startOfMonth = dayjs(`${selectedYear}-${selectedMonth}-01`);
         const endOfMonth = startOfMonth.endOf('month');
-        dateMatches = billDate.isSameOrAfter(startOfMonth) && billDate.isSameOrBefore(endOfMonth);
+        dateMatches = billDate.isBetween(startOfMonth, endOfMonth, 'day', '[]');
       } else if (reportType === 'annual') {
         const startOfYear = dayjs(selectedYear).startOf('year');
         const endOfYear = dayjs(selectedYear).endOf('year');
-        dateMatches = billDate.isSameOrAfter(startOfYear) && billDate.isSameOrBefore(endOfYear);
+        dateMatches = billDate.isBetween(startOfYear, endOfYear, 'day', '[]');
       } else if (reportType === 'custom' && dateRange.from && dateRange.to) {
-        dateMatches = billDate.isSameOrAfter(dayjs(dateRange.from).startOf('day')) && 
-                     billDate.isSameOrBefore(dayjs(dateRange.to).endOf('day'));
+        const start = dayjs(dateRange.from).startOf('day');
+        const end = dayjs(dateRange.to).endOf('day');
+        dateMatches = billDate.isBetween(start, end, 'day', '[]');
       }
 
       // Apply category filter if selected
@@ -57,7 +58,16 @@ export default function ExpenseReport() {
       const expenseMatches = selectedExpense === 'all' || bill.id === Number(selectedExpense);
 
       return dateMatches && categoryMatches && expenseMatches;
-    });
+    }).map(bill => ({
+      id: bill.id,
+      date: dayjs(bill.date).format('YYYY-MM-DD'),
+      description: bill.name,
+      amount: bill.amount,
+      type: 'expense' as const,
+      category_name: bill.category_name,
+      category_color: bill.category_color,
+      category_icon: bill.category_icon
+    }));
   }, [bills, reportType, selectedMonth, selectedYear, dateRange, selectedCategory, selectedExpense]);
 
   const handleShowReport = () => {

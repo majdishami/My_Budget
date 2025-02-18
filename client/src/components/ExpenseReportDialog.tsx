@@ -3,10 +3,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import dayjs from 'dayjs';
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -71,7 +73,15 @@ export default function ExpenseReportDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center space-x-2">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => onOpenChange(false)}
+            className="h-8 w-8"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <DialogTitle className="text-xl">
             Expense Report
             <div className="text-sm font-normal text-muted-foreground mt-1">
