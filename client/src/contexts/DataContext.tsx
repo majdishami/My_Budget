@@ -141,81 +141,40 @@ const expandRecurringBill = (baseBill: Bill) => {
     throw new Error('Invalid date format in bill');
   }
 
+  // Set start date to January 2025 and end date to 12 months from current date
+  const startDate = dayjs('2025-01-01');
+  const endDate = dayjs().add(12, 'months').endOf('month');
   const baseDate = dayjs(baseBill.date);
-  // Look back 6 months and forward 12 months
-  const startDate = dayjs().startOf('month').subtract(6, 'month');
-  const endDate = dayjs().endOf('month').add(12, 'month');
 
-  // If it's explicitly marked as one-time, only include if within range
-  if (baseBill.isOneTime) {
-    if (baseDate.isBetween(startDate, endDate, 'day', '[]')) {
-      bills.push(baseBill);
-    }
-    return bills;
-  }
+  // For all bills, generate monthly occurrences
+  let currentDate = startDate.date(baseDate.date()); // Keep the same day of month
 
-  // Handle monthly recurring expenses
-  if (!baseBill.isYearly && baseBill.day) {
-    let currentDate = startDate.date(baseBill.day);
+  while (currentDate.isBefore(endDate)) {
+    // Generate instance ID using the month difference
+    const monthDiff = currentDate.diff(baseDate, 'month');
+    const instanceId = generateInstanceId(baseBill.id, monthDiff);
 
-    // Adjust if the day is greater than the days in the month
-    if (baseBill.day > currentDate.daysInMonth()) {
-      currentDate = currentDate.endOf('month');
-    }
-
-    while (currentDate.isBefore(endDate)) {
-      // Generate instance ID using the base ID and the month difference
-      const monthDiff = currentDate.diff(baseDate, 'month');
-      const instanceId = generateInstanceId(baseBill.id, monthDiff);
-
-      bills.push({
-        ...baseBill,
-        id: instanceId,
-        date: currentDate.format('YYYY-MM-DD'),
-        recurring_type: 'monthly'
-      });
-
-      // Move to next month
-      currentDate = currentDate.add(1, 'month');
-      // Adjust for months with fewer days
-      if (baseBill.day > currentDate.daysInMonth()) {
-        currentDate = currentDate.endOf('month');
-      }
-    }
-  } 
-  // Handle yearly recurring expenses
-  else if (baseBill.isYearly && baseBill.yearly_date) {
-    const yearlyDate = dayjs(baseBill.yearly_date);
-    let currentDate = yearlyDate;
-
-    while (currentDate.isBefore(endDate)) {
-      if (currentDate.isAfter(startDate)) {
-        const yearDiff = currentDate.diff(yearlyDate, 'year');
-        const instanceId = generateInstanceId(baseBill.id, yearDiff);
-
-        bills.push({
-          ...baseBill,
-          id: instanceId,
-          date: currentDate.format('YYYY-MM-DD'),
-          recurring_type: 'yearly'
-        });
-      }
-      currentDate = currentDate.add(1, 'year');
-    }
-  } 
-  // Default handling for bills without explicit recurrence information
-  else {
     bills.push({
       ...baseBill,
-      recurring_type: 'monthly'  // Assume monthly by default for existing records
+      id: instanceId,
+      date: currentDate.format('YYYY-MM-DD'),
+      recurring_type: 'monthly'
     });
+
+    // Move to next month
+    currentDate = currentDate.add(1, 'month');
+
+    // Handle months with fewer days
+    if (baseDate.date() > currentDate.daysInMonth()) {
+      currentDate = currentDate.endOf('month');
+    }
   }
 
   logger.info("[DataContext] Expanded recurring bill:", {
     baseId: baseBill.id,
     name: baseBill.name,
-    isYearly: baseBill.isYearly,
-    day: baseBill.day,
+    startDate: startDate.format('YYYY-MM-DD'),
+    endDate: endDate.format('YYYY-MM-DD'),
     instanceCount: bills.length
   });
 
