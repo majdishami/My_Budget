@@ -16,7 +16,7 @@ type CategoryFilter = 'all' | string;
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const { bills, categories } = useData();
+  const { bills, categories, isLoading } = useData();
   const [reportType, setReportType] = useState<ReportType>('all');
   const [selectedMonth, setSelectedMonth] = useState(dayjs().format('M'));
   const [selectedYear, setSelectedYear] = useState(dayjs().format('YYYY'));
@@ -32,7 +32,7 @@ export default function ExpenseReport() {
 
   // Filter bills based on report type and selected filters
   const filteredExpenses = useMemo(() => {
-    return bills.filter(bill => {
+    return (bills || []).filter(bill => {
       const billDate = dayjs(bill.date);
       let dateMatches = true;
 
@@ -81,6 +81,20 @@ export default function ExpenseReport() {
     value: (currentYear - 5 + i).toString(),
     label: (currentYear - 5 + i).toString()
   })), [currentYear]);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-4">
+        <Card className="p-4">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -152,7 +166,7 @@ export default function ExpenseReport() {
               </Select>
             )}
 
-            {(reportType === 'category' || reportType === 'all') && (
+            {(reportType === 'category' || reportType === 'all') && categories && categories.length > 0 && (
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Select category" />
@@ -168,7 +182,7 @@ export default function ExpenseReport() {
               </Select>
             )}
 
-            {reportType === 'individual' && (
+            {reportType === 'individual' && bills && bills.length > 0 && (
               <Select value={selectedExpense} onValueChange={setSelectedExpense}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Select expense" />

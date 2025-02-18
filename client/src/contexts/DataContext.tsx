@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { Income, Bill } from "@/types";
+import { Income, Bill, Category } from "@/types";
 import dayjs from "dayjs";
 import { logger } from "@/lib/logger";
 
 interface DataContextType {
   incomes: Income[];
   bills: Bill[];
+  categories: Category[];
   saveIncomes: (newIncomes: Income[]) => Promise<void>;
   saveBills: (newBills: Bill[]) => Promise<void>;
   addIncome: (income: Income) => Promise<void>;
@@ -77,6 +78,7 @@ const getBaseId = (id: number) => Math.floor(id / 10);
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -86,6 +88,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       logger.info("[DataContext] Processing transactions...");
       const loadedIncomes: Income[] = [];
       const loadedBills: Bill[] = [];
+      const loadedCategories = new Map<number, Category>();
 
       transactions.forEach((t: any) => {
         const date = dayjs(t.date).isValid()
@@ -106,6 +109,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           const expandedIncomes = expandRecurringIncome(income);
           loadedIncomes.push(...expandedIncomes);
         } else if (t.type === 'expense') {
+          // If this transaction has a category, add it to our categories map
+          if (t.category_id) {
+            loadedCategories.set(t.category_id, {
+              id: t.category_id,
+              name: t.category_name || 'Uncategorized',
+              color: t.category_color || '#808080',
+              icon: t.category_icon || 'help-circle'
+            });
+          }
+
           loadedBills.push({
             id: t.id,
             name: t.description || 'Unknown Expense',
@@ -128,10 +141,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       setIncomes(loadedIncomes);
       setBills(loadedBills);
+      setCategories(Array.from(loadedCategories.values()));
 
       logger.info("[DataContext] Successfully processed transactions:", {
         incomesCount: loadedIncomes.length,
-        billsCount: loadedBills.length
+        billsCount: loadedBills.length,
+        categoriesCount: loadedCategories.size
       });
     } catch (error) {
       logger.error("[DataContext] Error processing transactions:", error);
@@ -429,6 +444,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     <DataContext.Provider value={{
       incomes,
       bills,
+      categories,
       saveIncomes,
       saveBills,
       addIncome,

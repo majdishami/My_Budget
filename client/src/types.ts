@@ -1,4 +1,15 @@
 /**
+ * 🏷️ Category Interface
+ * Represents a transaction category
+ */
+export interface Category {
+  id: number;
+  name: string;
+  color: string;
+  icon: string | null;
+}
+
+/**
  * ==============================================
  * 📝 Core Type Definitions
  * ==============================================
@@ -76,6 +87,7 @@ export interface DataContextType {
   error: Error | null;
   incomes: Income[];
   bills: Bill[];
+  categories: Category[];
   saveIncomes: (newIncomes: Income[]) => Promise<void>;
   saveBills: (newBills: Bill[]) => Promise<void>;
   addIncome: (income: Income) => void;
