@@ -517,8 +517,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       logger.error("[DataContext] Error in deleteTransaction:", { error });
 
       // Revert optimistic update on error
-      setIncomes(prev => 'source' in transaction ? previousIncomes : prev);
-      setBills(prev => !('source' in transaction) ? previousBills : prev);
+      try {
+        setIncomes(prev => 'source' in transaction ? previousIncomes : prev);
+        setBills(prev => !('source' in transaction) ? previousBills : prev);
+        logger.info("[DataContext] Successfully rolled back state after delete failure");
+      } catch (rollbackError) {
+        logger.error("[DataContext] Failed to rollback state after delete failure:", { rollbackError });
+        // Force a full refresh if rollback fails
+        await loadData();
+      }
 
       setError(new Error(errorMessage));
       throw error;
