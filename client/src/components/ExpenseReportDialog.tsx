@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
+import { useState, useMemo } from 'react';
 
 // Define strict types for transactions
 type ExpenseTransaction = {
@@ -67,10 +68,10 @@ export default function ExpenseReportDialog({
   expenses,
   dateRange 
 }: ExpenseReportDialogProps) {
-  const today = dayjs();
+  const today = useMemo(() => dayjs(), []); // Memoize today since it's used in calculations
 
   // Process transactions with pending status and handle invalid dates
-  const processedTransactions: ProcessedTransaction[] = expenses.map(transaction => {
+  const processedTransactions: ProcessedTransaction[] = useMemo(() => expenses.map(transaction => {
     const transactionDate = dayjs(transaction.date);
 
     // Log invalid dates for debugging
@@ -90,10 +91,10 @@ export default function ExpenseReportDialog({
         transactionDate.format('YYYY-MM-DD') : 
         today.format('YYYY-MM-DD')
     };
-  });
+  }), [expenses, today]);
 
   // Calculate totals with safe date handling
-  const totals = processedTransactions.reduce(
+  const totals = useMemo(() => processedTransactions.reduce(
     (acc, t) => {
       if (t.isPending) {
         acc.pending += t.amount;
@@ -103,9 +104,15 @@ export default function ExpenseReportDialog({
       return acc;
     },
     { completed: 0, pending: 0 }
-  );
+  ), [processedTransactions]);
 
   const total = totals.completed + totals.pending;
+
+  // Memoize sorted transactions
+  const sortedTransactions = useMemo(() => 
+    [...processedTransactions].sort(safeSortByDate),
+    [processedTransactions]
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -186,28 +193,26 @@ export default function ExpenseReportDialog({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {processedTransactions
-                    .sort(safeSortByDate)
-                    .map((transaction) => (
-                      <TableRow 
-                        key={transaction.id}
-                        className={transaction.isPending ? "bg-yellow-50" : ""}
-                      >
-                        <TableCell>{dayjs(transaction.displayDate).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell>{transaction.category_name || 'Uncategorized'}</TableCell>
-                        <TableCell className="text-right text-red-600">
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                        <TableCell>
-                          {transaction.isPending ? (
-                            <span className="text-yellow-600 font-medium">Pending</span>
-                          ) : (
-                            <span className="text-green-600 font-medium">Completed</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                  {sortedTransactions.map((transaction) => (
+                    <TableRow 
+                      key={transaction.id}
+                      className={transaction.isPending ? "bg-yellow-50" : ""}
+                    >
+                      <TableCell>{dayjs(transaction.displayDate).format('MMM D, YYYY')}</TableCell>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell>{transaction.category_name || 'Uncategorized'}</TableCell>
+                      <TableCell className="text-right text-red-600">
+                        {formatCurrency(transaction.amount)}
+                      </TableCell>
+                      <TableCell>
+                        {transaction.isPending ? (
+                          <span className="text-yellow-600 font-medium">Pending</span>
+                        ) : (
+                          <span className="text-green-600 font-medium">Completed</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
