@@ -52,6 +52,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
+  const handleDateSelect = (newDate: DateRange | undefined) => {
+    setDate(newDate);
+  };
+
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ['/api/transactions'],
     enabled: showReport,
@@ -100,7 +104,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
               <Calendar
                 mode="range"
                 selected={date}
-                onSelect={setDate}
+                onSelect={handleDateSelect}
                 numberOfMonths={1}
                 defaultMonth={currentDate.toDate()}
               />
