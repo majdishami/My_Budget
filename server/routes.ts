@@ -256,14 +256,14 @@ export function registerRoutes(app: Express): Server {
       const virtualTransactions = [];
 
       if (startDate && endDate) {
-        for (const bill of allBills) {
-          let currentDate = dayjs(startDate);
-          const endDateDayjs = dayjs(endDate);
+        const startDateDayjs = dayjs(startDate);
+        const endDateDayjs = dayjs(endDate);
 
+        for (const bill of allBills) {
           // Handle one-time bills
           if (bill.is_one_time && bill.date) {
             const billDate = dayjs(bill.date);
-            if (billDate.isBetween(currentDate, endDateDayjs, 'day', '[]')) {
+            if (billDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
               virtualTransactions.push({
                 description: bill.name,
                 amount: bill.amount,
@@ -282,8 +282,8 @@ export function registerRoutes(app: Express): Server {
           // Handle yearly bills
           if (bill.is_yearly && bill.yearly_date) {
             const yearlyDate = dayjs(bill.yearly_date);
-            const thisYearDate = yearlyDate.year(currentDate.year());
-            if (thisYearDate.isBetween(currentDate, endDateDayjs, 'day', '[]')) {
+            const thisYearDate = yearlyDate.year(startDateDayjs.year());
+            if (thisYearDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
               virtualTransactions.push({
                 description: bill.name,
                 amount: bill.amount,
@@ -300,10 +300,16 @@ export function registerRoutes(app: Express): Server {
           }
 
           // Handle regular monthly bills
-          while (currentDate.isSameOrBefore(endDateDayjs)) {
-            const billDate = currentDate.date(bill.day);
+          let currentDate = startDateDayjs.startOf('month');
 
-            if (billDate.isBetween(currentDate, endDateDayjs, 'day', '[]')) {
+          while (currentDate.isSameOrBefore(endDateDayjs)) {
+            // For bills due on the 1st, ensure they're always placed on the 1st of the current month
+            const billDate = bill.day === 1
+              ? currentDate.date(1)
+              : currentDate.date(bill.day);
+
+            // Only include the bill if it falls within our date range
+            if (billDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
               virtualTransactions.push({
                 description: bill.name,
                 amount: bill.amount,
@@ -317,7 +323,8 @@ export function registerRoutes(app: Express): Server {
               });
             }
 
-            currentDate = currentDate.add(1, 'month').startOf('month');
+            // Move to the next month
+            currentDate = currentDate.add(1, 'month');
           }
         }
       }
@@ -345,6 +352,7 @@ export function registerRoutes(app: Express): Server {
         whereConditions.push(eq(transactions.type, type));
       }
 
+      // Ensure strict date range filtering for actual transactions
       if (startDate) {
         whereConditions.push(sql`DATE(${transactions.date}) >= DATE(${startDate})`);
       }
@@ -362,16 +370,23 @@ export function registerRoutes(app: Express): Server {
       const combinedTransactions = [
         ...allTransactions.map(t => ({
           ...t,
-          amount: parseFloat(t.amount.toString())
+          amount: parseFloat(t.amount.toString()),
+          date: dayjs(t.date).format('YYYY-MM-DD') // Ensure consistent date format
         })),
-        ...virtualTransactions
+        ...virtualTransactions.map(t => ({
+          ...t,
+          date: dayjs(t.date).format('YYYY-MM-DD') // Ensure consistent date format
+        }))
       ].sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
 
       console.log('[Transactions API] Query results:', {
         actualTransactions: allTransactions.length,
         virtualTransactions: virtualTransactions.length,
         totalTransactions: combinedTransactions.length,
-        dateRange: { startDate, endDate }
+        dateRange: {
+          startDate: startDate ? dayjs(startDate).format('YYYY-MM-DD') : undefined,
+          endDate: endDate ? dayjs(endDate).format('YYYY-MM-DD') : undefined
+        }
       });
 
       // Add cache control headers
