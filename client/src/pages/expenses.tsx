@@ -126,6 +126,10 @@ export default function ExpenseReport() {
     setIsDialogOpen(open);
   };
 
+  const handleBack = () => {
+    setLocation("/");
+  };
+
   const months = useMemo(() => Array.from({ length: 12 }, (_, i) => ({
     value: (i + 1).toString(),
     label: dayjs().month(i).format('MMMM')
@@ -156,7 +160,7 @@ export default function ExpenseReport() {
       <Card className="p-4 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">Expense Report</h1>
-          <Button variant="outline" onClick={() => setLocation("/")}>
+          <Button variant="outline" onClick={handleBack}>
             Back
           </Button>
         </div>
@@ -287,6 +291,7 @@ export default function ExpenseReport() {
           onOpenChange={handleOpenChange}
           expenses={filteredExpenses}
           dateRange={dateRange}
+          onBack={() => setIsDialogOpen(false)}
         />
       )}
     </div>

@@ -131,6 +131,23 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   return incomes;
 };
 
+// Helper function to filter recurring bills to show only one instance per month
+const filterBillsForCalendar = (bills: Bill[]) => {
+  const uniqueBills = new Map<string, Bill>();
+
+  bills.forEach(bill => {
+    const monthKey = dayjs(bill.date).format('YYYY-MM');
+    const dayOfMonth = dayjs(bill.date).date();
+    const billKey = `${bill.name}-${dayOfMonth}-${monthKey}`;
+
+    if (!uniqueBills.has(billKey)) {
+      uniqueBills.set(billKey, bill);
+    }
+  });
+
+  return Array.from(uniqueBills.values());
+};
+
 // Helper function to expand recurring bills into multiple entries
 const expandRecurringBill = (baseBill: Bill) => {
   const bills: Bill[] = [];
@@ -382,7 +399,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
           // Expand recurring bills
           const expandedBills = expandRecurringBill(bill);
-          loadedBills.push(...expandedBills);
+          // Filter bills to show only one instance per month in calendar view
+          const filteredBills = filterBillsForCalendar(expandedBills);
+          loadedBills.push(...filteredBills);
         }
       });
 

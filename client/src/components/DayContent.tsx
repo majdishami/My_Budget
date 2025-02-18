@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Bill, Income } from "@/types";
 import { Dot } from "lucide-react";
+import dayjs from 'dayjs';
 
 interface DayContentProps {
   day: Date;
@@ -10,16 +11,23 @@ interface DayContentProps {
 }
 
 export function DayContent({ day, bills = [], incomes = [], onClick }: DayContentProps) {
-  // Group bills by day to show only one indicator per day
+  const currentMonth = dayjs(day).month();
+  const currentYear = dayjs(day).year();
+
+  // Filter bills to only show those in the current month
   const hasExpenseOnDay = bills.some(bill => {
-    const billDate = new Date(bill.date);
-    return billDate.getDate() === day.getDate();
+    const billDate = dayjs(bill.date);
+    return billDate.date() === day.getDate() && 
+           billDate.month() === currentMonth && 
+           billDate.year() === currentYear;
   });
 
-  // Group incomes by source and day
+  // Filter incomes to only show those in the current month
   const hasIncomeOnDay = (incomes ?? []).some(income => {
-    const incomeDate = new Date(income.date);
-    return incomeDate.getDate() === day.getDate();
+    const incomeDate = dayjs(income.date);
+    return incomeDate.date() === day.getDate() && 
+           incomeDate.month() === currentMonth && 
+           incomeDate.year() === currentYear;
   });
 
   const handleClick = () => {
