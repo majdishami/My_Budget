@@ -5,7 +5,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -51,30 +51,23 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  // Fetch all expense transactions
+  // Fetch expense transactions
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions', { type: 'expense' }],
-    enabled: showReport,
+    enabled: showReport
   });
 
   // Filter transactions based on selected date range
-  const filteredTransactions = useMemo(() => {
-    if (!date?.from || !date?.to) return [];
-
+  const filteredTransactions = transactions.filter(transaction => {
+    if (!date?.from || !date?.to) return false;
+    const txDate = dayjs(transaction.date);
     const startDate = dayjs(date.from).startOf('day');
     const endDate = dayjs(date.to).endOf('day');
+    return txDate.isSameOrAfter(startDate) && txDate.isSameOrBefore(endDate);
+  });
 
-    return transactions.filter(transaction => {
-      const txDate = dayjs(transaction.date);
-      return txDate.isSameOrAfter(startDate) && txDate.isSameOrBefore(endDate);
-    });
-  }, [transactions, date?.from, date?.to]);
-
-  // Calculate totals
-  const total = useMemo(() => 
-    filteredTransactions.reduce((sum, t) => sum + t.amount, 0),
-    [filteredTransactions]
-  );
+  // Calculate total expenses for the period
+  const total = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
 
   if (!showReport) {
     return (
@@ -90,7 +83,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
               selected={date}
               onSelect={setDate}
               numberOfMonths={1}
-              defaultMonth={dayjs().toDate()}
+              defaultMonth={new Date()}
             />
 
             <div className="text-sm text-muted-foreground text-center">
