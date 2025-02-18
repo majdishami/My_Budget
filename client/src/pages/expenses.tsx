@@ -109,8 +109,33 @@ export default function ExpenseReport() {
   if (isLoading) {
     return (
       <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">Expense Report</h1>
-        <Skeleton className="h-[400px] w-full" />
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-36" />
+          </div>
+          <div className="flex gap-4 mt-4 md:mt-0">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {[...Array(3)].map((_, index) => (
+            <div key={index} className="border rounded-lg p-4">
+              <Skeleton className="h-6 w-36 mb-4" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="p-4 rounded-lg border">
+                    <Skeleton className="h-5 w-32 mb-2" />
+                    <Skeleton className="h-4 w-24 mb-2" />
+                    <Skeleton className="h-5 w-20" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
