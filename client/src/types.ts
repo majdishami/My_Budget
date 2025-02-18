@@ -29,12 +29,14 @@ export interface Bill {
   id: string;
   name: string;
   amount: number;
-  day: number;
+  day: number | undefined;
   category_id: number | null;
   user_id?: number;
   created_at?: string;
   isOneTime: boolean;
+  isYearly?: boolean;
   date?: string | null;
+  yearly_date?: string | null;
   category?: {
     name?: string;
     color?: string;

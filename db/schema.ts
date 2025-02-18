@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
 
@@ -41,9 +41,15 @@ export const bills = pgTable("bills", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  day: integer("day").notNull(),
+  day: integer("day"),
   category_id: integer("category_id").references(() => categories.id),
   created_at: timestamp("created_at").defaultNow(),
+  is_one_time: boolean("is_one_time").default(false),
+  is_yearly: boolean("is_yearly").default(false),
+  date: timestamp("date"),
+  yearly_date: timestamp("yearly_date"),
+  reminder_enabled: boolean("reminder_enabled").default(false),
+  reminder_days: integer("reminder_days").default(7),
 });
 
 // Define relationships
@@ -66,11 +72,18 @@ export const transactionRelations = relations(transactions, ({ one }) => ({
   }),
 }));
 
+// Create Zod schemas for validation
 export const insertBillSchema = z.object({
   name: z.string().min(1, "Bill name is required"),
   amount: z.number().min(0, "Amount must be non-negative"),
-  day: z.number().min(1).max(31, "Day must be between 1 and 31"),
+  day: z.number().min(1).max(31, "Day must be between 1 and 31").optional(),
   category_id: z.number().min(1, "Category ID is required"),
+  is_one_time: z.boolean().optional(),
+  is_yearly: z.boolean().optional(),
+  date: z.string().transform((str) => new Date(str)).optional(),
+  yearly_date: z.string().transform((str) => new Date(str)).optional(),
+  reminder_enabled: z.boolean().optional(),
+  reminder_days: z.number().optional(),
 });
 
 export const insertTransactionSchema = z.object({

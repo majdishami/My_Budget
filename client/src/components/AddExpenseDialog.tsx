@@ -48,7 +48,7 @@ export function AddExpenseDialog({
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDays, setReminderDays] = useState(7);
   const [showReminderDialog, setShowReminderDialog] = useState(false);
-  const [isMonthly, setIsMonthly] = useState(true);
+  const [frequency, setFrequency] = useState<'monthly' | 'yearly' | 'one-time'>('monthly');
   const [monthlyDueDate, setMonthlyDueDate] = useState<Date | undefined>(new Date());
   const [oneTimeDate, setOneTimeDate] = useState<Date | undefined>(new Date());
 
@@ -80,7 +80,7 @@ export function AddExpenseDialog({
     setReminderEnabled(false);
     setReminderDays(7);
     setErrors({});
-    setIsMonthly(true);
+    setFrequency('monthly');
     setMonthlyDueDate(new Date());
     setOneTimeDate(new Date());
   };
@@ -114,14 +114,16 @@ export function AddExpenseDialog({
       id: generateId(),
       name: name.trim(),
       amount: parseFloat(amount),
-      day: isMonthly ? monthlyDueDate?.getDate() : undefined,
-      date: !isMonthly ? oneTimeDate?.toISOString() : undefined,
+      day: frequency === 'monthly' ? monthlyDueDate?.getDate() : undefined,
+      date: frequency === 'one-time' ? oneTimeDate?.toISOString() : undefined,
+      yearly_date: frequency === 'yearly' ? monthlyDueDate?.toISOString() : undefined,
       category_id: parseInt(categoryId),
       category_name: selectedCategory?.name || 'Uncategorized',
       category_color: selectedCategory?.color || '#D3D3D3',
       user_id: 1,
       created_at: new Date().toISOString(),
-      isOneTime: !isMonthly,
+      isOneTime: frequency === 'one-time',
+      isYearly: frequency === 'yearly',
       reminderEnabled,
       reminderDays,
     };
@@ -145,17 +147,25 @@ export function AddExpenseDialog({
               {/* Expense Type Selection */}
               <div className="flex gap-2">
                 <Button
-                  variant={isMonthly ? "default" : "ghost"}
+                  variant={frequency === 'monthly' ? "default" : "ghost"}
                   className="flex-1"
-                  onClick={() => setIsMonthly(true)}
+                  onClick={() => setFrequency('monthly')}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   Monthly
                 </Button>
                 <Button
-                  variant={!isMonthly ? "default" : "ghost"}
+                  variant={frequency === 'yearly' ? "default" : "ghost"}
                   className="flex-1"
-                  onClick={() => setIsMonthly(false)}
+                  onClick={() => setFrequency('yearly')}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Yearly
+                </Button>
+                <Button
+                  variant={frequency === 'one-time' ? "default" : "ghost"}
+                  className="flex-1"
+                  onClick={() => setFrequency('one-time')}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   One-time
@@ -209,21 +219,27 @@ export function AddExpenseDialog({
 
               {/* Calendar */}
               <div className="grid gap-1">
-                <Label>{isMonthly ? "Monthly Due Date" : "Expense Date"}</Label>
+                <Label>
+                  {frequency === 'monthly' ? "Monthly Due Date" : 
+                   frequency === 'yearly' ? "Yearly Due Date" : 
+                   "Expense Date"}
+                </Label>
                 <div className="border rounded-md">
                   <CalendarComponent
                     mode="single"
-                    selected={isMonthly ? monthlyDueDate : oneTimeDate}
-                    onSelect={isMonthly ? setMonthlyDueDate : setOneTimeDate}
+                    selected={frequency === 'one-time' ? oneTimeDate : monthlyDueDate}
+                    onSelect={frequency === 'one-time' ? setOneTimeDate : setMonthlyDueDate}
                     className="rounded-md [&_.rdp-month]:!w-[280px] [&_.rdp-cell]:!p-0 [&_.rdp-cell]:!w-8 [&_.rdp-cell]:!h-8 [&_.rdp-head_th]:!w-8 [&_.rdp-head_th]:!h-8 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-8 [&_.rdp-caption]:!h-8"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {isMonthly && monthlyDueDate
+                  {frequency === 'monthly' && monthlyDueDate
                     ? `Repeats monthly on day ${dayjs(monthlyDueDate).date()}`
-                    : !isMonthly && oneTimeDate
-                      ? `One-time expense on ${dayjs(oneTimeDate).format('MMMM D, YYYY')}`
-                      : ''}
+                    : frequency === 'yearly' && monthlyDueDate
+                    ? `Repeats yearly on ${dayjs(monthlyDueDate).format('MMMM D')}`
+                    : frequency === 'one-time' && oneTimeDate
+                    ? `One-time expense on ${dayjs(oneTimeDate).format('MMMM D, YYYY')}`
+                    : ''}
                 </p>
               </div>
             </div>
@@ -296,14 +312,16 @@ export function AddExpenseDialog({
           id: generateId(),
           name,
           amount: parseFloat(amount || '0'),
-          day: isMonthly ? monthlyDueDate?.getDate() : undefined,
-          date: !isMonthly ? oneTimeDate?.toISOString() : undefined,
+          day: frequency === 'monthly' ? monthlyDueDate?.getDate() : undefined,
+          date: frequency === 'one-time' ? oneTimeDate?.toISOString() : undefined,
+          yearly_date: frequency === 'yearly' ? monthlyDueDate?.toISOString() : undefined,
           category_id: parseInt(categoryId || '1'),
           category_name: categories.find(cat => cat.id.toString() === categoryId)?.name || 'Uncategorized',
           category_color: categories.find(cat => cat.id.toString() === categoryId)?.color || '#D3D3D3',
           user_id: 1,
           created_at: new Date().toISOString(),
-          isOneTime: !isMonthly,
+          isOneTime: frequency === 'one-time',
+          isYearly: frequency === 'yearly',
           reminderEnabled,
           reminderDays
         }}
