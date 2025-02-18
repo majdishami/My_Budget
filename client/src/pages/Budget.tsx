@@ -236,15 +236,27 @@ export function Budget() {
     return result;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // Update getBillsForDay function to properly handle different bill types
+  // Update getBillsForDay function to properly handle different bill types with debug logging
   const getBillsForDay = useCallback((day: number) => {
     if (day <= 0) return [];
 
     const result: Bill[] = [];
+    console.group(`Processing bills for day ${day} (${selectedMonth}/${selectedYear})`);
 
     bills.forEach(bill => {
+      console.log('Processing bill:', {
+        id: bill.id,
+        name: bill.name,
+        day: bill.day,
+        isYearly: bill.isYearly,
+        isOneTime: bill.isOneTime,
+        date: bill.date,
+        yearly_date: bill.yearly_date
+      });
+
       // Handle regular monthly bills (not yearly or one-time)
       if (!bill.isYearly && !bill.isOneTime && bill.day === day) {
+        console.log('Adding as monthly bill:', bill.name);
         const recurringBill = {
           ...bill,
           id: `${bill.id}-${selectedMonth}-${selectedYear}`,
@@ -256,7 +268,17 @@ export function Budget() {
       // Handle yearly bills
       if (bill.isYearly && bill.yearly_date) {
         const yearlyDate = dayjs(bill.yearly_date);
+        console.log('Checking yearly bill:', {
+          billName: bill.name,
+          yearlyDate: yearlyDate.format('YYYY-MM-DD'),
+          currentMonth: selectedMonth - 1,
+          yearlyMonth: yearlyDate.month(),
+          currentDay: day,
+          yearlyDay: yearlyDate.date()
+        });
+
         if (yearlyDate.month() === selectedMonth - 1 && yearlyDate.date() === day) {
+          console.log('Adding as yearly bill:', bill.name);
           const yearlyBill = {
             ...bill,
             id: `${bill.id}-yearly-${selectedYear}`,
@@ -269,9 +291,16 @@ export function Budget() {
       // Handle one-time bills
       if (bill.isOneTime && bill.date) {
         const billDate = dayjs(bill.date);
+        console.log('Checking one-time bill:', {
+          billName: bill.name,
+          billDate: billDate.format('YYYY-MM-DD'),
+          currentDate: dayjs().year(selectedYear).month(selectedMonth -1).date(day).format('YYYY-MM-DD')
+        });
+
         if (billDate.year() === selectedYear && 
             billDate.month() === selectedMonth - 1 && 
             billDate.date() === day) {
+          console.log('Adding as one-time bill:', bill.name);
           const oneTimeBill = {
             ...bill,
             id: `${bill.id}-onetime`,
@@ -281,6 +310,12 @@ export function Budget() {
         }
       }
     });
+
+    console.log('Final bills for this day:', result.map(b => ({
+      name: b.name,
+      type: b.isYearly ? 'yearly' : b.isOneTime ? 'one-time' : 'monthly'
+    })));
+    console.groupEnd();
 
     return result;
   }, [bills, selectedYear, selectedMonth]);
