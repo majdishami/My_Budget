@@ -15,6 +15,7 @@ interface DataContextType {
   editTransaction: (transaction: Income | Bill) => Promise<void>;
   resetData: () => Promise<void>;
   refresh: () => Promise<void>;
+  addIncomeToData: (income: Income) => void;
   isLoading: boolean;
   error: Error | null;
 }
@@ -64,7 +65,7 @@ const processTransactions = (transactions: any[], setIncomes: Function, setBills
     setBills(loadedBills);
     logger.info("[DataContext] Processed bills:", { count: loadedBills.length });
   } catch (error) {
-    logger.error("[DataContext] Error processing transactions:", error);
+    logger.error("[DataContext] Error processing transactions:", { error });
     setIncomes([]);
     setBills([]);
     throw error;
@@ -287,6 +288,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Function to add income directly to state without API call
+  const addIncomeToData = (income: Income) => {
+    setIncomes(prev => [...prev, income]);
+    logger.info("[DataContext] Added income to local state:", { income });
+  };
+
   useEffect(() => {
     loadData();
   }, []);
@@ -313,6 +320,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       editTransaction,
       resetData: loadData,
       refresh: loadData,
+      addIncomeToData,
       isLoading,
       error
     }}>
@@ -324,7 +332,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 export function useData() {
   const context = useContext(DataContext);
   if (!context) {
-    throw new Error("[DataContext] `useData` must be used within `<DataProvider>`. Ensure your component is wrapped in a DataProvider component.");
+    throw new Error("[DataContext] `useData` must be used within a DataProvider component.");
   }
   return context;
 }
