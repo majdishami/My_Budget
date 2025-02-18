@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 
@@ -17,15 +17,20 @@ import { FileText, Download, Printer, AlertCircle } from 'lucide-react';
 // Utils
 import { formatCurrency } from '@/lib/reportUtils';
 import { getCurrentDate } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
 
 // Initialize dayjs plugins
 dayjs.extend(isBetween);
 
 interface Transaction {
+  id: number;
   date: string;
   description: string;
   amount: number;
   type: 'income' | 'expense';
+  category_name?: string;
+  category_color?: string;
+  category_icon?: string;
 }
 
 export default function Reports() {
@@ -37,135 +42,35 @@ export default function Reports() {
     to: today.endOf('month').toDate()
   });
 
-  const [totals, setTotals] = useState({
-    income: 0,
-    expenses: 0,
-    balance: 0
-  });
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-
   const { toast } = useToast();
 
-  // Calculate totals when date range changes
-  useEffect(() => {
-    const calculateTotals = () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        let income = 0;
-        let expenses = 0;
-        const newTransactions: Transaction[] = [];
+  // Fetch transactions for the selected date range
+  const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
+    queryKey: ['/api/transactions', {
+      startDate: dayjs(dateRange.from).format('YYYY-MM-DD'),
+      endDate: dayjs(dateRange.to).format('YYYY-MM-DD')
+    }],
+    select: (data) => data.map(t => ({
+      ...t,
+      isPending: dayjs(t.date).isAfter(today)
+    }))
+  });
 
-        // Convert date range to dayjs for calculations
-        const startDate = dayjs(dateRange.from);
-        const endDate = dayjs(dateRange.to);
-
-        // Helper function to check if a date is in the past or today
-        const hasDateOccurred = (checkDate: dayjs.Dayjs) => {
-          return checkDate.isBefore(today) || checkDate.isSame(today, 'day');
-        };
-
-        // Calculate Majdi's salary for the selected month only
-        const currentMonth = startDate.startOf('month');
-        if (currentMonth.isBetween(startDate, endDate, 'month', '[]')) {
-          // First paycheck of the month
-          const firstPayday = currentMonth.date(1);
-          if (firstPayday.isBetween(startDate, endDate, 'day', '[]') && hasDateOccurred(firstPayday)) {
-            income += 4739;
-            newTransactions.push({
-              date: firstPayday.format('YYYY-MM-DD'),
-              description: "Majdi's Salary",
-              amount: 4739,
-              type: 'income'
-            });
-          }
-
-          // Second paycheck of the month
-          const fifteenthPayday = currentMonth.date(15);
-          if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]') && hasDateOccurred(fifteenthPayday)) {
-            income += 4739;
-            newTransactions.push({
-              date: fifteenthPayday.format('YYYY-MM-DD'),
-              description: "Majdi's Salary",
-              amount: 4739,
-              type: 'income'
-            });
-          }
-        }
-
-        // Calculate Ruba's bi-weekly salary
-        let biweeklyDate = dayjs('2025-01-10'); // Starting date
-        while (biweeklyDate.isBefore(startDate)) {
-          biweeklyDate = biweeklyDate.add(14, 'day');
-        }
-
-        while (biweeklyDate.isSameOrBefore(endDate)) {
-          if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]') && hasDateOccurred(biweeklyDate)) {
-            income += 2168;
-            newTransactions.push({
-              date: biweeklyDate.format('YYYY-MM-DD'),
-              description: "Ruba's Salary",
-              amount: 2168,
-              type: 'income'
-            });
-          }
-          biweeklyDate = biweeklyDate.add(14, 'day');
-        }
-
-        // Monthly expenses for the selected month
-        const monthlyExpenses = [
-          { description: 'ATT Phone Bill', amount: 429, date: 1 },
-          { description: "Maid's 1st payment", amount: 120, date: 1 },
-          { description: 'Monthly Rent', amount: 3750, date: 1 },
-          { description: 'Sling TV', amount: 75, date: 3 },
-          { description: 'Cox Internet', amount: 81, date: 6 },
-          { description: 'Water Bill', amount: 80, date: 7 },
-          { description: 'NV Energy Electrical', amount: 250, date: 7 },
-          { description: 'TransAmerica Life Insurance', amount: 77, date: 9 },
-          { description: 'Credit Card minimum payments', amount: 225, date: 14 },
-          { description: 'Apple/Google/YouTube', amount: 130, date: 14 },
-          { description: 'Expenses & Groceries', amount: 3000, date: 16 },
-          { description: "Maid's 2nd Payment", amount: 120, date: 17 },
-          { description: 'SoFi Personal Loan', amount: 1915, date: 17 },
-          { description: 'Southwest Gas', amount: 75, date: 17 },
-          { description: 'Car Insurance for 3 cars', amount: 704, date: 28 }
-        ];
-
-        // Process expenses only for the selected month
-        if (currentMonth.isBetween(startDate, endDate, 'month', '[]')) {
-          monthlyExpenses.forEach(expense => {
-            const expenseDate = currentMonth.date(expense.date);
-            if (expenseDate.isBetween(startDate, endDate, 'day', '[]') && hasDateOccurred(expenseDate)) {
-              expenses += expense.amount;
-              newTransactions.push({
-                date: expenseDate.format('YYYY-MM-DD'),
-                description: expense.description,
-                amount: expense.amount,
-                type: 'expense'
-              });
-            }
-          });
-        }
-
-        setTotals({
-          income,
-          expenses,
-          balance: income - expenses
-        });
-        setTransactions(newTransactions);
-      } catch (err) {
-        console.error('Error calculating totals:', err);
-        setError('Failed to calculate financial data. Please try again.');
-      } finally {
-        setIsLoading(false);
+  // Calculate totals
+  const totals = transactions.reduce((acc, t) => {
+    if (t.type === 'income') {
+      acc.income += t.amount;
+    } else {
+      if (dayjs(t.date).isAfter(today)) {
+        acc.pendingExpenses += t.amount;
+      } else {
+        acc.expenses += t.amount;
       }
-    };
+    }
+    return acc;
+  }, { income: 0, expenses: 0, pendingExpenses: 0 });
 
-    calculateTotals();
-  }, [dateRange, today]);
+  const balance = totals.income - (totals.expenses + totals.pendingExpenses);
 
   const handlePrint = () => {
     try {
@@ -194,24 +99,6 @@ export default function Reports() {
       });
     }
   };
-
-  if (error) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="bg-red-50 text-red-800 p-4 rounded-md flex items-center gap-2">
-          <AlertCircle className="h-5 w-5" />
-          <p>{error}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
-            variant="outline" 
-            className="ml-auto"
-          >
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto p-6 space-y-6 print:p-0">
@@ -265,8 +152,15 @@ export default function Reports() {
                 <CardTitle>Total Expenses</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  {formatCurrency(totals.expenses)}
+                <div className="flex flex-col">
+                  <div className="text-2xl font-bold text-red-600">
+                    {formatCurrency(totals.expenses)}
+                  </div>
+                  {totals.pendingExpenses > 0 && (
+                    <div className="text-sm text-yellow-600">
+                      + {formatCurrency(totals.pendingExpenses)} pending
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -277,7 +171,7 @@ export default function Reports() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-blue-600">
-                  {formatCurrency(totals.balance)}
+                  {formatCurrency(balance)}
                 </div>
               </CardContent>
             </Card>
@@ -294,7 +188,7 @@ export default function Reports() {
             {isLoading ? (
               <Skeleton className="w-full h-full" />
             ) : (
-              <ChartComponent dateRange={dateRange} />
+              <ChartComponent dateRange={dateRange} transactions={transactions}/>
             )}
           </div>
         </CardContent>
@@ -315,19 +209,22 @@ export default function Reports() {
                   <tr className="border-b">
                     <th className="text-left p-2">Date</th>
                     <th className="text-left p-2">Description</th>
+                    <th className="text-left p-2">Category</th>
                     <th className="text-right p-2">Amount</th>
                     <th className="text-left p-2">Type</th>
+                    <th className="text-left p-2">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {transactions
                     .sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
                     .map((transaction, index) => (
-                      <tr key={index}>
+                      <tr key={index} className={transaction.isPending ? "bg-yellow-50" : ""}>
                         <td className="p-2">
                           {dayjs(transaction.date).format('YYYY-MM-DD')}
                         </td>
                         <td className="p-2">{transaction.description}</td>
+                        <td className="p-2">{transaction.category_name || 'Uncategorized'}</td>
                         <td className={`p-2 text-right ${
                           transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
                         }`}>
@@ -335,6 +232,13 @@ export default function Reports() {
                           {formatCurrency(transaction.amount)}
                         </td>
                         <td className="p-2 capitalize">{transaction.type}</td>
+                        <td className="p-2">
+                          {transaction.isPending ? (
+                            <span className="text-yellow-600 font-medium">Pending</span>
+                          ) : (
+                            <span className="text-green-600 font-medium">Completed</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                 </tbody>
