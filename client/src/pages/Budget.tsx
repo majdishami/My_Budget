@@ -244,6 +244,10 @@ export function Budget() {
     console.group(`Processing bills for day ${day} (${selectedMonth}/${selectedYear})`);
 
     bills.forEach(bill => {
+      // Avoid processing the same bill multiple times
+      const billAlreadyAdded = result.some(b => b.id.startsWith(bill.id));
+      if (billAlreadyAdded) return;
+
       console.log('Processing bill:', {
         id: bill.id,
         name: bill.name,
@@ -254,18 +258,7 @@ export function Budget() {
         yearly_date: bill.yearly_date
       });
 
-      // Handle regular monthly bills (not yearly or one-time)
-      if (!bill.isYearly && !bill.isOneTime && bill.day === day) {
-        console.log('Adding as monthly bill:', bill.name);
-        const recurringBill = {
-          ...bill,
-          id: `${bill.id}-${selectedMonth}-${selectedYear}`,
-          date: dayjs().year(selectedYear).month(selectedMonth -1).date(day).format('YYYY-MM-DD')
-        };
-        result.push(recurringBill);
-      }
-
-      // Handle yearly bills
+      // Handle yearly bills first
       if (bill.isYearly && bill.yearly_date) {
         const yearlyDate = dayjs(bill.yearly_date);
         console.log('Checking yearly bill:', {
@@ -277,6 +270,7 @@ export function Budget() {
           yearlyDay: yearlyDate.date()
         });
 
+        // For yearly bills, check if we're in the correct month and day
         if (yearlyDate.month() === selectedMonth - 1 && yearlyDate.date() === day) {
           console.log('Adding as yearly bill:', bill.name);
           const yearlyBill = {
@@ -287,9 +281,8 @@ export function Budget() {
           result.push(yearlyBill);
         }
       }
-
       // Handle one-time bills
-      if (bill.isOneTime && bill.date) {
+      else if (bill.isOneTime && bill.date) {
         const billDate = dayjs(bill.date);
         console.log('Checking one-time bill:', {
           billName: bill.name,
@@ -308,6 +301,16 @@ export function Budget() {
           };
           result.push(oneTimeBill);
         }
+      }
+      // Handle regular monthly bills (not yearly or one-time)
+      else if (!bill.isYearly && !bill.isOneTime && bill.day === day) {
+        console.log('Adding as monthly bill:', bill.name);
+        const recurringBill = {
+          ...bill,
+          id: `${bill.id}-${selectedMonth}-${selectedYear}`,
+          date: dayjs().year(selectedYear).month(selectedMonth -1).date(day).format('YYYY-MM-DD')
+        };
+        result.push(recurringBill);
       }
     });
 
