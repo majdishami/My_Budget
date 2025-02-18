@@ -43,12 +43,18 @@ export const transactions = pgTable("transactions", {
   created_at: timestamp("created_at").defaultNow(),
 });
 
-// Enhanced insert schema with category validation
+// Enhanced insert schema with category validation and amount transformation
 export const insertTransactionSchema = createInsertSchema(transactions, {
   type: z.enum(['income', 'expense']),
   category_id: z.number().nullable().optional(),
   description: z.string().min(1, "Description is required"),
-  amount: z.number().positive("Amount must be positive"),
+  amount: z.union([z.string(), z.number()])
+    .transform((val) => {
+      const num = typeof val === 'string' ? parseFloat(val) : val;
+      if (isNaN(num)) throw new Error('Invalid amount');
+      return num;
+    })
+    .refine((val) => val > 0, "Amount must be positive"),
   date: z.date()
 });
 
@@ -62,10 +68,16 @@ export const bills = pgTable("bills", {
   created_at: timestamp("created_at").defaultNow(),
 });
 
-// Enhanced insert schema with category validation
+// Enhanced insert schema with category validation and amount transformation
 export const insertBillSchema = createInsertSchema(bills, {
   name: z.string().min(1, "Name is required"),
-  amount: z.number().positive("Amount must be positive"),
+  amount: z.union([z.string(), z.number()])
+    .transform((val) => {
+      const num = typeof val === 'string' ? parseFloat(val) : val;
+      if (isNaN(num)) throw new Error('Invalid amount');
+      return num;
+    })
+    .refine((val) => val > 0, "Amount must be positive"),
   day: z.number().min(1).max(31),
   category_id: z.number().nullable().optional()
 });
