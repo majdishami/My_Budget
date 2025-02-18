@@ -241,99 +241,43 @@ export function Budget() {
     if (day <= 0) return [];
 
     const result: Bill[] = [];
-    console.group(`Processing bills for day ${day} (${selectedMonth}/${selectedYear})`);
 
     bills.forEach(bill => {
-      // Generate a unique ID based on bill type and date
-      const getBillId = (bill: Bill, type: 'yearly' | 'monthly' | 'one-time') => {
-        if (type === 'yearly') return `${bill.id}-yearly-${selectedYear}`;
-        if (type === 'one-time') return `${bill.id}-onetime`;
-        return `${bill.id}-${selectedMonth}-${selectedYear}`; // monthly
-      };
-
-      // Check if this specific occurrence of the bill is already added
-      const isDuplicate = (billId: string) => result.some(b => b.id === billId);
-
-      console.log('Processing bill:', {
-        id: bill.id,
-        name: bill.name,
-        day: bill.day,
-        isYearly: bill.isYearly,
-        isOneTime: bill.isOneTime,
-        date: bill.date,
-        yearly_date: bill.yearly_date
-      });
-
-      // Handle yearly bills
-      if (bill.isYearly && bill.yearly_date) {
-        const yearlyDate = dayjs(bill.yearly_date);
-        console.log('Checking yearly bill:', {
-          billName: bill.name,
-          yearlyDate: yearlyDate.format('YYYY-MM-DD'),
-          currentMonth: selectedMonth - 1,
-          yearlyMonth: yearlyDate.month(),
-          currentDay: day,
-          yearlyDay: yearlyDate.date()
+      // Handle monthly bills first (these show up every month)
+      if (!bill.isYearly && !bill.isOneTime && bill.day === day) {
+        result.push({
+          ...bill,
+          id: `${bill.id}-${selectedMonth}-${selectedYear}`,
+          date: dayjs().year(selectedYear).month(selectedMonth -1).date(day).format('YYYY-MM-DD')
         });
+      }
 
-        // For yearly bills, check if we're in the correct month and day
+      // Handle yearly bills (only show in their specific month)
+      else if (bill.isYearly && bill.yearly_date) {
+        const yearlyDate = dayjs(bill.yearly_date);
         if (yearlyDate.month() === selectedMonth - 1 && yearlyDate.date() === day) {
-          const billId = getBillId(bill, 'yearly');
-          if (!isDuplicate(billId)) {
-            console.log('Adding as yearly bill:', bill.name);
-            const yearlyBill = {
-              ...bill,
-              id: billId,
-              date: yearlyDate.format('YYYY-MM-DD')
-            };
-            result.push(yearlyBill);
-          }
+          result.push({
+            ...bill,
+            id: `${bill.id}-yearly-${selectedYear}`,
+            date: yearlyDate.format('YYYY-MM-DD')
+          });
         }
       }
-      // Handle one-time bills
+
+      // Handle one-time bills (only show on their exact date)
       else if (bill.isOneTime && bill.date) {
         const billDate = dayjs(bill.date);
-        console.log('Checking one-time bill:', {
-          billName: bill.name,
-          billDate: billDate.format('YYYY-MM-DD'),
-          currentDate: dayjs().year(selectedYear).month(selectedMonth -1).date(day).format('YYYY-MM-DD')
-        });
-
         if (billDate.year() === selectedYear && 
             billDate.month() === selectedMonth - 1 && 
             billDate.date() === day) {
-          const billId = getBillId(bill, 'one-time');
-          if (!isDuplicate(billId)) {
-            console.log('Adding as one-time bill:', bill.name);
-            const oneTimeBill = {
-              ...bill,
-              id: billId,
-              date: billDate.format('YYYY-MM-DD')
-            };
-            result.push(oneTimeBill);
-          }
-        }
-      }
-      // Handle regular monthly bills (not yearly or one-time)
-      else if (!bill.isYearly && !bill.isOneTime && bill.day === day) {
-        const billId = getBillId(bill, 'monthly');
-        if (!isDuplicate(billId)) {
-          console.log('Adding as monthly bill:', bill.name);
-          const recurringBill = {
+          result.push({
             ...bill,
-            id: billId,
-            date: dayjs().year(selectedYear).month(selectedMonth -1).date(day).format('YYYY-MM-DD')
-          };
-          result.push(recurringBill);
+            id: `${bill.id}-onetime`,
+            date: billDate.format('YYYY-MM-DD')
+          });
         }
       }
     });
-
-    console.log('Final bills for this day:', result.map(b => ({
-      name: b.name,
-      type: b.isYearly ? 'yearly' : b.isOneTime ? 'one-time' : 'monthly'
-    })));
-    console.groupEnd();
 
     return result;
   }, [bills, selectedYear, selectedMonth]);
