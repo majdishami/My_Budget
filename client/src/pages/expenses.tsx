@@ -91,7 +91,10 @@ export default function ExpenseReport() {
     }
   };
 
-  // Month and year options generation remains unchanged
+  // Memoize dialog open state to prevent unnecessary re-renders
+  const memoizedIsOpen = useMemo(() => isDialogOpen, [isDialogOpen]);
+
+  // Month and year options generation
   const months = Array.from({ length: 12 }, (_, i) => ({
     value: (i + 1).toString(),
     label: dayjs().month(i).format('MMMM')
@@ -212,7 +215,7 @@ export default function ExpenseReport() {
       </div>
 
       <ExpenseReportDialog
-        isOpen={isDialogOpen}
+        isOpen={memoizedIsOpen}
         onOpenChange={handleOpenChange}
       />
     </div>
