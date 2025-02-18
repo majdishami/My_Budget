@@ -240,10 +240,27 @@ export function Budget() {
   const getBillsForDay = useCallback((day: number) => {
     if (day <= 0 || day > daysInMonth) return [];
 
+    // Debug logging
+    console.log('getBillsForDay called with:', {
+      day,
+      selectedMonth,
+      selectedYear,
+      totalBills: bills.length,
+      bills: bills.map(b => ({
+        id: b.id,
+        name: b.name,
+        day: b.day,
+        isYearly: b.isYearly,
+        isOneTime: b.isOneTime
+      }))
+    });
+
     const result: Bill[] = [];
 
     // Add monthly bills first (these show up every month)
     const monthlyBills = bills.filter(b => !b.isYearly && !b.isOneTime && b.day === day);
+    console.log('Monthly bills for day', day, ':', monthlyBills.length);
+
     monthlyBills.forEach(bill => {
       result.push({
         ...bill,
@@ -259,6 +276,8 @@ export function Budget() {
       dayjs(b.yearly_date).month() === selectedMonth - 1 && 
       dayjs(b.yearly_date).date() === day
     );
+    console.log('Yearly bills for day', day, ':', yearlyBills.length);
+
     yearlyBills.forEach(bill => {
       result.push({
         ...bill,
@@ -275,6 +294,8 @@ export function Budget() {
       dayjs(b.date).month() === selectedMonth - 1 && 
       dayjs(b.date).date() === day
     );
+    console.log('One-time bills for day', day, ':', oneTimeBills.length);
+
     oneTimeBills.forEach(bill => {
       result.push({
         ...bill,
@@ -283,6 +304,7 @@ export function Budget() {
       });
     });
 
+    console.log('Total bills returned for day', day, ':', result.length);
     return result;
   }, [bills, selectedYear, selectedMonth, daysInMonth]);
 
