@@ -1,75 +1,65 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import IncomeReportDialog from "@/components/IncomeReportDialog";
 import { useLocation } from "wouter";
 import { Income } from "@/types";
-import { logger } from "@/lib/logger";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import dayjs from "dayjs";
+import { useData } from "@/contexts/DataContext";
 
 export default function IncomeReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
-  const [incomes, setIncomes] = useState<Income[]>([]);
+  const { incomes } = useData();
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: undefined,
+    to: undefined
+  });
 
-  // Sync with localStorage using useEffect
-  useEffect(() => {
-    try {
-      const storedIncomes = localStorage.getItem("incomes");
-      if (!storedIncomes) {
-        setIncomes([]);
-        return;
-      }
-
-      const parsedIncomes = JSON.parse(storedIncomes);
-
-      // Validate the parsed data is an array
-      if (!Array.isArray(parsedIncomes)) {
-        logger.error("Stored incomes is not an array");
-        setIncomes([]);
-        return;
-      }
-
-      // Validate each income object has required properties
-      const validIncomes = parsedIncomes.filter((income): income is Income => {
-        return (
-          typeof income === 'object' &&
-          income !== null &&
-          typeof income.id === 'string' &&
-          typeof income.source === 'string' &&
-          typeof income.amount === 'number' &&
-          typeof income.date === 'string'
-        );
-      });
-
-      setIncomes(validIncomes);
-    } catch (error) {
-      logger.error("Error parsing stored incomes:", error);
-      setIncomes([]);
-    }
-  }, []); // Empty dependency array means this runs once on mount
+  const filteredIncomes = incomes.filter(income => {
+    if (!dateRange.from || !dateRange.to) return true;
+    const incomeDate = dayjs(income.date);
+    return incomeDate.isAfter(dayjs(dateRange.from).startOf('day')) && 
+           incomeDate.isBefore(dayjs(dateRange.to).endOf('day'));
+  });
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
-      // Ensure we navigate back only when dialog is explicitly closed
       setLocation("/");
     }
   };
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Income Report</h1>
-      {incomes.length === 0 ? (
-        <div className="text-center p-8 bg-background/50 rounded-lg border">
-          <p className="text-muted-foreground">No income records found.</p>
-          <p className="text-sm text-muted-foreground mt-2">Add some income entries to view your income report.</p>
-        </div>
-      ) : (
-        isDialogOpen && (
-          <IncomeReportDialog
-            isOpen={isDialogOpen}
-            onOpenChange={handleOpenChange}
-            incomes={incomes}
+      <Card className="p-4 mb-4">
+        <h1 className="text-2xl font-bold mb-4">Income Report</h1>
+        <div className="flex items-center gap-4">
+          <DateRangePicker
+            date={dateRange}
+            onDateChange={setDateRange}
+            className="w-full"
           />
-        )
+          <Button 
+            onClick={() => setDateRange({ from: undefined, to: undefined })}
+            variant="outline"
+          >
+            Reset Range
+          </Button>
+        </div>
+      </Card>
+
+      {isDialogOpen && (
+        <IncomeReportDialog
+          isOpen={isDialogOpen}
+          onOpenChange={handleOpenChange}
+          incomes={filteredIncomes}
+          dateRange={dateRange}
+        />
       )}
     </div>
   );
