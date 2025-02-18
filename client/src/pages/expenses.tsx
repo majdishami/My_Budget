@@ -48,6 +48,12 @@ export default function ExpenseReport() {
 
       let dateMatches = true;
 
+      // Apply date range filter if dates are selected
+      if (dateRange.from && dateRange.to) {
+        const start = dayjs(dateRange.from).startOf('day');
+        const end = dayjs(dateRange.to).endOf('day');
+        dateMatches = billDate.isBetween(start, end, 'day', '[]');
+      }
 
       // Apply category filter if selected
       const categoryMatches = selectedCategory === 'all' || 
@@ -81,7 +87,7 @@ export default function ExpenseReport() {
       category_color?: string;
       category_icon?: string | null;
     }>);
-  }, [bills, reportType, selectedCategory, selectedExpense]);
+  }, [bills, reportType, dateRange, selectedCategory, selectedExpense]);
 
   const handleShowReport = () => {
     setIsDialogOpen(true);
@@ -102,7 +108,6 @@ export default function ExpenseReport() {
   const handleBack = () => {
     setLocation("/");
   };
-
 
   if (isLoading) {
     return (
@@ -176,6 +181,20 @@ export default function ExpenseReport() {
                 </SelectContent>
               </Select>
             )}
+          </div>
+
+          <div className="flex items-center gap-4">
+            <DateRangePicker
+              date={dateRange}
+              onDateChange={setDateRange}
+              className="w-full"
+            />
+            <Button 
+              onClick={() => setDateRange({ from: undefined, to: undefined })}
+              variant="outline"
+            >
+              Reset Range
+            </Button>
           </div>
 
           <Button onClick={handleShowReport} className="w-full">
