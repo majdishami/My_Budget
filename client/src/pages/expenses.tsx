@@ -40,10 +40,11 @@ export default function ExpenseReport() {
   const isLoading = billsLoading || transactionsLoading || categoriesLoading;
   const error = billsError || transactionsError;
 
-  // Group bills by category
+  // Group bills by category with proper null handling
   const groupedBills = bills.reduce((acc: Record<string, Bill[]>, bill) => {
     const category = categories.find(c => c.id === bill.category_id);
     const categoryName = category?.name || 'Uncategorized';
+
     if (!acc[categoryName]) {
       acc[categoryName] = [];
     }
