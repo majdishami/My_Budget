@@ -252,7 +252,8 @@ export function registerRoutes(app: Express): Server {
         .leftJoin(categories, eq(transactions.category_id, categories.id))
         .where(
           and(
-            type ? eq(transactions.type, type as 'income' | 'expense') : undefined,
+            // Ensure type is strictly matched
+            eq(transactions.type, type as 'income' | 'expense'),
             // Only include transactions up to today
             sql`date <= ${today.toDate()}`
           )
@@ -276,6 +277,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log('[Transactions API] Found transactions:', {
         count: formattedTransactions.length,
+        type: type,
         date_range: {
           max: formattedTransactions[0]?.date,
           min: formattedTransactions[formattedTransactions.length - 1]?.date

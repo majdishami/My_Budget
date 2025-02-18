@@ -29,7 +29,7 @@ interface Transaction {
   date: string;
   description: string;
   amount: number;
-  type: 'expense';
+  type: 'expense';  // Explicitly type as expense only
   category_name?: string;
 }
 
@@ -51,7 +51,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  // Fetch expense transactions
+  // Fetch expense transactions only
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions', { type: 'expense' }],
     enabled: showReport
