@@ -155,11 +155,9 @@ export function Budget() {
   // Transform bills to have proper recurrence flags
   const bills = useMemo(() => rawBills.map(bill => ({
     ...bill,
-    isOneTime: bill.isOneTime ?? false,
-    isYearly: bill.isYearly ?? false,
-    date: bill.date,
-    yearly_date: bill.yearly_date,
-    day: bill.day
+    isOneTime: false, // Default to monthly recurring bills
+    isYearly: false, // No yearly bills in this set
+    date: undefined, // Clear any date as these are monthly recurring
   })), [rawBills]);
 
   // Calculate daysInMonth early
@@ -167,12 +165,13 @@ export function Budget() {
     return dayjs().year(selectedYear).month(selectedMonth -1).daysInMonth();
   }, [selectedYear, selectedMonth]);
 
+  // Optimize months and years calculations
   const months = useMemo(() => 
     Array.from({ length: 12 }, (_, i) => ({
       value: i + 1,
       label: dayjs().month(i).format('MMMM')
     })), 
-  ); 
+  []); 
 
   // Update years calculation to only show 2025 and future years
   const years = useMemo(() => 
@@ -180,7 +179,7 @@ export function Budget() {
       value: 2025 + i,
       label: (2025 + i).toString()
     })), 
-  ); 
+  []); 
 
   // Update getIncomeForDay to handle recurring incomes across all months
   const getIncomeForDay = useCallback((day: number) => {
@@ -210,7 +209,7 @@ export function Budget() {
 
     // Only process if it's a Friday
     if (currentDate.day() === 5) {
-      const startDate = dayjs('2025-01-10'); 
+      const startDate = dayjs('2025-01-10'); // First payment date
 
       // Calculate if this is a valid payday by checking the exact number of weeks
       // from the start date
@@ -245,103 +244,149 @@ export function Budget() {
     return result;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // Function to get bills for a specific day
-  const getBillsForDay = (day: number) => {
-    if (day <= 0 || day > daysInMonth) return []; // Return empty if day is invalid
+  // getBillsForDay function update
+  const getBillsForDay = useCallback((day: number) => {
+    if (day <= 0 || day > daysInMonth) return [];
 
-    return bills.filter(bill => {
-      if (bill.isYearly && bill.yearly_date) {
-        // For yearly bills, check if the month and day match
-        const yearlyDate = dayjs(bill.yearly_date);
-        return yearlyDate.month() === selectedMonth - 1 && yearlyDate.date() === day;
-      } else if (bill.isOneTime && bill.date) {
-        // For one-time bills, check exact date match
-        const billDate = dayjs(bill.date);
-        return billDate.year() === selectedYear && 
-               billDate.month() === selectedMonth - 1 && 
-               billDate.date() === day;
-      } else {
-        // For monthly bills, just check the day
-        return bill.day === day;
+    // Debug logging
+    console.log('getBillsForDay called with:', {
+      day,
+      selectedMonth,
+      selectedYear,
+      totalBills: bills.length,
+      bills: bills.map(b => ({
+        id: b.id,
+        name: b.name,
+        day: b.day,
+        isYearly: b.isYearly,
+        isOneTime: b.isOneTime
+      }))
+    });
+
+    const result: Bill[] = [];
+
+    // Add monthly bills first (these show up every month)
+    const monthlyBills = bills.filter(b => !b.isYearly && !b.isOneTime && b.day === day);
+    console.log('Monthly bills for day', day, ':', monthlyBills.length);
+
+    monthlyBills.forEach(bill => {
+      result.push({
+        ...bill,
+        id: `${bill.id}-${selectedMonth}-${selectedYear}`,
+        date: dayjs().year(selectedYear).month(selectedMonth - 1).date(day).format('YYYY-MM-DD')
+      });
+    });
+
+    // Add yearly bills in their specific month
+    const yearlyBills = bills.filter(b => 
+      b.isYearly && 
+      b.yearly_date && 
+      dayjs(b.yearly_date).month() === selectedMonth - 1 && 
+      dayjs(b.yearly_date).date() === day
+    );
+    console.log('Yearly bills for day', day, ':', yearlyBills.length);
+
+    yearlyBills.forEach(bill => {
+      result.push({
+        ...bill,
+        id: `${bill.id}-yearly-${selectedYear}`,
+        date: dayjs(bill.yearly_date).format('YYYY-MM-DD')
+      });
+    });
+
+    // Add one-time bills on their specific date
+    const oneTimeBills = bills.filter(b => 
+      b.isOneTime && 
+      b.date && 
+      dayjs(b.date).year() === selectedYear &&
+      dayjs(b.date).month() === selectedMonth - 1 && 
+      dayjs(b.date).date() === day
+    );
+    console.log('One-time bills for day', day, ':', oneTimeBills.length);
+
+    oneTimeBills.forEach(bill => {
+      result.push({
+        ...bill,
+        id: `${bill.id}-onetime`,
+        date: dayjs(bill.date).format('YYYY-MM-DD')
+      });
+    });
+
+    console.log('Total bills returned for day', day, ':', result.length);
+    return result;
+  }, [bills, selectedYear, selectedMonth, daysInMonth]);
+
+  // Update monthly totals calculation to handle recurring bills
+  const monthlyTotals = useMemo(() => {
+    console.log('Calculating monthly totals:', {
+      selectedMonth,
+      selectedYear,
+      incomes,
+      bills
+    });
+
+    // Calculate total income
+    let totalIncome = 0;
+
+    // Handle Majdi's salary (1st and 15th)
+    totalIncome += 4739 * 2; // Majdi's salary occurs twice per month
+
+    // Handle Ruba's bi-weekly salary
+    const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth -1).startOf('month');
+    const lastDayOfMonth = firstDayOfMonth.endOf('month');
+    let currentDate = firstDayOfMonth;
+
+    while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
+      if (currentDate.day() === 5) { // Friday
+        const startDate = dayjs('2025-01-10');
+        const weeksDiff = Math.floor(currentDate.diff(startDate, 'days') / 7);
+        if (currentDate.isSameOrAfter(startDate) && weeksDiff % 2 === 0) {
+          totalIncome += 2168; // Add Ruba's bi-weekly salary
+        }
+      }
+      currentDate = currentDate.add(1, 'day');
+    }
+
+    // Calculate total expenses
+    let totalExpenses = 0;
+
+    // Add all bills to every month (matches the calendar display logic)
+    const uniqueBills = new Set();
+    bills.forEach(bill => {
+      if (!uniqueBills.has(bill.name)) {
+        totalExpenses += bill.amount;
+        uniqueBills.add(bill.name);
       }
     });
-  };
 
-  // Calculate totals up to a specific day
-  const calculateTotalsUpToDay = (day: number) => {
+    return {
+      income: totalIncome,
+      expenses: totalExpenses,
+      net: totalIncome - totalExpenses
+    };
+  }, [bills, selectedMonth, selectedYear]);
+
+  // Calculate running totals for a specific day
+  const calculateRunningTotals = useCallback((day: number) => {
     let totalIncome = 0;
     let totalBills = 0;
 
-    // Calculate for each day up to the selected day
+    const targetDate = dayjs().year(selectedYear).month(selectedMonth -1).date(day);
+
+    // Calculate income up to target date
     for (let currentDay = 1; currentDay <= day; currentDay++) {
-      // Add incomes for the day
       const dayIncomes = getIncomeForDay(currentDay);
       totalIncome += dayIncomes.reduce((sum, income) => sum + income.amount, 0);
+    }
 
-      // Add bills for the day
+    // Calculate bills up to target date (all bills recur monthly)
+    for (let currentDay = 1; currentDay <= day; currentDay++) {
       const dayBills = getBillsForDay(currentDay);
       totalBills += dayBills.reduce((sum, bill) => sum + bill.amount, 0);
     }
 
-    return { totalIncome, totalBills }; // Return the totals
-  };
-
-  // Calculate monthly totals
-  const monthlyTotals = useMemo(() => {
-    let totalIncome = 0;
-    let totalBills = 0;
-
-    // Calculate total income for the selected month
-    incomes.forEach(income => {
-      const incomeDate = dayjs(income.date);
-
-      // Special case for Ruba's salary which is bi-weekly
-      if (income.source === "Ruba's Salary") {
-        const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month');
-        const lastDayOfMonth = firstDayOfMonth.endOf('month');
-        const startDate = dayjs('2025-01-10');
-
-        // Iterate through each day in the month
-        let currentDate = firstDayOfMonth;
-        while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
-          // Check if it's a Friday and matches bi-weekly schedule
-          if (currentDate.day() === 5) { // Friday
-            const weeksDiff = currentDate.diff(startDate, 'week');
-            if (currentDate.isSameOrAfter(startDate) && weeksDiff % 2 === 0) {
-              totalIncome += income.amount;
-            }
-          }
-          currentDate = currentDate.add(1, 'day');
-        }
-      } else {
-        const incomeYear = incomeDate.year();
-        const incomeMonth = incomeDate.month();
-        const incomeDay = incomeDate.date();
-
-        // Create a new date with the selected year/month but same day
-        const adjustedDate = dayjs()
-          .year(selectedYear)
-          .month(selectedMonth - 1)
-          .date(incomeDay);
-
-        // Only count if the day exists in the current month
-        if (adjustedDate.month() === selectedMonth - 1) {
-          totalIncome += income.amount;
-        }
-      }
-    });
-
-    // Calculate total bills for the selected month
-    bills.forEach(bill => {
-      totalBills += bill.amount;
-    });
-
-    return {
-      totalIncome,
-      totalBills,
-      balance: totalIncome - totalBills
-    };
-  }, [incomes, bills, selectedMonth, selectedYear]);
+    return { totalIncome, totalBills };
+  }, [getIncomeForDay, getBillsForDay, selectedYear, selectedMonth]);
 
   // Handle month and year changes with validation
   const handleMonthChange = useCallback((month: number) => {
@@ -468,21 +513,21 @@ export function Budget() {
           <div>
             <p className="text-[10px] md:text-sm text-muted-foreground">Month Income</p>
             <p className="text-xs md:text-lg font-semibold text-green-600 dark:text-green-400">
-              {formatCurrency(monthlyTotals.totalIncome)}
+              {formatCurrency(monthlyTotals.income)}
             </p>
           </div>
           <div>
             <p className="text-[10px] md:text-sm text-muted-foreground">Month Bills</p>
             <p className="text-xs md:text-lg font-semibold text-red-600 dark:text-red-400">
-              {formatCurrency(monthlyTotals.totalBills)}
+              {formatCurrency(monthlyTotals.expenses)}
             </p>
           </div>
           <div>
             <p className="text-[10px] md:text-sm text-muted-foreground">Month Net</p>
             <p className={`text-xs md:text-lg font-semibold ${
-              monthlyTotals.balance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'
+              monthlyTotals.net >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'
             }`}>
-              {formatCurrency(monthlyTotals.balance)}
+              {formatCurrency(monthlyTotals.net)}
             </p>
           </div>
         </div>
@@ -542,8 +587,8 @@ export function Budget() {
         selectedYear={selectedYear}
         dayIncomes={getIncomeForDay(selectedDay)}
         dayBills={getBillsForDay(selectedDay)}
-        totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
-        totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
+        totalIncomeUpToToday={calculateRunningTotals(selectedDay).totalIncome}
+        totalBillsUpToToday={calculateRunningTotals(selectedDay).totalBills}
         monthlyTotals={monthlyTotals}
       />
     </div>
