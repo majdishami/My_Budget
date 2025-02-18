@@ -110,7 +110,7 @@ export function registerRoutes(app: Express): Server {
       console.error('[Categories API] Error deleting category:', error);
       if (!res.headersSent) {
         res.status(500).json({ 
-          error: 'Failed to delete category',
+          message: 'Failed to delete category',
           details: process.env.NODE_ENV === 'development' ? error : undefined
         });
       }

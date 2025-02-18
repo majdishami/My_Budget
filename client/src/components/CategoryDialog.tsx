@@ -95,13 +95,15 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       {...field} 
                       type="text" 
                       placeholder="Enter category name"
-                      autoComplete="chrome-off"
-                      name={`category-name-${Math.random()}`}
-                      aria-autocomplete="none"
+                      key={`category-name-${Math.random()}`}
+                      autoComplete="new-password"
                       autoCapitalize="off"
                       autoCorrect="off"
                       spellCheck="false"
                       data-form-type="other"
+                      data-lpignore="true"
+                      data-form-type="other"
+                      aria-autocomplete="none"
                     />
                   </FormControl>
                   <FormMessage />
