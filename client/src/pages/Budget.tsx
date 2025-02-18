@@ -236,43 +236,15 @@ export function Budget() {
     return result;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // Update getBillsForDay function to show ALL bills in ALL months
+  // Update getBillsForDay function to show ALL bills in EVERY month
   const getBillsForDay = useCallback((day: number) => {
     if (day <= 0) return [];
 
     const result: Bill[] = [];
 
     bills.forEach(bill => {
-      // Handle yearly bills
-      if (bill.isYearly && bill.yearly_date) {
-        const yearlyDate = dayjs(bill.yearly_date);
-        if (yearlyDate.month() === selectedMonth - 1 && yearlyDate.date() === day) {
-          const yearlyBill = {
-            ...bill,
-            id: `${bill.id}-yearly-${selectedYear}`,
-            date: yearlyDate.format('YYYY-MM-DD')
-          };
-          result.push(yearlyBill);
-        }
-      }
-
-      // Handle one-time bills
-      if (bill.isOneTime && bill.date) {
-        const billDate = dayjs(bill.date);
-        if (billDate.year() === selectedYear && 
-            billDate.month() === selectedMonth - 1 && 
-            billDate.date() === day) {
-          const oneTimeBill = {
-            ...bill,
-            id: `${bill.id}-onetime`,
-            date: billDate.format('YYYY-MM-DD')
-          };
-          result.push(oneTimeBill);
-        }
-      }
-
-      // Show ALL monthly bills in EVERY month
-      if (!bill.isYearly && !bill.isOneTime && bill.day === day) {
+      // Show ALL bills in EVERY month
+      if (bill.day === day) {
         const recurringBill = {
           ...bill,
           id: `${bill.id}-${selectedMonth}-${selectedYear}`,
