@@ -18,6 +18,13 @@ export const insertCategorySchema = z.object({
   icon: z.string().nullish(),
 });
 
+// Schema for category updates
+export const updateCategorySchema = z.object({
+  name: z.string().min(1, "Category name is required"),
+  color: z.string().min(1, "Color is required"),
+  icon: z.string().nullish(),
+});
+
 // Transactions table with proper foreign keys
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),

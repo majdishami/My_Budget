@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -41,12 +41,12 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
   });
 
   // Reset form when dialog opens/closes or initialData changes
-  useState(() => {
-    if (isOpen) {
+  useEffect(() => {
+    if (isOpen && initialData) {
       form.reset({
-        name: initialData?.name ?? "",
-        color: initialData?.color ?? "#000000",
-        icon: initialData?.icon ?? null,
+        name: initialData.name,
+        color: initialData.color,
+        icon: initialData.icon,
       });
     }
   }, [isOpen, initialData, form]);
