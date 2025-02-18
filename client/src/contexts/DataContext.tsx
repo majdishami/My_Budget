@@ -290,15 +290,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Invalid transaction: Transaction object is required with a numeric ID');
       }
 
-      // Use the raw ID without any transformation
-      const transactionId = transaction.id;
+      // Store current state for potential rollback
+      const previousIncomes = [...incomes];
+      const previousBills = [...bills];
 
-      logger.info("[DataContext] Deleting transaction:", {
-        id: transactionId,
+      // Optimistic update: Remove from state immediately
+      if ('source' in transaction) {
+        setIncomes(prev => prev.filter(inc => inc.id !== transaction.id));
+      } else {
+        setBills(prev => prev.filter(bill => bill.id !== transaction.id));
+      }
+
+      logger.info("[DataContext] Optimistically removed transaction from state:", {
+        id: transaction.id,
         type: 'source' in transaction ? 'income' : 'bill'
       });
 
-      const response = await fetch(`/api/transactions/${transactionId}`, {
+      const response = await fetch(`/api/transactions/${transaction.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -311,38 +319,52 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to delete transaction: ${response.status} ${errorMessage}`);
       }
 
-      // Update local state based on transaction type
-      if ('source' in transaction) {
-        setIncomes(prev => prev.filter(inc => inc.id !== transaction.id));
-      } else {
-        setBills(prev => prev.filter(bill => bill.id !== transaction.id));
-      }
-
-      // Clear cache and force refresh
+      // Just invalidate cache on success
       sessionStorage.removeItem("transactions");
-      await loadData();
-
       logger.info("[DataContext] Successfully deleted transaction");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
       logger.error("[DataContext] Error in deleteTransaction:", { error });
+
+      // Revert optimistic update on error
+      setIncomes(prev => 'source' in transaction ? previousIncomes : prev);
+      setBills(prev => !('source' in transaction) ? previousBills : prev);
+
       setError(new Error(errorMessage));
       throw error;
     }
   };
 
-  // Edit a transaction
+  // Edit a transaction with optimistic updates
   const editTransaction = async (transaction: Income | Bill) => {
     try {
       setError(null);
       const isIncome = 'source' in transaction;
       const baseId = getBaseId(transaction.id);
 
+      // Store current state for potential rollback
+      const previousIncomes = [...incomes];
+      const previousBills = [...bills];
+
       logger.info("[DataContext] Editing transaction:", {
         transaction,
         baseId,
         type: isIncome ? 'income' : 'expense'
       });
+
+      // Optimistic update
+      if (isIncome) {
+        const baseTransactionId = getBaseId(transaction.id);
+        const expandedIncomes = expandRecurringIncome(transaction as Income);
+        setIncomes(prev => {
+          const filtered = prev.filter(inc => getBaseId(inc.id) !== baseTransactionId);
+          return [...filtered, ...expandedIncomes];
+        });
+      } else {
+        setBills(prev => prev.map(bill =>
+          bill.id === transaction.id ? transaction as Bill : bill
+        ));
+      }
 
       const response = await fetch(`/api/transactions/${baseId}`, {
         method: 'PATCH',
@@ -366,26 +388,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to edit transaction: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
-      // Update local state
-      if (isIncome) {
-        const baseTransactionId = getBaseId(transaction.id);
-        const expandedIncomes = expandRecurringIncome(transaction as Income);
-        setIncomes(prev => {
-          const filtered = prev.filter(inc => getBaseId(inc.id) !== baseTransactionId);
-          return [...filtered, ...expandedIncomes];
-        });
-      } else {
-        setBills(prev => prev.map(bill =>
-          bill.id === transaction.id ? transaction as Bill : bill
-        ));
-      }
-
-      // Invalidate cache
+      // Just invalidate cache on success
       sessionStorage.removeItem("transactions");
-      logger.info("Successfully edited transaction", { transaction });
+      logger.info("[DataContext] Successfully edited transaction", { transaction });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
-      logger.error("Error in editTransaction:", { error });
+      logger.error("[DataContext] Error in editTransaction:", { error });
+
+      // Revert optimistic update on error
+      setIncomes(prev => isIncome ? previousIncomes : prev);
+      setBills(prev => !isIncome ? previousBills : prev);
+
       setError(new Error(errorMessage));
       throw error;
     }
