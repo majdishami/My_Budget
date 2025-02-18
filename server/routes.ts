@@ -463,18 +463,29 @@ export function registerRoutes(app: Express): Server {
 
       // Extract base ID if it's a recurring transaction ID (contains hyphen)
       const baseId = transactionId.includes('-') ? transactionId.split('-')[0] : transactionId;
-      console.log('[Transactions API] Using base ID for deletion:', { baseId });
+
+      // Convert to number for database query
+      const numericId = parseInt(baseId, 10);
+      if (isNaN(numericId)) {
+        console.error('[Transactions API] Invalid numeric transaction ID:', { id: baseId });
+        return res.status(400).json({ 
+          message: 'Invalid transaction ID',
+          error: `Transaction ID must be a number: ${baseId}`
+        });
+      }
+
+      console.log('[Transactions API] Using numeric ID for deletion:', { numericId });
 
       // Find the transaction first
       const transaction = await db.query.transactions.findFirst({
-        where: eq(transactions.id, baseId)
+        where: eq(transactions.id, numericId)
       });
 
       if (!transaction) {
-        console.log('[Transactions API] Transaction not found:', { id: baseId });
+        console.log('[Transactions API] Transaction not found:', { id: numericId });
         return res.status(404).json({ 
           message: 'Transaction not found',
-          error: `No transaction found with ID ${baseId}`
+          error: `No transaction found with ID ${numericId}`
         });
       }
 
@@ -484,29 +495,29 @@ export function registerRoutes(app: Express): Server {
         description: transaction.description
       });
 
-      // Delete the transaction using a more robust approach
+      // Delete the transaction
       try {
         const deleted = await db.delete(transactions)
-          .where(eq(transactions.id, baseId))
+          .where(eq(transactions.id, numericId))
           .returning();
 
         console.log('[Transactions API] Deletion result:', {
-          id: baseId,
+          id: numericId,
           deletedCount: deleted.length,
           deleted: deleted
         });
 
         if (!deleted.length) {
-          throw new Error(`No transactions were deleted with ID ${baseId}`);
+          throw new Error(`No transactions were deleted with ID ${numericId}`);
         }
 
         return res.status(200).json({ 
           message: 'Transaction deleted successfully',
-          deletedId: baseId
+          deletedId: numericId
         });
       } catch (deleteError) {
         console.error('[Transactions API] Error during deletion:', deleteError);
-        throw new Error(`Failed to delete transaction: ${deleteError.message}`);
+        throw new Error(`Failed to delete transaction: ${deleteError instanceof Error ? deleteError.message : 'Unknown error'}`);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';

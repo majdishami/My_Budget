@@ -2,7 +2,8 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { Income, Bill } from "@/types";
 import dayjs from "dayjs";
 import { logger } from "@/lib/logger";
-import crypto from 'crypto';
+// import crypto from 'crypto'; // Removed as per the intention
+
 
 interface DataContextType {
   incomes: Income[];
@@ -90,7 +91,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const loadedIncomes = transactions
           .filter((t: any) => t.type === 'income')
           .map((t: any) => ({
-            id: t.id?.toString() || crypto.randomUUID(),
+            id: t.id,
             source: t.description || 'Unknown Source',
             amount: parseFloat(t.amount) || 0,
             date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
@@ -107,7 +108,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const loadedBills = transactions
           .filter((t: any) => t.type === 'expense')
           .map((t: any) => ({
-            id: t.id?.toString() || crypto.randomUUID(),
+            id: t.id,
             name: t.description || 'Unknown Expense',
             amount: parseFloat(t.amount) || 0,
             date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
@@ -148,7 +149,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
         .map((t: any) => ({
-          id: t.id?.toString() || crypto.randomUUID(),
+          id: t.id,
           source: t.description || 'Unknown Source',
           amount: parseFloat(t.amount) || 0,
           date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
@@ -165,7 +166,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const loadedBills = transactions
         .filter((t: any) => t.type === 'expense')
         .map((t: any) => ({
-          id: t.id?.toString() || crypto.randomUUID(),
+          id: t.id,
           name: t.description || 'Unknown Expense',
           amount: parseFloat(t.amount) || 0,
           date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
@@ -276,19 +277,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const deleteTransaction = async (transaction: Income | Bill) => {
     try {
       setError(null);
-      // Ensure we have a valid ID
+
       if (!transaction.id) {
         throw new Error('Invalid transaction: missing ID');
       }
 
-      const id = transaction.id.toString();
       logger.info("[DataContext] Deleting transaction:", {
-        id,
+        id: transaction.id,
         type: 'source' in transaction ? 'income' : 'bill',
         details: transaction
       });
 
-      const response = await fetch(`/api/transactions/${id}`, {
+      const response = await fetch(`/api/transactions/${transaction.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -297,23 +297,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || errorData.message || response.statusText;
-        throw new Error(`Failed to delete transaction: ${response.status} ${errorMessage}`);
+        throw new Error(`Failed to delete transaction: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
-      const result = await response.json();
-      logger.info("[DataContext] Delete transaction response:", result);
 
       // Update local state
       if ('source' in transaction) {
-        // For incomes, we need to handle recurring transactions
-        const baseId = id.includes('-') ? id.split('-')[0] : id;
+        // For incomes, filter out all related recurring entries
+        const baseId = String(transaction.id).split('-')[0];
         setIncomes(prev => prev.filter(inc => {
-          const incBaseId = inc.id.includes('-') ? inc.id.split('-')[0] : inc.id;
+          const incBaseId = String(inc.id).split('-')[0];
           return incBaseId !== baseId;
         }));
       } else {
-        setBills(prev => prev.filter(bill => bill.id !== id));
+        setBills(prev => prev.filter(bill => bill.id !== transaction.id));
       }
 
       // Invalidate cache
