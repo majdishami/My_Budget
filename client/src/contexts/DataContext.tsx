@@ -281,8 +281,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null);
 
-      if (!transaction.id) {
-        throw new Error('Invalid transaction: missing ID');
+      if (!transaction || typeof transaction.id !== 'number' || isNaN(transaction.id)) {
+        throw new Error('Invalid transaction: missing or invalid ID');
       }
 
       // Get the base ID for the transaction
