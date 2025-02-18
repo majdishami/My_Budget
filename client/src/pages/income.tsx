@@ -57,12 +57,19 @@ export default function IncomeReport() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Income Report</h1>
-      {isDialogOpen && (
-        <IncomeReportDialog
-          isOpen={isDialogOpen}
-          onOpenChange={handleOpenChange}
-          incomes={incomes}
-        />
+      {incomes.length === 0 ? (
+        <div className="text-center p-8 bg-background/50 rounded-lg border">
+          <p className="text-muted-foreground">No income records found.</p>
+          <p className="text-sm text-muted-foreground mt-2">Add some income entries to view your income report.</p>
+        </div>
+      ) : (
+        isDialogOpen && (
+          <IncomeReportDialog
+            isOpen={isDialogOpen}
+            onOpenChange={handleOpenChange}
+            incomes={incomes}
+          />
+        )
       )}
     </div>
   );
