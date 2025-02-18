@@ -25,23 +25,72 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 // Helper function to process transactions
 const processTransactions = (transactions: any[], setIncomes: Function, setBills: Function) => {
   try {
-    // Process incomes
+    // Process incomes and expand recurring ones
     const loadedIncomes = transactions
       .filter((t: any) => t.type === 'income')
-      .map((t: any) => ({
-        id: t.id?.toString() || crypto.randomUUID(),
-        source: t.description || 'Unknown Source',
-        amount: parseFloat(t.amount) || 0,
-        date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-        occurrenceType: t.recurring_type || 'once',
-        firstDate: t.first_date,
-        secondDate: t.second_date
-      }));
+      .reduce((acc: Income[], t: any) => {
+        const baseIncome = {
+          id: t.id?.toString() || crypto.randomUUID(),
+          source: t.description || 'Unknown Source',
+          amount: parseFloat(t.amount) || 0,
+          date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+          occurrenceType: t.recurring_type || 'once',
+          firstDate: t.first_date,
+          secondDate: t.second_date
+        };
+
+        // If it's a recurring income, generate future occurrences
+        if (baseIncome.occurrenceType !== 'once') {
+          const futureMonths = 12; // Generate for next 12 months
+          const baseDate = dayjs(baseIncome.date);
+
+          // Generate recurring incomes based on occurrence type
+          const recurringIncomes = Array.from({ length: futureMonths }, (_, i) => {
+            let date;
+            switch (baseIncome.occurrenceType) {
+              case 'monthly':
+                date = baseDate.add(i, 'month');
+                break;
+              case 'biweekly':
+                date = baseDate.add(i * 2, 'week');
+                break;
+              case 'twice-monthly':
+                if (baseIncome.firstDate && baseIncome.secondDate) {
+                  // Handle twice-monthly with specific dates
+                  const monthDate = baseDate.add(Math.floor(i / 2), 'month');
+                  date = i % 2 === 0 
+                    ? monthDate.date(baseIncome.firstDate)
+                    : monthDate.date(baseIncome.secondDate);
+                } else {
+                  date = baseDate.add(i * 2, 'week');
+                }
+                break;
+              case 'weekly':
+                date = baseDate.add(i, 'week');
+                break;
+              default:
+                date = baseDate;
+            }
+
+            return {
+              ...baseIncome,
+              id: `${baseIncome.id}-${i}`,
+              date: date.format('YYYY-MM-DD')
+            };
+          });
+
+          acc.push(...recurringIncomes);
+        } else {
+          acc.push(baseIncome);
+        }
+
+        return acc;
+      }, []);
 
     setIncomes(loadedIncomes);
     logger.info("[DataContext] Processed incomes:", { count: loadedIncomes.length });
 
-    // Process bills
+    // Process bills (keep existing bills processing logic)
     const loadedBills = transactions
       .filter((t: any) => t.type === 'expense')
       .map((t: any) => ({
@@ -139,7 +188,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           description: income.source,
           amount: income.amount,
           date: dayjs(income.date).format('YYYY-MM-DD'),
-          type: 'income'
+          type: 'income',
+          recurring_type: income.occurrenceType,
+          first_date: income.firstDate,
+          second_date: income.secondDate
         }),
       });
 
