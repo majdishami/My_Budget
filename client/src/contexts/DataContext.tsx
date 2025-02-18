@@ -80,74 +80,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Load transactions from cache or API
-  const loadData = async () => {
+  // Extract processing logic into a separate function
+  const processTransactions = (transactions: any[]) => {
     try {
-      setIsLoading(true);
-      setError(null);
-
-      // Check sessionStorage before fetching
-      const cachedTransactions = sessionStorage.getItem("transactions");
-      if (cachedTransactions) {
-        logger.info("[DataContext] Loading transactions from cache...");
-        const transactions = JSON.parse(cachedTransactions);
-        const loadedIncomes = transactions
-          .filter((t: any) => t.type === 'income')
-          .map((t: any) => ({
-            id: t.id,
-            source: t.description || 'Unknown Source',
-            amount: parseFloat(t.amount) || 0,
-            date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-            occurrenceType: t.recurring_type || 'once',
-            firstDate: t.first_date,
-            secondDate: t.second_date
-          }))
-          .reduce((acc: Income[], income) => {
-            return [...acc, ...expandRecurringIncome(income)];
-          }, []);
-
-        setIncomes(loadedIncomes);
-
-        const loadedBills = transactions
-          .filter((t: any) => t.type === 'expense')
-          .map((t: any) => ({
-            id: t.id,
-            name: t.description || 'Unknown Expense',
-            amount: parseFloat(t.amount) || 0,
-            date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-            isOneTime: !t.recurring_id,
-            day: dayjs(t.date).date(),
-            category_id: t.category_id || null,
-            category_name: t.category_name || 'Uncategorized',
-            category_color: t.category_color || '#808080',
-            category_icon: t.category_icon || 'help-circle',
-            category: t.category_id ? {
-              name: t.category_name || 'Uncategorized',
-              color: t.category_color || '#808080',
-              icon: t.category_icon || 'help-circle'
-            } : undefined
-          }));
-
-        setBills(loadedBills);
-        setIsLoading(false);
-        return;
-      }
-
-      logger.info("[DataContext] Fetching transactions from API...");
-      const response = await fetch('/api/transactions', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to load transactions: ${response.status} ${response.statusText}`);
-      }
-
-      const transactions = await response.json();
-      sessionStorage.setItem("transactions", JSON.stringify(transactions));
-      logger.info("[DataContext] Cached transactions in sessionStorage");
+      logger.info("[DataContext] Processing transactions...");
 
       const loadedIncomes = transactions
         .filter((t: any) => t.type === 'income')
@@ -187,6 +123,51 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }));
 
       setBills(loadedBills);
+      logger.info("[DataContext] Successfully processed transactions:", {
+        incomesCount: loadedIncomes.length,
+        billsCount: loadedBills.length
+      });
+    } catch (error) {
+      logger.error("[DataContext] Error processing transactions:", error);
+      throw error;
+    }
+  };
+
+  // Improved loadData function with proper caching
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Check sessionStorage before fetching
+      const cachedTransactions = sessionStorage.getItem("transactions");
+      if (cachedTransactions) {
+        logger.info("[DataContext] Loading transactions from cache...");
+        processTransactions(JSON.parse(cachedTransactions));
+        setIsLoading(false);
+        return;
+      }
+
+      logger.info("[DataContext] Fetching transactions from API...");
+      const response = await fetch('/api/transactions', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load transactions: ${response.status} ${response.statusText}`);
+      }
+
+      const transactions = await response.json();
+
+      // Cache the raw response
+      sessionStorage.setItem("transactions", JSON.stringify(transactions));
+      logger.info("[DataContext] Cached transactions in sessionStorage");
+
+      // Process the transactions
+      processTransactions(transactions);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
       logger.error("[DataContext] Error loading data:", { error });
