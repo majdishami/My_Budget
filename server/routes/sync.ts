@@ -88,7 +88,7 @@ router.post('/api/sync/backup', async (req, res) => {
   try {
     const result = await generateDatabaseBackup();
 
-    if (!result.success) {
+    if (!result.success || !result.fileName) {
       return res.status(500).json({ 
         error: result.error || 'Failed to generate backup' 
       });
@@ -127,10 +127,8 @@ router.post('/api/sync/backup', async (req, res) => {
       }))
     };
 
-    fs.writeFileSync(
-      path.join(process.cwd(), 'tmp', result.fileName),
-      JSON.stringify(transformedData, null, 2)
-    );
+    const outputPath = path.join(process.cwd(), 'tmp', result.fileName);
+    fs.writeFileSync(outputPath, JSON.stringify(transformedData, null, 2));
 
     res.json({
       message: 'Backup generated successfully',
@@ -206,7 +204,7 @@ router.post('/api/sync/restore', async (req, res) => {
       const parsedData = JSON.parse(fileContent);
       const processedData = validateAndPreprocessData(parsedData);
 
-      await db.transaction(async (tx) => {
+      await db.transaction(async (tx: any) => {
         // Insert categories
         console.log('Restoring categories...');
         for (const category of processedData.categories) {

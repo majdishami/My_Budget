@@ -1,6 +1,6 @@
 import { db } from "./index";
 import { categories } from "./schema";
-import { isNull, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 const defaultCategories = [
   {
@@ -77,36 +77,28 @@ const defaultCategories = [
 
 export async function seedCategories() {
   try {
-    console.log('Starting categories seeding process...');
-
     // Check for existing categories with optimized COUNT query
-    console.log('Checking for existing default categories...');
     const defaultCatsCount = await db
       .select({ count: sql<number>`count(*)` })
-      .from(categories)
-      .where(isNull(categories.user_id));
+      .from(categories);
 
     const existingCategories = Number(defaultCatsCount[0]?.count) || 0;
-    console.log(`Found ${existingCategories} default categories`);
+    console.log(`Categories status: ${existingCategories} defaults found. ${existingCategories === 0 ? 'Seeding new categories...' : 'Using existing categories.'}`);
 
-    // Use UPSERT to safely insert categories even in concurrent scenarios
-    console.log('Upserting default categories...');
     try {
       const result = await db.insert(categories)
         .values(defaultCategories)
         .onConflictDoNothing({ 
-          target: [categories.name],
-          where: isNull(categories.user_id)
+          target: [categories.name]
         });
 
-      console.log('Successfully completed category upsert operation');
       return {
         operation: 'upsert',
         existingCount: existingCategories,
-        message: 'Categories seeded or already exist'
+        message: 'Categories initialization complete'
       };
     } catch (error) {
-      console.error('Error during category upsert:', {
+      console.error('Category upsert failed:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         details: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
         operation: 'category_upsert',
@@ -118,7 +110,7 @@ export async function seedCategories() {
       throw error;
     }
   } catch (error) {
-    console.error('Fatal error in seedCategories:', {
+    console.error('Fatal seeding error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       details: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
       context: 'category_seeding',

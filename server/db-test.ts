@@ -1,9 +1,9 @@
 import { db, pool } from "@db";
-import { users } from "@db/schema";
+import { transactions, categories } from "@db/schema";
 
 async function testDatabaseConnection() {
   console.log('Testing database connection...');
-  
+
   try {
     // Test the pool connection
     console.log('Testing pool connection...');
@@ -13,7 +13,7 @@ async function testDatabaseConnection() {
 
     // Test Drizzle ORM connection
     console.log('Testing Drizzle ORM connection...');
-    const result = await db.select().from(users).limit(1);
+    const result = await db.select().from(categories).limit(1);
     console.log('Drizzle query successful:', result);
 
     console.log('All database connection tests passed');
