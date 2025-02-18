@@ -83,7 +83,7 @@ export async function seedCategories() {
       .from(categories);
 
     const existingCategories = Number(defaultCatsCount[0]?.count) || 0;
-    console.log(`Categories status: ${existingCategories} defaults found. ${existingCategories === 0 ? 'Seeding new categories...' : 'Using existing categories.'}`);
+    console.log(`Found ${existingCategories} default categories. ${existingCategories === 0 ? 'Seeding new categories...' : 'Skipping seeding.'}`);
 
     try {
       const result = await db.insert(categories)
@@ -93,8 +93,11 @@ export async function seedCategories() {
         });
 
       return {
+        success: true,
         operation: 'upsert',
         existingCount: existingCategories,
+        inserted: existingCategories === 0 ? defaultCategories.length : 0,
+        skipped: existingCategories > 0,
         message: 'Categories initialization complete'
       };
     } catch (error) {
@@ -103,8 +106,6 @@ export async function seedCategories() {
         details: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
         operation: 'category_upsert',
         dbQuery: "INSERT INTO categories (name, color, icon) VALUES ... ON CONFLICT DO NOTHING",
-        dbValues: defaultCategories,
-        existingCount: existingCategories,
         timestamp: new Date().toISOString()
       });
       throw error;
@@ -116,6 +117,12 @@ export async function seedCategories() {
       context: 'category_seeding',
       timestamp: new Date().toISOString()
     });
-    throw error;
+
+    return {
+      success: false,
+      operation: 'seeding',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    };
   }
 }
