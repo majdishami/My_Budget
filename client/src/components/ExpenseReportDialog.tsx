@@ -33,14 +33,6 @@ interface Transaction {
   occurred: boolean;
 }
 
-interface MonthlyTransactions {
-  monthKey: string;
-  transactions: Transaction[];
-  total: number;
-  paid: number;
-  pending: number;
-}
-
 interface ExpenseReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -61,7 +53,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
   }, [isOpen]);
 
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
-    queryKey: ['/api/transactions'],  
+    queryKey: ['/api/transactions'],
     enabled: showReport,
   });
 
@@ -72,8 +64,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       .filter(transaction => {
         if (transaction.type !== 'expense') return false;
         const transactionDate = dayjs(transaction.date);
-        return transactionDate.isSameOrAfter(dayjs(date.from).startOf('day'), 'day') &&
-               transactionDate.isSameOrBefore(dayjs(date.to).endOf('day'), 'day');
+        return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
+               transactionDate.isSameOrBefore(dayjs(date.to), 'day');
       })
       .map(transaction => ({
         ...transaction,
@@ -81,46 +73,19 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       }));
   }, [transactions, date, currentDate]);
 
-  const monthlyData = useMemo(() => {
-    if (!filteredTransactions.length) return [];
-
-    const monthGroups: Record<string, Transaction[]> = {};
-
-    filteredTransactions.forEach(transaction => {
-      const monthKey = dayjs(transaction.date).format('YYYY-MM');
-      if (!monthGroups[monthKey]) {
-        monthGroups[monthKey] = [];
-      }
-      monthGroups[monthKey].push(transaction);
-    });
-
-    return Object.entries(monthGroups)
-      .map(([monthKey, transactions]) => {
-        const total = transactions.reduce((sum, t) => sum + t.amount, 0);
-        const paid = transactions
-          .filter(t => t.occurred)
-          .reduce((sum, t) => sum + t.amount, 0);
-
-        return {
-          monthKey,
-          transactions: transactions.sort((a, b) => dayjs(a.date).diff(dayjs(b.date))),
-          total,
-          paid,
-          pending: total - paid
-        };
-      })
-      .sort((a, b) => dayjs(a.monthKey).diff(dayjs(b.monthKey)));
-  }, [filteredTransactions]);
-
   const totals = useMemo(() => {
-    const total = monthlyData.reduce((sum, month) => sum + month.total, 0);
-    const paid = monthlyData.reduce((sum, month) => sum + month.paid, 0);
+    const paid = filteredTransactions
+      .filter(t => t.occurred)
+      .reduce((sum, t) => sum + t.amount, 0);
+    const pending = filteredTransactions
+      .filter(t => !t.occurred)
+      .reduce((sum, t) => sum + t.amount, 0);
     return {
-      total,
+      total: paid + pending,
       paid,
-      pending: total - paid
+      pending
     };
-  }, [monthlyData]);
+  }, [filteredTransactions]);
 
   if (!showReport) {
     return (
@@ -237,36 +202,24 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
               </CardContent>
             </Card>
 
-            {monthlyData.map(month => (
-              <Card key={month.monthKey}>
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium flex justify-between items-center">
-                    <span>{dayjs(month.monthKey).format('MMMM YYYY')}</span>
-                    <span className="text-base">
-                      Total: {formatCurrency(month.total)}
-                    </span>
-                  </CardTitle>
-                  <div className="text-sm space-y-1">
-                    <div className="text-red-600">
-                      Paid: {formatCurrency(month.paid)}
-                    </div>
-                    <div className="text-yellow-600">
-                      Pending: {formatCurrency(month.pending)}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {month.transactions.map((transaction) => (
+            <Card>
+              <CardHeader>
+                <CardTitle>Expense Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions
+                      .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                      .map((transaction) => (
                         <TableRow key={transaction.id}>
                           <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
                           <TableCell>{transaction.description}</TableCell>
@@ -280,11 +233,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                           </TableCell>
                         </TableRow>
                       ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </div>
         )}
       </DialogContent>
