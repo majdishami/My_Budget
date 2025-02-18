@@ -55,7 +55,6 @@ interface CategoryTotal {
   color: string;
   icon: string | null;
   transactions: Transaction[];
-  categories?: CategoryTotal[];
 }
 
 interface ExpenseReportDialogProps {
@@ -63,7 +62,6 @@ interface ExpenseReportDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// DynamicIcon component for consistent icon rendering
 const DynamicIcon = ({ iconName, className = "h-4 w-4" }: { iconName: string | null | undefined, className?: string }) => {
   if (!iconName) return null;
   const formatIconName = (name: string) => {
@@ -97,7 +95,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
-  const currentDate = useMemo(() => dayjs(), []);
+  const currentDate = useMemo(() => dayjs('2025-02-18'), []); // Fixed current date for consistency
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -109,18 +107,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  // Query bills and categories
-  const { data: bills = [], isLoading: billsLoading } = useQuery({
-    queryKey: ['/api/bills'],
-    gcTime: 0
-  });
-
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
-    queryKey: ['/api/categories'],
-    gcTime: 0
-  });
-
-  // Query transactions for the entire date range
+  // Query transactions for the selected date range
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ['/api/transactions', {
       type: 'expense',
@@ -130,11 +117,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     enabled: showReport && !!date?.from && !!date?.to
   });
 
-  const isLoading = billsLoading || transactionsLoading || categoriesLoading;
-
   // Filter and process transactions
   const filteredTransactions = useMemo(() => {
-    if (!date?.from || !date?.to) return [];
+    if (!date?.from || !date?.to || !transactions.length) return [];
 
     const startDate = dayjs(date.from).startOf('day');
     const endDate = dayjs(date.to).endOf('day');
@@ -142,17 +127,36 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     return transactions
       .filter(transaction => {
         const transactionDate = dayjs(transaction.date);
-        return transactionDate.isSameOrAfter(startDate) &&
-               transactionDate.isSameOrBefore(endDate);
+        return transactionDate.isSameOrAfter(startDate, 'day') &&
+               transactionDate.isSameOrBefore(endDate, 'day');
       })
       .map(transaction => {
         const transactionDate = dayjs(transaction.date);
+        // A transaction is considered "occurred" if it's on or before the current date
+        const occurred = transactionDate.isSameOrBefore(currentDate, 'day');
         return {
           ...transaction,
-          occurred: transactionDate.isSameOrBefore(currentDate)
+          occurred
         };
       });
   }, [transactions, date, currentDate]);
+
+  // Calculate display totals
+  const displayTotals = useMemo(() => {
+    const paid = filteredTransactions
+      .filter(t => t.occurred)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const pending = filteredTransactions
+      .filter(t => !t.occurred)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return {
+      total: paid + pending,
+      paid,
+      pending
+    };
+  }, [filteredTransactions]);
 
   // Calculate category totals
   const categoryTotals = useMemo(() => {
@@ -176,7 +180,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       const total = totals[category_name];
       total.total += transaction.amount;
 
-      if (dayjs(transaction.date).isSameOrBefore(currentDate)) {
+      if (transaction.occurred) {
         total.occurred += transaction.amount;
       } else {
         total.pending += transaction.amount;
@@ -186,24 +190,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     });
 
     return Object.values(totals).sort((a, b) => b.total - a.total);
-  }, [filteredTransactions, currentDate]);
-
-  // Calculate totals for display
-  const displayTotals = useMemo(() => {
-    const paid = filteredTransactions
-      .filter(t => dayjs(t.date).isSameOrBefore(currentDate))
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const pending = filteredTransactions
-      .filter(t => dayjs(t.date).isAfter(currentDate))
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    return {
-      total: paid + pending,
-      paid,
-      pending
-    };
-  }, [filteredTransactions, currentDate]);
+  }, [filteredTransactions]);
 
   // Handle date selection
   const handleDateSelect = (selectedDate: DateRange | undefined) => {
@@ -239,20 +226,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                     <SelectItem value="all">All Expenses</SelectItem>
                     <SelectItem value="categories">By Category</SelectItem>
                   </SelectGroup>
-
-                  {categories.length > 0 && (
-                    <SelectGroup>
-                      <SelectLabel>Individual Categories</SelectLabel>
-                      {categories.map((category) => (
-                        <SelectItem
-                          key={`category_${category.name}`}
-                          value={`category_${category.name}`}
-                        >
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -298,9 +271,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                 }
                 setShowReport(true);
               }}
-              disabled={!date?.from || !date?.to || isLoading}
+              disabled={!date?.from || !date?.to || transactionsLoading}
             >
-              {isLoading ? "Loading..." : "Generate Report"}
+              {transactionsLoading ? "Loading..." : "Generate Report"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -328,7 +301,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
           </div>
         </DialogHeader>
 
-        {isLoading ? (
+        {transactionsLoading ? (
           <div className="flex justify-center items-center p-8">
             <span className="text-muted-foreground">Loading report data...</span>
           </div>
