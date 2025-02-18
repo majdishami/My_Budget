@@ -136,9 +136,9 @@ const filterBillsForCalendar = (bills: Bill[]) => {
   const uniqueBills = new Map<string, Bill>();
 
   bills.forEach(bill => {
-    const monthKey = dayjs(bill.date).format('YYYY-MM');
-    const dayOfMonth = dayjs(bill.date).date();
-    const billKey = `${bill.name}-${dayOfMonth}-${monthKey}`;
+    const billDate = dayjs(bill.date);
+    // Only use the day of month for the key to ensure one instance per day
+    const billKey = `${bill.name}-${billDate.date()}`;
 
     if (!uniqueBills.has(billKey)) {
       uniqueBills.set(billKey, bill);
@@ -195,7 +195,8 @@ const expandRecurringBill = (baseBill: Bill) => {
     instanceCount: bills.length
   });
 
-  return bills;
+  // Filter to show only one instance per day
+  return filterBillsForCalendar(bills);
 };
 
 // Utility function for handling API requests
