@@ -155,12 +155,11 @@ export function Budget() {
   // Transform bills to have proper recurrence flags
   const bills = useMemo(() => rawBills.map(bill => ({
     ...bill,
-    // Only set defaults if recurrence flags are not already set
     isOneTime: bill.isOneTime ?? false,
     isYearly: bill.isYearly ?? false,
     date: bill.date,
     yearly_date: bill.yearly_date,
-    day: bill.day // Monthly bills need their day property
+    day: bill.day
   })), [rawBills]);
 
   // Calculate daysInMonth early
