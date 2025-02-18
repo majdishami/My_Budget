@@ -6,8 +6,9 @@ export default function IncomeReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
 
-  // Get incomes data from local storage
-  const incomes = JSON.parse(localStorage.getItem("incomes") || "[]");
+  // Get incomes data from local storage with safe parsing
+  const storedIncomes = localStorage.getItem("incomes");
+  const incomes = storedIncomes ? JSON.parse(storedIncomes) : [];
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
