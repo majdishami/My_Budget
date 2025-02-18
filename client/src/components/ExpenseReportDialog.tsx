@@ -61,6 +61,16 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
+  // Handle date selection
+  const handleDateSelect = (selectedDate: DateRange | undefined) => {
+    if (selectedDate?.from && !selectedDate.to) {
+      // If only start date is selected, keep it selected
+      setDate({ from: selectedDate.from, to: undefined });
+    } else {
+      setDate(selectedDate);
+    }
+  };
+
   // Query transactions for the selected date range
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ['/api/transactions', { 
