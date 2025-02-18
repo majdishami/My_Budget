@@ -287,17 +287,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Ensure we have a valid transaction object with an ID
       if (!transaction || typeof transaction.id !== 'number') {
-        logger.error("[DataContext] Invalid transaction ID:", transaction);
+        logger.error("[DataContext] Invalid transaction ID:", { id: transaction?.id, type: typeof transaction?.id });
         throw new Error('Invalid transaction: Transaction object is required with a numeric ID');
       }
 
-      // For income, we need to delete the base transaction
-      // For bills, we use the direct ID
-      const transactionId = 'source' in transaction ? transaction.id : transaction.id;
+      // Use the raw ID without any transformation
+      const transactionId = transaction.id;
 
       logger.info("[DataContext] Deleting transaction:", {
-        originalId: transaction.id,
-        transactionId,
+        id: transactionId,
         type: 'source' in transaction ? 'income' : 'bill'
       });
 
@@ -321,10 +319,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setBills(prev => prev.filter(bill => bill.id !== transaction.id));
       }
 
-      // Clear cache to ensure fresh data on next load
+      // Clear cache and force refresh
       sessionStorage.removeItem("transactions");
-
-      // Force a refresh to update all totals
       await loadData();
 
       logger.info("[DataContext] Successfully deleted transaction");
@@ -441,7 +437,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 export function useData() {
   const context = useContext(DataContext);
   if (!context) {
-    throw new Error("[DataContext] `useData` must be used within a DataProvider component.");
+    throw new Error("[DataContext] `useData()` must be used within `<DataProvider>`.");
   }
   return context;
 }
