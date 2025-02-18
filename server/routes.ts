@@ -1,10 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { categories, transactions, insertTransactionSchema, bills, insertCategorySchema } from "@db/schema";
+import { users, insertUserSchema, categories, insertCategorySchema, transactions, bills } from "@db/schema";
 import { eq, desc, ilike, or, and } from "drizzle-orm";
 import { sql } from 'drizzle-orm';
 import dayjs from 'dayjs';
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import session from "express-session";
+import ConnectPgSimple from "connect-pg-simple";
+import crypto from "crypto";
 
 export function registerRoutes(app: Express): Server {
   // Test route
@@ -88,20 +93,20 @@ export function registerRoutes(app: Express): Server {
 
   // Add category deletion endpoint
   app.delete('/api/categories/:id', async (req, res) => {
-    try {
-      const categoryId = parseInt(req.params.id);
-      console.log('[Categories API] Attempting to delete category:', categoryId);
+    const categoryId = parseInt(req.params.id);
 
-      const existingCategory = await db.query.categories.findFirst({
+    try {
+      const category = await db.query.categories.findFirst({
         where: eq(categories.id, categoryId)
       });
 
-      if (!existingCategory) {
-        console.log('[Categories API] Category not found:', categoryId);
-        return res.status(404).json({ message: 'Category not found' });
+      if (!category) {
+        return res.status(404).json({ 
+          message: "Category not found" 
+        });
       }
 
-      // Delete associated transactions and bills first
+      // Delete the category and all related records in a transaction
       await db.transaction(async (tx) => {
         // Delete associated transactions
         await tx.delete(transactions)
@@ -111,17 +116,24 @@ export function registerRoutes(app: Express): Server {
         await tx.delete(bills)
           .where(eq(bills.category_id, categoryId));
 
-        // Delete the category
-        await tx.delete(categories)
-          .where(eq(categories.id, categoryId));
+        // Delete the category itself
+        const result = await tx.delete(categories)
+          .where(eq(categories.id, categoryId))
+          .returning();
+
+        if (!result.length) {
+          throw new Error("Failed to delete category");
+        }
       });
 
-      console.log('[Categories API] Successfully deleted category:', categoryId);
-      return res.status(204).end();
+      return res.status(200).json({ 
+        message: "Category deleted successfully" 
+      });
+
     } catch (error) {
       console.error('[Categories API] Error deleting category:', error);
       return res.status(500).json({ 
-        message: 'An error occurred while deleting the category'
+        message: "An error occurred while deleting the category" 
       });
     }
   });

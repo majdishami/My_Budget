@@ -29,7 +29,7 @@ interface CategoryDialogProps {
 export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: CategoryDialogProps) {
   const { toast } = useToast();
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -51,23 +51,23 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
   }, [isOpen, initialData, form]);
 
   const handleSubmit = async (data: CategoryFormData) => {
-    if (isSubmitting) return;
+    if (submitting) return;
 
     try {
-      setIsSubmitting(true);
+      setSubmitting(true);
       await onSubmit({
         name: data.name.trim(),
         color: data.color,
         icon: data.icon?.trim() ?? null,
       });
 
-      form.reset();
-      onOpenChange(false);
-
       toast({
         title: initialData ? "Category updated" : "Category created",
         description: `Successfully ${initialData ? 'updated' : 'created'} category "${data.name}"`,
       });
+
+      form.reset();
+      onOpenChange(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -75,12 +75,16 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!submitting) {
+        onOpenChange(open);
+      }
+    }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{initialData ? "Edit Category" : "Add Category"}</DialogTitle>
@@ -105,7 +109,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       spellCheck="false"
                       data-lpignore="true"
                       aria-autocomplete="none"
-                      disabled={isSubmitting}
+                      disabled={submitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -126,7 +130,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                           type="button"
                           variant="outline" 
                           className="w-full flex items-center justify-between"
-                          disabled={isSubmitting}
+                          disabled={submitting}
                         >
                           <span className="flex items-center gap-2">
                             <Circle className="h-4 w-4" fill={field.value} />
@@ -166,7 +170,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       value={field.value ?? ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
                       autoComplete="off"
-                      disabled={isSubmitting}
+                      disabled={submitting}
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -178,7 +182,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
             />
 
             <DialogFooter>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={submitting}>
                 {initialData ? "Save Changes" : "Add Category"}
               </Button>
             </DialogFooter>
