@@ -108,14 +108,21 @@ export async function seedCategories() {
     } catch (error) {
       console.error('Error during category upsert:', {
         message: error instanceof Error ? error.message : 'Unknown error',
-        details: error instanceof Error ? error.stack : undefined
+        details: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
+        operation: 'category_upsert',
+        dbQuery: "INSERT INTO categories (name, color, icon) VALUES ... ON CONFLICT DO NOTHING",
+        dbValues: defaultCategories,
+        existingCount: existingCategories,
+        timestamp: new Date().toISOString()
       });
       throw error;
     }
   } catch (error) {
     console.error('Fatal error in seedCategories:', {
       message: error instanceof Error ? error.message : 'Unknown error',
-      details: error instanceof Error ? error.stack : undefined
+      details: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
+      context: 'category_seeding',
+      timestamp: new Date().toISOString()
     });
     throw error;
   }

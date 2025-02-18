@@ -70,18 +70,32 @@ const pool = new Pool(poolConfig);
 
 // Enhanced error handling for the pool
 pool.on('error', (err: Error & { code?: string }) => {
-  console.error('Unexpected error on idle client:', {
+  // Log detailed error information
+  const errorContext = {
     message: err.message,
     code: err.code,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  });
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    poolConfig: {
+      max: poolConfig.max,
+      idleTimeoutMillis: poolConfig.idleTimeoutMillis,
+      connectionTimeoutMillis: poolConfig.connectionTimeoutMillis
+    }
+  };
 
-  // Handle specific PostgreSQL error codes
+  console.error('Unexpected error on idle client:', errorContext);
+
+  // Handle specific PostgreSQL error codes with detailed logging
   switch (err.code) {
     case '57P01': // Admin shutdown
     case '57P02': // Crash shutdown
     case '57P03': // Cannot connect now
-      console.log('Database connection terminated, attempting to reconnect...');
+      console.log('Database connection terminated, attempting to reconnect...', {
+        errorCode: err.code,
+        errorType: 'connection_terminated',
+        timestamp: new Date().toISOString()
+      });
 
       let attempt = 0;
       const maxAttempts = 5;
@@ -89,36 +103,44 @@ pool.on('error', (err: Error & { code?: string }) => {
 
       const reconnect = () => {
         if (attempt >= maxAttempts) {
-          console.error('Max reconnection attempts reached. Initiating graceful shutdown...');
-
-          // Allow pending logs to be written
-          process.nextTick(() => {
-            console.log('Shutting down application due to database connectivity issues...');
-            process.exit(1);
+          console.error('Max reconnection attempts reached, initiating graceful shutdown:', {
+            totalAttempts: attempt,
+            lastError: err.message,
+            timestamp: new Date().toISOString()
           });
+
+          process.nextTick(() => process.exit(1));
           return;
         }
 
         attempt++;
         const baseDelay = Math.min(1000 * Math.pow(2, attempt), maxDelay);
-        const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
+        const jitter = Math.random() * 1000;
         const delay = Math.min(baseDelay + jitter, maxDelay);
 
-        console.log(`Attempting reconnection ${attempt}/${maxAttempts} in ${(delay/1000).toFixed(1)}s...`);
+        console.log('Attempting reconnection:', {
+          attempt: `${attempt}/${maxAttempts}`,
+          delay: `${(delay/1000).toFixed(1)}s`,
+          timestamp: new Date().toISOString()
+        });
 
         setTimeout(async () => {
           try {
             const client = await pool.connect();
-            console.log('Successfully reconnected to database');
+            console.log('Successfully reconnected to database', {
+              attempt,
+              timestamp: new Date().toISOString()
+            });
             client.release();
-            attempt = 0; // Reset attempt counter on success
+            attempt = 0;
           } catch (error) {
             console.error('Reconnection attempt failed:', {
               message: error instanceof Error ? error.message : 'Unknown error',
               attempt,
-              nextRetryIn: Math.min(1000 * Math.pow(2, attempt + 1), maxDelay) / 1000
+              nextRetryIn: Math.min(1000 * Math.pow(2, attempt + 1), maxDelay) / 1000,
+              timestamp: new Date().toISOString()
             });
-            reconnect(); // Try again with increased delay
+            reconnect();
           }
         }, delay);
       };
@@ -128,17 +150,17 @@ pool.on('error', (err: Error & { code?: string }) => {
 
     case '08006': // Connection failure
     case '08001': // Unable to establish connection
-      console.error('Fatal connection error, initiating graceful shutdown');
-      process.nextTick(() => {
-        console.log('Shutting down application...');
-        process.exit(1);
+      console.error('Fatal connection error:', {
+        ...errorContext,
+        errorType: 'connection_failure'
       });
+      process.nextTick(() => process.exit(1));
       break;
 
     default:
       console.error('Unhandled database error:', {
-        code: err.code,
-        message: err.message
+        ...errorContext,
+        errorType: 'unhandled'
       });
       break;
   }
