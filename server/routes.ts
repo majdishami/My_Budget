@@ -461,16 +461,20 @@ export function registerRoutes(app: Express): Server {
       const transactionId = req.params.id;
       console.log('[Transactions API] Attempting to delete transaction:', { id: transactionId });
 
-      // Find the transaction first - using the string ID directly
+      // Extract base ID if it's a recurring transaction ID (contains hyphen)
+      const baseId = transactionId.includes('-') ? transactionId.split('-')[0] : transactionId;
+      console.log('[Transactions API] Using base ID for deletion:', { baseId });
+
+      // Find the transaction first
       const transaction = await db.query.transactions.findFirst({
-        where: eq(transactions.id, transactionId)
+        where: eq(transactions.id, baseId)
       });
 
       if (!transaction) {
-        console.log('[Transactions API] Transaction not found:', { id: transactionId });
+        console.log('[Transactions API] Transaction not found:', { id: baseId });
         return res.status(404).json({ 
           message: 'Transaction not found',
-          error: `No transaction found with ID ${transactionId}`
+          error: `No transaction found with ID ${baseId}`
         });
       }
 
@@ -480,26 +484,33 @@ export function registerRoutes(app: Express): Server {
         description: transaction.description
       });
 
-      // Perform the deletion within a transaction
-      await db.transaction(async (tx) => {
-        const deleted = await tx.delete(transactions)
-          .where(eq(transactions.id, transactionId))
+      // Delete the transaction using a more robust approach
+      try {
+        const deleted = await db.delete(transactions)
+          .where(eq(transactions.id, baseId))
           .returning();
 
+        console.log('[Transactions API] Deletion result:', {
+          id: baseId,
+          deletedCount: deleted.length,
+          deleted: deleted
+        });
+
         if (!deleted.length) {
-          throw new Error(`Failed to delete transaction ${transactionId}`);
+          throw new Error(`No transactions were deleted with ID ${baseId}`);
         }
 
-        console.log('[Transactions API] Successfully deleted transaction:', {
-          id: transactionId,
-          deletedCount: deleted.length
+        return res.status(200).json({ 
+          message: 'Transaction deleted successfully',
+          deletedId: baseId
         });
-      });
-
-      return res.status(200).json({ message: 'Transaction deleted successfully' });
+      } catch (deleteError) {
+        console.error('[Transactions API] Error during deletion:', deleteError);
+        throw new Error(`Failed to delete transaction: ${deleteError.message}`);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      console.error('[Transactions API] Error deleting transaction:', {
+      console.error('[Transactions API] Error in delete transaction handler:', {
         id: req.params.id,
         error: errorMessage
       });
@@ -511,7 +522,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add proper update handling for bills
   app.patch('/api/bills/:id', async (req, res) => {
     try {
       console.log('[Bills API] Updating bill:', {

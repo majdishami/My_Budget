@@ -284,7 +284,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const id = transaction.id.toString();
       logger.info("[DataContext] Deleting transaction:", {
         id,
-        type: 'source' in transaction ? 'income' : 'bill'
+        type: 'source' in transaction ? 'income' : 'bill',
+        details: transaction
       });
 
       const response = await fetch(`/api/transactions/${id}`, {
@@ -296,14 +297,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Failed to delete transaction: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
+        const errorMessage = errorData.error || errorData.message || response.statusText;
+        throw new Error(`Failed to delete transaction: ${response.status} ${errorMessage}`);
       }
+
+      const result = await response.json();
+      logger.info("[DataContext] Delete transaction response:", result);
 
       // Update local state
       if ('source' in transaction) {
-        // For incomes, remove all instances of the recurring income
+        // For incomes, we need to handle recurring transactions
         const baseId = id.includes('-') ? id.split('-')[0] : id;
-        setIncomes(prev => prev.filter(inc => !inc.id.startsWith(baseId)));
+        setIncomes(prev => prev.filter(inc => {
+          const incBaseId = inc.id.includes('-') ? inc.id.split('-')[0] : inc.id;
+          return incBaseId !== baseId;
+        }));
       } else {
         setBills(prev => prev.filter(bill => bill.id !== id));
       }
@@ -313,7 +321,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       logger.info("Successfully deleted transaction", { transaction });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
-      logger.error("Error in deleteTransaction:", { error });
+      logger.error("Error in deleteTransaction:", { error, transaction });
       setError(new Error(errorMessage));
       throw error;
     }
