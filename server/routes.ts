@@ -233,9 +233,8 @@ export function registerRoutes(app: Express): Server {
 
       console.log('[Transactions API] Fetching transactions with filters:', {
         type,
-        startDate,
-        endDate,
-        queryParams: req.query
+        startDate: startDate ? dayjs(startDate).format('YYYY-MM-DD') : undefined,
+        endDate: endDate ? dayjs(endDate).format('YYYY-MM-DD') : undefined
       });
 
       if (type && !['income', 'expense'].includes(type)) {
@@ -244,92 +243,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // First, get all bills that should generate transactions in this date range
-      const billsQuery = db
-        .select()
-        .from(bills)
-        .leftJoin(categories, eq(bills.category_id, categories.id));
-
-      const allBills = await billsQuery;
-
-      // Generate virtual transactions from bills for the date range
-      const virtualTransactions = [];
-
-      if (startDate && endDate) {
-        const startDateDayjs = dayjs(startDate);
-        const endDateDayjs = dayjs(endDate);
-
-        for (const bill of allBills) {
-          // Handle one-time bills
-          if (bill.is_one_time && bill.date) {
-            const billDate = dayjs(bill.date);
-            if (billDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
-              virtualTransactions.push({
-                description: bill.name,
-                amount: bill.amount,
-                date: billDate.toDate(),
-                type: 'expense',
-                category_id: bill.category_id,
-                category_name: bill.categories?.name || 'Uncategorized',
-                category_color: bill.categories?.color || '#6366F1',
-                category_icon: bill.categories?.icon || 'receipt',
-                is_virtual: true
-              });
-            }
-            continue;
-          }
-
-          // Handle yearly bills
-          if (bill.is_yearly && bill.yearly_date) {
-            const yearlyDate = dayjs(bill.yearly_date);
-            const thisYearDate = yearlyDate.year(startDateDayjs.year());
-            if (thisYearDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
-              virtualTransactions.push({
-                description: bill.name,
-                amount: bill.amount,
-                date: thisYearDate.toDate(),
-                type: 'expense',
-                category_id: bill.category_id,
-                category_name: bill.categories?.name || 'Uncategorized',
-                category_color: bill.categories?.color || '#6366F1',
-                category_icon: bill.categories?.icon || 'receipt',
-                is_virtual: true
-              });
-            }
-            continue;
-          }
-
-          // Handle regular monthly bills
-          let currentDate = startDateDayjs.startOf('month');
-
-          while (currentDate.isSameOrBefore(endDateDayjs)) {
-            // For bills due on the 1st, ensure they're always placed on the 1st of the current month
-            const billDate = bill.day === 1
-              ? currentDate.date(1)
-              : currentDate.date(bill.day);
-
-            // Only include the bill if it falls within our date range
-            if (billDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
-              virtualTransactions.push({
-                description: bill.name,
-                amount: bill.amount,
-                date: billDate.toDate(),
-                type: 'expense',
-                category_id: bill.category_id,
-                category_name: bill.categories?.name || 'Uncategorized',
-                category_color: bill.categories?.color || '#6366F1',
-                category_icon: bill.categories?.icon || 'receipt',
-                is_virtual: true
-              });
-            }
-
-            // Move to the next month
-            currentDate = currentDate.add(1, 'month');
-          }
-        }
-      }
-
-      // Get actual transactions from the database
+      // First, get actual transactions from the database
       const query = db
         .select({
           id: transactions.id,
@@ -354,38 +268,129 @@ export function registerRoutes(app: Express): Server {
 
       // Ensure strict date range filtering for actual transactions
       if (startDate) {
-        whereConditions.push(sql`DATE(${transactions.date}) >= DATE(${startDate})`);
+        whereConditions.push(sql`${transactions.date} >= ${startDate}`);
       }
       if (endDate) {
-        whereConditions.push(sql`DATE(${transactions.date}) <= DATE(${endDate})`);
+        whereConditions.push(sql`${transactions.date} <= ${endDate}`);
       }
 
       if (whereConditions.length > 0) {
         query.where(and(...whereConditions));
       }
 
-      const allTransactions = await query;
+      const actualTransactions = await query;
 
-      // Combine actual and virtual transactions
+      console.log('[Transactions API] Actual transactions found:', actualTransactions.length);
+
+      // Only generate virtual transactions if we have a date range
+      let virtualTransactions: any[] = [];
+      if (startDate && endDate && (!type || type === 'expense')) {
+        // Get all bills
+        const allBills = await db
+          .select()
+          .from(bills)
+          .leftJoin(categories, eq(bills.category_id, categories.id));
+
+        console.log('[Transactions API] Processing bills for virtual transactions:', allBills.length);
+
+        const startDateDayjs = dayjs(startDate);
+        const endDateDayjs = dayjs(endDate);
+
+        // Process each bill
+        for (const bill of allBills) {
+          // For one-time bills
+          if (bill.is_one_time && bill.date) {
+            const billDate = dayjs(bill.date);
+            if (billDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
+              virtualTransactions.push({
+                description: bill.name,
+                amount: Number(bill.amount),
+                date: billDate.toDate(),
+                type: 'expense',
+                category_id: bill.category_id,
+                category_name: bill.categories?.name || 'Uncategorized',
+                category_color: bill.categories?.color || '#6366F1',
+                category_icon: bill.categories?.icon || 'receipt',
+                is_virtual: true
+              });
+            }
+            continue;
+          }
+
+          // For yearly bills
+          if (bill.is_yearly && bill.yearly_date) {
+            const yearlyDate = dayjs(bill.yearly_date);
+            // Check for each year in the range
+            let yearCheck = startDateDayjs.startOf('year');
+            while (yearCheck.isBefore(endDateDayjs)) {
+              const billDate = yearlyDate.year(yearCheck.year());
+              if (billDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
+                virtualTransactions.push({
+                  description: bill.name,
+                  amount: Number(bill.amount),
+                  date: billDate.toDate(),
+                  type: 'expense',
+                  category_id: bill.category_id,
+                  category_name: bill.categories?.name || 'Uncategorized',
+                  category_color: bill.categories?.color || '#6366F1',
+                  category_icon: bill.categories?.icon || 'receipt',
+                  is_virtual: true
+                });
+              }
+              yearCheck = yearCheck.add(1, 'year');
+            }
+            continue;
+          }
+
+          // For monthly bills
+          let currentMonth = startDateDayjs.startOf('month');
+          while (currentMonth.isSameOrBefore(endDateDayjs)) {
+            // For bills due on the 1st, ensure they're properly dated
+            const billDate = bill.day === 1
+              ? currentMonth.date(1)
+              : currentMonth.date(bill.day);
+
+            // Only include if the bill date falls within our range
+            if (billDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
+              virtualTransactions.push({
+                description: bill.name,
+                amount: Number(bill.amount),
+                date: billDate.toDate(),
+                type: 'expense',
+                category_id: bill.category_id,
+                category_name: bill.categories?.name || 'Uncategorized',
+                category_color: bill.categories?.color || '#6366F1',
+                category_icon: bill.categories?.icon || 'receipt',
+                is_virtual: true
+              });
+            }
+            currentMonth = currentMonth.add(1, 'month');
+          }
+        }
+      }
+
+      console.log('[Transactions API] Virtual transactions generated:', virtualTransactions.length);
+
+      // Combine and format transactions
       const combinedTransactions = [
-        ...allTransactions.map(t => ({
+        ...actualTransactions.map(t => ({
           ...t,
-          amount: parseFloat(t.amount.toString()),
-          date: dayjs(t.date).format('YYYY-MM-DD') // Ensure consistent date format
+          amount: Number(t.amount),
+          date: dayjs(t.date).format('YYYY-MM-DD')
         })),
         ...virtualTransactions.map(t => ({
           ...t,
-          date: dayjs(t.date).format('YYYY-MM-DD') // Ensure consistent date format
+          date: dayjs(t.date).format('YYYY-MM-DD')
         }))
       ].sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
 
-      console.log('[Transactions API] Query results:', {
-        actualTransactions: allTransactions.length,
+      console.log('[Transactions API] Final response:', {
+        actualTransactions: actualTransactions.length,
         virtualTransactions: virtualTransactions.length,
         totalTransactions: combinedTransactions.length,
         dateRange: {
-          startDate: startDate ? dayjs(startDate).format('YYYY-MM-DD') : undefined,
-          endDate: endDate ? dayjs(endDate).format('YYYY-MM-DD') : undefined
+          start: startDate ? dayjs(startDate).format('YYYY-MM-DD') : 'none',
+          end: endDate ? dayjs(endDate).format('YYYY-MM-DD') : 'none'
         }
       });
 
