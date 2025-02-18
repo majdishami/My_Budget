@@ -11,8 +11,8 @@ import { ChromePicker } from 'react-color';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const categorySchema = z.object({
-  name: z.string().trim().min(1, "Category name is required"),
-  color: z.string().min(1, "Color is required"),
+  name: z.string().min(1, "Category name is required"),
+  color: z.string(),
   icon: z.string().nullable().optional()
 });
 
@@ -48,14 +48,13 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
 
   const handleSubmit = async (data: CategoryFormData) => {
     try {
-      console.log('Submitting category data:', data);
+      console.log('Form data before validation:', data);
       const formattedData = {
         name: data.name.trim(),
         color: data.color,
         icon: data.icon?.trim() || null
       };
-      console.log('Formatted category data:', formattedData);
-
+      console.log('Formatted data:', formattedData);
       await onSubmit(formattedData);
       form.reset();
       onOpenChange(false);
@@ -75,9 +74,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
           <form 
             onSubmit={form.handleSubmit(handleSubmit)} 
             className="space-y-4"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck="false"
+            autoComplete="new-password"
           >
             <FormField
               control={form.control}
@@ -89,11 +86,10 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                     <Input 
                       placeholder="Enter category name" 
                       {...field} 
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      name="category_name_field"
+                      type="text"
+                      autoComplete="new-password"
+                      data-form-type="other"
+                      data-lpignore="true"
                     />
                   </FormControl>
                   <FormMessage />
@@ -146,11 +142,10 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       {...field}
                       value={field.value || ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      name="category_icon_field"
+                      type="text"
+                      autoComplete="new-password"
+                      data-form-type="other"
+                      data-lpignore="true"
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground mt-1">
