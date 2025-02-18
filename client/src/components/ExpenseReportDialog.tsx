@@ -47,6 +47,7 @@ interface ExpenseReportDialogProps {
     from: Date | undefined;
     to: Date | undefined;
   };
+  onBack?: () => void;
 }
 
 // Styling helper functions
@@ -88,7 +89,8 @@ export default function ExpenseReportDialog({
   isOpen, 
   onOpenChange, 
   expenses,
-  dateRange 
+  dateRange,
+  onBack 
 }: ExpenseReportDialogProps) {
   const today = useMemo(() => dayjs(), []); // Memoize today since it's used in calculations
 
@@ -136,6 +138,14 @@ export default function ExpenseReportDialog({
     [processedTransactions]
   );
 
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      onOpenChange(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -143,7 +153,7 @@ export default function ExpenseReportDialog({
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => onOpenChange(false)}
+            onClick={handleBack}
             className="h-8 w-8"
           >
             <ArrowLeft className="h-4 w-4" />

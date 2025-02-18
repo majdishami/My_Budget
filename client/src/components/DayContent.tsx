@@ -10,22 +10,19 @@ interface DayContentProps {
 }
 
 export function DayContent({ day, bills = [], incomes = [], onClick }: DayContentProps) {
-  // Get unique incomes by source for this day and sort by amount descending
-  const uniqueIncomes = (incomes ?? []).reduce((acc: Income[], income) => {
-    const exists = acc.find(i => i.source === income.source);
-    if (!exists) {
-      acc.push(income);
-    }
-    return acc;
-  }, []).sort((a, b) => b.amount - a.amount);
+  // Group bills by day to show only one indicator per day
+  const hasExpenseOnDay = bills.some(bill => {
+    const billDate = new Date(bill.date);
+    return billDate.getDate() === day.getDate();
+  });
 
-  // Get bills for this day and sort by amount descending
-  const dayBills = (bills ?? []).sort((a, b) => b.amount - a.amount);
-
-  const hasTransactions = uniqueIncomes.length > 0 || dayBills.length > 0;
+  // Group incomes by source and day
+  const hasIncomeOnDay = (incomes ?? []).some(income => {
+    const incomeDate = new Date(income.date);
+    return incomeDate.getDate() === day.getDate();
+  });
 
   const handleClick = () => {
-    // Use optional chaining to safely call onClick
     onClick?.(day.getDate());
   };
 
@@ -37,12 +34,12 @@ export function DayContent({ day, bills = [], incomes = [], onClick }: DayConten
       <div className="absolute inset-0 flex items-center justify-center">
         {day.getDate()}
       </div>
-      {hasTransactions && (
+      {(hasIncomeOnDay || hasExpenseOnDay) && (
         <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
-          {uniqueIncomes.length > 0 && (
+          {hasIncomeOnDay && (
             <Dot className="h-3 w-3 text-green-500" />
           )}
-          {dayBills.length > 0 && (
+          {hasExpenseOnDay && (
             <Dot className="h-3 w-3 text-red-500" />
           )}
         </div>
