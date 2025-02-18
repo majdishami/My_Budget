@@ -31,6 +31,57 @@ const CACHE_MAX_AGE = 5 * 60 * 1000; // 5 minutes
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// Utility function for handling API requests
+const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}) => {
+  try {
+    const response = await fetch(url, options);
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      logger.error("[DataContext] API request failed:", {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        responseText
+      });
+
+      let errorData = {};
+      try {
+        errorData = JSON.parse(responseText);
+      } catch (parseError) {
+        logger.error("[DataContext] Failed to parse error response as JSON:", {
+          parseError,
+          responseText
+        });
+      }
+
+      throw new Error(
+        `Request failed (${response.status}): ${
+          errorData.message ? errorData.message :
+          responseText ? responseText :
+          response.statusText
+        }`
+      );
+    }
+
+    try {
+      return JSON.parse(responseText);
+    } catch (parseError) {
+      logger.error("[DataContext] Failed to parse success response as JSON:", {
+        parseError,
+        responseText
+      });
+      throw new Error("Invalid JSON response from server");
+    }
+  } catch (error) {
+    logger.error("[DataContext] Request failed:", {
+      url,
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+    throw error;
+  }
+};
+
 // Helper function to get base ID from instance ID
 const getBaseId = (id: number) => Math.floor(id / 10);
 
@@ -261,18 +312,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       logger.info("[DataContext] Fetching transactions from API...");
-      const response = await fetch('/api/transactions', {
+      const transactions = await fetchJsonWithErrorHandling('/api/transactions', {
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to load transactions: ${response.status} ${response.statusText}`);
-      }
-
-      const transactions = await response.json();
 
       // Update cache with new data
       setCache(transactions);
@@ -296,7 +341,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       logger.info("[DataContext] Adding income:", { income });
 
-      const response = await fetch('/api/transactions', {
+      const newTransaction = await fetchJsonWithErrorHandling('/api/transactions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -312,46 +357,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }),
       });
 
-      if (!response.ok) {
-        // Log the raw response text first
-        const responseText = await response.text();
-        logger.error("[DataContext] Failed to add income. Response:", {
-          status: response.status,
-          statusText: response.statusText,
-          responseText
-        });
-
-        // Try to parse as JSON if possible
-        let errorData = {};
-        try {
-          errorData = JSON.parse(responseText);
-        } catch (parseError) {
-          logger.error("[DataContext] Failed to parse error response as JSON:", {
-            parseError,
-            responseText
-          });
-        }
-
-        throw new Error(
-          `Failed to add income: ${response.status} ${response.statusText}${
-            errorData.message ? ` - ${errorData.message}` :
-              responseText ? ` - ${responseText}` : ''
-          }`
-        );
-      }
-
-      const newTransaction = await response.json();
       logger.info("[DataContext] Successfully added income to database:", newTransaction);
 
       // Add to local state directly instead of reloading
       const expandedIncomes = expandRecurringIncome(income);
       setIncomes(prev => [...prev, ...expandedIncomes]);
 
-      // Invalidate cache by removing it completely
+      // Invalidate cache
       sessionStorage.removeItem(getCacheKey());
       logger.info("[DataContext] Cache invalidated after adding income");
 
-      logger.info("[DataContext] Successfully added income and updated local state");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add income";
       logger.error("[DataContext] Error in addIncome:", { error });
@@ -366,7 +381,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       logger.info("[DataContext] Adding bill:", { bill });
 
-      const response = await fetch('/api/transactions', {
+      const newTransaction = await fetchJsonWithErrorHandling('/api/transactions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -380,39 +395,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }),
       });
 
-      if (!response.ok) {
-        // Log the raw response text first
-        const responseText = await response.text();
-        logger.error("[DataContext] Failed to add bill. Response:", {
-          status: response.status,
-          statusText: response.statusText,
-          responseText
-        });
-
-        // Try to parse as JSON if possible
-        let errorData = {};
-        try {
-          errorData = JSON.parse(responseText);
-        } catch (parseError) {
-          logger.error("[DataContext] Failed to parse error response as JSON:", {
-            parseError,
-            responseText
-          });
-        }
-
-        throw new Error(
-          `Failed to add bill: ${response.status} ${response.statusText}${
-            errorData.message ? ` - ${errorData.message}` :
-              responseText ? ` - ${responseText}` : ''
-          }`
-        );
-      }
-
-      // Get the new transaction ID from the response
-      const newTransaction = await response.json();
       const newBill = {
         ...bill,
-        id: newTransaction.id // Use the server-generated ID
+        id: newTransaction.id
       };
 
       // Update local state directly
@@ -422,7 +407,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.removeItem(getCacheKey());
       logger.info("[DataContext] Cache invalidated after adding bill");
 
-      logger.info("[DataContext] Successfully added bill and updated local state:", { newBill });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add bill";
       logger.error("[DataContext] Error in addBill:", { error });
