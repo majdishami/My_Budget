@@ -10,7 +10,7 @@ import dayjs from "dayjs";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
 
-type ReportType = 'all' | 'monthly' | 'annual' | 'custom' | 'category' | 'individual';
+type ReportType = 'all' | 'category' | 'individual';
 type CategoryFilter = 'all' | string;
 
 export default function ExpenseReport() {
@@ -18,8 +18,6 @@ export default function ExpenseReport() {
   const [, setLocation] = useLocation();
   const { bills, categories, isLoading } = useData();
   const [reportType, setReportType] = useState<ReportType>('all');
-  const [selectedMonth, setSelectedMonth] = useState(dayjs().format('M'));
-  const [selectedYear, setSelectedYear] = useState(dayjs().format('YYYY'));
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [selectedExpense, setSelectedExpense] = useState<string>('all');
   const [dateRange, setDateRange] = useState<{
@@ -36,8 +34,6 @@ export default function ExpenseReport() {
       billsCount: bills?.length,
       reportType,
       dateRange,
-      selectedMonth,
-      selectedYear,
       selectedCategory
     });
 
@@ -52,29 +48,6 @@ export default function ExpenseReport() {
 
       let dateMatches = true;
 
-      // Apply date filters based on report type
-      switch (reportType) {
-        case 'monthly':
-          const startOfMonth = dayjs(`${selectedYear}-${selectedMonth}-01`);
-          const endOfMonth = startOfMonth.endOf('month');
-          dateMatches = billDate.isBetween(startOfMonth, endOfMonth, 'day', '[]');
-          break;
-
-        case 'annual':
-          const startOfYear = dayjs(selectedYear).startOf('year');
-          const endOfYear = dayjs(selectedYear).endOf('year');
-          dateMatches = billDate.isBetween(startOfYear, endOfYear, 'day', '[]');
-          break;
-
-        case 'custom':
-        case 'all':
-          if (dateRange.from && dateRange.to) {
-            const start = dayjs(dateRange.from).startOf('day');
-            const end = dayjs(dateRange.to).endOf('day');
-            dateMatches = billDate.isBetween(start, end, 'day', '[]');
-          }
-          break;
-      }
 
       // Apply category filter if selected
       const categoryMatches = selectedCategory === 'all' || 
@@ -108,7 +81,7 @@ export default function ExpenseReport() {
       category_color?: string;
       category_icon?: string | null;
     }>);
-  }, [bills, reportType, selectedMonth, selectedYear, dateRange, selectedCategory, selectedExpense]);
+  }, [bills, reportType, selectedCategory, selectedExpense]);
 
   const handleShowReport = () => {
     setIsDialogOpen(true);
@@ -130,16 +103,6 @@ export default function ExpenseReport() {
     setLocation("/");
   };
 
-  const months = useMemo(() => Array.from({ length: 12 }, (_, i) => ({
-    value: (i + 1).toString(),
-    label: dayjs().month(i).format('MMMM')
-  })), []);
-
-  const currentYear = dayjs().year();
-  const years = useMemo(() => Array.from({ length: 11 }, (_, i) => ({
-    value: (currentYear - 5 + i).toString(),
-    label: (currentYear - 5 + i).toString()
-  })), [currentYear]);
 
   if (isLoading) {
     return (
@@ -177,58 +140,10 @@ export default function ExpenseReport() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Expenses</SelectItem>
-                <SelectItem value="monthly">Monthly Report</SelectItem>
-                <SelectItem value="annual">Annual Report</SelectItem>
-                <SelectItem value="custom">Custom Date Range</SelectItem>
                 <SelectItem value="category">By Category</SelectItem>
                 <SelectItem value="individual">Individual Expense</SelectItem>
               </SelectContent>
             </Select>
-
-            {reportType === 'monthly' && (
-              <>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map(month => (
-                      <SelectItem key={month.value} value={month.value}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map(year => (
-                      <SelectItem key={year.value} value={year.value}>
-                        {year.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </>
-            )}
-
-            {reportType === 'annual' && (
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map(year => (
-                    <SelectItem key={year.value} value={year.value}>
-                      {year.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
 
             {(reportType === 'category' || reportType === 'all') && categories && categories.length > 0 && (
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -262,22 +177,6 @@ export default function ExpenseReport() {
               </Select>
             )}
           </div>
-
-          {(reportType === 'custom' || reportType === 'all') && (
-            <div className="flex items-center gap-4">
-              <DateRangePicker
-                date={dateRange}
-                onDateChange={setDateRange}
-                className="w-full"
-              />
-              <Button 
-                onClick={() => setDateRange({ from: undefined, to: undefined })}
-                variant="outline"
-              >
-                Reset Range
-              </Button>
-            </div>
-          )}
 
           <Button onClick={handleShowReport} className="w-full">
             Generate Report
