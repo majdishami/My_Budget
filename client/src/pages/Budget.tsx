@@ -245,7 +245,7 @@ export function Budget() {
     return result;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // getBillsForDay function
+  // Function to get bills for a specific day
   const getBillsForDay = (day: number) => {
     if (day <= 0 || day > daysInMonth) return []; // Return empty if day is invalid
 
