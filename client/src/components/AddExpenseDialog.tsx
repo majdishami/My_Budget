@@ -183,7 +183,8 @@ export function AddExpenseDialog({
                     setErrors(prev => ({ ...prev, name: undefined }));
                   }}
                   placeholder="Enter expense name"
-                  autoComplete="off"
+                  autoComplete="new-expense"
+                  autocomplete="off"
                   spellCheck="false"
                 />
                 {errors.name && (
