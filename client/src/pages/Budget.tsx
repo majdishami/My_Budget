@@ -332,16 +332,18 @@ export function Budget() {
 
   // Handle month and year changes with validation
   const handleMonthChange = useCallback((month: number) => {
-    setSelectedMonth(month); // Already 0-based
-    const days = dayjs().year(selectedYear).month(month).daysInMonth();
-    setSelectedDay(Math.min(selectedDay, days));
-  }, [selectedYear, selectedDay]);
+    if (selectedMonth !== month) {
+      setSelectedMonth(month);
+      setSelectedDay(prev => Math.min(prev, dayjs().year(selectedYear).month(month).daysInMonth()));
+    }
+  }, [selectedMonth, selectedYear]);
 
   const handleYearChange = useCallback((year: number) => {
-    setSelectedYear(year);
-    const days = dayjs().year(year).month(selectedMonth).daysInMonth();
-    setSelectedDay(Math.min(selectedDay, days));
-  }, [selectedMonth, selectedDay]);
+    if (selectedYear !== year) {
+      setSelectedYear(year);
+      setSelectedDay(prev => Math.min(prev, dayjs().year(year).month(selectedMonth).daysInMonth()));
+    }
+  }, [selectedYear, selectedMonth]);
 
   // Update the calendarData calculation
   const calendarData = useMemo(() => {
