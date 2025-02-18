@@ -13,7 +13,7 @@ import { Calendar } from "lucide-react";
 type ReportType = 'monthly' | 'annual' | 'custom';
 
 export default function ExpenseReport() {
-  const [isDialogOpen, setIsDialogOpen] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { bills } = useData();
   const [reportType, setReportType] = useState<ReportType>('monthly');
@@ -33,25 +33,33 @@ export default function ExpenseReport() {
       const billDate = dayjs(bill.date);
 
       if (reportType === 'monthly') {
-        return billDate.month() + 1 === parseInt(selectedMonth) && 
-               billDate.year() === parseInt(selectedYear);
+        // For monthly reports, use startOf and endOf month for precise filtering
+        const startOfMonth = dayjs(`${selectedYear}-${selectedMonth}-01`).startOf('month');
+        const endOfMonth = startOfMonth.endOf('month');
+        return billDate.isSameOrAfter(startOfMonth) && billDate.isSameOrBefore(endOfMonth);
       }
 
       if (reportType === 'annual') {
-        return billDate.year() === parseInt(selectedYear);
+        const startOfYear = dayjs(selectedYear).startOf('year');
+        const endOfYear = dayjs(selectedYear).endOf('year');
+        return billDate.isSameOrAfter(startOfYear) && billDate.isSameOrBefore(endOfYear);
       }
 
       if (reportType === 'custom' && dateRange.from && dateRange.to) {
-        return billDate.isAfter(dayjs(dateRange.from).startOf('day')) && 
-               billDate.isBefore(dayjs(dateRange.to).endOf('day'));
+        return billDate.isSameOrAfter(dayjs(dateRange.from).startOf('day')) && 
+               billDate.isSameOrBefore(dayjs(dateRange.to).endOf('day'));
       }
 
       return true;
     });
   }, [bills, reportType, selectedMonth, selectedYear, dateRange]);
 
+  const handleShowReport = () => {
+    setIsDialogOpen(true);
+  };
+
   const handleOpenChange = (open: boolean) => {
-    if (!open && isDialogOpen) {
+    if (!open) {
       setLocation("/");
     }
     setIsDialogOpen(open);
@@ -73,7 +81,7 @@ export default function ExpenseReport() {
       <Card className="p-4 mb-4">
         <h1 className="text-2xl font-bold mb-4">Expense Report</h1>
         <div className="space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Select report type" />
@@ -146,6 +154,10 @@ export default function ExpenseReport() {
               </Button>
             </div>
           )}
+
+          <Button onClick={handleShowReport} className="w-full">
+            Generate Report
+          </Button>
         </div>
       </Card>
 
