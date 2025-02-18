@@ -68,23 +68,64 @@ pool.on('error', (err: Error & { code?: string }) => {
     case '57P02': // Crash shutdown
     case '57P03': // Cannot connect now
       console.log('Database connection terminated, attempting to reconnect...');
-      // Implement automatic reconnection after a delay
-      setTimeout(() => {
-        console.log('Attempting to reconnect to database...');
-        pool.connect().catch(connectErr => {
-          console.error('Reconnection attempt failed:', connectErr);
-        });
-      }, 5000);
+
+      let attempt = 0;
+      const maxAttempts = 5;
+      const maxDelay = 30000; // Maximum delay of 30 seconds
+
+      const reconnect = () => {
+        if (attempt >= maxAttempts) {
+          console.error('Max reconnection attempts reached. Initiating graceful shutdown...');
+
+          // Allow pending logs to be written
+          process.nextTick(() => {
+            console.log('Shutting down application due to database connectivity issues...');
+            process.exit(1);
+          });
+          return;
+        }
+
+        attempt++;
+        const baseDelay = Math.min(1000 * Math.pow(2, attempt), maxDelay);
+        const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
+        const delay = Math.min(baseDelay + jitter, maxDelay);
+
+        console.log(`Attempting reconnection ${attempt}/${maxAttempts} in ${(delay/1000).toFixed(1)}s...`);
+
+        setTimeout(async () => {
+          try {
+            const client = await pool.connect();
+            console.log('Successfully reconnected to database');
+            client.release();
+            attempt = 0; // Reset attempt counter on success
+          } catch (error) {
+            console.error('Reconnection attempt failed:', {
+              message: error instanceof Error ? error.message : 'Unknown error',
+              attempt,
+              nextRetryIn: Math.min(1000 * Math.pow(2, attempt + 1), maxDelay) / 1000
+            });
+            reconnect(); // Try again with increased delay
+          }
+        }, delay);
+      };
+
+      reconnect();
       break;
 
     case '08006': // Connection failure
     case '08001': // Unable to establish connection
       console.error('Fatal connection error, initiating graceful shutdown');
-      process.exit(1);
+      process.nextTick(() => {
+        console.log('Shutting down application...');
+        process.exit(1);
+      });
       break;
 
     default:
-      console.error('Unhandled database error:', err.code);
+      console.error('Unhandled database error:', {
+        code: err.code,
+        message: err.message
+      });
       break;
   }
 });
