@@ -280,20 +280,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const deleteTransaction = async (transaction: Income | Bill) => {
     try {
       setError(null);
+      logger.info("[DataContext] Starting deletion of transaction:", transaction);
 
-      if (!transaction || typeof transaction.id !== 'number' || isNaN(transaction.id)) {
-        throw new Error('Invalid transaction: missing or invalid ID');
+      // Ensure we have a valid transaction object with an ID
+      if (!transaction) {
+        logger.error("[DataContext] Transaction object is null or undefined");
+        throw new Error('Invalid transaction: Transaction object is required');
       }
 
-      // Get the base ID for the transaction
+      // Validate ID exists and is a number
+      if (typeof transaction.id !== 'number') {
+        logger.error("[DataContext] Invalid transaction ID type:", { id: transaction.id, type: typeof transaction.id });
+        throw new Error('Invalid transaction: ID must be a number');
+      }
+
+      // Get the base ID for the transaction (for recurring transactions)
       const baseId = 'source' in transaction
         ? getBaseId(transaction.id)
         : transaction.id;
 
       logger.info("[DataContext] Deleting transaction:", {
-        id: baseId,
-        type: 'source' in transaction ? 'income' : 'bill',
-        details: transaction
+        originalId: transaction.id,
+        baseId,
+        type: 'source' in transaction ? 'income' : 'bill'
       });
 
       const response = await fetch(`/api/transactions/${baseId}`, {
@@ -309,24 +318,39 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to delete transaction: ${response.status} ${errorMessage}`);
       }
 
-      const result = await response.json();
-      logger.info("[DataContext] Delete transaction response:", result);
-
-      // Update local state
+      // Update local state based on transaction type
       if ('source' in transaction) {
         // For incomes, filter out all related recurring entries
         const baseTransactionId = getBaseId(transaction.id);
-        setIncomes(prev => prev.filter(inc => getBaseId(inc.id) !== baseTransactionId));
+        setIncomes(prev => {
+          const filtered = prev.filter(inc => getBaseId(inc.id) !== baseTransactionId);
+          logger.info("[DataContext] Filtered incomes after deletion:", {
+            before: prev.length,
+            after: filtered.length
+          });
+          return filtered;
+        });
       } else {
-        setBills(prev => prev.filter(bill => bill.id !== transaction.id));
+        setBills(prev => {
+          const filtered = prev.filter(bill => bill.id !== transaction.id);
+          logger.info("[DataContext] Filtered bills after deletion:", {
+            before: prev.length,
+            after: filtered.length
+          });
+          return filtered;
+        });
       }
 
-      // Invalidate cache
+      // Clear cache to ensure fresh data on next load
       sessionStorage.removeItem("transactions");
-      logger.info("Successfully deleted transaction", { transaction });
+
+      // Trigger a data refresh to update monthly totals
+      await loadData();
+
+      logger.info("[DataContext] Successfully deleted transaction");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
-      logger.error("Error in deleteTransaction:", { error, transaction });
+      logger.error("[DataContext] Error in deleteTransaction:", { error });
       setError(new Error(errorMessage));
       throw error;
     }

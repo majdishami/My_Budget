@@ -63,6 +63,7 @@ export function LeftSidebar({
   // Handle delete confirmation
   const handleDeleteConfirm = () => {
     if (deletingTransaction) {
+      logger.info("[LeftSidebar] Confirming deletion:", deletingTransaction);
       onDeleteTransaction(deletingTransaction.type, deletingTransaction.data);
       setIsDeleteConfirmOpen(false);
       setDeletingTransaction(null);
@@ -71,7 +72,11 @@ export function LeftSidebar({
 
   // Handle delete request
   const handleDeleteRequest = (type: 'income' | 'bill', data: Income | Bill) => {
-    console.log('Deleting transaction:', { type, data }); // Add logging
+    logger.info("[LeftSidebar] Delete request:", { type, data });
+    if (!data || !data.id) {
+      logger.error("[LeftSidebar] Invalid transaction data:", data);
+      return;
+    }
     setDeletingTransaction({ type, data });
     setIsDeleteConfirmOpen(true);
   };
