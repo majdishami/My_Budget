@@ -228,13 +228,13 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/transactions', async (req, res) => {
     try {
       const type = req.query.type as 'income' | 'expense' | undefined;
-      const startDate = req.query.startDate ? dayjs(req.query.startDate as string).startOf('day').toISOString() : undefined;
-      const endDate = req.query.endDate ? dayjs(req.query.endDate as string).endOf('day').toISOString() : undefined;
+      const startDate = req.query.startDate ? dayjs(req.query.startDate as string).startOf('day') : undefined;
+      const endDate = req.query.endDate ? dayjs(req.query.endDate as string).endOf('day') : undefined;
 
       console.log('[Transactions API] Fetching transactions with filters:', {
         type,
-        startDate,
-        endDate,
+        startDate: startDate?.format('YYYY-MM-DD HH:mm:ss'),
+        endDate: endDate?.format('YYYY-MM-DD HH:mm:ss'),
         rawStartDate: req.query.startDate,
         rawEndDate: req.query.endDate
       });
@@ -246,7 +246,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Build base query for actual transactions
-      const query = db
+      let query = db
         .select({
           id: transactions.id,
           description: transactions.description,
@@ -269,30 +269,30 @@ export function registerRoutes(app: Express): Server {
       }
 
       if (startDate) {
-        whereConditions.push(sql`${transactions.date} >= ${startDate}::timestamp`);
+        whereConditions.push(sql`DATE(${transactions.date}) >= DATE(${startDate.toDate()})`);
       }
       if (endDate) {
-        whereConditions.push(sql`${transactions.date} <= ${endDate}::timestamp`);
+        whereConditions.push(sql`DATE(${transactions.date}) <= DATE(${endDate.toDate()})`);
       }
 
       if (whereConditions.length > 0) {
-        query.where(and(...whereConditions));
+        query = query.where(and(...whereConditions));
       }
 
       const actualTransactions = await query;
 
       console.log('[Transactions API] Actual transactions found:', {
         count: actualTransactions.length,
-        dateRange: { startDate, endDate },
-        sampleDates: actualTransactions.slice(0, 3).map(t => dayjs(t.date).format('YYYY-MM-DD HH:mm:ss'))
+        dateRange: {
+          start: startDate?.format('YYYY-MM-DD'),
+          end: endDate?.format('YYYY-MM-DD')
+        },
+        sampleDates: actualTransactions.slice(0, 3).map(t => dayjs(t.date).format('YYYY-MM-DD'))
       });
 
       // Only generate virtual transactions if we have a date range
       let virtualTransactions: any[] = [];
       if (startDate && endDate && (!type || type === 'expense')) {
-        const startDateDayjs = dayjs(startDate);
-        const endDateDayjs = dayjs(endDate);
-
         // Get all bills
         const allBills = await db
           .select()
@@ -302,23 +302,25 @@ export function registerRoutes(app: Express): Server {
         console.log('[Transactions API] Processing bills for virtual transactions:', {
           billsCount: allBills.length,
           dateRange: {
-            start: startDateDayjs.format('YYYY-MM-DD'),
-            end: endDateDayjs.format('YYYY-MM-DD')
+            start: startDate.format('YYYY-MM-DD'),
+            end: endDate.format('YYYY-MM-DD')
           }
         });
 
         // Process each bill
         for (const bill of allBills) {
+          const billData = bill.bills;
+
           // For one-time bills
-          if (bill.is_one_time && bill.date) {
-            const billDate = dayjs(bill.date);
-            if (billDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
+          if (billData.is_one_time && billData.date) {
+            const billDate = dayjs(billData.date);
+            if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
               virtualTransactions.push({
-                description: bill.name,
-                amount: Number(bill.amount),
-                date: billDate.toISOString(),
+                description: billData.name,
+                amount: Number(billData.amount),
+                date: billDate.format('YYYY-MM-DD'),
                 type: 'expense',
-                category_id: bill.category_id,
+                category_id: billData.category_id,
                 category_name: bill.categories?.name || 'Uncategorized',
                 category_color: bill.categories?.color || '#6366F1',
                 category_icon: bill.categories?.icon || 'receipt',
@@ -329,19 +331,19 @@ export function registerRoutes(app: Express): Server {
           }
 
           // For yearly bills
-          if (bill.is_yearly && bill.yearly_date) {
-            const yearlyDate = dayjs(bill.yearly_date);
+          if (billData.is_yearly && billData.yearly_date) {
+            const yearlyDate = dayjs(billData.yearly_date);
             // Check for each year in the range
-            let yearCheck = startDateDayjs.startOf('year');
-            while (yearCheck.isBefore(endDateDayjs)) {
+            let yearCheck = startDate.startOf('year');
+            while (yearCheck.isBefore(endDate)) {
               const billDate = yearlyDate.year(yearCheck.year());
-              if (billDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
+              if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
                 virtualTransactions.push({
-                  description: bill.name,
-                  amount: Number(bill.amount),
-                  date: billDate.toISOString(),
+                  description: billData.name,
+                  amount: Number(billData.amount),
+                  date: billDate.format('YYYY-MM-DD'),
                   type: 'expense',
-                  category_id: bill.category_id,
+                  category_id: billData.category_id,
                   category_name: bill.categories?.name || 'Uncategorized',
                   category_color: bill.categories?.color || '#6366F1',
                   category_icon: bill.categories?.icon || 'receipt',
@@ -354,19 +356,19 @@ export function registerRoutes(app: Express): Server {
           }
 
           // For monthly bills
-          let currentMonth = startDateDayjs.startOf('month');
-          while (currentMonth.isSameOrBefore(endDateDayjs)) {
-            const billDate = bill.day === 1
+          let currentMonth = startDate.startOf('month');
+          while (currentMonth.isSameOrBefore(endDate)) {
+            const billDate = billData.day === 1
               ? currentMonth.date(1)
-              : currentMonth.date(bill.day);
+              : currentMonth.date(billData.day);
 
-            if (billDate.isBetween(startDateDayjs, endDateDayjs, 'day', '[]')) {
+            if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
               virtualTransactions.push({
-                description: bill.name,
-                amount: Number(bill.amount),
-                date: billDate.toISOString(),
+                description: billData.name,
+                amount: Number(billData.amount),
+                date: billDate.format('YYYY-MM-DD'),
                 type: 'expense',
-                category_id: bill.category_id,
+                category_id: billData.category_id,
                 category_name: bill.categories?.name || 'Uncategorized',
                 category_color: bill.categories?.color || '#6366F1',
                 category_icon: bill.categories?.icon || 'receipt',
@@ -380,7 +382,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log('[Transactions API] Virtual transactions generated:', {
         count: virtualTransactions.length,
-        sampleDates: virtualTransactions.slice(0, 3).map(t => dayjs(t.date).format('YYYY-MM-DD HH:mm:ss'))
+        sampleDates: virtualTransactions.slice(0, 3).map(t => t.date)
       });
 
       // Combine and format transactions
@@ -390,10 +392,7 @@ export function registerRoutes(app: Express): Server {
           amount: Number(t.amount),
           date: dayjs(t.date).format('YYYY-MM-DD')
         })),
-        ...virtualTransactions.map(t => ({
-          ...t,
-          date: dayjs(t.date).format('YYYY-MM-DD')
-        }))
+        ...virtualTransactions
       ].sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
 
       console.log('[Transactions API] Final response:', {
@@ -401,8 +400,8 @@ export function registerRoutes(app: Express): Server {
         virtualTransactions: virtualTransactions.length,
         totalTransactions: combinedTransactions.length,
         dateRange: {
-          start: startDate ? dayjs(startDate).format('YYYY-MM-DD HH:mm:ss') : 'none',
-          end: endDate ? dayjs(endDate).format('YYYY-MM-DD HH:mm:ss') : 'none'
+          start: startDate?.format('YYYY-MM-DD'),
+          end: endDate?.format('YYYY-MM-DD')
         }
       });
 
