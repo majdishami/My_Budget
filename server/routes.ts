@@ -233,9 +233,8 @@ export function registerRoutes(app: Express): Server {
       });
 
       const type = req.query.type as string | undefined;
-      const today = dayjs().endOf('day');
 
-      // Get transactions with category info using a single query
+      // Build the query
       const query = db
         .select({
           id: transactions.id,
@@ -249,24 +248,25 @@ export function registerRoutes(app: Express): Server {
           category_icon: sql<string>`COALESCE(${categories.icon}, 'receipt')`
         })
         .from(transactions)
-        .leftJoin(categories, eq(transactions.category_id, categories.id))
-        .where(
-          and(
-            // Ensure type is strictly matched
-            eq(transactions.type, type as 'income' | 'expense'),
-            // Only include transactions up to today
-            sql`date <= ${today.toDate()}`
-          )
-        )
-        .orderBy(desc(transactions.date));
+        .leftJoin(categories, eq(transactions.category_id, categories.id));
+
+      // Add type filter if specified
+      if (type) {
+        query.where(eq(transactions.type, type));
+      }
+
+      // Order by date descending
+      query.orderBy(desc(transactions.date));
 
       const allTransactions = await query;
 
-      // Process transactions with proper date handling
+      console.log('[Transactions API] Raw transactions:', allTransactions.slice(0, 2));
+
+      // Process transactions with proper numeric handling
       const formattedTransactions = allTransactions.map(transaction => ({
         id: transaction.id,
         description: transaction.description,
-        amount: Number(transaction.amount),
+        amount: parseFloat(transaction.amount.toString()),
         date: dayjs(transaction.date).format('YYYY-MM-DD'),
         type: transaction.type,
         category_id: transaction.category_id,
@@ -278,13 +278,14 @@ export function registerRoutes(app: Express): Server {
       console.log('[Transactions API] Found transactions:', {
         count: formattedTransactions.length,
         type: type,
-        date_range: {
-          max: formattedTransactions[0]?.date,
-          min: formattedTransactions[formattedTransactions.length - 1]?.date
-        }
+        sample: formattedTransactions.slice(0, 2).map(t => ({
+          date: t.date,
+          amount: t.amount,
+          type: t.type
+        }))
       });
 
-      // Add cache control headers to prevent stale data
+      // Add cache control headers
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
