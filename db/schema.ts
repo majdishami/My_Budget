@@ -30,13 +30,12 @@ export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   description: text("description").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  date: timestamp("date").notNull().defaultNow(),
+  date: timestamp("date").notNull(),
   type: text("type").notNull(), // 'income' or 'expense'
   category_id: integer("category_id").references(() => categories.id),
   created_at: timestamp("created_at").defaultNow(),
 });
 
-// Bills table with proper foreign keys and default dates
 export const bills = pgTable("bills", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -46,8 +45,8 @@ export const bills = pgTable("bills", {
   created_at: timestamp("created_at").defaultNow(),
   is_one_time: boolean("is_one_time").default(false),
   is_yearly: boolean("is_yearly").default(false),
-  date: timestamp("date").defaultNow(),
-  yearly_date: timestamp("yearly_date").defaultNow(),
+  date: timestamp("date"),
+  yearly_date: timestamp("yearly_date"),
   reminder_enabled: boolean("reminder_enabled").default(false),
   reminder_days: integer("reminder_days").default(7),
 });
@@ -72,7 +71,16 @@ export const transactionRelations = relations(transactions, ({ one }) => ({
   }),
 }));
 
-// Create Zod schemas for validation
+// Update the insert schemas to handle default dates
+export const insertTransactionSchema = z.object({
+  description: z.string().min(1, "Description is required"),
+  amount: z.number(),
+  date: z.string()
+    .transform((str) => str ? new Date(str) : new Date()), // Default to current date if not provided
+  type: z.enum(["income", "expense"]),
+  category_id: z.number().min(1, "Category ID is required"),
+});
+
 export const insertBillSchema = z.object({
   name: z.string().min(1, "Bill name is required"),
   amount: z.number().min(0, "Amount must be non-negative"),
@@ -80,18 +88,14 @@ export const insertBillSchema = z.object({
   category_id: z.number().min(1, "Category ID is required"),
   is_one_time: z.boolean().optional(),
   is_yearly: z.boolean().optional(),
-  date: z.string().transform((str) => new Date(str)).optional(),
-  yearly_date: z.string().transform((str) => new Date(str)).optional(),
+  date: z.string()
+    .transform((str) => str ? new Date(str) : new Date())
+    .optional(),
+  yearly_date: z.string()
+    .transform((str) => str ? new Date(str) : new Date())
+    .optional(),
   reminder_enabled: z.boolean().optional(),
   reminder_days: z.number().optional(),
-});
-
-export const insertTransactionSchema = z.object({
-  description: z.string().min(1, "Description is required"),
-  amount: z.number(),
-  date: z.string().transform((str) => new Date(str)), // Accept string and transform to Date
-  type: z.enum(["income", "expense"]),
-  category_id: z.number().min(1, "Category ID is required"),
 });
 
 // Export types
