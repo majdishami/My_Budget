@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import IncomeReportDialog from "@/components/IncomeReportDialog";
 import { useLocation } from "wouter";
 import { Income } from "@/types";
+import { logger } from "@/lib/logger";
 
 export default function IncomeReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
@@ -10,8 +11,39 @@ export default function IncomeReport() {
 
   // Sync with localStorage using useEffect
   useEffect(() => {
-    const storedIncomes = localStorage.getItem("incomes");
-    setIncomes(storedIncomes ? JSON.parse(storedIncomes) : []);
+    try {
+      const storedIncomes = localStorage.getItem("incomes");
+      if (!storedIncomes) {
+        setIncomes([]);
+        return;
+      }
+
+      const parsedIncomes = JSON.parse(storedIncomes);
+
+      // Validate the parsed data is an array
+      if (!Array.isArray(parsedIncomes)) {
+        logger.error("Stored incomes is not an array");
+        setIncomes([]);
+        return;
+      }
+
+      // Validate each income object has required properties
+      const validIncomes = parsedIncomes.filter((income): income is Income => {
+        return (
+          typeof income === 'object' &&
+          income !== null &&
+          typeof income.id === 'string' &&
+          typeof income.source === 'string' &&
+          typeof income.amount === 'number' &&
+          typeof income.date === 'string'
+        );
+      });
+
+      setIncomes(validIncomes);
+    } catch (error) {
+      logger.error("Error parsing stored incomes:", error);
+      setIncomes([]);
+    }
   }, []); // Empty dependency array means this runs once on mount
 
   const handleOpenChange = (open: boolean) => {
