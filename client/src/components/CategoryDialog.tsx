@@ -27,6 +27,8 @@ interface CategoryDialogProps {
 
 export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: CategoryDialogProps) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  // Generate random input names to prevent browser autocomplete
+  const randomInputId = useMemo(() => Math.random().toString(36).substring(7), []);
 
   const defaultFormValues = useMemo(() => ({
     name: initialData?.name || "",
@@ -74,7 +76,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
           <form 
             onSubmit={form.handleSubmit(handleSubmit)} 
             className="space-y-4"
-            autoComplete="new-password"
+            autoComplete="off"
           >
             <FormField
               control={form.control}
@@ -87,9 +89,10 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       placeholder="Enter category name" 
                       {...field} 
                       type="text"
-                      autoComplete="new-password"
-                      data-form-type="other"
+                      name={`category_name_${randomInputId}`}
+                      autoComplete="off"
                       data-lpignore="true"
+                      data-form-type="other"
                     />
                   </FormControl>
                   <FormMessage />
@@ -143,9 +146,10 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       value={field.value || ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
                       type="text"
-                      autoComplete="new-password"
-                      data-form-type="other"
+                      name={`category_icon_${randomInputId}`}
+                      autoComplete="off"
                       data-lpignore="true"
+                      data-form-type="other"
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground mt-1">
