@@ -36,19 +36,20 @@ export const transactions = pgTable("transactions", {
   created_at: timestamp("created_at").defaultNow(),
 });
 
+// Bills table with all required fields
 export const bills = pgTable("bills", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  day: integer("day"),
+  day: integer("day").notNull(),
   category_id: integer("category_id").references(() => categories.id),
   created_at: timestamp("created_at").defaultNow(),
-  is_one_time: boolean("is_one_time").default(false),
-  is_yearly: boolean("is_yearly").default(false),
+  is_one_time: boolean("is_one_time").default(false).notNull(),
+  is_yearly: boolean("is_yearly").default(false).notNull(),
   date: timestamp("date"),
   yearly_date: timestamp("yearly_date"),
-  reminder_enabled: boolean("reminder_enabled").default(false),
-  reminder_days: integer("reminder_days").default(7),
+  reminder_enabled: boolean("reminder_enabled").default(false).notNull(),
+  reminder_days: integer("reminder_days").default(7).notNull()
 });
 
 // Define relationships
@@ -76,7 +77,7 @@ export const insertTransactionSchema = z.object({
   description: z.string().min(1, "Description is required"),
   amount: z.number(),
   date: z.string()
-    .transform((str) => str ? new Date(str) : new Date()), // Default to current date if not provided
+    .transform((str) => str ? new Date(str) : new Date()),
   type: z.enum(["income", "expense"]),
   category_id: z.number().min(1, "Category ID is required").nullable().optional(),
 });
