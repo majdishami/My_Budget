@@ -158,8 +158,9 @@ export function Budget() {
     // Only set defaults if recurrence flags are not already set
     isOneTime: bill.isOneTime ?? false,
     isYearly: bill.isYearly ?? false,
-    date: bill.isOneTime ? bill.date : undefined,
-    yearly_date: bill.isYearly ? bill.yearly_date : undefined,
+    date: bill.date,
+    yearly_date: bill.yearly_date,
+    day: bill.day // Ensure day is preserved for monthly bills
   })), [rawBills]);
 
   // Calculate daysInMonth early
@@ -250,27 +251,10 @@ export function Budget() {
   const getBillsForDay = useCallback((day: number) => {
     if (day <= 0 || day > daysInMonth) return [];
 
-    // Debug logging
-    console.log('getBillsForDay called with:', {
-      day,
-      selectedMonth,
-      selectedYear,
-      totalBills: bills.length,
-      bills: bills.map(b => ({
-        id: b.id,
-        name: b.name,
-        day: b.day,
-        isYearly: b.isYearly,
-        isOneTime: b.isOneTime
-      }))
-    });
-
     const result: Bill[] = [];
 
     // Add monthly bills first (these show up every month)
     const monthlyBills = bills.filter(b => !b.isYearly && !b.isOneTime && b.day === day);
-    console.log('Monthly bills for day', day, ':', monthlyBills.length);
-
     monthlyBills.forEach(bill => {
       result.push({
         ...bill,
@@ -286,8 +270,6 @@ export function Budget() {
       dayjs(b.yearly_date).month() === selectedMonth - 1 && 
       dayjs(b.yearly_date).date() === day
     );
-    console.log('Yearly bills for day', day, ':', yearlyBills.length);
-
     yearlyBills.forEach(bill => {
       result.push({
         ...bill,
@@ -304,29 +286,19 @@ export function Budget() {
       dayjs(b.date).month() === selectedMonth - 1 && 
       dayjs(b.date).date() === day
     );
-    console.log('One-time bills for day', day, ':', oneTimeBills.length);
-
     oneTimeBills.forEach(bill => {
       result.push({
         ...bill,
         id: `${bill.id}-onetime`,
-        date: dayjs(bill.date).format('YYYY-MM-DD')
+        date: dayjs(b.date).format('YYYY-MM-DD')
       });
     });
 
-    console.log('Total bills returned for day', day, ':', result.length);
     return result;
   }, [bills, selectedYear, selectedMonth, daysInMonth]);
 
   // Update monthly totals calculation to handle recurring bills
   const monthlyTotals = useMemo(() => {
-    console.log('Calculating monthly totals:', {
-      selectedMonth,
-      selectedYear,
-      incomes,
-      bills
-    });
-
     // Calculate total income
     let totalIncome = 0;
 
