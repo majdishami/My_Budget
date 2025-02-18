@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { useQuery } from "@tanstack/react-query";
 import { DateRange } from "react-day-picker";
-import { Bill } from "@/types";
 import { formatCurrency } from '@/lib/utils';
 import {
   Dialog,
@@ -77,9 +76,9 @@ const DynamicIcon = ({ iconName, className = "h-4 w-4" }: { iconName: string | n
 };
 
 interface CategoryDisplayProps {
-  category: string | undefined;
-  color: string | undefined;
-  icon: string | null | undefined;
+  category: string;
+  color: string;
+  icon: string | null;
 }
 
 const CategoryDisplay = ({ category, color, icon }: CategoryDisplayProps) => (
@@ -89,54 +88,96 @@ const CategoryDisplay = ({ category, color, icon }: CategoryDisplayProps) => (
       style={{ backgroundColor: color || '#D3D3D3' }}
     />
     {icon && <DynamicIcon iconName={icon} />}
-    <span>{category || 'Uncategorized'}</span>
+    <span>{category}</span>
   </div>
 );
-
-const generateTransactions = (dateRange: DateRange, bills: Bill[], currentDate: dayjs.Dayjs): Transaction[] => {
-  if (!dateRange?.from || !dateRange?.to || !bills) return [];
-
-  const startDate = dayjs(dateRange.from);
-  const endDate = dayjs(dateRange.to);
-  const transactions: Transaction[] = [];
-
-  bills.forEach(bill => {
-    let currentMonth = startDate.startOf('month');
-    while (currentMonth.isSameOrBefore(endDate)) {
-      const billDate = currentMonth.date(bill.day);
-      if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
-        transactions.push({
-          id: `${bill.id}-${billDate.format('YYYY-MM-DD')}`,
-          date: billDate.format('YYYY-MM-DD'),
-          description: bill.name,
-          amount: bill.amount,
-          type: 'expense',
-          category_name: bill.category_name,
-          category_color: bill.category_color,
-          category_icon: bill.category_icon || null,
-          category_id: bill.category_id,
-          occurred: billDate.isSameOrBefore(currentDate)
-        });
-      }
-      currentMonth = currentMonth.add(1, 'month');
-    }
-  });
-
-  return transactions;
-};
 
 export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseReportDialogProps) {
   const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
-  const [generatedTransactions, setGeneratedTransactions] = useState<Transaction[]>([]);
-  const today = useMemo(() => dayjs(), []);
+  const currentDate = useMemo(() => dayjs(), []);
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedValue("all");
+      setDate(undefined);
+      setShowReport(false);
+      setDateError(null);
+    }
+  }, [isOpen]);
+
+  // Query bills and categories with proper date filtering
+  const { data: bills = [], isLoading: billsLoading } = useQuery({
+    queryKey: ['/api/bills'],
+    gcTime: 0
+  });
+
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['/api/categories'],
+    gcTime: 0
+  });
+
+  // Query transactions with date range filter
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
+    queryKey: ['/api/transactions', { 
+      type: 'expense',
+      startDate: date?.from ? dayjs(date.from).format('YYYY-MM-DD') : undefined,
+      endDate: date?.to ? dayjs(date.to).format('YYYY-MM-DD') : undefined
+    }],
+    enabled: showReport && !!date?.from && !!date?.to
+  });
+
+  const isLoading = billsLoading || transactionsLoading || categoriesLoading;
+
+  // Filter transactions by date range
+  const filteredTransactions = useMemo(() => {
+    if (!date?.from || !date?.to) return transactions;
+
+    return transactions.filter(transaction => {
+      const transactionDate = dayjs(transaction.date);
+      return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
+             transactionDate.isSameOrBefore(dayjs(date.to), 'day');
+    });
+  }, [transactions, date]);
+
+  // Calculate category totals
+  const categoryTotals = useMemo(() => {
+    const totals: Record<string, CategoryTotal> = {};
+
+    filteredTransactions.forEach(transaction => {
+      const { category_name, category_color, category_icon } = transaction;
+
+      if (!totals[category_name]) {
+        totals[category_name] = {
+          category: category_name,
+          total: 0,
+          occurred: 0,
+          pending: 0,
+          color: category_color,
+          icon: category_icon,
+          transactions: []
+        };
+      }
+
+      const total = totals[category_name];
+      total.total += transaction.amount;
+      if (transaction.occurred) {
+        total.occurred += transaction.amount;
+      } else {
+        total.pending += transaction.amount;
+      }
+      total.transactions.push(transaction);
+    });
+
+    return Object.values(totals).sort((a, b) => b.total - a.total);
+  }, [filteredTransactions]);
 
   // Handle date selection
   const handleDateSelect = (selectedDate: DateRange | undefined) => {
     if (selectedDate?.from && !selectedDate.to) {
-      // If only start date is selected, automatically set end date to the same date
       setDate({ 
         from: selectedDate.from,
         to: selectedDate.from 
@@ -146,142 +187,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   };
 
-  const { data: bills = [], isLoading: billsLoading } = useQuery({
-    queryKey: ['/api/bills'],
-    staleTime: 1000 * 60 * 5,
-    cacheTime: 1000 * 60 * 10
-  });
-
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
-    queryKey: ['/api/categories'],
-    staleTime: 1000 * 60 * 5,
-    cacheTime: 1000 * 60 * 10
-  });
-
-  // Reset state when dialog closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedValue("all");
-      setDate(undefined);
-      setShowReport(false);
-      setDateError(null);
-      setGeneratedTransactions([]);
-    }
-  }, [isOpen]);
-
-  // Generate transactions when showing report
-  useEffect(() => {
-    if (!showReport || !date?.from || !date?.to || !bills) return;
-    const transactions = generateTransactions(date, bills, today);
-    setGeneratedTransactions(transactions);
-  }, [showReport, date, bills, today]);
-
-  // Calculate summaries based on selection
-  const summaries = useMemo(() => {
-    if (!generatedTransactions.length) return [];
-
-    if (selectedValue === 'all') {
-      return [{
-        total: generatedTransactions.reduce((sum, t) => sum + t.amount, 0),
-        occurred: generatedTransactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0),
-        pending: generatedTransactions.filter(t => !t.occurred).reduce((sum, t) => sum + t.amount, 0),
-        transactions: generatedTransactions
-      }];
-    }
-
-    if (selectedValue === 'categories') {
-      const categoryTotals: Record<string, CategoryTotal> = {};
-
-      generatedTransactions.forEach(t => {
-        if (!categoryTotals[t.category_name]) {
-          categoryTotals[t.category_name] = {
-            category: t.category_name,
-            total: 0,
-            occurred: 0,
-            pending: 0,
-            color: t.category_color,
-            icon: t.category_icon,
-            transactions: []
-          };
-        }
-
-        const total = categoryTotals[t.category_name];
-        total.total += t.amount;
-        if (t.occurred) {
-          total.occurred += t.amount;
-        } else {
-          total.pending += t.amount;
-        }
-        total.transactions.push(t);
-      });
-
-      // For categories view, first return a summary of all categories
-      const categoriesArray = Object.values(categoryTotals);
-      return [
-        {
-          category: 'All Categories Summary',
-          total: categoriesArray.reduce((sum, cat) => sum + cat.total, 0),
-          occurred: categoriesArray.reduce((sum, cat) => sum + cat.occurred, 0),
-          pending: categoriesArray.reduce((sum, cat) => sum + cat.pending, 0),
-          color: '#000000',
-          icon: null,
-          transactions: [],
-          categories: categoriesArray.sort((a, b) => b.total - a.total)
-        },
-        ...categoriesArray
-      ];
-    }
-
-    if (selectedValue.startsWith('category_')) {
-      const categoryName = selectedValue.replace('category_', '');
-      const categoryTransactions = generatedTransactions.filter(t => t.category_name === categoryName);
-
-      if (categoryTransactions.length) {
-        return [{
-          category: categoryName,
-          total: categoryTransactions.reduce((sum, t) => sum + t.amount, 0),
-          occurred: categoryTransactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0),
-          pending: categoryTransactions.filter(t => !t.occurred).reduce((sum, t) => sum + t.amount, 0),
-          color: categoryTransactions[0].category_color,
-          icon: categoryTransactions[0].category_icon,
-          transactions: categoryTransactions
-        }];
-      }
-    }
-
-    if (selectedValue.startsWith('expense_')) {
-      const billId = selectedValue.replace('expense_', '');
-      const bill = bills.find(b => b.id === billId);
-
-      if (bill) {
-        const billTransactions = generatedTransactions.filter(t => t.description === bill.name);
-        return [{
-          category: bill.category_name,
-          total: billTransactions.reduce((sum, t) => sum + t.amount, 0),
-          occurred: billTransactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0),
-          pending: billTransactions.filter(t => !t.occurred).reduce((sum, t) => sum + t.amount, 0),
-          color: bill.category_color,
-          icon: bill.category_icon,
-          transactions: billTransactions
-        }];
-      }
-    }
-
-    return [];
-  }, [generatedTransactions, selectedValue, bills]);
-
   // Selection view
   if (!showReport) {
     return (
-      <Dialog
-        open={isOpen}
-        onOpenChange={onOpenChange}
-      >
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>
-              Generate Expense Report
-            </DialogTitle>
+            <DialogTitle>Generate Expense Report</DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col space-y-4">
@@ -298,33 +210,15 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                     <SelectItem value="categories">By Category</SelectItem>
                   </SelectGroup>
 
-                  {/* Categories */}
-                  {!categoriesLoading && categories.length > 0 && (
+                  {categories.length > 0 && (
                     <SelectGroup>
                       <SelectLabel>Individual Categories</SelectLabel>
                       {categories.map((category) => (
                         <SelectItem
                           key={`category_${category.name}`}
                           value={`category_${category.name}`}
-                          className="text-blue-600"
                         >
                           {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  )}
-
-                  {/* Individual Expenses */}
-                  {!billsLoading && bills.length > 0 && (
-                    <SelectGroup>
-                      <SelectLabel>Individual Expenses</SelectLabel>
-                      {bills.map((bill) => (
-                        <SelectItem
-                          key={`expense_${bill.id}`}
-                          value={`expense_${bill.id}`}
-                          className="text-green-600"
-                        >
-                          {bill.name}
                         </SelectItem>
                       ))}
                     </SelectGroup>
@@ -339,7 +233,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                 selected={date}
                 onSelect={handleDateSelect}
                 numberOfMonths={1}
-                defaultMonth={today.toDate()}
+                defaultMonth={currentDate.toDate()}
               />
             </div>
 
@@ -374,9 +268,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                 }
                 setShowReport(true);
               }}
-              disabled={!date?.from || !date?.to || billsLoading || categoriesLoading}
+              disabled={!date?.from || !date?.to || isLoading}
             >
-              {billsLoading || categoriesLoading ? "Loading..." : "Generate Report"}
+              {isLoading ? "Loading..." : "Generate Report"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -388,14 +282,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex flex-col space-y-2">
+        <DialogHeader>
           <div className="flex justify-between items-center">
-            <DialogTitle>
-              {selectedValue === 'all' ? 'All Expenses' :
-                selectedValue === 'categories' ? 'Expenses by Category' :
-                  selectedValue.startsWith('category_') ? `Category: ${selectedValue.replace('category_', '')}` :
-                    selectedValue.startsWith('expense_') ? bills.find(b => b.id === selectedValue.replace('expense_', ''))?.name :
-                      'Expense Report'}
+            <DialogTitle className="text-xl">
+              Expense Report ({selectedValue === 'all' ? 'All Categories' : 
+                selectedValue === 'categories' ? 'By Category' : 
+                selectedValue.replace('category_', '')})
             </DialogTitle>
             <Button variant="outline" onClick={() => setShowReport(false)}>
               Back to Selection
@@ -406,126 +298,108 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
           </div>
         </DialogHeader>
 
-        <div className="mt-4 space-y-4">
-          {summaries.map((summary, index) => (
-            <Card key={index}>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {summary.category && (
-                      <CategoryDisplay
-                        category={summary.category}
-                        color={summary.color}
-                        icon={summary.icon}
-                      />
-                    )}
+        {isLoading ? (
+          <div className="flex justify-center items-center p-8">
+            <span className="text-muted-foreground">Loading report data...</span>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Total Expenses</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(filteredTransactions.reduce((sum, t) => sum + t.amount, 0))}
                   </div>
-                </CardTitle>
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm text-muted-foreground">Paid</div>
+                      <div className="text-lg font-semibold text-red-600">
+                        {formatCurrency(filteredTransactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground">Pending</div>
+                      <div className="text-lg font-semibold text-yellow-600">
+                        {formatCurrency(filteredTransactions.filter(t => !t.occurred).reduce((sum, t) => sum + t.amount, 0))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Category Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {categoryTotals.map((cat) => (
+                      <div key={cat.category} className="flex justify-between items-center">
+                        <CategoryDisplay
+                          category={cat.category}
+                          color={cat.color}
+                          icon={cat.icon}
+                        />
+                        <span className="font-semibold">
+                          {formatCurrency(cat.total)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Detailed Transactions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Transaction Details</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Total</div>
-                    <div className="text-2xl font-bold">{formatCurrency(summary.total)}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Paid</div>
-                    <div className="text-2xl font-bold text-red-600">{formatCurrency(summary.occurred)}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Pending</div>
-                    <div className="text-2xl font-bold text-yellow-600">{formatCurrency(summary.pending)}</div>
-                  </div>
-                </div>
-
-                {/* Show category breakdown for the summary card in categories view */}
-                {summary.categories && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium mb-2">Category Breakdown</h4>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-16">#</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                          <TableHead className="text-right">Paid</TableHead>
-                          <TableHead className="text-right">Pending</TableHead>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions
+                      .sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
+                      .map((transaction) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                          <TableCell>
+                            <CategoryDisplay
+                              category={transaction.category_name}
+                              color={transaction.category_color}
+                              icon={transaction.category_icon}
+                            />
+                          </TableCell>
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(transaction.amount)}
+                          </TableCell>
+                          <TableCell>
+                            <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
+                              {transaction.occurred ? 'Paid' : 'Pending'}
+                            </span>
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {summary.categories.map((category, idx) => (
-                          <TableRow key={category.category}>
-                            <TableCell>{idx + 1}</TableCell>
-                            <TableCell>
-                              <CategoryDisplay
-                                category={category.category}
-                                color={category.color}
-                                icon={category.icon}
-                              />
-                            </TableCell>
-                            <TableCell className="text-right">{formatCurrency(category.total)}</TableCell>
-                            <TableCell className="text-right text-red-600">
-                              {formatCurrency(category.occurred)}
-                            </TableCell>
-                            <TableCell className="text-right text-yellow-600">
-                              {formatCurrency(category.pending)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-
-                {/* Show transactions if this card has any */}
-                {summary.transactions && summary.transactions.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium mb-2">Transactions</h4>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-16">#</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {summary.transactions
-                          .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                          .map((transaction, idx) => (
-                            <TableRow key={transaction.id}>
-                              <TableCell>{idx + 1}</TableCell>
-                              <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  {selectedValue === 'categories' && (
-                                    <CategoryDisplay
-                                      category={transaction.category_name}
-                                      color={transaction.category_color}
-                                      icon={transaction.category_icon}
-                                    />
-                                  )}
-                                  <span>{transaction.description}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">{formatCurrency(transaction.amount)}</TableCell>
-                              <TableCell>
-                                <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
-                                  {transaction.occurred ? 'Paid' : 'Pending'}
-                                </span>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+                      ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
-          ))}
-        </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
