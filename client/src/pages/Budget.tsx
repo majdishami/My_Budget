@@ -236,7 +236,7 @@ export function Budget() {
     return result;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // Update getBillsForDay function to handle all types of bills
+  // Update getBillsForDay function to handle all types of bills while keeping monthly bills visible in all months
   const getBillsForDay = useCallback((day: number) => {
     if (day <= 0) return [];
 
@@ -244,10 +244,7 @@ export function Budget() {
     const uniqueBills = new Set();
 
     bills.forEach(bill => {
-      // Skip if we've already added this bill
-      if (uniqueBills.has(bill.name)) return;
-
-      // Handle yearly bills
+      // Handle yearly bills first
       if (bill.isYearly && bill.yearly_date) {
         const yearlyDate = dayjs(bill.yearly_date);
         if (yearlyDate.month() === selectedMonth - 1 && yearlyDate.date() === day) {
@@ -259,9 +256,10 @@ export function Budget() {
           result.push(yearlyBill);
           uniqueBills.add(bill.name);
         }
-      } 
+      }
+
       // Handle one-time bills
-      else if (bill.isOneTime && bill.date) {
+      if (bill.isOneTime && bill.date) {
         const billDate = dayjs(bill.date);
         if (billDate.year() === selectedYear && 
             billDate.month() === selectedMonth - 1 && 
@@ -274,16 +272,16 @@ export function Budget() {
           result.push(oneTimeBill);
           uniqueBills.add(bill.name);
         }
-      } 
-      // Handle monthly recurring bills
-      else if (bill.day === day) {
+      }
+
+      // Always show monthly bills in every month
+      if (!bill.isYearly && !bill.isOneTime && bill.day === day) {
         const recurringBill = {
           ...bill,
           id: `${bill.id}-${selectedMonth}-${selectedYear}`,
           date: dayjs().year(selectedYear).month(selectedMonth -1).date(day).format('YYYY-MM-DD')
         };
         result.push(recurringBill);
-        uniqueBills.add(bill.name);
       }
     });
 
