@@ -171,7 +171,7 @@ export function Budget() {
       value: i, // Changed to 0-based
       label: dayjs().month(i).format('MMMM')
     })), 
-  []); 
+  ); 
 
   // Update years calculation to only show 2025 and future years
   const years = useMemo(() => 
@@ -179,7 +179,7 @@ export function Budget() {
       value: 2025 + i,
       label: (2025 + i).toString()
     })), 
-  []); 
+  ); 
 
   // Update getIncomeForDay to handle recurring incomes across all months
   const getIncomeForDay = useCallback((day: number) => {
@@ -248,50 +248,40 @@ export function Budget() {
   const getBillsForDay = useCallback((day: number) => {
     if (day <= 0 || day > daysInMonth) return [];
 
-    const result: Bill[] = [];
+    return bills.map(bill => {
+      // Create unique IDs for each bill instance
+      const uniqueId = `${bill.id}-${selectedMonth}-${selectedYear}`;
 
-    // Add monthly bills first (these show up every month)
-    const monthlyBills = bills.filter(b => !b.isYearly && !b.isOneTime && b.day === day);
-    monthlyBills.forEach(bill => {
-      result.push({
-        ...bill,
-        id: `${bill.id}-${selectedMonth}-${selectedYear}`,
-        date: dayjs().year(selectedYear).month(selectedMonth).date(day).format('YYYY-MM-DD')
-      });
-    });
-
-    // Add yearly bills in their specific month
-    const yearlyBills = bills.filter(b => 
-      b.isYearly && 
-      b.yearly_date && 
-      dayjs(b.yearly_date).month() === selectedMonth && 
-      dayjs(b.yearly_date).date() === day
-    );
-    yearlyBills.forEach(bill => {
-      result.push({
-        ...bill,
-        id: `${bill.id}-yearly-${selectedYear}`,
-        date: dayjs(bill.yearly_date).format('YYYY-MM-DD')
-      });
-    });
-
-    // Add one-time bills on their specific date
-    const oneTimeBills = bills.filter(b => 
-      b.isOneTime && 
-      b.date && 
-      dayjs(b.date).year() === selectedYear &&
-      dayjs(b.date).month() === selectedMonth && 
-      dayjs(b.date).date() === day
-    );
-    oneTimeBills.forEach(bill => {
-      result.push({
-        ...bill,
-        id: `${bill.id}-onetime`,
-        date: dayjs(bill.date).format('YYYY-MM-DD')
-      });
-    });
-
-    return result;
+      // Check if this bill should appear on this day
+      if (bill.isOneTime && bill.date) {
+        // For one-time bills, check exact date match
+        const billDate = dayjs(bill.date);
+        if (billDate.year() === selectedYear && 
+            billDate.month() === selectedMonth && 
+            billDate.date() === day) {
+          return { ...bill, id: uniqueId };
+        }
+      } else if (bill.isYearly && bill.yearly_date) {
+        // For yearly bills, check month and day match
+        const yearlyDate = dayjs(bill.yearly_date);
+        if (yearlyDate.month() === selectedMonth && 
+            yearlyDate.date() === day) {
+          return { ...bill, id: uniqueId };
+        }
+      } else if (bill.day === day) {
+        // For monthly bills, just check the day
+        return { 
+          ...bill, 
+          id: uniqueId,
+          date: dayjs()
+            .year(selectedYear)
+            .month(selectedMonth)
+            .date(day)
+            .format('YYYY-MM-DD')
+        };
+      }
+      return null;
+    }).filter(Boolean) as Bill[]; // Remove null entries and type assert
   }, [bills, selectedYear, selectedMonth, daysInMonth]);
 
   // Update monthly totals calculation to handle recurring bills
