@@ -209,13 +209,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const newTransaction = await response.json();
       logger.info("[DataContext] Successfully added income to database:", newTransaction);
 
-      // Clear cache first
+      // Add to local state directly instead of reloading
+      const expandedIncomes = expandRecurringIncome(income);
+      setIncomes(prev => [...prev, ...expandedIncomes]);
+
+      // Just invalidate cache without forcing reload
       sessionStorage.removeItem("transactions");
 
-      // Force a complete data refresh
-      await loadData();
-
-      logger.info("[DataContext] Successfully added income and refreshed data");
+      logger.info("[DataContext] Successfully added income and updated local state");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add income";
       logger.error("[DataContext] Error in addIncome:", { error });
@@ -249,12 +250,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to add bill: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
-      setBills(prev => [...prev, bill]);
+      // Get the new transaction ID from the response
+      const newTransaction = await response.json();
+      const newBill = {
+        ...bill,
+        id: newTransaction.id // Use the server-generated ID
+      };
+
+      // Update local state directly
+      setBills(prev => [...prev, newBill]);
+
+      // Just invalidate cache without reloading
       sessionStorage.removeItem("transactions");
-      logger.info("Successfully added bill", { bill });
+
+      logger.info("[DataContext] Successfully added bill and updated local state:", { newBill });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add bill";
-      logger.error("Error in addBill:", { error });
+      logger.error("[DataContext] Error in addBill:", { error });
       setError(new Error(errorMessage));
       throw error;
     }
