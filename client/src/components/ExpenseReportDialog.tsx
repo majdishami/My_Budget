@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 
 // Define strict types for transactions
 type ExpenseTransaction = {
@@ -49,13 +50,30 @@ export default function ExpenseReportDialog({
 }: ExpenseReportDialogProps) {
   const today = dayjs();
 
-  // Process transactions with pending status
-  const processedTransactions = expenses.map(transaction => ({
-    ...transaction,
-    isPending: dayjs(transaction.date).isAfter(today)
-  }));
+  // Process transactions with pending status and handle invalid dates
+  const processedTransactions = expenses.map(transaction => {
+    const transactionDate = dayjs(transaction.date);
 
-  // Calculate totals
+    // Log invalid dates for debugging
+    if (!transactionDate.isValid()) {
+      logger.warn("[ExpenseReportDialog] Invalid transaction date:", {
+        transactionId: transaction.id,
+        date: transaction.date
+      });
+    }
+
+    return {
+      ...transaction,
+      // Only mark as pending if we have a valid date and it's in the future
+      isPending: transactionDate.isValid() && transactionDate.isAfter(today),
+      // Use current date as fallback for invalid dates
+      displayDate: transactionDate.isValid() ? 
+        transactionDate.format('YYYY-MM-DD') : 
+        today.format('YYYY-MM-DD')
+    };
+  });
+
+  // Calculate totals with safe date handling
   const totals = processedTransactions.reduce(
     (acc, t) => {
       if (t.isPending) {
@@ -150,13 +168,13 @@ export default function ExpenseReportDialog({
                 </TableHeader>
                 <TableBody>
                   {processedTransactions
-                    .sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
+                    .sort((a, b) => dayjs(b.displayDate).diff(dayjs(a.displayDate)))
                     .map((transaction) => (
                       <TableRow 
                         key={transaction.id}
                         className={transaction.isPending ? "bg-yellow-50" : ""}
                       >
-                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                        <TableCell>{dayjs(transaction.displayDate).format('MMM D, YYYY')}</TableCell>
                         <TableCell>{transaction.description}</TableCell>
                         <TableCell>{transaction.category_name || 'Uncategorized'}</TableCell>
                         <TableCell className="text-right text-red-600">
