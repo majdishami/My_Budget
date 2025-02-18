@@ -29,7 +29,7 @@ interface Transaction {
   date: string;
   description: string;
   amount: number;
-  type: 'expense';
+  type: 'expense' | 'income';
   occurred: boolean;
 }
 
@@ -56,13 +56,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     setDate(newDate);
   };
 
-  const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
-    queryKey: ['/api/transactions'],
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
+    queryKey: ['/api/transactions', { type: 'expense' }],
     enabled: showReport,
   });
 
   const filteredTransactions = useMemo(() => {
-    if (!date?.from || !date?.to || !transactions.length) return [];
+    if (!date?.from || !date?.to) return [];
 
     return transactions
       .filter(transaction => {
@@ -75,7 +75,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
         ...transaction,
         occurred: dayjs(transaction.date).isSameOrBefore(currentDate)
       }));
-  }, [transactions, date, currentDate]);
+  }, [transactions, date?.from, date?.to, currentDate]);
 
   const totals = useMemo(() => {
     const paid = filteredTransactions
