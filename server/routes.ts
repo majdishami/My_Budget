@@ -97,7 +97,7 @@ export function registerRoutes(app: Express): Server {
 
     if (isNaN(categoryId)) {
       console.error('[Categories API] Invalid category ID:', req.params.id);
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "Invalid category ID",
         error: "Category ID must be a number"
       });
@@ -163,9 +163,9 @@ export function registerRoutes(app: Express): Server {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
 
-      return res.status(500).json({ 
+      return res.status(500).json({
         message: 'Failed to delete category',
-        error: process.env.NODE_ENV === 'development' 
+        error: process.env.NODE_ENV === 'development'
           ? (error instanceof Error ? error.message : 'Unknown error')
           : 'Internal server error'
       });
@@ -494,7 +494,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const transactionId = parseInt(req.params.id, 10);
       if (isNaN(transactionId)) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: 'Invalid transaction ID',
           error: 'Transaction ID must be a number'
         });
@@ -508,7 +508,7 @@ export function registerRoutes(app: Express): Server {
 
       if (!transaction) {
         console.log('[Transactions API] Transaction not found:', { id: transactionId });
-        return res.status(404).json({ 
+        return res.status(404).json({
           message: 'Transaction not found',
           error: `No transaction found with ID ${transactionId}`
         });
@@ -527,7 +527,7 @@ export function registerRoutes(app: Express): Server {
         deletedCount: deleted.length
       });
 
-      return res.status(200).json({ 
+      return res.status(200).json({
         message: 'Transaction deleted successfully',
         deletedId: transactionId
       });
@@ -537,9 +537,9 @@ export function registerRoutes(app: Express): Server {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
 
-      return res.status(500).json({ 
+      return res.status(500).json({
         message: 'Failed to delete transaction',
-        error: process.env.NODE_ENV === 'development' 
+        error: process.env.NODE_ENV === 'development'
           ? (error instanceof Error ? error.message : 'Unknown error')
           : 'Internal server error'
       });
