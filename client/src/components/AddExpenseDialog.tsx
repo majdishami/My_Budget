@@ -184,6 +184,7 @@ export function AddExpenseDialog({
                   }}
                   placeholder="Enter expense name"
                   autoComplete="off"
+                  spellCheck="false"
                 />
                 {errors.name && (
                   <Alert variant="destructive" className="py-1">

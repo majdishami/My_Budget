@@ -167,7 +167,23 @@ const App = () => {
   // Function to get bills for a specific day
   const getBillsForDay = (day: number) => {
     if (day <= 0 || day > daysInMonth) return []; // Return empty if day is invalid
-    return bills.filter(bill => bill.day === day); // Filter bills that occur on the specified day
+
+    return bills.filter(bill => {
+      if (bill.isYearly && bill.yearly_date) {
+        // For yearly bills, check if the month and day match
+        const yearlyDate = dayjs(bill.yearly_date);
+        return yearlyDate.month() === selectedMonth - 1 && yearlyDate.date() === day;
+      } else if (bill.isOneTime && bill.date) {
+        // For one-time bills, check exact date match
+        const billDate = dayjs(bill.date);
+        return billDate.year() === selectedYear && 
+               billDate.month() === selectedMonth - 1 && 
+               billDate.date() === day;
+      } else {
+        // For monthly bills, just check the day
+        return bill.day === day;
+      }
+    });
   };
 
   // Memoization for performance optimization
