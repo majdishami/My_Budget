@@ -461,16 +461,13 @@ export function registerRoutes(app: Express): Server {
       const transactionId = req.params.id;
       console.log('[Transactions API] Attempting to delete transaction:', { id: transactionId });
 
-      // Extract the base ID if it contains a hyphen (for recurring transactions)
-      const baseId = transactionId.split('-')[0];
-
-      // Convert baseId to number and validate
-      const numericId = parseInt(baseId);
+      // Convert ID to number and validate
+      const numericId = parseInt(transactionId);
       if (isNaN(numericId)) {
-        console.log('[Transactions API] Invalid transaction ID:', { id: baseId });
+        console.error('[Transactions API] Invalid transaction ID:', { id: transactionId });
         return res.status(400).json({ 
           message: 'Invalid transaction ID',
-          error: `Invalid transaction ID format: ${baseId}`
+          error: `Invalid transaction ID format: ${transactionId}`
         });
       }
 
@@ -480,10 +477,10 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!transaction) {
-        console.log('[Transactions API] Transaction not found:', { id: baseId });
+        console.log('[Transactions API] Transaction not found:', { id: numericId });
         return res.status(404).json({ 
           message: 'Transaction not found',
-          error: `No transaction found with ID ${baseId}`
+          error: `No transaction found with ID ${numericId}`
         });
       }
 
@@ -500,11 +497,11 @@ export function registerRoutes(app: Express): Server {
           .returning();
 
         if (!deleted.length) {
-          throw new Error(`Failed to delete transaction ${baseId}`);
+          throw new Error(`Failed to delete transaction ${numericId}`);
         }
 
         console.log('[Transactions API] Successfully deleted transaction:', {
-          id: baseId,
+          id: numericId,
           deletedCount: deleted.length
         });
       });
