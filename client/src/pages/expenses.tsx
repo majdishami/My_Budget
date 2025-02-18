@@ -10,15 +10,18 @@ import dayjs from "dayjs";
 import { useData } from "@/contexts/DataContext";
 import { Calendar } from "lucide-react";
 
-type ReportType = 'monthly' | 'annual' | 'custom';
+type ReportType = 'all' | 'monthly' | 'annual' | 'custom' | 'category' | 'individual';
+type CategoryFilter = 'all' | string;
 
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const { bills } = useData();
-  const [reportType, setReportType] = useState<ReportType>('monthly');
+  const { bills, categories } = useData();
+  const [reportType, setReportType] = useState<ReportType>('all');
   const [selectedMonth, setSelectedMonth] = useState(dayjs().format('M'));
   const [selectedYear, setSelectedYear] = useState(dayjs().format('YYYY'));
+  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
+  const [selectedExpense, setSelectedExpense] = useState<string>('all');
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
     to: Date | undefined;
@@ -27,32 +30,35 @@ export default function ExpenseReport() {
     to: undefined
   });
 
-  // Filter bills based on report type and selected dates
+  // Filter bills based on report type and selected filters
   const filteredExpenses = useMemo(() => {
     return bills.filter(bill => {
       const billDate = dayjs(bill.date);
+      let dateMatches = true;
 
+      // Apply date filters based on report type
       if (reportType === 'monthly') {
-        // For monthly reports, use startOf and endOf month for precise filtering
         const startOfMonth = dayjs(`${selectedYear}-${selectedMonth}-01`).startOf('month');
         const endOfMonth = startOfMonth.endOf('month');
-        return billDate.isSameOrAfter(startOfMonth) && billDate.isSameOrBefore(endOfMonth);
-      }
-
-      if (reportType === 'annual') {
+        dateMatches = billDate.isSameOrAfter(startOfMonth) && billDate.isSameOrBefore(endOfMonth);
+      } else if (reportType === 'annual') {
         const startOfYear = dayjs(selectedYear).startOf('year');
         const endOfYear = dayjs(selectedYear).endOf('year');
-        return billDate.isSameOrAfter(startOfYear) && billDate.isSameOrBefore(endOfYear);
+        dateMatches = billDate.isSameOrAfter(startOfYear) && billDate.isSameOrBefore(endOfYear);
+      } else if (reportType === 'custom' && dateRange.from && dateRange.to) {
+        dateMatches = billDate.isSameOrAfter(dayjs(dateRange.from).startOf('day')) && 
+                     billDate.isSameOrBefore(dayjs(dateRange.to).endOf('day'));
       }
 
-      if (reportType === 'custom' && dateRange.from && dateRange.to) {
-        return billDate.isSameOrAfter(dayjs(dateRange.from).startOf('day')) && 
-               billDate.isSameOrBefore(dayjs(dateRange.to).endOf('day'));
-      }
+      // Apply category filter if selected
+      const categoryMatches = selectedCategory === 'all' || bill.category_id === Number(selectedCategory);
 
-      return true;
+      // Apply individual expense filter if selected
+      const expenseMatches = selectedExpense === 'all' || bill.id === Number(selectedExpense);
+
+      return dateMatches && categoryMatches && expenseMatches;
     });
-  }, [bills, reportType, selectedMonth, selectedYear, dateRange]);
+  }, [bills, reportType, selectedMonth, selectedYear, dateRange, selectedCategory, selectedExpense]);
 
   const handleShowReport = () => {
     setIsDialogOpen(true);
@@ -82,14 +88,22 @@ export default function ExpenseReport() {
         <h1 className="text-2xl font-bold mb-4">Expense Report</h1>
         <div className="space-y-4">
           <div className="flex items-center gap-4 flex-wrap">
-            <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
+            <Select value={reportType} onValueChange={(value: ReportType) => {
+              setReportType(value);
+              // Reset filters when changing report type
+              if (value !== 'category') setSelectedCategory('all');
+              if (value !== 'individual') setSelectedExpense('all');
+            }}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Select report type" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All Expenses</SelectItem>
                 <SelectItem value="monthly">Monthly Report</SelectItem>
                 <SelectItem value="annual">Annual Report</SelectItem>
                 <SelectItem value="custom">Custom Date Range</SelectItem>
+                <SelectItem value="category">By Category</SelectItem>
+                <SelectItem value="individual">Individual Expense</SelectItem>
               </SelectContent>
             </Select>
 
@@ -137,9 +151,41 @@ export default function ExpenseReport() {
                 </SelectContent>
               </Select>
             )}
+
+            {(reportType === 'category' || reportType === 'all') && (
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map(category => (
+                    <SelectItem key={category.id} value={category.id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {reportType === 'individual' && (
+              <Select value={selectedExpense} onValueChange={setSelectedExpense}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select expense" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Expenses</SelectItem>
+                  {bills.map(bill => (
+                    <SelectItem key={bill.id} value={bill.id.toString()}>
+                      {bill.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
-          {reportType === 'custom' && (
+          {(reportType === 'custom' || reportType === 'all') && (
             <div className="flex items-center gap-4">
               <DateRangePicker
                 date={dateRange}
