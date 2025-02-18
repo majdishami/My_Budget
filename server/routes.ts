@@ -95,45 +95,79 @@ export function registerRoutes(app: Express): Server {
   app.delete('/api/categories/:id', async (req, res) => {
     const categoryId = parseInt(req.params.id);
 
+    if (isNaN(categoryId)) {
+      console.error('[Categories API] Invalid category ID:', req.params.id);
+      return res.status(400).json({ 
+        message: "Invalid category ID",
+        error: "Category ID must be a number"
+      });
+    }
+
     try {
+      console.log('[Categories API] Attempting to delete category:', { id: categoryId });
+
       const category = await db.query.categories.findFirst({
         where: eq(categories.id, categoryId)
       });
 
       if (!category) {
+        console.log('[Categories API] Category not found:', { id: categoryId });
         return res.status(404).json({
-          message: "Category not found"
+          message: "Category not found",
+          error: `No category found with ID ${categoryId}`
         });
       }
 
       // Delete the category and all related records in a transaction
-      await db.transaction(async (tx) => {
-        // Delete associated transactions
-        await tx.delete(transactions)
-          .where(eq(transactions.category_id, categoryId));
+      try {
+        await db.transaction(async (tx) => {
+          // Delete associated transactions
+          await tx.delete(transactions)
+            .where(eq(transactions.category_id, categoryId));
 
-        // Delete associated bills
-        await tx.delete(bills)
-          .where(eq(bills.category_id, categoryId));
+          // Delete associated bills
+          await tx.delete(bills)
+            .where(eq(bills.category_id, categoryId));
 
-        // Delete the category itself
-        const result = await tx.delete(categories)
-          .where(eq(categories.id, categoryId))
-          .returning();
+          // Delete the category itself
+          const result = await tx.delete(categories)
+            .where(eq(categories.id, categoryId))
+            .returning();
 
-        if (!result.length) {
-          throw new Error("Failed to delete category");
-        }
-      });
+          if (!result.length) {
+            throw new Error("Failed to delete category");
+          }
+        });
 
-      return res.status(200).json({
-        message: "Category deleted successfully"
-      });
+        console.log('[Categories API] Successfully deleted category:', {
+          id: categoryId,
+          relatedRecordsDeleted: true
+        });
+
+        return res.status(200).json({
+          message: "Category deleted successfully",
+          deletedId: categoryId
+        });
+
+      } catch (txError) {
+        console.error('[Categories API] Transaction failed:', {
+          id: categoryId,
+          error: txError instanceof Error ? txError.message : 'Unknown transaction error'
+        });
+        throw txError; // Re-throw to be caught by outer try-catch
+      }
 
     } catch (error) {
-      console.error('[Categories API] Error deleting category:', error);
-      return res.status(500).json({
-        message: "An error occurred while deleting the category"
+      console.error('[Categories API] Error in delete category handler:', {
+        id: categoryId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      return res.status(500).json({ 
+        message: 'Failed to delete category',
+        error: process.env.NODE_ENV === 'development' 
+          ? (error instanceof Error ? error.message : 'Unknown error')
+          : 'Internal server error'
       });
     }
   });
