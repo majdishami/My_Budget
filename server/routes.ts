@@ -233,27 +233,7 @@ export function registerRoutes(app: Express): Server {
       });
       const type = req.query.type as string | undefined;
 
-      // First get all categories and bills for smart matching
-      const allCategories = await db.query.categories.findMany({
-        orderBy: [categories.name]
-      });
-
-      const allBillsWithCategories = await db
-        .select({
-          bill_name: bills.name,
-          category_id: bills.category_id,
-          category_name: categories.name,
-          category_color: categories.color,
-          category_icon: categories.icon
-        })
-        .from(bills)
-        .leftJoin(categories, eq(bills.category_id, categories.id));
-
-      console.log('[Transactions API] Available categories:',
-        allCategories.map(c => ({ id: c.id, name: c.name }))
-      );
-
-      // Get transactions with category info
+      // Get transactions with category info using a single query
       const query = db
         .select({
           id: transactions.id,
@@ -273,104 +253,18 @@ export function registerRoutes(app: Express): Server {
 
       const allTransactions = await query;
 
-      // Process transactions and match categories precisely
-      const formattedTransactions = allTransactions.map(transaction => {
-        // Keep existing category if already assigned
-        if (transaction.category_id) {
-          return {
-            id: transaction.id,
-            description: transaction.description,
-            amount: Number(transaction.amount),
-            date: dayjs(transaction.date).format('YYYY-MM-DD'),
-            type: transaction.type,
-            category_id: transaction.category_id,
-            category_name: transaction.category_name,
-            category_color: transaction.category_color,
-            category_icon: transaction.category_icon
-          };
-        }
-
-        // Try to find a matching category if one isn't already assigned
-        let matchingCategory = allCategories.find(category => {
-          const categoryWords = category.name.toLowerCase().split(' ');
-          const description = transaction.description.toLowerCase();
-
-          // Special handling for rent category to standardize rent descriptions
-          if (category.name.toLowerCase() === 'rent') {
-            const isRentRelated = description.includes('rent') ||
-              description.includes('housing payment');
-            if (isRentRelated) {
-              // Standardize the description for rent
-              transaction.description = 'Rent';
-            }
-            return isRentRelated;
-          }
-
-          return categoryWords.every(word => description.includes(word));
-        });
-
-        // If no direct category match, try to match through bills
-        if (!matchingCategory) {
-          const matchingBill = allBillsWithCategories.find(bill => {
-            const billWords = bill.bill_name.toLowerCase().split(' ').filter(word => word.length > 2);
-            const description = transaction.description.toLowerCase();
-
-            // Special handling for rent bills to standardize descriptions
-            if (bill.category_name?.toLowerCase() === 'rent') {
-              const isRentRelated = description.includes('rent') ||
-                description.includes('housing payment');
-              if (isRentRelated) {
-                // Standardize the description for rent
-                transaction.description = 'Rent';
-              }
-              return isRentRelated;
-            }
-
-            return billWords.some(word => description.includes(word));
-          });
-
-          if (matchingBill && matchingBill.category_name) {
-            matchingCategory = {
-              id: matchingBill.category_id!,
-              name: matchingBill.category_name,
-              color: matchingBill.category_color!,
-              icon: matchingBill.category_icon
-            };
-          }
-        }
-
-        if (matchingCategory) {
-          console.log('[Transactions API] Matched category:', {
-            description: transaction.description,
-            category: matchingCategory.name
-          });
-
-          return {
-            id: transaction.id,
-            description: transaction.description,
-            amount: Number(transaction.amount),
-            date: dayjs(transaction.date).format('YYYY-MM-DD'),
-            type: transaction.type,
-            category_id: matchingCategory.id,
-            category_name: matchingCategory.name,
-            category_color: matchingCategory.color,
-            category_icon: matchingCategory.icon
-          };
-        }
-
-        // Return with Uncategorized if no match found
-        return {
-          id: transaction.id,
-          description: transaction.description,
-          amount: Number(transaction.amount),
-          date: dayjs(transaction.date).format('YYYY-MM-DD'),
-          type: transaction.type,
-          category_id: null,
-          category_name: 'Uncategorized',
-          category_color: '#6366F1',
-          category_icon: 'receipt'
-        };
-      });
+      // Process transactions
+      const formattedTransactions = allTransactions.map(transaction => ({
+        id: transaction.id,
+        description: transaction.description,
+        amount: Number(transaction.amount),
+        date: dayjs(transaction.date).format('YYYY-MM-DD'),
+        type: transaction.type,
+        category_id: transaction.category_id,
+        category_name: transaction.category_name,
+        category_color: transaction.category_color,
+        category_icon: transaction.category_icon
+      }));
 
       console.log('[Transactions API] Found transactions:', {
         count: formattedTransactions.length,
