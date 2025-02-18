@@ -462,18 +462,21 @@ export function registerRoutes(app: Express): Server {
       console.log('[Transactions API] Attempting to delete transaction:', { id: transactionId });
 
       // Extract the base ID if it contains a hyphen (for recurring transactions)
-      const baseId = parseInt(transactionId.split('-')[0]);
+      const baseId = transactionId.split('-')[0];
 
-      if (isNaN(baseId)) {
+      // Convert baseId to number and validate
+      const numericId = parseInt(baseId);
+      if (isNaN(numericId)) {
+        console.log('[Transactions API] Invalid transaction ID:', { id: baseId });
         return res.status(400).json({ 
           message: 'Invalid transaction ID',
-          error: `Could not parse transaction ID: ${transactionId}`
+          error: `Invalid transaction ID format: ${baseId}`
         });
       }
 
       // Find the transaction first
       const transaction = await db.query.transactions.findFirst({
-        where: eq(transactions.id, baseId)
+        where: eq(transactions.id, numericId)
       });
 
       if (!transaction) {
@@ -493,7 +496,7 @@ export function registerRoutes(app: Express): Server {
       // Perform the deletion within a transaction
       await db.transaction(async (tx) => {
         const deleted = await tx.delete(transactions)
-          .where(eq(transactions.id, baseId))
+          .where(eq(transactions.id, numericId))
           .returning();
 
         if (!deleted.length) {

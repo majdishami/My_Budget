@@ -276,16 +276,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const deleteTransaction = async (transaction: Income | Bill) => {
     try {
       setError(null);
+      // Ensure we have a valid ID
+      if (!transaction.id) {
+        throw new Error('Invalid transaction: missing ID');
+      }
+
       // Get the base ID without any suffix for recurring transactions
-      const baseId = transaction.id.split('-')[0];
+      const id = transaction.id.includes('-') ? transaction.id.split('-')[0] : transaction.id;
 
       logger.info("[DataContext] Deleting transaction:", {
         originalId: transaction.id,
-        baseId,
+        baseId: id,
         type: 'source' in transaction ? 'income' : 'bill'
       });
 
-      const response = await fetch(`/api/transactions/${baseId}`, {
+      const response = await fetch(`/api/transactions/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
