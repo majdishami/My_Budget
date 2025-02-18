@@ -117,14 +117,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       console.log('[Categories API] Successfully deleted category:', categoryId);
-      return res.status(204).send();
+      return res.status(204).end();
     } catch (error) {
       console.error('[Categories API] Error deleting category:', error);
-      if (!res.headersSent) {
-        res.status(500).json({ 
-          message: 'Category not found' 
-        });
-      }
+      return res.status(500).json({ 
+        message: 'An error occurred while deleting the category'
+      });
     }
   });
 

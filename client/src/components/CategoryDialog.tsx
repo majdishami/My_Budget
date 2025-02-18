@@ -11,7 +11,6 @@ import { ChromePicker } from 'react-color';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 
-// Schema must match server-side
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required").max(255),
   color: z.string().min(1, "Color is required").max(50),
@@ -30,6 +29,7 @@ interface CategoryDialogProps {
 export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: CategoryDialogProps) {
   const { toast } = useToast();
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -40,7 +40,6 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
     },
   });
 
-  // Reset form when dialog opens/closes or initialData changes
   useEffect(() => {
     if (isOpen && initialData) {
       form.reset({
@@ -52,7 +51,10 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
   }, [isOpen, initialData, form]);
 
   const handleSubmit = async (data: CategoryFormData) => {
+    if (isSubmitting) return;
+
     try {
+      setIsSubmitting(true);
       await onSubmit({
         name: data.name.trim(),
         color: data.color,
@@ -72,6 +74,8 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
         description: error instanceof Error ? error.message : "Failed to save category",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -101,6 +105,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       spellCheck="false"
                       data-lpignore="true"
                       aria-autocomplete="none"
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -121,6 +126,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                           type="button"
                           variant="outline" 
                           className="w-full flex items-center justify-between"
+                          disabled={isSubmitting}
                         >
                           <span className="flex items-center gap-2">
                             <Circle className="h-4 w-4" fill={field.value} />
@@ -160,6 +166,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       value={field.value ?? ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
                       autoComplete="off"
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -171,7 +178,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
             />
 
             <DialogFooter>
-              <Button type="submit">
+              <Button type="submit" disabled={isSubmitting}>
                 {initialData ? "Save Changes" : "Add Category"}
               </Button>
             </DialogFooter>
