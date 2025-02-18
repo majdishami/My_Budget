@@ -204,37 +204,48 @@ export default function ExpenseReportDialog({
               <CardTitle>Expense Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedTransactions.map((transaction) => (
-                    <TableRow 
-                      key={transaction.id}
-                      className={getRowClass(transaction.isPending)}
-                    >
-                      <TableCell>{dayjs(transaction.displayDate).format('MMM D, YYYY')}</TableCell>
-                      <TableCell>{transaction.description}</TableCell>
-                      <TableCell>{transaction.category_name || 'Uncategorized'}</TableCell>
-                      <TableCell className={getAmountClass()}>
-                        {formatCurrency(transaction.amount)}
-                      </TableCell>
-                      <TableCell>
-                        <span className={getStatusClass(transaction.isPending)}>
-                          {getStatusText(transaction.isPending)}
-                        </span>
-                      </TableCell>
+              {sortedTransactions.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedTransactions.map((transaction) => (
+                      <TableRow 
+                        key={transaction.id}
+                        className={getRowClass(transaction.isPending)}
+                      >
+                        <TableCell>{dayjs(transaction.displayDate).format('MMM D, YYYY')}</TableCell>
+                        <TableCell>{transaction.description}</TableCell>
+                        <TableCell>{transaction.category_name || 'Uncategorized'}</TableCell>
+                        <TableCell className={getAmountClass()}>
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell>
+                          <span className={getStatusClass(transaction.isPending)}>
+                            {getStatusText(transaction.isPending)}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    No expenses found for the selected period.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Try adjusting your filters or selecting a different date range.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
