@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { users, insertUserSchema, categories, insertCategorySchema, transactions, bills } from "@db/schema";
+import { users, insertUserSchema, categories, insertCategorySchema, transactions, bills, insertTransactionSchema } from "@db/schema";
 import { eq, desc, ilike, or, and } from "drizzle-orm";
 import { sql } from 'drizzle-orm';
 import dayjs from 'dayjs';
@@ -101,8 +101,8 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!category) {
-        return res.status(404).json({ 
-          message: "Category not found" 
+        return res.status(404).json({
+          message: "Category not found"
         });
       }
 
@@ -126,14 +126,14 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      return res.status(200).json({ 
-        message: "Category deleted successfully" 
+      return res.status(200).json({
+        message: "Category deleted successfully"
       });
 
     } catch (error) {
       console.error('[Categories API] Error deleting category:', error);
-      return res.status(500).json({ 
-        message: "An error occurred while deleting the category" 
+      return res.status(500).json({
+        message: "An error occurred while deleting the category"
       });
     }
   });
