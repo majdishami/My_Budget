@@ -22,6 +22,9 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// Helper function to get base ID from instance ID
+const getBaseId = (id: number) => Math.floor(id / 10);
+
 // Helper function to expand recurring income into multiple entries
 const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   const incomes: Income[] = [];
@@ -30,6 +33,12 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   if (!baseIncome.date || !dayjs(baseIncome.date).isValid()) {
     logger.error("[DataContext] Invalid date in income:", { income: baseIncome });
     throw new Error('Invalid date format in income');
+  }
+
+  // Validate ID
+  if (typeof baseIncome.id !== 'number' || isNaN(baseIncome.id)) {
+    logger.error("[DataContext] Invalid income ID:", { income: baseIncome });
+    throw new Error('Invalid income ID: must be a number');
   }
 
   // For one-time income, return as is
@@ -97,9 +106,6 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
 
   return incomes;
 };
-
-// Helper function to get base ID from instance ID
-const getBaseId = (id: number) => Math.floor(id / 10);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [incomes, setIncomes] = useState<Income[]>([]);
