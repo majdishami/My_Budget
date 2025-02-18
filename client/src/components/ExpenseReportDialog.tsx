@@ -52,10 +52,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  const handleDateSelect = (newDate: DateRange | undefined) => {
-    setDate(newDate);
-  };
-
+  // Using type parameter to fetch only expense transactions
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions', { type: 'expense' }],
     enabled: showReport,
@@ -66,10 +63,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
 
     return transactions
       .filter(transaction => {
-        if (transaction.type !== 'expense') return false;
         const transactionDate = dayjs(transaction.date);
-        return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
-               transactionDate.isSameOrBefore(dayjs(date.to), 'day');
+        return transactionDate.isAfter(dayjs(date.from).startOf('day')) &&
+               transactionDate.isBefore(dayjs(date.to).endOf('day'));
       })
       .map(transaction => ({
         ...transaction,
@@ -104,7 +100,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
               <Calendar
                 mode="range"
                 selected={date}
-                onSelect={handleDateSelect}
+                onSelect={setDate}
                 numberOfMonths={1}
                 defaultMonth={currentDate.toDate()}
               />
