@@ -152,6 +152,11 @@ export function Budget() {
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [showDailySummary, setShowDailySummary] = useState(false);
 
+  // Calculate daysInMonth early
+  const daysInMonth = useMemo(() => {
+    return dayjs().year(selectedYear).month(selectedMonth).daysInMonth();
+  }, [selectedYear, selectedMonth]);
+
   // Optimize months and years calculations
   const months = useMemo(() => 
     Array.from({ length: 12 }, (_, i) => ({
