@@ -24,6 +24,7 @@ interface CacheData {
   timestamp: number;
   version: number;
   transactions: any[];
+  lastModified?: string; // Add last modified tracking
 }
 
 const CACHE_VERSION = 1;
@@ -182,6 +183,86 @@ const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}
 };
 
 
+// Utility function for cache management
+const getCacheKey = () => 'transactions_cache';
+
+const getCache = (): CacheData | null => {
+  try {
+    const cached = sessionStorage.getItem(getCacheKey());
+    if (!cached) {
+      logger.info("[DataContext] No cache found");
+      return null;
+    }
+
+    let cacheData: CacheData;
+    try {
+      cacheData = JSON.parse(cached);
+      // Validate cache structure
+      if (!cacheData.timestamp || !Array.isArray(cacheData.transactions)) {
+        throw new Error('Invalid cache structure');
+      }
+    } catch (parseError) {
+      logger.error("[DataContext] Cache data is malformed:", { parseError });
+      sessionStorage.removeItem(getCacheKey());
+      return null;
+    }
+
+    // Validate cache version and age
+    const now = Date.now();
+    const age = now - cacheData.timestamp;
+
+    if (cacheData.version !== CACHE_VERSION) {
+      logger.info("[DataContext] Cache version mismatch:", {
+        cachedVersion: cacheData.version,
+        currentVersion: CACHE_VERSION
+      });
+      sessionStorage.removeItem(getCacheKey());
+      return null;
+    }
+
+    if (age > CACHE_MAX_AGE) {
+      logger.info("[DataContext] Cache expired:", {
+        age,
+        maxAge: CACHE_MAX_AGE,
+        expiredBy: age - CACHE_MAX_AGE
+      });
+      sessionStorage.removeItem(getCacheKey());
+      return null;
+    }
+
+    return cacheData;
+  } catch (error) {
+    logger.error("[DataContext] Error reading cache:", error);
+    sessionStorage.removeItem(getCacheKey());
+    return null;
+  }
+};
+
+const setCache = (transactions: any[]) => {
+  try {
+    const cacheData: CacheData = {
+      timestamp: Date.now(),
+      version: CACHE_VERSION,
+      transactions,
+      lastModified: new Date().toISOString()
+    };
+    sessionStorage.setItem(getCacheKey(), JSON.stringify(cacheData));
+    logger.info("[DataContext] Cache updated:", {
+      timestamp: cacheData.timestamp,
+      transactionCount: transactions.length,
+      lastModified: cacheData.lastModified
+    });
+  } catch (error) {
+    logger.error("[DataContext] Error setting cache:", error);
+    // Attempt to clear the cache if we can't set it
+    try {
+      sessionStorage.removeItem(getCacheKey());
+    } catch (clearError) {
+      logger.error("[DataContext] Error clearing cache:", clearError);
+    }
+  }
+};
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
@@ -265,52 +346,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Improved cache management
-  const getCacheKey = () => 'transactions_cache';
-
-  const getCache = (): CacheData | null => {
-    try {
-      const cached = sessionStorage.getItem(getCacheKey());
-      if (!cached) return null;
-
-      const cacheData: CacheData = JSON.parse(cached);
-
-      // Validate cache version and age
-      const now = Date.now();
-      if (
-        cacheData.version !== CACHE_VERSION ||
-        now - cacheData.timestamp > CACHE_MAX_AGE
-      ) {
-        logger.info("[DataContext] Cache invalidated due to version or age:", {
-          version: cacheData.version,
-          age: now - cacheData.timestamp
-        });
-        sessionStorage.removeItem(getCacheKey());
-        return null;
-      }
-
-      return cacheData;
-    } catch (error) {
-      logger.error("[DataContext] Error reading cache:", error);
-      return null;
-    }
-  };
-
-  const setCache = (transactions: any[]) => {
-    try {
-      const cacheData: CacheData = {
-        timestamp: Date.now(),
-        version: CACHE_VERSION,
-        transactions
-      };
-      sessionStorage.setItem(getCacheKey(), JSON.stringify(cacheData));
-      logger.info("[DataContext] Cache updated:", {
-        timestamp: cacheData.timestamp,
-        transactionCount: transactions.length
-      });
-    } catch (error) {
-      logger.error("[DataContext] Error setting cache:", error);
-    }
-  };
 
   // Improved loadData function with proper caching
   const loadData = async () => {
