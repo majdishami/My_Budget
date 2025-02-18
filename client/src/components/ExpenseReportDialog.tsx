@@ -107,17 +107,17 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  // Query transactions for the selected date range
+  // Query transactions with explicit expense type filter
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ['/api/transactions', {
-      type: 'expense',
+      type: 'expense', // Explicitly request only expense transactions
       startDate: date?.from ? dayjs(date.from).startOf('day').format('YYYY-MM-DD') : undefined,
       endDate: date?.to ? dayjs(date.to).endOf('day').format('YYYY-MM-DD') : undefined
     }],
     enabled: showReport && !!date?.from && !!date?.to
   });
 
-  // Filter and process transactions
+  // Filter transactions by date range and mark as occurred/pending
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to || !transactions.length) return [];
 
@@ -126,37 +126,21 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
 
     return transactions
       .filter(transaction => {
+        // Only include expense transactions
+        if (transaction.type !== 'expense') return false;
+
         const transactionDate = dayjs(transaction.date);
         return transactionDate.isSameOrAfter(startDate, 'day') &&
                transactionDate.isSameOrBefore(endDate, 'day');
       })
       .map(transaction => {
         const transactionDate = dayjs(transaction.date);
-        // A transaction is considered "occurred" if it's on or before the current date
-        const occurred = transactionDate.isSameOrBefore(currentDate, 'day');
         return {
           ...transaction,
-          occurred
+          occurred: transactionDate.isSameOrBefore(currentDate, 'day')
         };
       });
   }, [transactions, date, currentDate]);
-
-  // Calculate display totals
-  const displayTotals = useMemo(() => {
-    const paid = filteredTransactions
-      .filter(t => t.occurred)
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const pending = filteredTransactions
-      .filter(t => !t.occurred)
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    return {
-      total: paid + pending,
-      paid,
-      pending
-    };
-  }, [filteredTransactions]);
 
   // Calculate category totals
   const categoryTotals = useMemo(() => {
@@ -179,17 +163,32 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
 
       const total = totals[category_name];
       total.total += transaction.amount;
-
       if (transaction.occurred) {
         total.occurred += transaction.amount;
       } else {
         total.pending += transaction.amount;
       }
-
       total.transactions.push(transaction);
     });
 
     return Object.values(totals).sort((a, b) => b.total - a.total);
+  }, [filteredTransactions]);
+
+  // Calculate display totals
+  const displayTotals = useMemo(() => {
+    const paid = filteredTransactions
+      .filter(t => t.occurred)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const pending = filteredTransactions
+      .filter(t => !t.occurred)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return {
+      total: paid + pending,
+      paid,
+      pending
+    };
   }, [filteredTransactions]);
 
   // Handle date selection
