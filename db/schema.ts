@@ -76,7 +76,7 @@ export const insertBillSchema = z.object({
 export const insertTransactionSchema = z.object({
   description: z.string().min(1, "Description is required"),
   amount: z.number(),
-  date: z.date(),
+  date: z.string().transform((str) => new Date(str)), // Accept string and transform to Date
   type: z.enum(["income", "expense"]),
   category_id: z.number().min(1, "Category ID is required"),
 });
