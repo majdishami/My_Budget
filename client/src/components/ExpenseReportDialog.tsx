@@ -32,6 +32,12 @@ type ExpenseTransaction = {
   category_icon?: string;
 };
 
+// Define type for processed transaction with additional fields
+type ProcessedTransaction = ExpenseTransaction & {
+  isPending: boolean;
+  displayDate: string;
+};
+
 interface ExpenseReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -42,6 +48,19 @@ interface ExpenseReportDialogProps {
   };
 }
 
+// Safe sorting function for transactions
+const safeSortByDate = (a: ProcessedTransaction, b: ProcessedTransaction) => {
+  const dateA = dayjs(a.displayDate);
+  const dateB = dayjs(b.displayDate);
+
+  // If either date is invalid, push it to the end
+  if (!dateA.isValid() && !dateB.isValid()) return 0;
+  if (!dateA.isValid()) return 1;
+  if (!dateB.isValid()) return -1;
+
+  return dateB.diff(dateA);
+};
+
 export default function ExpenseReportDialog({ 
   isOpen, 
   onOpenChange, 
@@ -51,7 +70,7 @@ export default function ExpenseReportDialog({
   const today = dayjs();
 
   // Process transactions with pending status and handle invalid dates
-  const processedTransactions = expenses.map(transaction => {
+  const processedTransactions: ProcessedTransaction[] = expenses.map(transaction => {
     const transactionDate = dayjs(transaction.date);
 
     // Log invalid dates for debugging
@@ -168,7 +187,7 @@ export default function ExpenseReportDialog({
                 </TableHeader>
                 <TableBody>
                   {processedTransactions
-                    .sort((a, b) => dayjs(b.displayDate).diff(dayjs(a.displayDate)))
+                    .sort(safeSortByDate)
                     .map((transaction) => (
                       <TableRow 
                         key={transaction.id}
