@@ -31,59 +31,23 @@ const CACHE_MAX_AGE = 5 * 60 * 1000; // 5 minutes
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Utility function for handling API requests
-const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}) => {
-  try {
-    const response = await fetch(url, options);
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      logger.error("[DataContext] API request failed:", {
-        url,
-        status: response.status,
-        statusText: response.statusText,
-        responseText
-      });
-
-      let errorData = {};
-      try {
-        errorData = JSON.parse(responseText);
-      } catch (parseError) {
-        logger.error("[DataContext] Failed to parse error response as JSON:", {
-          parseError,
-          responseText
-        });
-      }
-
-      throw new Error(
-        `Request failed (${response.status}): ${
-          errorData.message ? errorData.message :
-          responseText ? responseText :
-          response.statusText
-        }`
-      );
-    }
-
-    try {
-      return JSON.parse(responseText);
-    } catch (parseError) {
-      logger.error("[DataContext] Failed to parse success response as JSON:", {
-        parseError,
-        responseText
-      });
-      throw new Error("Invalid JSON response from server");
-    }
-  } catch (error) {
-    logger.error("[DataContext] Request failed:", {
-      url,
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
-    throw error;
+// Utility function for generating instance IDs for recurring transactions
+const generateInstanceId = (baseId: number, index: number): number => {
+  if (typeof baseId !== 'number' || isNaN(baseId)) {
+    throw new Error('Invalid base ID: must be a number');
   }
+  // Use multiplication to create unique IDs that can be easily reversed
+  // This ensures we can get back to the base ID
+  return baseId * 100 + (index + 1);
 };
 
 // Helper function to get base ID from instance ID
-const getBaseId = (id: number) => Math.floor(id / 10);
+const getBaseId = (instanceId: number): number => {
+  if (typeof instanceId !== 'number' || isNaN(instanceId)) {
+    throw new Error('Invalid instance ID: must be a number');
+  }
+  return Math.floor(instanceId / 100);
+};
 
 // Helper function to expand recurring income into multiple entries
 const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
@@ -107,7 +71,6 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   }
 
   const baseDate = dayjs(baseIncome.date);
-  let currentDate = baseDate;
 
   for (let i = 0; i < months; i++) {
     let date;
@@ -148,8 +111,8 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
       continue;
     }
 
-    // For recurring entries, create a numeric ID based on the base ID
-    const instanceId = Number(`${baseIncome.id}${i + 1}`);
+    // Generate instance ID using the new function
+    const instanceId = generateInstanceId(baseIncome.id, i);
 
     incomes.push({
       ...baseIncome,
@@ -166,6 +129,58 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
 
   return incomes;
 };
+
+// Utility function for handling API requests
+const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}) => {
+  try {
+    const response = await fetch(url, options);
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      logger.error("[DataContext] API request failed:", {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        responseText
+      });
+
+      let errorData = {};
+      try {
+        errorData = JSON.parse(responseText);
+      } catch (parseError) {
+        logger.error("[DataContext] Failed to parse error response as JSON:", {
+          parseError,
+          responseText
+        });
+      }
+
+      throw new Error(
+        `Request failed (${response.status}): ${
+          errorData.message ? errorData.message :
+            responseText ? responseText :
+              response.statusText
+        }`
+      );
+    }
+
+    try {
+      return JSON.parse(responseText);
+    } catch (parseError) {
+      logger.error("[DataContext] Failed to parse success response as JSON:", {
+        parseError,
+        responseText
+      });
+      throw new Error("Invalid JSON response from server");
+    }
+  } catch (error) {
+    logger.error("[DataContext] Request failed:", {
+      url,
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+    throw error;
+  }
+};
+
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [incomes, setIncomes] = useState<Income[]>([]);
