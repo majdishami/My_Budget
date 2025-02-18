@@ -39,7 +39,7 @@ export default function ExpenseReport() {
   const [selectedYear, setSelectedYear] = useState(dayjs().format('YYYY'));
   const [, setLocation] = useLocation();
 
-  // Query bills and categories
+  // Query bills and categories with caching
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     staleTime: 1000 * 60 * 5,  // Cache for 5 minutes
@@ -55,13 +55,13 @@ export default function ExpenseReport() {
   // Query transactions with proper dependency
   const { data: transactions = [], isLoading: transactionsLoading, error: transactionsError } = useQuery({
     queryKey: ['/api/transactions', { type: 'expense' }],
-    enabled: !!bills.length, // Only fetch if bills exist
+    enabled: !!bills.length,
   });
 
   const isLoading = billsLoading || transactionsLoading || categoriesLoading;
   const error = billsError || transactionsError;
 
-  // Group bills by category with proper null handling and memoization
+  // Memoized bills grouping
   const groupedBills = useMemo(() => {
     return bills.reduce((acc: Record<string, Bill[]>, bill) => {
       const category = categories.find(c => c.id === bill.category_id);
@@ -73,7 +73,16 @@ export default function ExpenseReport() {
       acc[categoryName].push(bill);
       return acc;
     }, {});
-  }, [bills, categories]); // Only recompute when bills or categories change
+  }, [bills, categories]);
+
+  // Optimized month and year selection handlers
+  const handleMonthChange = (month: string) => {
+    if (month !== selectedMonth) setSelectedMonth(month);
+  };
+
+  const handleYearChange = (year: string) => {
+    if (year !== selectedYear) setSelectedYear(year);
+  };
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
@@ -82,13 +91,12 @@ export default function ExpenseReport() {
     }
   };
 
-  // Generate month options
+  // Month and year options generation remains unchanged
   const months = Array.from({ length: 12 }, (_, i) => ({
     value: (i + 1).toString(),
     label: dayjs().month(i).format('MMMM')
   }));
 
-  // Generate year options (current year ± 5 years)
   const currentYear = dayjs().year();
   const years = Array.from({ length: 11 }, (_, i) => ({
     value: (currentYear - 5 + i).toString(),
@@ -137,7 +145,7 @@ export default function ExpenseReport() {
           <div className="w-32">
             <Select
               value={selectedMonth}
-              onValueChange={setSelectedMonth}
+              onValueChange={handleMonthChange}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Month" />
@@ -155,7 +163,7 @@ export default function ExpenseReport() {
           <div className="w-24">
             <Select
               value={selectedYear}
-              onValueChange={setSelectedYear}
+              onValueChange={handleYearChange}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Year" />
@@ -178,7 +186,6 @@ export default function ExpenseReport() {
             <h2 className="text-lg font-semibold text-blue-600 mb-2">{category}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {categoryBills.map(bill => {
-                // Use category color lookup table
                 const categoryColor = categoryColors[bill.category_id] || "text-slate-600";
 
                 return (
