@@ -50,9 +50,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
-  const currentDate = useMemo(() => dayjs('2025-02-18'), []); // Fixed current date
+  const currentDate = useMemo(() => dayjs('2025-02-18'), []); 
 
-  // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
       setDate(undefined);
@@ -61,17 +60,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  // Query transactions for the selected date range
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
-    queryKey: ['/api/transactions', { 
-      type: 'expense',
-      startDate: date?.from?.toISOString(),
-      endDate: date?.to?.toISOString()
-    }],
-    enabled: showReport && !!date?.from && !!date?.to
+    queryKey: ['/api/transactions'],  
+    enabled: showReport,
   });
 
-  // Filter transactions by date range and type
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to || !transactions.length) return [];
 
@@ -79,8 +72,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       .filter(transaction => {
         if (transaction.type !== 'expense') return false;
         const transactionDate = dayjs(transaction.date);
-        return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
-               transactionDate.isSameOrBefore(dayjs(date.to), 'day');
+        return transactionDate.isSameOrAfter(dayjs(date.from).startOf('day'), 'day') &&
+               transactionDate.isSameOrBefore(dayjs(date.to).endOf('day'), 'day');
       })
       .map(transaction => ({
         ...transaction,
@@ -88,13 +81,11 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       }));
   }, [transactions, date, currentDate]);
 
-  // Group transactions by month
   const monthlyData = useMemo(() => {
     if (!filteredTransactions.length) return [];
 
     const monthGroups: Record<string, Transaction[]> = {};
 
-    // Group transactions by month
     filteredTransactions.forEach(transaction => {
       const monthKey = dayjs(transaction.date).format('YYYY-MM');
       if (!monthGroups[monthKey]) {
@@ -103,7 +94,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       monthGroups[monthKey].push(transaction);
     });
 
-    // Convert groups to array and calculate totals
     return Object.entries(monthGroups)
       .map(([monthKey, transactions]) => {
         const total = transactions.reduce((sum, t) => sum + t.amount, 0);
@@ -122,7 +112,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       .sort((a, b) => dayjs(a.monthKey).diff(dayjs(b.monthKey)));
   }, [filteredTransactions]);
 
-  // Calculate overall totals
   const totals = useMemo(() => {
     const total = monthlyData.reduce((sum, month) => sum + month.total, 0);
     const paid = monthlyData.reduce((sum, month) => sum + month.paid, 0);
@@ -223,7 +212,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Overall Summary Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Total Expenses</CardTitle>
@@ -249,7 +237,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
               </CardContent>
             </Card>
 
-            {/* Monthly Breakdown */}
             {monthlyData.map(month => (
               <Card key={month.monthKey}>
                 <CardHeader>
