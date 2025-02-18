@@ -238,7 +238,7 @@ export function registerRoutes(app: Express): Server {
         .select({
           id: transactions.id,
           description: transactions.description,
-          amount: transactions.amount,
+          amount: sql<string>`CAST(${transactions.amount} AS TEXT)`,
           date: transactions.date,
           type: transactions.type,
           category_id: transactions.category_id,
@@ -253,11 +253,11 @@ export function registerRoutes(app: Express): Server {
 
       const allTransactions = await query;
 
-      // Process transactions
+      // Process transactions - ensure proper date and amount formatting
       const formattedTransactions = allTransactions.map(transaction => ({
         id: transaction.id,
         description: transaction.description,
-        amount: Number(transaction.amount),
+        amount: parseFloat(transaction.amount),
         date: dayjs(transaction.date).format('YYYY-MM-DD'),
         type: transaction.type,
         category_id: transaction.category_id,
@@ -268,13 +268,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log('[Transactions API] Found transactions:', {
         count: formattedTransactions.length,
-        sampleTransactions: formattedTransactions.slice(0, 3).map(t => ({
-          description: t.description,
-          date: t.date,
-          amount: t.amount,
-          type: t.type,
-          category: t.category_name
-        }))
+        sampleDates: formattedTransactions.slice(0, 3).map(t => t.date)
       });
 
       // Add cache control headers

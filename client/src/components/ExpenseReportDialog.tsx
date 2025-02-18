@@ -25,11 +25,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Transaction {
-  id: string;
+  id: number;
   date: string;
   description: string;
   amount: number;
-  type: 'expense' | 'income';
+  type: 'expense';
+  category_name?: string;
 }
 
 interface ExpenseReportDialogProps {
@@ -41,7 +42,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
-  const currentDate = useMemo(() => dayjs(), []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -51,27 +51,30 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
+  // Fetch all expense transactions
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions', { type: 'expense' }],
     enabled: showReport,
   });
 
+  // Filter transactions based on selected date range
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return [];
+
+    const startDate = dayjs(date.from).startOf('day');
+    const endDate = dayjs(date.to).endOf('day');
+
     return transactions.filter(transaction => {
-      const transactionDate = dayjs(transaction.date);
-      return transactionDate.isBetween(dayjs(date.from).startOf('day'), dayjs(date.to).endOf('day'), 'day', '[]');
+      const txDate = dayjs(transaction.date);
+      return txDate.isSameOrAfter(startDate) && txDate.isSameOrBefore(endDate);
     });
   }, [transactions, date?.from, date?.to]);
 
-  const totals = useMemo(() => {
-    const total = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
-    return {
-      total,
-      paid: total, 
-      pending: 0
-    };
-  }, [filteredTransactions]);
+  // Calculate totals
+  const total = useMemo(() => 
+    filteredTransactions.reduce((sum, t) => sum + t.amount, 0),
+    [filteredTransactions]
+  );
 
   if (!showReport) {
     return (
@@ -82,15 +85,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
           </DialogHeader>
 
           <div className="flex flex-col space-y-4">
-            <div className="border rounded-lg p-4">
-              <Calendar
-                mode="range"
-                selected={date}
-                onSelect={setDate}
-                numberOfMonths={1}
-                defaultMonth={currentDate.toDate()}
-              />
-            </div>
+            <Calendar
+              mode="range"
+              selected={date}
+              onSelect={setDate}
+              numberOfMonths={1}
+              defaultMonth={dayjs().toDate()}
+            />
 
             <div className="text-sm text-muted-foreground text-center">
               {date?.from ? (
@@ -114,10 +115,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => {
-                setDate(undefined);
-                onOpenChange(false);
-              }}
+              onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
@@ -130,9 +128,9 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                 setDateError(null);
                 setShowReport(true);
               }}
-              disabled={!date?.from || !date?.to || transactionsLoading}
+              disabled={!date?.from || !date?.to}
             >
-              {transactionsLoading ? "Loading..." : "Generate Report"}
+              Generate Report
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -169,7 +167,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
-                  {formatCurrency(totals.total)}
+                  {formatCurrency(total)}
                 </div>
               </CardContent>
             </Card>
@@ -188,15 +186,17 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTransactions.map((transaction) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell className="text-right text-red-600">
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredTransactions
+                      .sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
+                      .map((transaction) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell className="text-right text-red-600">
+                            {formatCurrency(transaction.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </CardContent>
