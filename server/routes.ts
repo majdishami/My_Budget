@@ -243,6 +243,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
+      // Build query with strict date range filtering
       const query = db
         .select({
           id: transactions.id,
@@ -258,7 +259,7 @@ export function registerRoutes(app: Express): Server {
         .from(transactions)
         .leftJoin(categories, eq(transactions.category_id, categories.id));
 
-      // Build where conditions
+      // Build where conditions array for dynamic filtering
       const whereConditions = [];
 
       // Add type filter
@@ -266,15 +267,15 @@ export function registerRoutes(app: Express): Server {
         whereConditions.push(eq(transactions.type, type));
       }
 
-      // Add date range filters if provided
+      // Add strict date range filters if provided
       if (startDate) {
-        whereConditions.push(sql`${transactions.date} >= ${startDate.toDate()}`);
+        whereConditions.push(sql`DATE(${transactions.date}) >= DATE(${startDate.toDate()})`);
       }
       if (endDate) {
-        whereConditions.push(sql`${transactions.date} <= ${endDate.toDate()}`);
+        whereConditions.push(sql`DATE(${transactions.date}) <= DATE(${endDate.toDate()})`);
       }
 
-      // Apply where conditions if any exist
+      // Apply all conditions if any exist
       if (whereConditions.length > 0) {
         query.where(and(...whereConditions));
       }
