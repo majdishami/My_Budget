@@ -11,10 +11,11 @@ import { ChromePicker } from 'react-color';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 
+// This schema must match the server-side insertCategorySchema
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required").max(255),
   color: z.string().min(1, "Color is required").max(50),
-  icon: z.string().nullable().optional()
+  icon: z.string().nullish(),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -22,7 +23,7 @@ type CategoryFormData = z.infer<typeof categorySchema>;
 interface CategoryDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: CategoryFormData) => void;
+  onSubmit: (data: CategoryFormData) => Promise<void>;
   initialData?: CategoryFormData;
 }
 
@@ -33,11 +34,10 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
-      name: initialData?.name || "",
-      color: initialData?.color || "#000000",
-      icon: initialData?.icon || null,
+      name: initialData?.name ?? "",
+      color: initialData?.color ?? "#000000",
+      icon: initialData?.icon ?? null,
     },
-    mode: "onBlur"
   });
 
   const handleSubmit = async (data: CategoryFormData) => {
@@ -45,10 +45,12 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
       await onSubmit({
         name: data.name.trim(),
         color: data.color,
-        icon: data.icon?.trim() || null,
+        icon: data.icon?.trim() ?? null,
       });
+
       form.reset();
       onOpenChange(false);
+
       toast({
         title: initialData ? "Category updated" : "Category created",
         description: `Successfully ${initialData ? 'updated' : 'created'} category "${data.name}"`,
@@ -134,7 +136,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       {...field}
                       type="text"
                       placeholder="e.g., shopping-cart"
-                      value={field.value || ""}
+                      value={field.value ?? ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
                     />
                   </FormControl>

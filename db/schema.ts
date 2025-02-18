@@ -1,6 +1,6 @@
 import { pgTable, text, serial, integer, timestamp, decimal } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
+import { z } from "zod";
 
 // Categories table - Lookup table for transaction and bill categories
 export const categories = pgTable("categories", {
@@ -9,6 +9,13 @@ export const categories = pgTable("categories", {
   color: text("color").notNull(),
   icon: text("icon"),
   created_at: timestamp("created_at").defaultNow(),
+});
+
+// Create Zod schemas for validation
+export const insertCategorySchema = z.object({
+  name: z.string().min(1, "Category name is required"),
+  color: z.string().min(1, "Color is required"),
+  icon: z.string().nullish(),
 });
 
 // Transactions table with proper foreign keys
@@ -52,10 +59,21 @@ export const transactionRelations = relations(transactions, ({ one }) => ({
   }),
 }));
 
-// Create Zod schemas for validation
-export const insertCategorySchema = createInsertSchema(categories);
-export const insertBillSchema = createInsertSchema(bills);
-export const insertTransactionSchema = createInsertSchema(transactions);
+export const insertBillSchema = z.object({
+  name: z.string().min(1, "Bill name is required"),
+  amount: z.number().min(0, "Amount must be non-negative"),
+  day: z.number().min(1).max(31, "Day must be between 1 and 31"),
+  category_id: z.number().min(1, "Category ID is required"),
+});
+
+export const insertTransactionSchema = z.object({
+  description: z.string().min(1, "Description is required"),
+  amount: z.number(),
+  date: z.date(),
+  type: z.enum(["income", "expense"]),
+  category_id: z.number().min(1, "Category ID is required"),
+});
+
 
 // Export types
 export type Category = typeof categories.$inferSelect;

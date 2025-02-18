@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { categories, transactions, insertTransactionSchema, bills } from "@db/schema";
+import { categories, transactions, insertTransactionSchema, bills, insertCategorySchema } from "@db/schema";
 import { eq, desc, ilike, or, and } from "drizzle-orm";
 import { sql } from 'drizzle-orm';
 import dayjs from 'dayjs';
@@ -30,6 +30,62 @@ export function registerRoutes(app: Express): Server {
       });
     }
   });
+
+  // Add category creation endpoint
+  app.post('/api/categories', async (req, res) => {
+    try {
+      console.log('[Categories API] Creating new category:', req.body);
+
+      // Validate request body against schema
+      const categoryData = await insertCategorySchema.parseAsync(req.body);
+
+      // Insert new category
+      const [newCategory] = await db.insert(categories)
+        .values(categoryData)
+        .returning();
+
+      console.log('[Categories API] Created category:', newCategory);
+      res.status(201).json(newCategory);
+    } catch (error) {
+      console.error('[Categories API] Error creating category:', error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Invalid request data'
+      });
+    }
+  });
+
+  // Update category endpoint
+  app.patch('/api/categories/:id', async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      console.log('[Categories API] Updating category:', {
+        id: categoryId,
+        data: req.body
+      });
+
+      const existingCategory = await db.query.categories.findFirst({
+        where: eq(categories.id, categoryId)
+      });
+
+      if (!existingCategory) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+
+      const [updatedCategory] = await db.update(categories)
+        .set(req.body)
+        .where(eq(categories.id, categoryId))
+        .returning();
+
+      console.log('[Categories API] Updated category:', updatedCategory);
+      res.json(updatedCategory);
+    } catch (error) {
+      console.error('[Categories API] Error updating category:', error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Invalid request data'
+      });
+    }
+  });
+
 
   // Bills Routes with proper icon handling and cache prevention
   app.get('/api/bills', async (req, res) => {
