@@ -147,7 +147,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to add income: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
-      await loadData();
+      // Update local state directly
+      setIncomes(prev => [...prev, income]);
+      // Invalidate cache to ensure fresh data on next load
+      sessionStorage.removeItem("transactions");
       logger.info("Successfully added income", { income });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add income";
@@ -182,7 +185,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to add bill: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
-      await loadData();
+      // Update local state directly
+      setBills(prev => [...prev, bill]);
+      // Invalidate cache to ensure fresh data on next load
+      sessionStorage.removeItem("transactions");
       logger.info("Successfully added bill", { bill });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add bill";
