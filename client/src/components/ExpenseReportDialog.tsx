@@ -1,8 +1,3 @@
-import { useState, useEffect, useMemo } from 'react';
-import dayjs from 'dayjs';
-import { useQuery } from "@tanstack/react-query";
-import { DateRange } from "react-day-picker";
-import { formatCurrency } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -10,10 +5,15 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useMemo } from 'react';
 import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';
+import { DateRange } from "react-day-picker";
+import dayjs from 'dayjs';
+import { useQuery } from "@tanstack/react-query";
+import { formatCurrency } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -30,7 +30,6 @@ interface Transaction {
   description: string;
   amount: number;
   type: 'expense' | 'income';
-  occurred: boolean;
 }
 
 interface ExpenseReportDialogProps {
@@ -42,7 +41,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
-  const currentDate = useMemo(() => dayjs('2025-02-18'), []); 
+  const currentDate = useMemo(() => dayjs(), []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -52,7 +51,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  // Using type parameter to fetch only expense transactions
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions', { type: 'expense' }],
     enabled: showReport,
@@ -60,30 +58,18 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
 
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return [];
-
-    return transactions
-      .filter(transaction => {
-        const transactionDate = dayjs(transaction.date);
-        return transactionDate.isAfter(dayjs(date.from).startOf('day')) &&
-               transactionDate.isBefore(dayjs(date.to).endOf('day'));
-      })
-      .map(transaction => ({
-        ...transaction,
-        occurred: dayjs(transaction.date).isSameOrBefore(currentDate)
-      }));
-  }, [transactions, date?.from, date?.to, currentDate]);
+    return transactions.filter(transaction => {
+      const transactionDate = dayjs(transaction.date);
+      return transactionDate.isBetween(dayjs(date.from).startOf('day'), dayjs(date.to).endOf('day'), 'day', '[]');
+    });
+  }, [transactions, date?.from, date?.to]);
 
   const totals = useMemo(() => {
-    const paid = filteredTransactions
-      .filter(t => t.occurred)
-      .reduce((sum, t) => sum + t.amount, 0);
-    const pending = filteredTransactions
-      .filter(t => !t.occurred)
-      .reduce((sum, t) => sum + t.amount, 0);
+    const total = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
     return {
-      total: paid + pending,
-      paid,
-      pending
+      total,
+      paid: total, 
+      pending: 0
     };
   }, [filteredTransactions]);
 
@@ -182,22 +168,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                 <CardTitle className="text-lg">Total Expenses</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-red-600">
                   {formatCurrency(totals.total)}
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Paid</div>
-                    <div className="text-lg font-semibold text-red-600">
-                      {formatCurrency(totals.paid)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Pending</div>
-                    <div className="text-lg font-semibold text-yellow-600">
-                      {formatCurrency(totals.pending)}
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -213,26 +185,18 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                       <TableHead>Date</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTransactions
-                      .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                      .map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                          <TableCell>{transaction.description}</TableCell>
-                          <TableCell className="text-right font-medium">
-                            {formatCurrency(transaction.amount)}
-                          </TableCell>
-                          <TableCell>
-                            <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
-                              {transaction.occurred ? 'Paid' : 'Pending'}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                    {filteredTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                        <TableCell>{transaction.description}</TableCell>
+                        <TableCell className="text-right text-red-600">
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </CardContent>
