@@ -28,10 +28,11 @@ export default function IncomeReport() {
   });
 
   const handleOpenChange = (open: boolean) => {
-    setIsDialogOpen(open);
-    if (!open) {
+    // Only navigate if we're actually closing the dialog from an open state
+    if (!open && isDialogOpen) {
       setLocation("/");
     }
+    setIsDialogOpen(open);
   };
 
   return (
