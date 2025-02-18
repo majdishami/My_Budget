@@ -25,18 +25,18 @@ export const updateCategorySchema = z.object({
   icon: z.string().nullish(),
 });
 
-// Transactions table with proper foreign keys
+// Transactions table with proper foreign keys and default date
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   description: text("description").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  date: timestamp("date").notNull(),
+  date: timestamp("date").notNull().defaultNow(),
   type: text("type").notNull(), // 'income' or 'expense'
   category_id: integer("category_id").references(() => categories.id),
   created_at: timestamp("created_at").defaultNow(),
 });
 
-// Bills table with proper foreign keys
+// Bills table with proper foreign keys and default dates
 export const bills = pgTable("bills", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -46,8 +46,8 @@ export const bills = pgTable("bills", {
   created_at: timestamp("created_at").defaultNow(),
   is_one_time: boolean("is_one_time").default(false),
   is_yearly: boolean("is_yearly").default(false),
-  date: timestamp("date"),
-  yearly_date: timestamp("yearly_date"),
+  date: timestamp("date").defaultNow(),
+  yearly_date: timestamp("yearly_date").defaultNow(),
   reminder_enabled: boolean("reminder_enabled").default(false),
   reminder_days: integer("reminder_days").default(7),
 });
@@ -93,7 +93,6 @@ export const insertTransactionSchema = z.object({
   type: z.enum(["income", "expense"]),
   category_id: z.number().min(1, "Category ID is required"),
 });
-
 
 // Export types
 export type Category = typeof categories.$inferSelect;
