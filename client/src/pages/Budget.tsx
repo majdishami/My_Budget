@@ -240,23 +240,42 @@ export function Budget() {
   const getBillsForDay = useCallback((day: number) => {
     if (day <= 0 || day > daysInMonth) return [];
 
-    return bills.filter(bill => {
+    const result: Bill[] = [];
+    const uniqueBills = new Set();
+
+    bills.forEach(bill => {
+      // Skip if we've already added this bill
+      if (uniqueBills.has(bill.name)) return;
+
       if (bill.isYearly && bill.yearly_date) {
         // For yearly bills, check if the month and day match
         const yearlyDate = dayjs(bill.yearly_date);
-        return yearlyDate.month() === selectedMonth - 1 && yearlyDate.date() === day;
+        if (yearlyDate.month() === selectedMonth - 1 && yearlyDate.date() === day) {
+          result.push(bill);
+          uniqueBills.add(bill.name);
+        }
       } else if (bill.isOneTime && bill.date) {
         // For one-time bills, check exact date match
         const billDate = dayjs(bill.date);
-        return billDate.year() === selectedYear && 
-               billDate.month() === selectedMonth - 1 && 
-               billDate.date() === day;
-      } else {
-        // For monthly bills, just check the day
-        // These should appear every month on their specified day
-        return bill.day === day;
+        if (billDate.year() === selectedYear && 
+            billDate.month() === selectedMonth - 1 && 
+            billDate.date() === day) {
+          result.push(bill);
+          uniqueBills.add(bill.name);
+        }
+      } else if (bill.day === day) {
+        // For monthly bills, show them every month on their specified day
+        const recurringBill = {
+          ...bill,
+          id: `${bill.id}-${selectedMonth}-${selectedYear}`,
+          date: dayjs().year(selectedYear).month(selectedMonth - 1).date(day).format('YYYY-MM-DD')
+        };
+        result.push(recurringBill);
+        uniqueBills.add(bill.name);
       }
     });
+
+    return result;
   }, [bills, selectedYear, selectedMonth, daysInMonth]);
 
   // Update monthly totals calculation to handle recurring bills
