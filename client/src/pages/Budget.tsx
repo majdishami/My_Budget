@@ -281,45 +281,32 @@ export function Budget() {
 
   // Update monthly totals calculation
   const monthlyTotals = useMemo(() => {
-    let totalIncome = 0;
+    let totalIncome = 4739 * 2; // Majdi's salary occurs twice per month
 
-    // Handle Majdi's salary (1st and 15th)
-    totalIncome += 4739 * 2; // Majdi's salary occurs twice per month
+    // Compute Ruba's bi-weekly salary dynamically
+    let firstFriday = dayjs().year(selectedYear).month(selectedMonth).startOf('month').day(5);
+    if (firstFriday.date() > 7) firstFriday = firstFriday.add(7, 'day'); // Ensure first Friday falls within the month
 
-    // Handle Ruba's bi-weekly salary
-    const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
-    const lastDayOfMonth = firstDayOfMonth.endOf('month');
-    let currentDate = firstDayOfMonth;
-
-    while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
-      if (currentDate.day() === 5) { // Friday
-        const startDate = dayjs('2025-01-10');
-        const weeksDiff = Math.floor(currentDate.diff(startDate, 'days') / 7);
-        if (currentDate.isSameOrAfter(startDate) && weeksDiff % 2 === 0) {
-          totalIncome += 2168; // Add Ruba's bi-weekly salary
-        }
+    let currentFriday = firstFriday;
+    while (currentFriday.month() === selectedMonth) {
+      // Only add salary if it's a valid payday (biweekly from Jan 10, 2025)
+      const startDate = dayjs('2025-01-10');
+      const weeksDiff = currentFriday.diff(startDate, 'week');
+      if (currentFriday.isSameOrAfter(startDate) && weeksDiff % 2 === 0) {
+        totalIncome += 2168; // Add Ruba's salary
       }
-      currentDate = currentDate.add(1, 'day');
+      currentFriday = currentFriday.add(14, 'days');
     }
 
-    // Calculate total expenses
-    let totalExpenses = 0;
-
-    // Add all bills to every month (matches the calendar display logic)
-    const uniqueBills = new Set();
-    bills.forEach(bill => {
-      if (!uniqueBills.has(bill.name)) {
-        totalExpenses += bill.amount;
-        uniqueBills.add(bill.name);
-      }
-    });
+    // Calculate total expenses in a single pass
+    const totalExpenses = bills.reduce((sum, bill) => sum + bill.amount, 0);
 
     return {
       income: totalIncome,
       expenses: totalExpenses,
       net: totalIncome - totalExpenses
     };
-  }, [bills, selectedYear, selectedMonth]);
+  }, [bills, selectedMonth, selectedYear]);
 
   // Calculate running totals for a specific day
   const calculateRunningTotals = useCallback((day: number) => {
