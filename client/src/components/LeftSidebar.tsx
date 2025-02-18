@@ -61,16 +61,6 @@ export function LeftSidebar({
            income.occurrenceType === 'weekly' ? 'Weekly' : 'One Time';
   };
 
-  // Handle delete confirmation
-  const handleDeleteConfirm = () => {
-    if (deletingTransaction) {
-      logger.info("[LeftSidebar] Confirming deletion:", deletingTransaction);
-      onDeleteTransaction(deletingTransaction.type, deletingTransaction.data);
-      setIsDeleteConfirmOpen(false);
-      setDeletingTransaction(null);
-    }
-  };
-
   // Handle delete request
   const handleDeleteRequest = (type: 'income' | 'bill', data: Income | Bill) => {
     logger.info("[LeftSidebar] Delete request:", { type, data });
@@ -80,6 +70,20 @@ export function LeftSidebar({
     }
     setDeletingTransaction({ type, data });
     setIsDeleteConfirmOpen(true);
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = () => {
+    if (deletingTransaction) {
+      if (!deletingTransaction.data?.id) {
+        logger.error("[LeftSidebar] No transaction selected for deletion.");
+        return;
+      }
+      logger.info("[LeftSidebar] Confirming deletion:", deletingTransaction);
+      onDeleteTransaction(deletingTransaction.type, deletingTransaction.data);
+      setIsDeleteConfirmOpen(false);
+      setDeletingTransaction(null);
+    }
   };
 
   return (
