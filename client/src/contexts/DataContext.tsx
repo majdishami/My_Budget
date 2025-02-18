@@ -22,104 +22,53 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Helper function to process transactions
-const processTransactions = (transactions: any[], setIncomes: Function, setBills: Function) => {
-  try {
-    // Process incomes and expand recurring ones
-    const loadedIncomes = transactions
-      .filter((t: any) => t.type === 'income')
-      .reduce((acc: Income[], t: any) => {
-        const baseIncome = {
-          id: t.id?.toString() || crypto.randomUUID(),
-          source: t.description || 'Unknown Source',
-          amount: parseFloat(t.amount) || 0,
-          date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-          occurrenceType: t.recurring_type || 'once',
-          firstDate: t.first_date,
-          secondDate: t.second_date
-        };
-
-        // If it's a recurring income, generate future occurrences
-        if (baseIncome.occurrenceType !== 'once') {
-          const futureMonths = 12; // Generate for next 12 months
-          const baseDate = dayjs(baseIncome.date);
-
-          // Generate recurring incomes based on occurrence type
-          const recurringIncomes = Array.from({ length: futureMonths }, (_, i) => {
-            let date;
-            switch (baseIncome.occurrenceType) {
-              case 'monthly':
-                date = baseDate.add(i, 'month');
-                break;
-              case 'biweekly':
-                date = baseDate.add(i * 2, 'week');
-                break;
-              case 'twice-monthly':
-                if (baseIncome.firstDate && baseIncome.secondDate) {
-                  // Handle twice-monthly with specific dates
-                  const monthDate = baseDate.add(Math.floor(i / 2), 'month');
-                  date = i % 2 === 0 
-                    ? monthDate.date(baseIncome.firstDate)
-                    : monthDate.date(baseIncome.secondDate);
-                } else {
-                  date = baseDate.add(i * 2, 'week');
-                }
-                break;
-              case 'weekly':
-                date = baseDate.add(i, 'week');
-                break;
-              default:
-                date = baseDate;
-            }
-
-            return {
-              ...baseIncome,
-              id: `${baseIncome.id}-${i}`,
-              date: date.format('YYYY-MM-DD')
-            };
-          });
-
-          acc.push(...recurringIncomes);
-        } else {
-          acc.push(baseIncome);
-        }
-
-        return acc;
-      }, []);
-
-    setIncomes(loadedIncomes);
-    logger.info("[DataContext] Processed incomes:", { count: loadedIncomes.length });
-
-    // Process bills (keep existing bills processing logic)
-    const loadedBills = transactions
-      .filter((t: any) => t.type === 'expense')
-      .map((t: any) => ({
-        id: t.id?.toString() || crypto.randomUUID(),
-        name: t.description || 'Unknown Expense',
-        amount: parseFloat(t.amount) || 0,
-        date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-        isOneTime: !t.recurring_id,
-        day: dayjs(t.date).date(),
-        category_id: t.category_id || null,
-        category_name: t.category_name || 'Uncategorized',
-        category_color: t.category_color || '#808080',
-        category_icon: t.category_icon || 'help-circle',
-        category: t.category_id ? {
-          name: t.category_name || 'Uncategorized',
-          color: t.category_color || '#808080',
-          icon: t.category_icon || 'help-circle'
-        } : undefined
-      }));
-
-    setBills(loadedBills);
-    logger.info("[DataContext] Processed bills:", { count: loadedBills.length });
-  } catch (error) {
-    logger.error("[DataContext] Error processing transactions:", { error });
-    setIncomes([]);
-    setBills([]);
-    throw error;
+// Helper function to expand recurring income into multiple entries
+const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
+  const incomes: Income[] = [];
+  if (baseIncome.occurrenceType === 'once') {
+    return [baseIncome];
   }
+
+  const baseDate = dayjs(baseIncome.date);
+
+  for (let i = 0; i < months; i++) {
+    let date;
+    switch (baseIncome.occurrenceType) {
+      case 'monthly':
+        date = baseDate.add(i, 'month');
+        break;
+      case 'biweekly':
+        date = baseDate.add(i * 2, 'week');
+        break;
+      case 'twice-monthly':
+        if (baseIncome.firstDate && baseIncome.secondDate) {
+          const monthDate = baseDate.add(Math.floor(i / 2), 'month');
+          date = i % 2 === 0 
+            ? monthDate.date(baseIncome.firstDate)
+            : monthDate.date(baseIncome.secondDate);
+        } else {
+          date = baseDate.add(i * 2, 'week');
+        }
+        break;
+      case 'weekly':
+        date = baseDate.add(i, 'week');
+        break;
+      default:
+        date = baseDate;
+    }
+
+    incomes.push({
+      ...baseIncome,
+      id: `${baseIncome.id}-${i}`,
+      date: date.format('YYYY-MM-DD')
+    });
+  }
+
+  return incomes;
 };
+
+// Helper function to get base ID from expanded ID
+const getBaseId = (id: string) => id.split('-')[0];
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -138,7 +87,44 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (cachedTransactions) {
         logger.info("[DataContext] Loading transactions from cache...");
         const transactions = JSON.parse(cachedTransactions);
-        processTransactions(transactions, setIncomes, setBills);
+        const loadedIncomes = transactions
+          .filter((t: any) => t.type === 'income')
+          .map((t: any) => ({
+            id: t.id?.toString() || crypto.randomUUID(),
+            source: t.description || 'Unknown Source',
+            amount: parseFloat(t.amount) || 0,
+            date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+            occurrenceType: t.recurring_type || 'once',
+            firstDate: t.first_date,
+            secondDate: t.second_date
+          }))
+          .reduce((acc: Income[], income) => {
+            return [...acc, ...expandRecurringIncome(income)];
+          }, []);
+
+        setIncomes(loadedIncomes);
+
+        const loadedBills = transactions
+          .filter((t: any) => t.type === 'expense')
+          .map((t: any) => ({
+            id: t.id?.toString() || crypto.randomUUID(),
+            name: t.description || 'Unknown Expense',
+            amount: parseFloat(t.amount) || 0,
+            date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+            isOneTime: !t.recurring_id,
+            day: dayjs(t.date).date(),
+            category_id: t.category_id || null,
+            category_name: t.category_name || 'Uncategorized',
+            category_color: t.category_color || '#808080',
+            category_icon: t.category_icon || 'help-circle',
+            category: t.category_id ? {
+              name: t.category_name || 'Uncategorized',
+              color: t.category_color || '#808080',
+              icon: t.category_icon || 'help-circle'
+            } : undefined
+          }));
+
+        setBills(loadedBills);
         setIsLoading(false);
         return;
       }
@@ -156,16 +142,51 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       const transactions = await response.json();
-      // Cache the raw transactions
       sessionStorage.setItem("transactions", JSON.stringify(transactions));
       logger.info("[DataContext] Cached transactions in sessionStorage");
 
-      processTransactions(transactions, setIncomes, setBills);
+      const loadedIncomes = transactions
+        .filter((t: any) => t.type === 'income')
+        .map((t: any) => ({
+          id: t.id?.toString() || crypto.randomUUID(),
+          source: t.description || 'Unknown Source',
+          amount: parseFloat(t.amount) || 0,
+          date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+          occurrenceType: t.recurring_type || 'once',
+          firstDate: t.first_date,
+          secondDate: t.second_date
+        }))
+        .reduce((acc: Income[], income) => {
+          return [...acc, ...expandRecurringIncome(income)];
+        }, []);
+
+      setIncomes(loadedIncomes);
+
+      const loadedBills = transactions
+        .filter((t: any) => t.type === 'expense')
+        .map((t: any) => ({
+          id: t.id?.toString() || crypto.randomUUID(),
+          name: t.description || 'Unknown Expense',
+          amount: parseFloat(t.amount) || 0,
+          date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+          isOneTime: !t.recurring_id,
+          day: dayjs(t.date).date(),
+          category_id: t.category_id || null,
+          category_name: t.category_name || 'Uncategorized',
+          category_color: t.category_color || '#808080',
+          category_icon: t.category_icon || 'help-circle',
+          category: t.category_id ? {
+            name: t.category_name || 'Uncategorized',
+            color: t.category_color || '#808080',
+            icon: t.category_icon || 'help-circle'
+          } : undefined
+        }));
+
+      setBills(loadedBills);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
       logger.error("[DataContext] Error loading data:", { error });
       setError(new Error(errorMessage));
-      // Set empty arrays as fallback
       setIncomes([]);
       setBills([]);
     } finally {
@@ -200,11 +221,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to add income: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
-      // Update local state directly
-      setIncomes(prev => [...prev, income]);
+      // Expand the income if it's recurring and update state
+      const expandedIncomes = expandRecurringIncome(income);
+      setIncomes(prev => [...prev, ...expandedIncomes]);
+
       // Invalidate cache to ensure fresh data on next load
       sessionStorage.removeItem("transactions");
-      logger.info("Successfully added income", { income });
+      logger.info("Successfully added income", { income, expandedCount: expandedIncomes.length });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add income";
       logger.error("Error in addIncome:", { error });
@@ -238,9 +261,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to add bill: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
-      // Update local state directly
       setBills(prev => [...prev, bill]);
-      // Invalidate cache to ensure fresh data on next load
       sessionStorage.removeItem("transactions");
       logger.info("Successfully added bill", { bill });
     } catch (error) {
@@ -255,9 +276,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const deleteTransaction = async (transaction: Income | Bill) => {
     try {
       setError(null);
-      logger.info("[DataContext] Deleting transaction:", { transaction });
+      const baseId = getBaseId(transaction.id);
+      logger.info("[DataContext] Deleting transaction:", { transaction, baseId });
 
-      const response = await fetch(`/api/transactions/${transaction.id}`, {
+      const response = await fetch(`/api/transactions/${baseId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -269,9 +291,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to delete transaction: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
-      // Update local state directly
+      // Update local state
       if ('source' in transaction) {
-        setIncomes(prev => prev.filter(inc => inc.id !== transaction.id));
+        // For incomes, remove all instances of the recurring income
+        const baseTransactionId = getBaseId(transaction.id);
+        setIncomes(prev => prev.filter(inc => getBaseId(inc.id) !== baseTransactionId));
       } else {
         setBills(prev => prev.filter(bill => bill.id !== transaction.id));
       }
@@ -292,25 +316,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null);
       const isIncome = 'source' in transaction;
+      const baseId = getBaseId(transaction.id);
+
       logger.info("[DataContext] Editing transaction:", {
         transaction,
+        baseId,
         type: isIncome ? 'income' : 'expense'
       });
 
-      const transactionData = {
-        description: isIncome ? transaction.source : transaction.name,
-        amount: transaction.amount,
-        date: dayjs(transaction.date).format('YYYY-MM-DD'),
-        type: isIncome ? 'income' : 'expense',
-        category_id: !isIncome ? (transaction as Bill).category_id : undefined
-      };
-
-      const response = await fetch(`/api/transactions/${transaction.id}`, {
+      const response = await fetch(`/api/transactions/${baseId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(transactionData),
+        body: JSON.stringify({
+          description: isIncome ? transaction.source : transaction.name,
+          amount: transaction.amount,
+          date: dayjs(transaction.date).format('YYYY-MM-DD'),
+          type: isIncome ? 'income' : 'expense',
+          recurring_type: isIncome ? (transaction as Income).occurrenceType : undefined,
+          first_date: isIncome ? (transaction as Income).firstDate : undefined,
+          second_date: isIncome ? (transaction as Income).secondDate : undefined,
+          category_id: !isIncome ? (transaction as Bill).category_id : undefined
+        }),
       });
 
       if (!response.ok) {
@@ -318,13 +346,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to edit transaction: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
-      // Update local state directly
+      // Update local state
       if (isIncome) {
-        setIncomes(prev => prev.map(inc =>
-          inc.id === transaction.id ? transaction as Income : inc
-        ));
+        const baseTransactionId = getBaseId(transaction.id);
+        const expandedIncomes = expandRecurringIncome(transaction as Income);
+        setIncomes(prev => {
+          const filtered = prev.filter(inc => getBaseId(inc.id) !== baseTransactionId);
+          return [...filtered, ...expandedIncomes];
+        });
       } else {
-        setBills(prev => prev.map(bill =>
+        setBills(prev => prev.map(bill => 
           bill.id === transaction.id ? transaction as Bill : bill
         ));
       }
@@ -342,8 +373,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // Function to add income directly to state without API call
   const addIncomeToData = (income: Income) => {
-    setIncomes(prev => [...prev, income]);
-    logger.info("[DataContext] Added income to local state:", { income });
+    const expandedIncomes = expandRecurringIncome(income);
+    setIncomes(prev => [...prev, ...expandedIncomes]);
+    logger.info("[DataContext] Added income to local state:", { income, expandedCount: expandedIncomes.length });
   };
 
   useEffect(() => {
