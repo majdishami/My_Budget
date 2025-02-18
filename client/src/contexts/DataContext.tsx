@@ -21,19 +21,79 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// Helper function to process transactions
+const processTransactions = (transactions: any[], setIncomes: Function, setBills: Function) => {
+  try {
+    // Process incomes
+    const loadedIncomes = transactions
+      .filter((t: any) => t.type === 'income')
+      .map((t: any) => ({
+        id: t.id?.toString() || crypto.randomUUID(),
+        source: t.description || 'Unknown Source',
+        amount: parseFloat(t.amount) || 0,
+        date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+        occurrenceType: t.recurring_type || 'once',
+        firstDate: t.first_date,
+        secondDate: t.second_date
+      }));
+
+    setIncomes(loadedIncomes);
+    logger.info("[DataContext] Processed incomes:", { count: loadedIncomes.length });
+
+    // Process bills
+    const loadedBills = transactions
+      .filter((t: any) => t.type === 'expense')
+      .map((t: any) => ({
+        id: t.id?.toString() || crypto.randomUUID(),
+        name: t.description || 'Unknown Expense',
+        amount: parseFloat(t.amount) || 0,
+        date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+        isOneTime: !t.recurring_id,
+        day: dayjs(t.date).date(),
+        category_id: t.category_id || null,
+        category_name: t.category_name || 'Uncategorized',
+        category_color: t.category_color || '#808080',
+        category_icon: t.category_icon || 'help-circle',
+        category: t.category_id ? {
+          name: t.category_name || 'Uncategorized',
+          color: t.category_color || '#808080',
+          icon: t.category_icon || 'help-circle'
+        } : undefined
+      }));
+
+    setBills(loadedBills);
+    logger.info("[DataContext] Processed bills:", { count: loadedBills.length });
+  } catch (error) {
+    logger.error("[DataContext] Error processing transactions:", error);
+    setIncomes([]);
+    setBills([]);
+    throw error;
+  }
+};
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Load transactions from the API with safer error handling
+  // Load transactions from cache or API
   const loadData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      logger.info("[DataContext] Starting to fetch transactions...");
+      // Check sessionStorage before fetching
+      const cachedTransactions = sessionStorage.getItem("transactions");
+      if (cachedTransactions) {
+        logger.info("[DataContext] Loading transactions from cache...");
+        const transactions = JSON.parse(cachedTransactions);
+        processTransactions(transactions, setIncomes, setBills);
+        setIsLoading(false);
+        return;
+      }
+
+      logger.info("[DataContext] Fetching transactions from API...");
       const response = await fetch('/api/transactions', {
         method: 'GET',
         headers: {
@@ -46,55 +106,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       const transactions = await response.json();
-      logger.info("[DataContext] Raw transactions:", transactions);
+      // Cache the raw transactions
+      sessionStorage.setItem("transactions", JSON.stringify(transactions));
+      logger.info("[DataContext] Cached transactions in sessionStorage");
 
-      // Safely process incomes with error handling
-      try {
-        const loadedIncomes = transactions
-          .filter((t: any) => t.type === 'income')
-          .map((t: any) => ({
-            id: t.id?.toString() || crypto.randomUUID(),
-            source: t.description || 'Unknown Source',
-            amount: parseFloat(t.amount) || 0,
-            date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-            occurrenceType: t.recurring_type || 'once',
-            firstDate: t.first_date,
-            secondDate: t.second_date
-          }));
-
-        setIncomes(loadedIncomes);
-      } catch (error) {
-        logger.error("[DataContext] Error processing incomes:", error);
-        setIncomes([]);
-      }
-
-      // Safely process bills/expenses with error handling
-      try {
-        const loadedBills = transactions
-          .filter((t: any) => t.type === 'expense')
-          .map((t: any) => ({
-            id: t.id?.toString() || crypto.randomUUID(),
-            name: t.description || 'Unknown Expense',
-            amount: parseFloat(t.amount) || 0,
-            date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-            isOneTime: !t.recurring_id,
-            day: dayjs(t.date).date(),
-            category_id: t.category_id || null,
-            category_name: t.category_name || 'Uncategorized',
-            category_color: t.category_color || '#808080',
-            category_icon: t.category_icon || 'help-circle',
-            category: t.category_id ? {
-              name: t.category_name || 'Uncategorized',
-              color: t.category_color || '#808080',
-              icon: t.category_icon || 'help-circle'
-            } : undefined
-          }));
-
-        setBills(loadedBills);
-      } catch (error) {
-        logger.error("[DataContext] Error processing bills:", error);
-        setBills([]);
-      }
+      processTransactions(transactions, setIncomes, setBills);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
       logger.error("[DataContext] Error loading data:", { error });
