@@ -216,7 +216,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Failed to delete transaction: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
-      await loadData();
+      // Update local state directly
+      if ('source' in transaction) {
+        setIncomes(prev => prev.filter(inc => inc.id !== transaction.id));
+      } else {
+        setBills(prev => prev.filter(bill => bill.id !== transaction.id));
+      }
+
+      // Invalidate cache
+      sessionStorage.removeItem("transactions");
       logger.info("Successfully deleted transaction", { transaction });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
@@ -236,7 +244,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         type: isIncome ? 'income' : 'expense'
       });
 
-      // Format the transaction data
       const transactionData = {
         description: isIncome ? transaction.source : transaction.name,
         amount: transaction.amount,
@@ -244,8 +251,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         type: isIncome ? 'income' : 'expense',
         category_id: !isIncome ? (transaction as Bill).category_id : undefined
       };
-
-      logger.info("[DataContext] Formatted transaction data:", transactionData);
 
       const response = await fetch(`/api/transactions/${transaction.id}`, {
         method: 'PATCH',
@@ -255,34 +260,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify(transactionData),
       });
 
-      const responseData = await response.json().catch(() => ({}));
-      logger.info("[DataContext] Edit transaction response:", {
-        status: response.status,
-        statusText: response.statusText,
-        data: responseData
-      });
-
       if (!response.ok) {
-        throw new Error(`Failed to edit transaction: ${response.status} ${response.statusText}${responseData.message ? ` - ${responseData.message}` : ''}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to edit transaction: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
 
-      // Update local state before fetching fresh data
+      // Update local state directly
       if (isIncome) {
         setIncomes(prev => prev.map(inc =>
-          inc.id === transaction.id ? { ...inc, ...transaction } : inc
+          inc.id === transaction.id ? transaction as Income : inc
         ));
       } else {
         setBills(prev => prev.map(bill =>
-          bill.id === transaction.id ? { ...bill, ...transaction } : bill
+          bill.id === transaction.id ? transaction as Bill : bill
         ));
       }
 
-      // Then refresh data from server
-      await loadData();
+      // Invalidate cache
+      sessionStorage.removeItem("transactions");
       logger.info("Successfully edited transaction", { transaction });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
-      logger.error("Error in editTransaction:", { error, transaction });
+      logger.error("Error in editTransaction:", { error });
       setError(new Error(errorMessage));
       throw error;
     }
@@ -292,16 +291,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     loadData();
   }, []);
 
+  // Save multiple incomes
+  const saveIncomes = async (newIncomes: Income[]) => {
+    await Promise.all(newIncomes.map(income => addIncome(income)));
+  };
+
+  // Save multiple bills
+  const saveBills = async (newBills: Bill[]) => {
+    await Promise.all(newBills.map(bill => addBill(bill)));
+  };
+
   return (
     <DataContext.Provider value={{
       incomes,
       bills,
-      saveIncomes: async (newIncomes) => {
-        await Promise.all(newIncomes.map(income => addIncome(income)));
-      },
-      saveBills: async (newBills) => {
-        await Promise.all(newBills.map(bill => addBill(bill)));
-      },
+      saveIncomes,
+      saveBills,
       addIncome,
       addBill,
       deleteTransaction,
