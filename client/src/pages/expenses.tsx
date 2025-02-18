@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import dayjs from "dayjs";
 import { useData } from "@/contexts/DataContext";
-import { Calendar } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 type ReportType = 'all' | 'monthly' | 'annual' | 'custom' | 'category' | 'individual';
 type CategoryFilter = 'all' | string;
@@ -32,44 +32,62 @@ export default function ExpenseReport() {
 
   // Filter bills based on report type and selected filters
   const filteredExpenses = useMemo(() => {
+    logger.info("[ExpenseReport] Filtering expenses:", {
+      billsCount: bills?.length,
+      reportType,
+      dateRange,
+      selectedMonth,
+      selectedYear,
+      selectedCategory
+    });
+
     return (bills || []).filter(bill => {
-      const billDate = dayjs(bill.date || new Date());
+      const billDate = dayjs(bill.date);
+
+      // Skip invalid dates
+      if (!billDate.isValid()) {
+        logger.warn("[ExpenseReport] Invalid bill date:", { bill });
+        return false;
+      }
+
       let dateMatches = true;
 
       // Apply date filters based on report type
-      if (reportType === 'monthly') {
-        const startOfMonth = dayjs(`${selectedYear}-${selectedMonth}-01`);
-        const endOfMonth = startOfMonth.endOf('month');
-        dateMatches = billDate.isBetween(startOfMonth, endOfMonth, 'day', '[]');
-      } else if (reportType === 'annual') {
-        const startOfYear = dayjs(selectedYear).startOf('year');
-        const endOfYear = dayjs(selectedYear).endOf('year');
-        dateMatches = billDate.isBetween(startOfYear, endOfYear, 'day', '[]');
-      } else if (reportType === 'custom' && dateRange.from && dateRange.to) {
-        const start = dayjs(dateRange.from).startOf('day');
-        const end = dayjs(dateRange.to).endOf('day');
-        dateMatches = billDate.isBetween(start, end, 'day', '[]');
-      } else if (reportType === 'all') {
-        // For 'all' type, apply date range if it exists
-        if (dateRange.from && dateRange.to) {
-          const start = dayjs(dateRange.from).startOf('day');
-          const end = dayjs(dateRange.to).endOf('day');
-          dateMatches = billDate.isBetween(start, end, 'day', '[]');
-        } else {
-          dateMatches = true; // No date filter if no range is selected
-        }
+      switch (reportType) {
+        case 'monthly':
+          const startOfMonth = dayjs(`${selectedYear}-${selectedMonth}-01`);
+          const endOfMonth = startOfMonth.endOf('month');
+          dateMatches = billDate.isBetween(startOfMonth, endOfMonth, 'day', '[]');
+          break;
+
+        case 'annual':
+          const startOfYear = dayjs(selectedYear).startOf('year');
+          const endOfYear = dayjs(selectedYear).endOf('year');
+          dateMatches = billDate.isBetween(startOfYear, endOfYear, 'day', '[]');
+          break;
+
+        case 'custom':
+        case 'all':
+          if (dateRange.from && dateRange.to) {
+            const start = dayjs(dateRange.from).startOf('day');
+            const end = dayjs(dateRange.to).endOf('day');
+            dateMatches = billDate.isBetween(start, end, 'day', '[]');
+          }
+          break;
       }
 
       // Apply category filter if selected
-      const categoryMatches = selectedCategory === 'all' || bill.category_id === Number(selectedCategory);
+      const categoryMatches = selectedCategory === 'all' || 
+                            bill.category_id === Number(selectedCategory);
 
       // Apply individual expense filter if selected
-      const expenseMatches = selectedExpense === 'all' || bill.id === Number(selectedExpense);
+      const expenseMatches = selectedExpense === 'all' || 
+                            bill.id === Number(selectedExpense);
 
       return dateMatches && categoryMatches && expenseMatches;
     }).map(bill => ({
       id: bill.id,
-      date: dayjs(bill.date).format('YYYY-MM-DD'),
+      date: billDate.format('YYYY-MM-DD'),
       description: bill.name,
       amount: bill.amount,
       type: 'expense' as const,
