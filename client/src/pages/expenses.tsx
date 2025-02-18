@@ -11,7 +11,7 @@ import { useData } from "@/contexts/DataContext";
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
-  const { bills, transactions } = useData();
+  const { bills } = useData();
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
     to: Date | undefined;
@@ -20,15 +20,12 @@ export default function ExpenseReport() {
     to: undefined
   });
 
-  // Filter transactions based on date range
-  const filteredTransactions = transactions.filter(transaction => {
+  // Filter bills based on date range
+  const filteredExpenses = bills.filter(bill => {
     if (!dateRange.from || !dateRange.to) return true;
-    const transactionDate = dayjs(transaction.date);
-    return (
-      transaction.type === 'expense' &&
-      transactionDate.isAfter(dayjs(dateRange.from).startOf('day')) && 
-      transactionDate.isBefore(dayjs(dateRange.to).endOf('day'))
-    );
+    const billDate = dayjs(bill.date);
+    return billDate.isAfter(dayjs(dateRange.from).startOf('day')) && 
+           billDate.isBefore(dayjs(dateRange.to).endOf('day'));
   });
 
   const handleOpenChange = (open: boolean) => {
@@ -61,7 +58,7 @@ export default function ExpenseReport() {
         <ExpenseReportDialog
           isOpen={isDialogOpen}
           onOpenChange={handleOpenChange}
-          expenses={filteredTransactions}
+          expenses={filteredExpenses}
           dateRange={dateRange}
         />
       )}
