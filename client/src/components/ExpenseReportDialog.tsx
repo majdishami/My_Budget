@@ -61,9 +61,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       startDate: date?.from ? dayjs(date.from).format('YYYY-MM-DD') : undefined,
       endDate: date?.to ? dayjs(date.to).format('YYYY-MM-DD') : undefined
     }],
-    enabled: showReport && !!date?.from && !!date?.to,
-    select: (data): ExpenseTransaction[] => 
-      data.filter((t): t is ExpenseTransaction => t.type === 'expense')
+    enabled: showReport && !!date?.from && !!date?.to
   });
 
   const today = dayjs();
