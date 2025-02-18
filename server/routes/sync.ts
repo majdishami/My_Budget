@@ -11,7 +11,6 @@ const router = Router();
 
 const validateAndPreprocessData = (data: any) => {
   try {
-    // Convert categories from object to array with single log statement
     const categoriesArray = Object.entries(data.categories || {}).map(([name, category]: [string, any]) => ({
       id: category.id,
       name,
@@ -22,7 +21,6 @@ const validateAndPreprocessData = (data: any) => {
     const categoryMap = new Map(categoriesArray.map(cat => [cat.name, cat]));
     const missingCategories: string[] = [];
 
-    // Process bills with validation tracking
     const billsArray = Object.entries(data.bills || {}).map(([id, bill]: [string, any]) => {
       const amount = typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount;
       const category = categoryMap.get(bill.category);
@@ -37,11 +35,16 @@ const validateAndPreprocessData = (data: any) => {
         name: bill.name,
         amount,
         day: bill.day,
-        category_id: category.id
+        category_id: category.id,
+        is_one_time: bill.is_one_time || false,
+        is_yearly: bill.is_yearly || false,
+        date: bill.date ? new Date(bill.date) : null,
+        yearly_date: bill.yearly_date ? new Date(bill.yearly_date) : null,
+        reminder_enabled: bill.reminder_enabled || false,
+        reminder_days: bill.reminder_days || 7
       };
     }).filter(Boolean);
 
-    // Process transactions with a single validation pass
     const transactionsArray = (data.transactions || []).map((t: any) => {
       const amount = typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount;
       const date = new Date(t.date);
@@ -60,7 +63,6 @@ const validateAndPreprocessData = (data: any) => {
       };
     });
 
-    // Single consolidated log for data validation results
     const summary = {
       categories: categoriesArray.length,
       bills: billsArray.length,
@@ -81,7 +83,6 @@ const validateAndPreprocessData = (data: any) => {
   }
 };
 
-// Backup endpoint with consolidated error handling
 router.post('/api/sync/backup', async (req, res) => {
   try {
     const result = await generateDatabaseBackup();
@@ -106,7 +107,13 @@ router.post('/api/sync/backup', async (req, res) => {
           name: bill.name,
           amount: typeof bill.amount === 'string' ? parseFloat(bill.amount) : bill.amount,
           day: bill.day,
-          category: category?.name || 'Other'
+          category: category?.name || 'Other',
+          is_one_time: bill.is_one_time || false,
+          is_yearly: bill.is_yearly || false,
+          date: bill.date,
+          yearly_date: bill.yearly_date,
+          reminder_enabled: bill.reminder_enabled || false,
+          reminder_days: bill.reminder_days || 7
         };
         return acc;
       }, {}),
@@ -129,8 +136,6 @@ router.post('/api/sync/backup', async (req, res) => {
   }
 });
 
-// Download endpoint - Remains unchanged
-
 router.get('/api/sync/download/:filename', (req, res) => {
   try {
     const { filename } = req.params;
@@ -148,7 +153,6 @@ router.get('/api/sync/download/:filename', (req, res) => {
         }
       }
 
-      // Clean up the file after download
       fs.unlink(filePath, (unlinkErr) => {
         if (unlinkErr) {
           console.error('Error deleting temporary file:', unlinkErr);
@@ -165,7 +169,6 @@ router.get('/api/sync/download/:filename', (req, res) => {
   }
 });
 
-// Restore endpoint with improved logging
 router.post('/api/sync/restore', async (req, res) => {
   let tempPath = '';
 
@@ -177,7 +180,6 @@ router.post('/api/sync/restore', async (req, res) => {
     const uploadedFile = req.files.backup as UploadedFile;
     tempPath = path.join(process.cwd(), 'tmp', `restore_${Date.now()}.json`);
 
-    // Ensure tmp directory exists
     const tmpDir = path.join(process.cwd(), 'tmp');
     if (!fs.existsSync(tmpDir)) {
       fs.mkdirSync(tmpDir, { recursive: true });
@@ -188,14 +190,12 @@ router.post('/api/sync/restore', async (req, res) => {
     const processedData = validateAndPreprocessData(JSON.parse(fileContent));
 
     await db.transaction(async (tx: any) => {
-      // Single log for restoration progress
       const restored = {
         categories: 0,
         bills: 0,
         transactions: 0
       };
 
-      // Restore categories
       for (const category of processedData.categories) {
         await tx.insert(categories).values(category)
           .onConflictDoUpdate({
@@ -209,7 +209,6 @@ router.post('/api/sync/restore', async (req, res) => {
         restored.categories++;
       }
 
-      // Restore bills
       for (const bill of processedData.bills) {
         await tx.insert(bills).values(bill)
           .onConflictDoUpdate({
@@ -218,13 +217,18 @@ router.post('/api/sync/restore', async (req, res) => {
               name: sql`EXCLUDED.name`,
               amount: sql`EXCLUDED.amount`,
               day: sql`EXCLUDED.day`,
-              category_id: sql`EXCLUDED.category_id`
+              category_id: sql`EXCLUDED.category_id`,
+              is_one_time: sql`EXCLUDED.is_one_time`,
+              is_yearly: sql`EXCLUDED.is_yearly`,
+              date: sql`EXCLUDED.date`,
+              yearly_date: sql`EXCLUDED.yearly_date`,
+              reminder_enabled: sql`EXCLUDED.reminder_enabled`,
+              reminder_days: sql`EXCLUDED.reminder_days`
             }
           });
         restored.bills++;
       }
 
-      // Restore transactions
       for (const transaction of processedData.transactions) {
         await tx.insert(transactions).values({
           ...transaction,
