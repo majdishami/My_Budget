@@ -38,6 +38,14 @@ interface ExpenseReportDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface MonthlyTransactions {
+  monthKey: string;
+  transactions: Transaction[];
+  total: number;
+  paid: number;
+  pending: number;
+}
+
 export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseReportDialogProps) {
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
@@ -57,12 +65,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ['/api/transactions', {
       type: 'expense',
-      startDate: date?.from ? dayjs(date.from).startOf('day').format('YYYY-MM-DD') : undefined,
-      endDate: date?.to ? dayjs(date.to).endOf('day').format('YYYY-MM-DD') : undefined
+      startDate: date?.from ? dayjs(date.from).startOf('month').format('YYYY-MM-DD') : undefined,
+      endDate: date?.to ? dayjs(date.to).endOf('month').format('YYYY-MM-DD') : undefined
     }],
-    enabled: showReport && !!date?.from && !!date?.to,
-    staleTime: 0,
-    gcTime: 0
+    enabled: showReport && !!date?.from && !!date?.to
   });
 
   // Filter and process transactions
@@ -74,26 +80,53 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       .map(transaction => ({
         ...transaction,
         occurred: dayjs(transaction.date).isSameOrBefore(currentDate)
-      }))
-      .sort((a, b) => dayjs(a.date).diff(dayjs(b.date))); // Sort by date ascending
+      }));
   }, [transactions, date, currentDate]);
 
-  // Calculate totals
+  // Group transactions by month
+  const monthlyData = useMemo(() => {
+    if (!date?.from || !date?.to) return [];
+
+    const startMonth = dayjs(date.from).startOf('month');
+    const endMonth = dayjs(date.to).endOf('month');
+    const months: MonthlyTransactions[] = [];
+
+    let currentMonth = startMonth;
+    while (currentMonth.isSameOrBefore(endMonth, 'month')) {
+      const monthKey = currentMonth.format('YYYY-MM');
+      const monthTransactions = filteredTransactions.filter(t => 
+        dayjs(t.date).format('YYYY-MM') === monthKey
+      );
+
+      const total = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const paid = monthTransactions
+        .filter(t => t.occurred)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      months.push({
+        monthKey,
+        transactions: monthTransactions,
+        total,
+        paid,
+        pending: total - paid
+      });
+
+      currentMonth = currentMonth.add(1, 'month');
+    }
+
+    return months.filter(month => month.transactions.length > 0);
+  }, [filteredTransactions, date]);
+
+  // Calculate overall totals
   const totals = useMemo(() => {
-    const paid = filteredTransactions
-      .filter(t => t.occurred)
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const pending = filteredTransactions
-      .filter(t => !t.occurred)
-      .reduce((sum, t) => sum + t.amount, 0);
-
+    const total = monthlyData.reduce((sum, month) => sum + month.total, 0);
+    const paid = monthlyData.reduce((sum, month) => sum + month.paid, 0);
     return {
-      total: paid + pending,
+      total,
       paid,
-      pending
+      pending: total - paid
     };
-  }, [filteredTransactions]);
+  }, [monthlyData]);
 
   // Handle date selection
   const handleDateSelect = (selectedDate: DateRange | undefined) => {
@@ -107,13 +140,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   };
 
-  // Selection view
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Generate Expense Report</DialogTitle>
+            <DialogTitle>Select Date Range</DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col space-y-4">
@@ -174,7 +206,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     );
   }
 
-  // Report view
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -198,7 +229,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Summary Card */}
+            {/* Overall Summary Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Total Expenses</CardTitle>
@@ -224,40 +255,57 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
               </CardContent>
             </Card>
 
-            {/* Expense List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Expense Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTransactions.map((transaction) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                        <TableCell>
-                          <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
-                            {transaction.occurred ? 'Paid' : 'Pending'}
-                          </span>
-                        </TableCell>
+            {/* Monthly Breakdown */}
+            {monthlyData.map(month => (
+              <Card key={month.monthKey}>
+                <CardHeader>
+                  <CardTitle className="text-lg font-medium flex justify-between items-center">
+                    <span>{dayjs(month.monthKey).format('MMMM YYYY')}</span>
+                    <span className="text-base">
+                      Total: {formatCurrency(month.total)}
+                    </span>
+                  </CardTitle>
+                  <div className="text-sm space-y-1">
+                    <div className="text-red-600">
+                      Paid: {formatCurrency(month.paid)}
+                    </div>
+                    <div className="text-yellow-600">
+                      Pending: {formatCurrency(month.pending)}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {month.transactions
+                        .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
+                        .map((transaction) => (
+                          <TableRow key={transaction.id}>
+                            <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                            <TableCell>{transaction.description}</TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrency(transaction.amount)}
+                            </TableCell>
+                            <TableCell>
+                              <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
+                                {transaction.occurred ? 'Paid' : 'Pending'}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </DialogContent>
