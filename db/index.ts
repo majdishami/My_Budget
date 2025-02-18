@@ -138,7 +138,6 @@ async function testConnection(retries = 5) {
       });
 
       if (attempt === retries) {
-        console.error('All connection attempts failed. Please check your database configuration and connectivity.');
         throw error;
       }
 
@@ -154,9 +153,10 @@ async function testConnection(retries = 5) {
   return false;
 }
 
-// Initialize connection with better error handling
+// Initialize connection with improved error handling and graceful shutdown
 console.log('Initializing database connection...');
 testConnection().catch(error => {
+  // Log detailed error information
   console.error('Fatal database configuration error:', {
     message: error instanceof Error ? error.message : 'Unknown error',
     code: (error as any)?.code,
@@ -168,7 +168,14 @@ testConnection().catch(error => {
   console.log('Database URL format:', process.env.DATABASE_URL ? 
     process.env.DATABASE_URL.replace(/:[^:@]*@/, ':****@') : 'Not set');
 
-  process.exit(1);
+  // Initiate graceful shutdown
+  console.log('Initiating graceful shutdown...');
+
+  // Allow pending logs to be written before exiting
+  process.nextTick(() => {
+    console.log('Shutting down application...');
+    process.exit(1);
+  });
 });
 
 export { db, pool };
