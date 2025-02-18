@@ -49,6 +49,15 @@ export default function ExpenseReport() {
         const start = dayjs(dateRange.from).startOf('day');
         const end = dayjs(dateRange.to).endOf('day');
         dateMatches = billDate.isBetween(start, end, 'day', '[]');
+      } else if (reportType === 'all') {
+        // For 'all' type, apply date range if it exists
+        if (dateRange.from && dateRange.to) {
+          const start = dayjs(dateRange.from).startOf('day');
+          const end = dayjs(dateRange.to).endOf('day');
+          dateMatches = billDate.isBetween(start, end, 'day', '[]');
+        } else {
+          dateMatches = true; // No date filter if no range is selected
+        }
       }
 
       // Apply category filter if selected
