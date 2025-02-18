@@ -68,7 +68,6 @@ import { logger } from './lib/logger';
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
   const [location] = useLocation();
-  const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const today = dayjs('2025-02-11');
@@ -105,7 +104,7 @@ function Router() {
       }
       setSelectedIncome(income);
       setShowEditIncomeDialog(true);
-    } else {
+    } else if (type === 'bill') {
       setSelectedBill(transaction as Bill);
       setShowEditExpenseDialog(true);
     }
@@ -144,15 +143,6 @@ function Router() {
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
-    }
-  };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await refresh();
-    } finally {
-      setIsRefreshing(false);
     }
   };
 

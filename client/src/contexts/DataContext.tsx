@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { Income, Bill } from "@/types";
 import dayjs from "dayjs";
 import { logger } from "@/lib/logger";
+import crypto from 'crypto';
 
 interface DataContextType {
   incomes: Income[];
@@ -26,13 +27,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Load transactions from the API
+  // Load transactions from the API with safer error handling
   const loadData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      console.log('[DataContext] Starting to fetch transactions...');
+      logger.info("[DataContext] Starting to fetch transactions...");
       const response = await fetch('/api/transactions', {
         method: 'GET',
         headers: {
@@ -45,49 +46,62 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       const transactions = await response.json();
-      console.log('[DataContext] Raw transactions:', transactions);
+      logger.info("[DataContext] Raw transactions:", transactions);
 
-      // Process incomes
-      const loadedIncomes = transactions
-        .filter((t: any) => t.type === 'income')
-        .map((t: any) => ({
-          id: t.id.toString(),
-          source: t.description,
-          amount: parseFloat(t.amount),
-          date: dayjs(t.date).format('YYYY-MM-DD'),
-          occurrenceType: t.recurring_type || 'once',
-          firstDate: t.first_date,
-          secondDate: t.second_date
-        }));
+      // Safely process incomes with error handling
+      try {
+        const loadedIncomes = transactions
+          .filter((t: any) => t.type === 'income')
+          .map((t: any) => ({
+            id: t.id?.toString() || crypto.randomUUID(),
+            source: t.description || 'Unknown Source',
+            amount: parseFloat(t.amount) || 0,
+            date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+            occurrenceType: t.recurring_type || 'once',
+            firstDate: t.first_date,
+            secondDate: t.second_date
+          }));
 
-      setIncomes(loadedIncomes);
+        setIncomes(loadedIncomes);
+      } catch (error) {
+        logger.error("[DataContext] Error processing incomes:", error);
+        setIncomes([]);
+      }
 
-      // Process bills/expenses
-      const loadedBills = transactions
-        .filter((t: any) => t.type === 'expense')
-        .map((t: any) => ({
-          id: t.id.toString(),
-          name: t.description,
-          amount: parseFloat(t.amount),
-          date: dayjs(t.date).format('YYYY-MM-DD'),
-          isOneTime: !t.recurring_id,
-          day: dayjs(t.date).date(),
-          category_id: t.category_id,
-          category_name: t.category_name,
-          category_color: t.category_color,
-          category_icon: t.category_icon,
-          category: t.category_id ? {
-            name: t.category_name,
-            color: t.category_color,
-            icon: t.category_icon
-          } : undefined
-        }));
+      // Safely process bills/expenses with error handling
+      try {
+        const loadedBills = transactions
+          .filter((t: any) => t.type === 'expense')
+          .map((t: any) => ({
+            id: t.id?.toString() || crypto.randomUUID(),
+            name: t.description || 'Unknown Expense',
+            amount: parseFloat(t.amount) || 0,
+            date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+            isOneTime: !t.recurring_id,
+            day: dayjs(t.date).date(),
+            category_id: t.category_id || null,
+            category_name: t.category_name || 'Uncategorized',
+            category_color: t.category_color || '#808080',
+            category_icon: t.category_icon || 'help-circle',
+            category: t.category_id ? {
+              name: t.category_name || 'Uncategorized',
+              color: t.category_color || '#808080',
+              icon: t.category_icon || 'help-circle'
+            } : undefined
+          }));
 
-      setBills(loadedBills);
+        setBills(loadedBills);
+      } catch (error) {
+        logger.error("[DataContext] Error processing bills:", error);
+        setBills([]);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
       logger.error("[DataContext] Error loading data:", { error });
       setError(new Error(errorMessage));
+      // Set empty arrays as fallback
+      setIncomes([]);
+      setBills([]);
     } finally {
       setIsLoading(false);
     }
@@ -195,7 +209,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null);
       const isIncome = 'source' in transaction;
-      logger.info("[DataContext] Editing transaction:", { 
+      logger.info("[DataContext] Editing transaction:", {
         transaction,
         type: isIncome ? 'income' : 'expense'
       });
@@ -220,7 +234,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
 
       const responseData = await response.json().catch(() => ({}));
-      logger.info("[DataContext] Edit transaction response:", { 
+      logger.info("[DataContext] Edit transaction response:", {
         status: response.status,
         statusText: response.statusText,
         data: responseData
@@ -232,11 +246,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Update local state before fetching fresh data
       if (isIncome) {
-        setIncomes(prev => prev.map(inc => 
+        setIncomes(prev => prev.map(inc =>
           inc.id === transaction.id ? { ...inc, ...transaction } : inc
         ));
       } else {
-        setBills(prev => prev.map(bill => 
+        setBills(prev => prev.map(bill =>
           bill.id === transaction.id ? { ...bill, ...transaction } : bill
         ));
       }
