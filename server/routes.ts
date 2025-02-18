@@ -496,7 +496,7 @@ export function registerRoutes(app: Express): Server {
         });
       });
 
-      return res.status(204).send();
+      return res.status(200).json({ message: 'Transaction deleted successfully' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('[Transactions API] Error deleting transaction:', {

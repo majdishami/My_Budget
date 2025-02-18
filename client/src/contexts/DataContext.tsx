@@ -43,7 +43,7 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
       case 'twice-monthly':
         if (baseIncome.firstDate && baseIncome.secondDate) {
           const monthDate = baseDate.add(Math.floor(i / 2), 'month');
-          date = i % 2 === 0 
+          date = i % 2 === 0
             ? monthDate.date(baseIncome.firstDate)
             : monthDate.date(baseIncome.secondDate);
         } else {
@@ -276,8 +276,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const deleteTransaction = async (transaction: Income | Bill) => {
     try {
       setError(null);
-      const baseId = getBaseId(transaction.id);
-      logger.info("[DataContext] Deleting transaction:", { transaction, baseId });
+      // Get the base ID without any suffix for recurring transactions
+      const baseId = transaction.id.split('-')[0];
+
+      logger.info("[DataContext] Deleting transaction:", {
+        originalId: transaction.id,
+        baseId,
+        type: 'source' in transaction ? 'income' : 'bill'
+      });
 
       const response = await fetch(`/api/transactions/${baseId}`, {
         method: 'DELETE',
@@ -293,9 +299,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Update local state
       if ('source' in transaction) {
-        // For incomes, remove all instances of the recurring income
-        const baseTransactionId = getBaseId(transaction.id);
-        setIncomes(prev => prev.filter(inc => getBaseId(inc.id) !== baseTransactionId));
+        // For incomes, remove all instances of the recurring income (all entries with same base ID)
+        const baseTransactionId = transaction.id.split('-')[0];
+        setIncomes(prev => prev.filter(inc => !inc.id.startsWith(baseTransactionId)));
       } else {
         setBills(prev => prev.filter(bill => bill.id !== transaction.id));
       }
@@ -355,7 +361,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           return [...filtered, ...expandedIncomes];
         });
       } else {
-        setBills(prev => prev.map(bill => 
+        setBills(prev => prev.map(bill =>
           bill.id === transaction.id ? transaction as Bill : bill
         ));
       }
