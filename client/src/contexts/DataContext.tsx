@@ -198,16 +198,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const loadedCategories = new Map<number, Category>();
 
       transactions.forEach((t: any) => {
-        const date = dayjs(t.date).isValid()
-          ? dayjs(t.date).format('YYYY-MM-DD')
-          : dayjs().format('YYYY-MM-DD');
+        const date = dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : null;
+        if (!date) {
+          logger.warn(`[DataContext] Invalid date for transaction ID: ${t.id}, using today's date.`);
+        }
+
+        const finalDate = date || dayjs().format('YYYY-MM-DD');
 
         if (t.type === 'income') {
           const income = {
             id: t.id,
             source: t.description || 'Unknown Source',
             amount: parseFloat(t.amount) || 0,
-            date,
+            date: finalDate,
             occurrenceType: t.recurring_type || 'once',
             firstDate: t.first_date,
             secondDate: t.second_date
@@ -230,9 +233,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             id: t.id,
             name: t.description || 'Unknown Expense',
             amount: parseFloat(t.amount) || 0,
-            date,
+            date: finalDate,
             isOneTime: !t.recurring_id,
-            day: dayjs(t.date).date(),
+            day: dayjs(finalDate).date(),
             category_id: t.category_id || null,
             category_name: t.category_name || 'Uncategorized',
             category_color: t.category_color || '#808080',
