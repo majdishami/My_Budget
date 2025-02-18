@@ -25,11 +25,20 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 // Helper function to expand recurring income into multiple entries
 const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   const incomes: Income[] = [];
+
+  // Validate date before processing
+  if (!baseIncome.date || !dayjs(baseIncome.date).isValid()) {
+    logger.error("[DataContext] Invalid date in income:", { income: baseIncome });
+    throw new Error('Invalid date format in income');
+  }
+
+  // For one-time income, return as is
   if (baseIncome.occurrenceType === 'once') {
     return [baseIncome];
   }
 
   const baseDate = dayjs(baseIncome.date);
+  let currentDate = baseDate;
 
   for (let i = 0; i < months; i++) {
     let date;
@@ -54,13 +63,24 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         date = baseDate.add(i, 'week');
         break;
       default:
-        date = baseDate;
+        logger.error("[DataContext] Unknown occurrence type:", { 
+          type: baseIncome.occurrenceType,
+          income: baseIncome 
+        });
+        throw new Error(`Unknown occurrence type: ${baseIncome.occurrenceType}`);
+    }
+
+    // Validate generated date
+    if (!date.isValid()) {
+      logger.error("[DataContext] Generated invalid date:", { 
+        date: date.format(),
+        income: baseIncome 
+      });
+      continue;
     }
 
     // For recurring entries, create a numeric ID based on the base ID
-    const instanceId = baseIncome.occurrenceType === 'once'
-      ? baseIncome.id
-      : Number(`${baseIncome.id}${i + 1}`);
+    const instanceId = Number(`${baseIncome.id}${i + 1}`);
 
     incomes.push({
       ...baseIncome,
@@ -68,6 +88,12 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
       date: date.format('YYYY-MM-DD')
     });
   }
+
+  logger.info("[DataContext] Expanded recurring income:", {
+    baseId: baseIncome.id,
+    occurrenceType: baseIncome.occurrenceType,
+    instanceCount: incomes.length
+  });
 
   return incomes;
 };
