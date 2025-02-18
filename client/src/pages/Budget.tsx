@@ -148,7 +148,7 @@ export function Budget() {
   const { incomes, bills: rawBills, isLoading, error } = useData();
   const today = useMemo(() => dayjs(), []); 
   const [selectedDay, setSelectedDay] = useState(today.date());
-  const [selectedMonth, setSelectedMonth] = useState(today.month() +1); // 1-based month
+  const [selectedMonth, setSelectedMonth] = useState(today.month()); // Changed to 0-based
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [showDailySummary, setShowDailySummary] = useState(false);
 
@@ -162,13 +162,13 @@ export function Budget() {
 
   // Calculate daysInMonth early
   const daysInMonth = useMemo(() => {
-    return dayjs().year(selectedYear).month(selectedMonth -1).daysInMonth();
+    return dayjs().year(selectedYear).month(selectedMonth).daysInMonth();
   }, [selectedYear, selectedMonth]);
 
   // Optimize months and years calculations
   const months = useMemo(() => 
     Array.from({ length: 12 }, (_, i) => ({
-      value: i + 1,
+      value: i, // Changed to 0-based
       label: dayjs().month(i).format('MMMM')
     })), 
   []); 
@@ -194,7 +194,7 @@ export function Budget() {
         id: `majdi-${day}-${selectedMonth}-${selectedYear}`,
         source: "Majdi's Salary",
         amount: 4739,
-        date: dayjs().year(selectedYear).month(selectedMonth -1).date(day).format('YYYY-MM-DD'),
+        date: dayjs().year(selectedYear).month(selectedMonth).date(day).format('YYYY-MM-DD'),
         occurrenceType: 'twice-monthly' as const
       };
       uniqueIncomes.add("Majdi's Salary");
@@ -204,7 +204,7 @@ export function Budget() {
     // Handle Ruba's bi-weekly salary
     const currentDate = dayjs()
       .year(selectedYear)
-      .month(selectedMonth -1)
+      .month(selectedMonth)
       .date(day);
 
     // Only process if it's a Friday
@@ -233,7 +233,7 @@ export function Budget() {
     incomes.forEach(income => {
       const incomeDate = dayjs(income.date);
       if (incomeDate.date() === day && 
-          incomeDate.month() === selectedMonth -1 && 
+          incomeDate.month() === selectedMonth && 
           incomeDate.year() === selectedYear &&
           !uniqueIncomes.has(income.source)) {
         uniqueIncomes.add(income.source);
@@ -248,32 +248,15 @@ export function Budget() {
   const getBillsForDay = useCallback((day: number) => {
     if (day <= 0 || day > daysInMonth) return [];
 
-    // Debug logging
-    console.log('getBillsForDay called with:', {
-      day,
-      selectedMonth,
-      selectedYear,
-      totalBills: bills.length,
-      bills: bills.map(b => ({
-        id: b.id,
-        name: b.name,
-        day: b.day,
-        isYearly: b.isYearly,
-        isOneTime: b.isOneTime
-      }))
-    });
-
     const result: Bill[] = [];
 
     // Add monthly bills first (these show up every month)
     const monthlyBills = bills.filter(b => !b.isYearly && !b.isOneTime && b.day === day);
-    console.log('Monthly bills for day', day, ':', monthlyBills.length);
-
     monthlyBills.forEach(bill => {
       result.push({
         ...bill,
         id: `${bill.id}-${selectedMonth}-${selectedYear}`,
-        date: dayjs().year(selectedYear).month(selectedMonth - 1).date(day).format('YYYY-MM-DD')
+        date: dayjs().year(selectedYear).month(selectedMonth).date(day).format('YYYY-MM-DD')
       });
     });
 
@@ -281,11 +264,9 @@ export function Budget() {
     const yearlyBills = bills.filter(b => 
       b.isYearly && 
       b.yearly_date && 
-      dayjs(b.yearly_date).month() === selectedMonth - 1 && 
+      dayjs(b.yearly_date).month() === selectedMonth && 
       dayjs(b.yearly_date).date() === day
     );
-    console.log('Yearly bills for day', day, ':', yearlyBills.length);
-
     yearlyBills.forEach(bill => {
       result.push({
         ...bill,
@@ -299,11 +280,9 @@ export function Budget() {
       b.isOneTime && 
       b.date && 
       dayjs(b.date).year() === selectedYear &&
-      dayjs(b.date).month() === selectedMonth - 1 && 
+      dayjs(b.date).month() === selectedMonth && 
       dayjs(b.date).date() === day
     );
-    console.log('One-time bills for day', day, ':', oneTimeBills.length);
-
     oneTimeBills.forEach(bill => {
       result.push({
         ...bill,
@@ -312,19 +291,11 @@ export function Budget() {
       });
     });
 
-    console.log('Total bills returned for day', day, ':', result.length);
     return result;
   }, [bills, selectedYear, selectedMonth, daysInMonth]);
 
   // Update monthly totals calculation to handle recurring bills
   const monthlyTotals = useMemo(() => {
-    console.log('Calculating monthly totals:', {
-      selectedMonth,
-      selectedYear,
-      incomes,
-      bills
-    });
-
     // Calculate total income
     let totalIncome = 0;
 
@@ -332,7 +303,7 @@ export function Budget() {
     totalIncome += 4739 * 2; // Majdi's salary occurs twice per month
 
     // Handle Ruba's bi-weekly salary
-    const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth -1).startOf('month');
+    const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
     const lastDayOfMonth = firstDayOfMonth.endOf('month');
     let currentDate = firstDayOfMonth;
 
@@ -371,7 +342,7 @@ export function Budget() {
     let totalIncome = 0;
     let totalBills = 0;
 
-    const targetDate = dayjs().year(selectedYear).month(selectedMonth -1).date(day);
+    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
 
     // Calculate income up to target date
     for (let currentDay = 1; currentDay <= day; currentDay++) {
@@ -390,14 +361,14 @@ export function Budget() {
 
   // Handle month and year changes with validation
   const handleMonthChange = useCallback((month: number) => {
-    setSelectedMonth(month);
-    const days = dayjs().year(selectedYear).month(month -1).daysInMonth();
+    setSelectedMonth(month); // Already 0-based
+    const days = dayjs().year(selectedYear).month(month).daysInMonth();
     setSelectedDay(Math.min(selectedDay, days));
   }, [selectedYear, selectedDay]);
 
   const handleYearChange = useCallback((year: number) => {
     setSelectedYear(year);
-    const days = dayjs().year(year).month(selectedMonth -1).daysInMonth();
+    const days = dayjs().year(year).month(selectedMonth).daysInMonth();
     setSelectedDay(Math.min(selectedDay, days));
   }, [selectedMonth, selectedDay]);
 
@@ -405,7 +376,7 @@ export function Budget() {
   const calendarData = useMemo(() => {
     const firstDayDate = dayjs()
       .year(selectedYear)
-      .month(selectedMonth -1)
+      .month(selectedMonth)
       .startOf('month');
 
     const daysInMonth = firstDayDate.daysInMonth();
@@ -441,7 +412,7 @@ export function Budget() {
     const now = dayjs();
     return (
       dayNumber === now.date() &&
-      selectedMonth -1 === now.month() &&
+      selectedMonth === now.month() &&
       selectedYear === now.year()
     );
   }, [selectedMonth, selectedYear]);
@@ -498,7 +469,7 @@ export function Budget() {
               ))}
             </select>
 
-            {selectedMonth === today.month() +1 && selectedYear === today.year() && (
+            {selectedMonth === today.month() && selectedYear === today.year() && (
               <span className="text-[10px] md:text-sm text-muted-foreground ml-1 md:ml-2">
                 {today.format('ddd')}, {today.format('D')}
               </span>
