@@ -25,9 +25,8 @@ export function DayContent({ day, bills = [], incomes = [], onClick }: DayConten
   const hasTransactions = uniqueIncomes.length > 0 || dayBills.length > 0;
 
   const handleClick = () => {
-    if (onClick) {
-      onClick(day.getDate());
-    }
+    // Use optional chaining to safely call onClick
+    onClick?.(day.getDate());
   };
 
   return (
