@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
-  color: z.string(),
+  color: z.string().min(1, "Color is required"),
   icon: z.string().nullable().optional()
 });
 
@@ -90,9 +90,14 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       {...field} 
                       type="text"
                       name={`category_name_${randomInputId}`}
-                      autoComplete="off"
+                      autoComplete="new-password"
                       data-lpignore="true"
                       data-form-type="other"
+                      aria-autocomplete="none"
+                      aria-label="Category name"
+                      data-private="true"
+                      autoCapitalize="off"
+                      autoCorrect="off"
                     />
                   </FormControl>
                   <FormMessage />
@@ -147,9 +152,14 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       onChange={(e) => field.onChange(e.target.value || null)}
                       type="text"
                       name={`category_icon_${randomInputId}`}
-                      autoComplete="off"
+                      autoComplete="new-password"
                       data-lpignore="true"
                       data-form-type="other"
+                      aria-autocomplete="none"
+                      aria-label="Category icon"
+                      data-private="true"
+                      autoCapitalize="off"
+                      autoCorrect="off"
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground mt-1">
