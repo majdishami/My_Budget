@@ -120,7 +120,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     gcTime: 0
   });
 
-  // Query transactions with date range filter
+  // Query transactions with proper date range filter
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ['/api/transactions', { 
       type: 'expense',
@@ -132,18 +132,23 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
 
   const isLoading = billsLoading || transactionsLoading || categoriesLoading;
 
-  // Filter transactions by date range
+  // Filter transactions by date range and update occurred status
   const filteredTransactions = useMemo(() => {
     if (!date?.from || !date?.to) return transactions;
 
-    return transactions.filter(transaction => {
-      const transactionDate = dayjs(transaction.date);
-      return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
-             transactionDate.isSameOrBefore(dayjs(date.to), 'day');
-    });
-  }, [transactions, date]);
+    return transactions
+      .filter(transaction => {
+        const transactionDate = dayjs(transaction.date);
+        return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
+               transactionDate.isSameOrBefore(dayjs(date.to), 'day');
+      })
+      .map(transaction => ({
+        ...transaction,
+        occurred: dayjs(transaction.date).isSameOrBefore(currentDate, 'day')
+      }));
+  }, [transactions, date, currentDate]);
 
-  // Calculate category totals
+  // Calculate category totals with corrected occurred status
   const categoryTotals = useMemo(() => {
     const totals: Record<string, CategoryTotal> = {};
 
@@ -164,6 +169,8 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
 
       const total = totals[category_name];
       total.total += transaction.amount;
+
+      // Use the corrected occurred status
       if (transaction.occurred) {
         total.occurred += transaction.amount;
       } else {
@@ -318,13 +325,21 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                     <div>
                       <div className="text-sm text-muted-foreground">Paid</div>
                       <div className="text-lg font-semibold text-red-600">
-                        {formatCurrency(filteredTransactions.filter(t => t.occurred).reduce((sum, t) => sum + t.amount, 0))}
+                        {formatCurrency(
+                          filteredTransactions
+                            .filter(t => t.occurred)
+                            .reduce((sum, t) => sum + t.amount, 0)
+                        )}
                       </div>
                     </div>
                     <div>
                       <div className="text-sm text-muted-foreground">Pending</div>
                       <div className="text-lg font-semibold text-yellow-600">
-                        {formatCurrency(filteredTransactions.filter(t => !t.occurred).reduce((sum, t) => sum + t.amount, 0))}
+                        {formatCurrency(
+                          filteredTransactions
+                            .filter(t => !t.occurred)
+                            .reduce((sum, t) => sum + t.amount, 0)
+                        )}
                       </div>
                     </div>
                   </div>
