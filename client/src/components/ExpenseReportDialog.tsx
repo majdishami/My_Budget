@@ -61,22 +61,31 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  // Query all expense transactions within the date range
+  // Query transactions for the selected date range
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
-    queryKey: ['/api/transactions', {
+    queryKey: ['/api/transactions', { 
       type: 'expense',
-      startDate: date?.from ? dayjs(date.from).startOf('month').format('YYYY-MM-DD') : undefined,
-      endDate: date?.to ? dayjs(date.to).endOf('month').format('YYYY-MM-DD') : undefined
+      // Do not use startOf/endOf month to allow precise date range selection
+      startDate: date?.from?.toISOString(),
+      endDate: date?.to?.toISOString()
     }],
     enabled: showReport && !!date?.from && !!date?.to
   });
 
-  // Filter and process transactions
+  // Filter transactions by date range and type
   const filteredTransactions = useMemo(() => {
-    if (!date?.from || !date?.to) return [];
+    if (!date?.from || !date?.to || !transactions.length) return [];
 
     return transactions
-      .filter(t => t.type === 'expense')
+      .filter(transaction => {
+        // Only include expense transactions
+        if (transaction.type !== 'expense') return false;
+
+        // Check if transaction date is within the selected range
+        const transactionDate = dayjs(transaction.date);
+        return transactionDate.isSameOrAfter(dayjs(date.from), 'day') &&
+               transactionDate.isSameOrBefore(dayjs(date.to), 'day');
+      })
       .map(transaction => ({
         ...transaction,
         occurred: dayjs(transaction.date).isSameOrBefore(currentDate)
@@ -85,37 +94,37 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
 
   // Group transactions by month
   const monthlyData = useMemo(() => {
-    if (!date?.from || !date?.to) return [];
+    if (!filteredTransactions.length) return [];
 
-    const startMonth = dayjs(date.from).startOf('month');
-    const endMonth = dayjs(date.to).endOf('month');
-    const months: MonthlyTransactions[] = [];
+    const monthGroups: Record<string, Transaction[]> = {};
 
-    let currentMonth = startMonth;
-    while (currentMonth.isSameOrBefore(endMonth, 'month')) {
-      const monthKey = currentMonth.format('YYYY-MM');
-      const monthTransactions = filteredTransactions.filter(t => 
-        dayjs(t.date).format('YYYY-MM') === monthKey
-      );
+    // Group transactions by month
+    filteredTransactions.forEach(transaction => {
+      const monthKey = dayjs(transaction.date).format('YYYY-MM');
+      if (!monthGroups[monthKey]) {
+        monthGroups[monthKey] = [];
+      }
+      monthGroups[monthKey].push(transaction);
+    });
 
-      const total = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
-      const paid = monthTransactions
-        .filter(t => t.occurred)
-        .reduce((sum, t) => sum + t.amount, 0);
+    // Convert groups to array and calculate totals
+    return Object.entries(monthGroups)
+      .map(([monthKey, transactions]) => {
+        const total = transactions.reduce((sum, t) => sum + t.amount, 0);
+        const paid = transactions
+          .filter(t => t.occurred)
+          .reduce((sum, t) => sum + t.amount, 0);
 
-      months.push({
-        monthKey,
-        transactions: monthTransactions,
-        total,
-        paid,
-        pending: total - paid
-      });
-
-      currentMonth = currentMonth.add(1, 'month');
-    }
-
-    return months.filter(month => month.transactions.length > 0);
-  }, [filteredTransactions, date]);
+        return {
+          monthKey,
+          transactions: transactions.sort((a, b) => dayjs(a.date).diff(dayjs(b.date))),
+          total,
+          paid,
+          pending: total - paid
+        };
+      })
+      .sort((a, b) => dayjs(a.monthKey).diff(dayjs(b.monthKey)));
+  }, [filteredTransactions]);
 
   // Calculate overall totals
   const totals = useMemo(() => {
@@ -127,18 +136,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
       pending: total - paid
     };
   }, [monthlyData]);
-
-  // Handle date selection
-  const handleDateSelect = (selectedDate: DateRange | undefined) => {
-    if (selectedDate?.from && !selectedDate.to) {
-      setDate({
-        from: selectedDate.from,
-        to: selectedDate.from
-      });
-    } else {
-      setDate(selectedDate);
-    }
-  };
 
   if (!showReport) {
     return (
@@ -194,6 +191,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                   setDateError("Please select start and end dates");
                   return;
                 }
+                setDateError(null);
                 setShowReport(true);
               }}
               disabled={!date?.from || !date?.to || transactionsLoading}
@@ -285,22 +283,20 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {month.transactions
-                        .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)))
-                        .map((transaction) => (
-                          <TableRow key={transaction.id}>
-                            <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                            <TableCell>{transaction.description}</TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(transaction.amount)}
-                            </TableCell>
-                            <TableCell>
-                              <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
-                                {transaction.occurred ? 'Paid' : 'Pending'}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                      {month.transactions.map((transaction) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(transaction.amount)}
+                          </TableCell>
+                          <TableCell>
+                            <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
+                              {transaction.occurred ? 'Paid' : 'Pending'}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </CardContent>
