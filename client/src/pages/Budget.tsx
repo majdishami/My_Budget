@@ -145,12 +145,20 @@ const DayCell = memo(({
 DayCell.displayName = 'DayCell';
 
 export function Budget() {
-  const { incomes, bills, isLoading, error } = useData();
+  const { incomes, bills: rawBills, isLoading, error } = useData();
   const today = useMemo(() => dayjs(), []); 
   const [selectedDay, setSelectedDay] = useState(today.date());
   const [selectedMonth, setSelectedMonth] = useState(today.month() +1); // 1-based month
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [showDailySummary, setShowDailySummary] = useState(false);
+
+  // Transform bills to have proper recurrence flags
+  const bills = useMemo(() => rawBills.map(bill => ({
+    ...bill,
+    isOneTime: false, // Default to monthly recurring bills
+    isYearly: false, // No yearly bills in this set
+    date: undefined, // Clear any date as these are monthly recurring
+  })), [rawBills]);
 
   // Calculate daysInMonth early
   const daysInMonth = useMemo(() => {
