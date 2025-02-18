@@ -461,26 +461,16 @@ export function registerRoutes(app: Express): Server {
       const transactionId = req.params.id;
       console.log('[Transactions API] Attempting to delete transaction:', { id: transactionId });
 
-      // Convert ID to number and validate
-      const numericId = parseInt(transactionId);
-      if (isNaN(numericId)) {
-        console.error('[Transactions API] Invalid transaction ID:', { id: transactionId });
-        return res.status(400).json({ 
-          message: 'Invalid transaction ID',
-          error: `Invalid transaction ID format: ${transactionId}`
-        });
-      }
-
-      // Find the transaction first
+      // Find the transaction first - using the string ID directly
       const transaction = await db.query.transactions.findFirst({
-        where: eq(transactions.id, numericId)
+        where: eq(transactions.id, transactionId)
       });
 
       if (!transaction) {
-        console.log('[Transactions API] Transaction not found:', { id: numericId });
+        console.log('[Transactions API] Transaction not found:', { id: transactionId });
         return res.status(404).json({ 
           message: 'Transaction not found',
-          error: `No transaction found with ID ${numericId}`
+          error: `No transaction found with ID ${transactionId}`
         });
       }
 
@@ -493,15 +483,15 @@ export function registerRoutes(app: Express): Server {
       // Perform the deletion within a transaction
       await db.transaction(async (tx) => {
         const deleted = await tx.delete(transactions)
-          .where(eq(transactions.id, numericId))
+          .where(eq(transactions.id, transactionId))
           .returning();
 
         if (!deleted.length) {
-          throw new Error(`Failed to delete transaction ${numericId}`);
+          throw new Error(`Failed to delete transaction ${transactionId}`);
         }
 
         console.log('[Transactions API] Successfully deleted transaction:', {
-          id: numericId,
+          id: transactionId,
           deletedCount: deleted.length
         });
       });
