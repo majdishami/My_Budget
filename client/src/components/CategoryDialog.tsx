@@ -24,9 +24,16 @@ interface CategoryDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: CategoryFormData) => Promise<void>;
   initialData?: CategoryFormData;
+  showSuccessMessage?: boolean;
 }
 
-export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: CategoryDialogProps) {
+export function CategoryDialog({ 
+  isOpen, 
+  onOpenChange, 
+  onSubmit, 
+  initialData,
+  showSuccessMessage = false 
+}: CategoryDialogProps) {
   const { toast } = useToast();
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -61,10 +68,12 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
         icon: data.icon?.trim() ?? null,
       });
 
-      toast({
-        title: initialData ? "Category updated" : "Category created",
-        description: `Successfully ${initialData ? 'updated' : 'created'} category "${data.name}"`,
-      });
+      if (showSuccessMessage) {
+        toast({
+          title: initialData ? "Category updated" : "Category created",
+          description: `Successfully ${initialData ? 'updated' : 'created'} category "${data.name}"`,
+        });
+      }
 
       form.reset();
       onOpenChange(false);
