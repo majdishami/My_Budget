@@ -78,14 +78,14 @@ export const insertTransactionSchema = z.object({
   date: z.string()
     .transform((str) => str ? new Date(str) : new Date()), // Default to current date if not provided
   type: z.enum(["income", "expense"]),
-  category_id: z.number().min(1, "Category ID is required"),
+  category_id: z.number().min(1, "Category ID is required").nullable().optional(),
 });
 
 export const insertBillSchema = z.object({
   name: z.string().min(1, "Bill name is required"),
   amount: z.number().min(0, "Amount must be non-negative"),
-  day: z.number().min(1).max(31, "Day must be between 1 and 31").optional(),
-  category_id: z.number().min(1, "Category ID is required"),
+  day: z.number().min(1).max(31),
+  category_id: z.number().min(1, "Category ID is required").nullable().optional(),
   is_one_time: z.boolean().optional(),
   is_yearly: z.boolean().optional(),
   date: z.string()
