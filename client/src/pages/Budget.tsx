@@ -236,9 +236,9 @@ export function Budget() {
     return result;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // Update getBillsForDay function to properly handle recurring bills and yearly expenses
+  // Update getBillsForDay function to properly handle recurring bills
   const getBillsForDay = useCallback((day: number) => {
-    if (day <= 0 || day > daysInMonth) return [];
+    if (day <= 0) return [];
 
     const result: Bill[] = [];
     const uniqueBills = new Set();
@@ -247,38 +247,20 @@ export function Budget() {
       // Skip if we've already added this bill
       if (uniqueBills.has(bill.name)) return;
 
-      if (bill.isYearly && bill.yearly_date) {
-        // For yearly bills, check if the month and day match
-        const yearlyDate = dayjs(bill.yearly_date);
-        if (yearlyDate.month() === selectedMonth - 1 && yearlyDate.date() === day) {
-          result.push(bill);
-          uniqueBills.add(bill.name);
-        }
-      } else if (bill.isOneTime && bill.date) {
-        // For one-time bills, check exact date match
-        const billDate = dayjs(bill.date);
-        if (billDate.year() === selectedYear && 
-            billDate.month() === selectedMonth - 1 && 
-            billDate.date() === day) {
-          result.push(bill);
-          uniqueBills.add(bill.name);
-        }
-      } else {
-        // For monthly bills, always show them every month on their specified day
-        if (bill.day === day) {
-          const recurringBill = {
-            ...bill,
-            id: `${bill.id}-${selectedMonth}-${selectedYear}`,
-            date: dayjs().year(selectedYear).month(selectedMonth - 1).date(day).format('YYYY-MM-DD')
-          };
-          result.push(recurringBill);
-          uniqueBills.add(bill.name);
-        }
+      // For all bills, show them in every month on their specified day
+      if (bill.day === day) {
+        const recurringBill = {
+          ...bill,
+          id: `${bill.id}-${selectedMonth}-${selectedYear}`,
+          date: dayjs().year(selectedYear).month(selectedMonth -1).date(day).format('YYYY-MM-DD')
+        };
+        result.push(recurringBill);
+        uniqueBills.add(bill.name);
       }
     });
 
     return result;
-  }, [bills, selectedYear, selectedMonth, daysInMonth]);
+  }, [bills, selectedYear, selectedMonth]);
 
   // Update monthly totals calculation to handle recurring bills
   const monthlyTotals = useMemo(() => {
