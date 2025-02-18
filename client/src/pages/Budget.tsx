@@ -168,7 +168,6 @@ export function Budget() {
     return dayjs().year(selectedYear).month(selectedMonth -1).daysInMonth();
   }, [selectedYear, selectedMonth]);
 
-  // Optimize months and years calculations
   const months = useMemo(() => 
     Array.from({ length: 12 }, (_, i) => ({
       value: i + 1,
@@ -247,7 +246,7 @@ export function Budget() {
     return result;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // getBillsForDay function - restore to working version
+  // getBillsForDay function
   const getBillsForDay = useCallback((day: number) => {
     if (day <= 0 || day > daysInMonth) return [];
 
