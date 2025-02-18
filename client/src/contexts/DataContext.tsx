@@ -20,6 +20,15 @@ interface DataContextType {
   error: Error | null;
 }
 
+interface CacheData {
+  timestamp: number;
+  version: number;
+  transactions: any[];
+}
+
+const CACHE_VERSION = 1;
+const CACHE_MAX_AGE = 5 * 60 * 1000; // 5 minutes
+
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 // Helper function to get base ID from instance ID
@@ -186,17 +195,67 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Improved cache management
+  const getCacheKey = () => 'transactions_cache';
+
+  const getCache = (): CacheData | null => {
+    try {
+      const cached = sessionStorage.getItem(getCacheKey());
+      if (!cached) return null;
+
+      const cacheData: CacheData = JSON.parse(cached);
+
+      // Validate cache version and age
+      const now = Date.now();
+      if (
+        cacheData.version !== CACHE_VERSION ||
+        now - cacheData.timestamp > CACHE_MAX_AGE
+      ) {
+        logger.info("[DataContext] Cache invalidated due to version or age:", {
+          version: cacheData.version,
+          age: now - cacheData.timestamp
+        });
+        sessionStorage.removeItem(getCacheKey());
+        return null;
+      }
+
+      return cacheData;
+    } catch (error) {
+      logger.error("[DataContext] Error reading cache:", error);
+      return null;
+    }
+  };
+
+  const setCache = (transactions: any[]) => {
+    try {
+      const cacheData: CacheData = {
+        timestamp: Date.now(),
+        version: CACHE_VERSION,
+        transactions
+      };
+      sessionStorage.setItem(getCacheKey(), JSON.stringify(cacheData));
+      logger.info("[DataContext] Cache updated:", {
+        timestamp: cacheData.timestamp,
+        transactionCount: transactions.length
+      });
+    } catch (error) {
+      logger.error("[DataContext] Error setting cache:", error);
+    }
+  };
+
   // Improved loadData function with proper caching
   const loadData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Check sessionStorage before fetching
-      const cachedTransactions = sessionStorage.getItem("transactions");
-      if (cachedTransactions) {
-        logger.info("[DataContext] Loading transactions from cache...");
-        processTransactions(JSON.parse(cachedTransactions));
+      // Check cache first
+      const cachedData = getCache();
+      if (cachedData) {
+        logger.info("[DataContext] Loading transactions from cache...", {
+          age: Date.now() - cachedData.timestamp
+        });
+        processTransactions(cachedData.transactions);
         setIsLoading(false);
         return;
       }
@@ -215,9 +274,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const transactions = await response.json();
 
-      // Cache the raw response
-      sessionStorage.setItem("transactions", JSON.stringify(transactions));
-      logger.info("[DataContext] Cached transactions in sessionStorage");
+      // Update cache with new data
+      setCache(transactions);
 
       // Process the transactions
       processTransactions(transactions);
@@ -289,8 +347,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const expandedIncomes = expandRecurringIncome(income);
       setIncomes(prev => [...prev, ...expandedIncomes]);
 
-      // Just invalidate cache without forcing reload
-      sessionStorage.removeItem("transactions");
+      // Invalidate cache by removing it completely
+      sessionStorage.removeItem(getCacheKey());
+      logger.info("[DataContext] Cache invalidated after adding income");
 
       logger.info("[DataContext] Successfully added income and updated local state");
     } catch (error) {
@@ -359,8 +418,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Update local state directly
       setBills(prev => [...prev, newBill]);
 
-      // Just invalidate cache without reloading
-      sessionStorage.removeItem("transactions");
+      // Invalidate cache
+      sessionStorage.removeItem(getCacheKey());
+      logger.info("[DataContext] Cache invalidated after adding bill");
 
       logger.info("[DataContext] Successfully added bill and updated local state:", { newBill });
     } catch (error) {
@@ -413,8 +473,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Just invalidate cache on success
-      sessionStorage.removeItem("transactions");
-      logger.info("[DataContext] Successfully deleted transaction");
+      sessionStorage.removeItem(getCacheKey());
+      logger.info("[DataContext] Cache invalidated after deleting transaction");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
       logger.error("[DataContext] Error in deleteTransaction:", { error });
@@ -482,8 +542,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Just invalidate cache on success
-      sessionStorage.removeItem("transactions");
-      logger.info("[DataContext] Successfully edited transaction", { transaction });
+      sessionStorage.removeItem(getCacheKey());
+      logger.info("[DataContext] Cache invalidated after editing transaction");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
       logger.error("[DataContext] Error in editTransaction:", { error });
