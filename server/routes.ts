@@ -458,19 +458,29 @@ export function registerRoutes(app: Express): Server {
 
   app.delete('/api/transactions/:id', async (req, res) => {
     try {
-      const transactionId = parseInt(req.params.id);
+      const transactionId = req.params.id;
       console.log('[Transactions API] Attempting to delete transaction:', { id: transactionId });
+
+      // Extract the base ID if it contains a hyphen (for recurring transactions)
+      const baseId = parseInt(transactionId.split('-')[0]);
+
+      if (isNaN(baseId)) {
+        return res.status(400).json({ 
+          message: 'Invalid transaction ID',
+          error: `Could not parse transaction ID: ${transactionId}`
+        });
+      }
 
       // Find the transaction first
       const transaction = await db.query.transactions.findFirst({
-        where: eq(transactions.id, transactionId)
+        where: eq(transactions.id, baseId)
       });
 
       if (!transaction) {
-        console.log('[Transactions API] Transaction not found:', { id: transactionId });
+        console.log('[Transactions API] Transaction not found:', { id: baseId });
         return res.status(404).json({ 
           message: 'Transaction not found',
-          error: `No transaction found with ID ${transactionId}`
+          error: `No transaction found with ID ${baseId}`
         });
       }
 
@@ -480,18 +490,18 @@ export function registerRoutes(app: Express): Server {
         description: transaction.description
       });
 
-      // Perform the deletion
+      // Perform the deletion within a transaction
       await db.transaction(async (tx) => {
         const deleted = await tx.delete(transactions)
-          .where(eq(transactions.id, transactionId))
+          .where(eq(transactions.id, baseId))
           .returning();
 
         if (!deleted.length) {
-          throw new Error(`Failed to delete transaction ${transactionId}`);
+          throw new Error(`Failed to delete transaction ${baseId}`);
         }
 
         console.log('[Transactions API] Successfully deleted transaction:', {
-          id: transactionId,
+          id: baseId,
           deletedCount: deleted.length
         });
       });
