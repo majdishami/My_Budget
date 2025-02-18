@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
 import { useQuery } from "@tanstack/react-query";
 import { DateRange } from "react-day-picker";
@@ -15,15 +15,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -31,7 +22,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import * as Icons from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Transaction {
@@ -40,21 +30,7 @@ interface Transaction {
   description: string;
   amount: number;
   type: 'expense';
-  category_name: string;
-  category_color: string;
-  category_icon: string | null;
-  category_id: number;
   occurred: boolean;
-}
-
-interface CategoryTotal {
-  category: string;
-  total: number;
-  occurred: number;
-  pending: number;
-  color: string;
-  icon: string | null;
-  transactions: Transaction[];
 }
 
 interface ExpenseReportDialogProps {
@@ -62,120 +38,48 @@ interface ExpenseReportDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const DynamicIcon = ({ iconName, className = "h-4 w-4" }: { iconName: string | null | undefined, className?: string }) => {
-  if (!iconName) return null;
-  const formatIconName = (name: string) => {
-    return name.split('-').map(part =>
-      part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-    ).join('');
-  };
-  const IconComponent = (Icons as any)[formatIconName(iconName)];
-  return IconComponent ? <IconComponent className={className} /> : null;
-};
-
-interface CategoryDisplayProps {
-  category: string;
-  color: string;
-  icon: string | null;
-}
-
-const CategoryDisplay = ({ category, color, icon }: CategoryDisplayProps) => (
-  <div className="flex items-center gap-2">
-    <div
-      className="w-3 h-3 rounded-full"
-      style={{ backgroundColor: color || '#D3D3D3' }}
-    />
-    {icon && <DynamicIcon iconName={icon} />}
-    <span>{category}</span>
-  </div>
-);
-
 export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseReportDialogProps) {
-  const [selectedValue, setSelectedValue] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>();
   const [showReport, setShowReport] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
-  const currentDate = useMemo(() => dayjs('2025-02-18'), []); // Fixed current date for consistency
+  const currentDate = useMemo(() => dayjs('2025-02-18'), []); // Fixed current date
 
   // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      setSelectedValue("all");
       setDate(undefined);
       setShowReport(false);
       setDateError(null);
     }
   }, [isOpen]);
 
-  // Query transactions with explicit expense type filter
+  // Query all expense transactions within the date range
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ['/api/transactions', {
-      type: 'expense', // Explicitly request only expense transactions
+      type: 'expense',
       startDate: date?.from ? dayjs(date.from).startOf('day').format('YYYY-MM-DD') : undefined,
       endDate: date?.to ? dayjs(date.to).endOf('day').format('YYYY-MM-DD') : undefined
     }],
-    enabled: showReport && !!date?.from && !!date?.to
+    enabled: showReport && !!date?.from && !!date?.to,
+    staleTime: 0,
+    gcTime: 0
   });
 
-  // Filter transactions by date range and mark as occurred/pending
+  // Filter and process transactions
   const filteredTransactions = useMemo(() => {
-    if (!date?.from || !date?.to || !transactions.length) return [];
-
-    const startDate = dayjs(date.from).startOf('day');
-    const endDate = dayjs(date.to).endOf('day');
+    if (!date?.from || !date?.to) return [];
 
     return transactions
-      .filter(transaction => {
-        // Only include expense transactions
-        if (transaction.type !== 'expense') return false;
-
-        const transactionDate = dayjs(transaction.date);
-        return transactionDate.isSameOrAfter(startDate, 'day') &&
-               transactionDate.isSameOrBefore(endDate, 'day');
-      })
-      .map(transaction => {
-        const transactionDate = dayjs(transaction.date);
-        return {
-          ...transaction,
-          occurred: transactionDate.isSameOrBefore(currentDate, 'day')
-        };
-      });
+      .filter(t => t.type === 'expense')
+      .map(transaction => ({
+        ...transaction,
+        occurred: dayjs(transaction.date).isSameOrBefore(currentDate)
+      }))
+      .sort((a, b) => dayjs(a.date).diff(dayjs(b.date))); // Sort by date ascending
   }, [transactions, date, currentDate]);
 
-  // Calculate category totals
-  const categoryTotals = useMemo(() => {
-    const totals: Record<string, CategoryTotal> = {};
-
-    filteredTransactions.forEach(transaction => {
-      const { category_name, category_color, category_icon } = transaction;
-
-      if (!totals[category_name]) {
-        totals[category_name] = {
-          category: category_name,
-          total: 0,
-          occurred: 0,
-          pending: 0,
-          color: category_color,
-          icon: category_icon,
-          transactions: []
-        };
-      }
-
-      const total = totals[category_name];
-      total.total += transaction.amount;
-      if (transaction.occurred) {
-        total.occurred += transaction.amount;
-      } else {
-        total.pending += transaction.amount;
-      }
-      total.transactions.push(transaction);
-    });
-
-    return Object.values(totals).sort((a, b) => b.total - a.total);
-  }, [filteredTransactions]);
-
-  // Calculate display totals
-  const displayTotals = useMemo(() => {
+  // Calculate totals
+  const totals = useMemo(() => {
     const paid = filteredTransactions
       .filter(t => t.occurred)
       .reduce((sum, t) => sum + t.amount, 0);
@@ -213,22 +117,6 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
           </DialogHeader>
 
           <div className="flex flex-col space-y-4">
-            <div>
-              <label className="text-sm font-medium">Select View Option</label>
-              <Select value={selectedValue} onValueChange={setSelectedValue}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select an option" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Views</SelectLabel>
-                    <SelectItem value="all">All Expenses</SelectItem>
-                    <SelectItem value="categories">By Category</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="border rounded-lg p-4">
               <Calendar
                 mode="range"
@@ -239,10 +127,10 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
               />
             </div>
 
-            <div className="text-sm font-medium text-muted-foreground">
+            <div className="text-sm text-muted-foreground text-center">
               {date?.from ? (
                 <>
-                  Selected Range: {dayjs(date.from).format('MMM D, YYYY')}
+                  {dayjs(date.from).format('MMM D, YYYY')}
                   {date.to ? ` - ${dayjs(date.to).format('MMM D, YYYY')}` : ''}
                 </>
               ) : (
@@ -259,7 +147,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDate(undefined);
+                onOpenChange(false);
+              }}
+            >
               Cancel
             </Button>
             <Button
@@ -287,9 +181,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
         <DialogHeader>
           <div className="flex justify-between items-center">
             <DialogTitle className="text-xl">
-              Expense Report ({selectedValue === 'all' ? 'All Categories' :
-                selectedValue === 'categories' ? 'By Category' :
-                selectedValue.replace('category_', '')})
+              Expense Report
             </DialogTitle>
             <Button variant="outline" onClick={() => setShowReport(false)}>
               Back to Selection
@@ -306,96 +198,62 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Total Expenses</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(displayTotals.total)}
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm text-muted-foreground">Paid</div>
-                      <div className="text-lg font-semibold text-red-600">
-                        {formatCurrency(displayTotals.paid)}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">Pending</div>
-                      <div className="text-lg font-semibold text-yellow-600">
-                        {formatCurrency(displayTotals.pending)}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Category Breakdown</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {categoryTotals.map((cat) => (
-                      <div key={cat.category} className="flex justify-between items-center">
-                        <CategoryDisplay
-                          category={cat.category}
-                          color={cat.color}
-                          icon={cat.icon}
-                        />
-                        <span className="font-semibold">
-                          {formatCurrency(cat.total)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Detailed Transactions */}
+            {/* Summary Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Transaction Details</CardTitle>
+                <CardTitle className="text-lg">Total Expenses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(totals.total)}
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Paid</div>
+                    <div className="text-lg font-semibold text-red-600">
+                      {formatCurrency(totals.paid)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Pending</div>
+                    <div className="text-lg font-semibold text-yellow-600">
+                      {formatCurrency(totals.pending)}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Expense List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Expense Details</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Category</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTransactions
-                      .sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
-                      .map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
-                          <TableCell>
-                            <CategoryDisplay
-                              category={transaction.category_name}
-                              color={transaction.category_color}
-                              icon={transaction.category_icon}
-                            />
-                          </TableCell>
-                          <TableCell>{transaction.description}</TableCell>
-                          <TableCell className="text-right font-medium">
-                            {formatCurrency(transaction.amount)}
-                          </TableCell>
-                          <TableCell>
-                            <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
-                              {transaction.occurred ? 'Paid' : 'Pending'}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                    {filteredTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>{dayjs(transaction.date).format('MMM D, YYYY')}</TableCell>
+                        <TableCell>{transaction.description}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell>
+                          <span className={transaction.occurred ? "text-red-600" : "text-yellow-600"}>
+                            {transaction.occurred ? 'Paid' : 'Pending'}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </CardContent>
