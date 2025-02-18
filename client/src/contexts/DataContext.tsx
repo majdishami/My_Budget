@@ -296,8 +296,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
 export function useData() {
   const context = useContext(DataContext);
-  if (context === undefined) {
-    throw new Error("useData must be used within a DataProvider");
+  if (!context) {
+    throw new Error("[DataContext] `useData` must be used within `<DataProvider>`. Ensure your component is wrapped in a DataProvider component.");
   }
   return context;
 }
