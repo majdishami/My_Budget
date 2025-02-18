@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 interface LeftSidebarProps {
   incomes: Income[];
@@ -46,6 +46,11 @@ export function LeftSidebar({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [deletingTransaction, setDeletingTransaction] = useState<{ type: 'income' | 'bill', data: Income | Bill } | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Memoize sorted bills
+  const sortedBills = useMemo(() => {
+    return [...bills].sort((a, b) => b.amount - a.amount);
+  }, [bills]);
 
   // Function to format the date display for incomes
   const formatIncomeDisplay = (income: Income) => {
@@ -174,41 +179,39 @@ export function LeftSidebar({
             </Button>
           </div>
           <div className="space-y-1">
-            {[...bills]
-              .sort((a, b) => b.amount - a.amount)
-              .map((bill, index) => (
-                <div
-                  key={bill.id}
-                  className="flex items-center justify-between p-2 hover:bg-accent rounded-lg"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {index + 1}. {bill.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Day {bill.day} - {formatCurrency(bill.amount)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => onEditTransaction('bill', bill)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleDeleteRequest('bill', bill)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {sortedBills.map((bill, index) => (
+              <div
+                key={bill.id}
+                className="flex items-center justify-between p-2 hover:bg-accent rounded-lg"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {index + 1}. {bill.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Day {bill.day} - {formatCurrency(bill.amount)}
+                  </p>
                 </div>
-              ))}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onEditTransaction('bill', bill)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleDeleteRequest('bill', bill)}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
