@@ -227,14 +227,19 @@ export function registerRoutes(app: Express): Server {
   // Transactions Routes with improved category matching
   app.get('/api/transactions', async (req, res) => {
     try {
+      const type = req.query.type as 'income' | 'expense' | undefined;
+
       console.log('[Transactions API] Fetching transactions...', {
-        type: req.query.type,
+        type,
         queryParams: req.query
       });
 
-      const type = req.query.type as string | undefined;
+      if (type && !['income', 'expense'].includes(type)) {
+        return res.status(400).json({
+          message: 'Invalid transaction type. Must be either "income" or "expense".'
+        });
+      }
 
-      // Build the query
       const query = db
         .select({
           id: transactions.id,
@@ -250,19 +255,25 @@ export function registerRoutes(app: Express): Server {
         .from(transactions)
         .leftJoin(categories, eq(transactions.category_id, categories.id));
 
-      // Add type filter if specified
+      // Strict type filtering
       if (type) {
         query.where(eq(transactions.type, type));
       }
 
-      // Order by date descending
       query.orderBy(desc(transactions.date));
 
       const allTransactions = await query;
 
-      console.log('[Transactions API] Raw transactions:', allTransactions.slice(0, 2));
+      console.log('[Transactions API] Raw transactions:', {
+        type,
+        count: allTransactions.length,
+        sample: allTransactions.slice(0, 2).map(t => ({
+          type: t.type,
+          amount: t.amount,
+          date: t.date
+        }))
+      });
 
-      // Process transactions with proper numeric handling
       const formattedTransactions = allTransactions.map(transaction => ({
         id: transaction.id,
         description: transaction.description,
@@ -274,16 +285,6 @@ export function registerRoutes(app: Express): Server {
         category_color: transaction.category_color,
         category_icon: transaction.category_icon
       }));
-
-      console.log('[Transactions API] Found transactions:', {
-        count: formattedTransactions.length,
-        type: type,
-        sample: formattedTransactions.slice(0, 2).map(t => ({
-          date: t.date,
-          amount: t.amount,
-          type: t.type
-        }))
-      });
 
       // Add cache control headers
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');

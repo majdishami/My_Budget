@@ -24,13 +24,16 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface Transaction {
+// Define strict types for transactions
+type ExpenseTransaction = {
   id: number;
   date: string;
   description: string;
   amount: number;
-  type: 'expense';  // Explicitly type as expense only
+  type: 'expense';  // Strictly typed as expense only
   category_name?: string;
+  category_color?: string;
+  category_icon?: string;
 }
 
 interface ExpenseReportDialogProps {
@@ -51,10 +54,12 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  // Fetch expense transactions only
-  const { data: transactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
+  // Fetch only expense transactions
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery<ExpenseTransaction[]>({
     queryKey: ['/api/transactions', { type: 'expense' }],
-    enabled: showReport
+    enabled: showReport,
+    select: (data): ExpenseTransaction[] => 
+      data.filter((t): t is ExpenseTransaction => t.type === 'expense')
   });
 
   // Filter transactions based on selected date range
@@ -144,7 +149,7 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
             </Button>
           </div>
           <div className="text-sm text-muted-foreground">
-            {dayjs(date?.from).format('MMM D, YYYY')} - {dayjs(date?.to).format('MMM D, YYYY')}
+            {date?.from ? `${dayjs(date.from).format('MMM D, YYYY')} - ${dayjs(date.to).format('MMM D, YYYY')}` : 'No date selected'}
           </div>
         </DialogHeader>
 
