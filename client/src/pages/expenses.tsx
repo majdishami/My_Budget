@@ -41,13 +41,13 @@ export default function ExpenseReport() {
       selectedCategory
     });
 
-    return (bills || []).filter(bill => {
+    return (bills || []).reduce((filtered, bill) => {
       const billDate = dayjs(bill.date);
 
       // Skip invalid dates
       if (!billDate.isValid()) {
         logger.warn("[ExpenseReport] Invalid bill date:", { bill });
-        return false;
+        return filtered;
       }
 
       let dateMatches = true;
@@ -84,21 +84,39 @@ export default function ExpenseReport() {
       const expenseMatches = selectedExpense === 'all' || 
                             bill.id === Number(selectedExpense);
 
-      return dateMatches && categoryMatches && expenseMatches;
-    }).map(bill => ({
-      id: bill.id,
-      date: billDate.format('YYYY-MM-DD'),
-      description: bill.name,
-      amount: bill.amount,
-      type: 'expense' as const,
-      category_name: bill.category_name,
-      category_color: bill.category_color,
-      category_icon: bill.category_icon
-    }));
+      if (dateMatches && categoryMatches && expenseMatches) {
+        filtered.push({
+          id: bill.id,
+          date: billDate.format('YYYY-MM-DD'),
+          description: bill.name,
+          amount: bill.amount,
+          type: 'expense' as const,
+          category_name: bill.category_name,
+          category_color: bill.category_color,
+          category_icon: bill.category_icon
+        });
+      }
+
+      return filtered;
+    }, [] as Array<{
+      id: number;
+      date: string;
+      description: string;
+      amount: number;
+      type: 'expense';
+      category_name?: string;
+      category_color?: string;
+      category_icon?: string | null;
+    }>);
   }, [bills, reportType, selectedMonth, selectedYear, dateRange, selectedCategory, selectedExpense]);
 
   const handleShowReport = () => {
     setIsDialogOpen(true);
+    logger.info("[ExpenseReport] Opening report dialog with expenses:", {
+      expenseCount: filteredExpenses.length,
+      dateRange,
+      reportType
+    });
   };
 
   const handleOpenChange = (open: boolean) => {
