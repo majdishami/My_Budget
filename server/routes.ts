@@ -228,12 +228,13 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/transactions', async (req, res) => {
     try {
       const type = req.query.type as 'income' | 'expense' | undefined;
-      const startDate = req.query.startDate ? dayjs(req.query.startDate as string).startOf('day') : undefined;
-      const endDate = req.query.endDate ? dayjs(req.query.endDate as string).endOf('day') : undefined;
+      const startDate = req.query.startDate ? dayjs(req.query.startDate as string).startOf('day').toDate() : undefined;
+      const endDate = req.query.endDate ? dayjs(req.query.endDate as string).endOf('day').toDate() : undefined;
 
-      console.log('[Transactions API] Fetching transactions...', {
+      console.log('[Transactions API] Fetching transactions with filters:', {
         type,
-        dateRange: { startDate, endDate },
+        startDate,
+        endDate,
         queryParams: req.query
       });
 
@@ -262,17 +263,17 @@ export function registerRoutes(app: Express): Server {
       // Build where conditions array for dynamic filtering
       const whereConditions = [];
 
-      // Add type filter
+      // Add type filter if specified
       if (type) {
         whereConditions.push(eq(transactions.type, type));
       }
 
-      // Add strict date range filters if provided
+      // Add date range filters if provided
       if (startDate) {
-        whereConditions.push(sql`DATE(${transactions.date}) >= DATE(${startDate.toDate()})`);
+        whereConditions.push(sql`DATE(${transactions.date}) >= DATE(${startDate})`);
       }
       if (endDate) {
-        whereConditions.push(sql`DATE(${transactions.date}) <= DATE(${endDate.toDate()})`);
+        whereConditions.push(sql`DATE(${transactions.date}) <= DATE(${endDate})`);
       }
 
       // Apply all conditions if any exist
@@ -280,19 +281,16 @@ export function registerRoutes(app: Express): Server {
         query.where(and(...whereConditions));
       }
 
+      // Sort by date descending
       query.orderBy(desc(transactions.date));
 
       const allTransactions = await query;
 
-      console.log('[Transactions API] Raw transactions:', {
-        type,
+      console.log('[Transactions API] Query results:', {
         count: allTransactions.length,
         dateRange: { startDate, endDate },
-        sample: allTransactions.slice(0, 2).map(t => ({
-          type: t.type,
-          amount: t.amount,
-          date: t.date
-        }))
+        firstTransaction: allTransactions[0],
+        lastTransaction: allTransactions[allTransactions.length - 1]
       });
 
       const formattedTransactions = allTransactions.map(transaction => ({

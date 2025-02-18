@@ -5,14 +5,12 @@ import isBetween from 'dayjs/plugin/isBetween';
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ReportFilter } from '@/components/ReportFilter';
-import { ChartComponent } from '@/components/ChartComponent';
-import { PDFReport } from '@/components/PDFReport';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Icons
-import { FileText, Download, Printer, AlertCircle } from 'lucide-react';
+import { FileText, Download, Printer } from 'lucide-react';
 
 // Utils
 import { formatCurrency } from '@/lib/reportUtils';
@@ -35,14 +33,13 @@ interface Transaction {
 
 export default function Reports() {
   const today = getCurrentDate();
+  const { toast } = useToast();
 
   // Set default date range to current month
   const [dateRange, setDateRange] = useState<{from: Date; to: Date}>({
     from: today.startOf('month').toDate(),
     to: today.endOf('month').toDate()
   });
-
-  const { toast } = useToast();
 
   // Fetch transactions for the selected date range
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
@@ -84,22 +81,6 @@ export default function Reports() {
     }
   };
 
-  const handleExportPDF = async () => {
-    try {
-      await PDFReport.generate(dateRange);
-      toast({
-        title: "Success",
-        description: "Report downloaded successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF report",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="container mx-auto p-6 space-y-6 print:p-0">
       <div className="flex justify-between items-center print:hidden">
@@ -109,7 +90,7 @@ export default function Reports() {
             <Printer className="mr-2 h-4 w-4" />
             Print
           </Button>
-          <Button onClick={handleExportPDF}>
+          <Button>
             <Download className="mr-2 h-4 w-4" />
             Export PDF
           </Button>
@@ -178,21 +159,6 @@ export default function Reports() {
           </>
         )}
       </div>
-
-      <Card className="print:shadow-none">
-        <CardHeader>
-          <CardTitle>Income vs Expenses</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[400px]">
-            {isLoading ? (
-              <Skeleton className="w-full h-full" />
-            ) : (
-              <ChartComponent dateRange={dateRange} transactions={transactions}/>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Transaction Details Card */}
       <Card className="print:shadow-none">
