@@ -32,6 +32,17 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+// Try to load native bindings
+let nativeBindings;
+if (process.env.NODE_ENV === 'production') {
+  try {
+    nativeBindings = require('pg-native');
+    console.log('Successfully loaded pg-native bindings for improved performance');
+  } catch (error) {
+    console.warn('pg-native bindings not available, falling back to pure JavaScript driver:', error.message);
+  }
+}
+
 // Pool configuration with improved connection handling
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
@@ -43,12 +54,15 @@ const poolConfig = {
   connectionTimeoutMillis: 10000,
   maxUses: 7500,
   keepAlive: true,
-  keepAliveInitialDelayMillis: 10000
+  keepAliveInitialDelayMillis: 10000,
+  // Use native bindings in production if available
+  ...(nativeBindings && { Client: nativeBindings })
 };
 
 console.log('Database connection config:', {
   ...poolConfig,
-  connectionString: poolConfig.connectionString ? '[REDACTED]' : undefined
+  connectionString: poolConfig.connectionString ? '[REDACTED]' : undefined,
+  usingNative: !!nativeBindings
 });
 
 // Initialize pool with configuration
