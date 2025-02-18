@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import IncomeReportDialog from "@/components/IncomeReportDialog";
 import { useLocation } from "wouter";
+import { Income } from "@/types";
 
 export default function IncomeReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
+  const [incomes, setIncomes] = useState<Income[]>([]);
 
-  // Get incomes data from local storage with safe parsing
-  const storedIncomes = localStorage.getItem("incomes");
-  const incomes = storedIncomes ? JSON.parse(storedIncomes) : [];
+  // Sync with localStorage using useEffect
+  useEffect(() => {
+    const storedIncomes = localStorage.getItem("incomes");
+    setIncomes(storedIncomes ? JSON.parse(storedIncomes) : []);
+  }, []); // Empty dependency array means this runs once on mount
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
