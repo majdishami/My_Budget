@@ -224,13 +224,16 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Transactions Routes with improved category matching
+  // Transactions Routes with improved category matching and date range filtering
   app.get('/api/transactions', async (req, res) => {
     try {
       const type = req.query.type as 'income' | 'expense' | undefined;
+      const startDate = req.query.startDate ? dayjs(req.query.startDate as string).startOf('day') : undefined;
+      const endDate = req.query.endDate ? dayjs(req.query.endDate as string).endOf('day') : undefined;
 
       console.log('[Transactions API] Fetching transactions...', {
         type,
+        dateRange: { startDate, endDate },
         queryParams: req.query
       });
 
@@ -255,9 +258,25 @@ export function registerRoutes(app: Express): Server {
         .from(transactions)
         .leftJoin(categories, eq(transactions.category_id, categories.id));
 
-      // Strict type filtering
+      // Build where conditions
+      const whereConditions = [];
+
+      // Add type filter
       if (type) {
-        query.where(eq(transactions.type, type));
+        whereConditions.push(eq(transactions.type, type));
+      }
+
+      // Add date range filters if provided
+      if (startDate) {
+        whereConditions.push(sql`${transactions.date} >= ${startDate.toDate()}`);
+      }
+      if (endDate) {
+        whereConditions.push(sql`${transactions.date} <= ${endDate.toDate()}`);
+      }
+
+      // Apply where conditions if any exist
+      if (whereConditions.length > 0) {
+        query.where(and(...whereConditions));
       }
 
       query.orderBy(desc(transactions.date));
@@ -267,6 +286,7 @@ export function registerRoutes(app: Express): Server {
       console.log('[Transactions API] Raw transactions:', {
         type,
         count: allTransactions.length,
+        dateRange: { startDate, endDate },
         sample: allTransactions.slice(0, 2).map(t => ({
           type: t.type,
           amount: t.amount,

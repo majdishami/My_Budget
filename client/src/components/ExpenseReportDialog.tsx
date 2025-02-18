@@ -54,22 +54,20 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
     }
   }, [isOpen]);
 
-  // Fetch only expense transactions
+  // Fetch only expense transactions with date range
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery<ExpenseTransaction[]>({
-    queryKey: ['/api/transactions', { type: 'expense' }],
-    enabled: showReport,
+    queryKey: ['/api/transactions', { 
+      type: 'expense',
+      startDate: date?.from ? dayjs(date.from).format('YYYY-MM-DD') : undefined,
+      endDate: date?.to ? dayjs(date.to).format('YYYY-MM-DD') : undefined
+    }],
+    enabled: showReport && !!date?.from && !!date?.to,
     select: (data): ExpenseTransaction[] => 
       data.filter((t): t is ExpenseTransaction => t.type === 'expense')
   });
 
   // Filter transactions based on selected date range
-  const filteredTransactions = transactions.filter(transaction => {
-    if (!date?.from || !date?.to) return false;
-    const txDate = dayjs(transaction.date);
-    const startDate = dayjs(date.from).startOf('day');
-    const endDate = dayjs(date.to).endOf('day');
-    return txDate.isSameOrAfter(startDate) && txDate.isSameOrBefore(endDate);
-  });
+  const filteredTransactions = transactions;
 
   // Calculate total expenses for the period
   const total = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
