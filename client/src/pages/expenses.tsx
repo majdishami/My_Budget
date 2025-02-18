@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -61,17 +61,19 @@ export default function ExpenseReport() {
   const isLoading = billsLoading || transactionsLoading || categoriesLoading;
   const error = billsError || transactionsError;
 
-  // Group bills by category with proper null handling
-  const groupedBills = bills.reduce((acc: Record<string, Bill[]>, bill) => {
-    const category = categories.find(c => c.id === bill.category_id);
-    const categoryName = category?.name || 'Uncategorized';
+  // Group bills by category with proper null handling and memoization
+  const groupedBills = useMemo(() => {
+    return bills.reduce((acc: Record<string, Bill[]>, bill) => {
+      const category = categories.find(c => c.id === bill.category_id);
+      const categoryName = category?.name || 'Uncategorized';
 
-    if (!acc[categoryName]) {
-      acc[categoryName] = [];
-    }
-    acc[categoryName].push(bill);
-    return acc;
-  }, {});
+      if (!acc[categoryName]) {
+        acc[categoryName] = [];
+      }
+      acc[categoryName].push(bill);
+      return acc;
+    }, {});
+  }, [bills, categories]); // Only recompute when bills or categories change
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
