@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
   color: z.string().min(1, "Color is required"),
-  icon: z.string().nullable().optional()
+  icon: z.string().nullable().optional(),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -27,38 +27,36 @@ interface CategoryDialogProps {
 
 export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: CategoryDialogProps) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
-
-  const defaultFormValues = useMemo(() => ({
-    name: initialData?.name || "",
-    color: initialData?.color || "#000000",
-    icon: initialData?.icon || null
-  }), [initialData]);
+  const formId = useMemo(() => `category-form-${Math.random().toString(36).slice(2)}`, []);
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
-    defaultValues: defaultFormValues,
+    defaultValues: {
+      name: initialData?.name || "",
+      color: initialData?.color || "#000000",
+      icon: initialData?.icon || null,
+    },
     mode: "onChange"
   });
 
   useEffect(() => {
     if (isOpen) {
-      form.reset(defaultFormValues);
+      form.reset({
+        name: initialData?.name || "",
+        color: initialData?.color || "#000000",
+        icon: initialData?.icon || null,
+      });
     }
-  }, [isOpen, defaultFormValues, form]);
+  }, [isOpen, initialData, form]);
 
-  const handleSubmit = async (data: CategoryFormData) => {
-    try {
-      const formattedData = {
-        name: data.name.trim(),
-        color: data.color,
-        icon: data.icon?.trim() || null
-      };
-      await onSubmit(formattedData);
-      form.reset();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error submitting category:', error);
-    }
+  const handleSubmit = (data: CategoryFormData) => {
+    onSubmit({
+      name: data.name.trim(),
+      color: data.color,
+      icon: data.icon?.trim() || null,
+    });
+    form.reset();
+    onOpenChange(false);
   };
 
   return (
@@ -69,10 +67,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
         </DialogHeader>
 
         <Form {...form}>
-          <form 
-            onSubmit={form.handleSubmit(handleSubmit)} 
-            className="space-y-4"
-          >
+          <form id={formId} onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -81,10 +76,10 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                   <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="Enter category name" 
-                      {...field} 
+                      {...field}
+                      form={formId}
                       type="text"
-                      autoComplete="off"
+                      placeholder="Enter category name"
                     />
                   </FormControl>
                   <FormMessage />
@@ -101,7 +96,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                   <FormControl>
                     <Popover open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full flex items-center justify-between">
+                        <Button variant="outline" className="w-full flex items-center justify-between" type="button">
                           <span className="flex items-center gap-2">
                             <Circle className="h-4 w-4" fill={field.value} />
                             <span className="truncate">{field.value}</span>
@@ -133,12 +128,12 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                   <FormLabel>Icon (optional)</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="e.g., shopping-cart, credit-card" 
                       {...field}
+                      form={formId}
+                      type="text"
+                      placeholder="e.g., shopping-cart, credit-card"
                       value={field.value || ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
-                      type="text"
-                      autoComplete="off"
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -150,7 +145,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
             />
 
             <DialogFooter>
-              <Button type="submit">
+              <Button type="submit" form={formId}>
                 {initialData ? "Save Changes" : "Add Category"}
               </Button>
             </DialogFooter>
