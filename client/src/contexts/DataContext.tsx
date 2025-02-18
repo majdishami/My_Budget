@@ -131,6 +131,79 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   return incomes;
 };
 
+// Helper function to expand recurring bills into multiple entries
+const expandRecurringBill = (baseBill: Bill, months: number = 12) => {
+  const bills: Bill[] = [];
+
+  // Validate date before processing
+  if (!baseBill.date || !dayjs(baseBill.date).isValid()) {
+    logger.error("[DataContext] Invalid date in bill:", { bill: baseBill });
+    throw new Error('Invalid date format in bill');
+  }
+
+  // If it's a one-time bill, return as is
+  if (baseBill.isOneTime) {
+    return [baseBill];
+  }
+
+  const baseDate = dayjs(baseBill.date);
+
+  // For monthly bills
+  if (!baseBill.isYearly) {
+    for (let i = 0; i < months; i++) {
+      const date = baseDate.add(i, 'month');
+
+      // Skip if date is invalid
+      if (!date.isValid()) {
+        logger.error("[DataContext] Generated invalid date:", {
+          date: date.format(),
+          bill: baseBill
+        });
+        continue;
+      }
+
+      // Generate instance ID using the same function as income
+      const instanceId = generateInstanceId(baseBill.id, i);
+
+      bills.push({
+        ...baseBill,
+        id: instanceId,
+        date: date.format('YYYY-MM-DD')
+      });
+    }
+  } else if (baseBill.yearly_date) {
+    // For yearly bills
+    const yearlyDate = dayjs(baseBill.yearly_date);
+    for (let i = 0; i < Math.ceil(months / 12); i++) {
+      const date = yearlyDate.add(i, 'year');
+
+      if (!date.isValid()) {
+        logger.error("[DataContext] Generated invalid yearly date:", {
+          date: date.format(),
+          bill: baseBill
+        });
+        continue;
+      }
+
+      const instanceId = generateInstanceId(baseBill.id, i);
+
+      bills.push({
+        ...baseBill,
+        id: instanceId,
+        date: date.format('YYYY-MM-DD')
+      });
+    }
+  }
+
+  logger.info("[DataContext] Expanded recurring bill:", {
+    baseId: baseBill.id,
+    isYearly: baseBill.isYearly,
+    instanceCount: bills.length
+  });
+
+  return bills;
+};
+
 // Utility function for handling API requests
 const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}) => {
   try {
@@ -310,12 +383,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             });
           }
 
-          loadedBills.push({
+          const bill = {
             id: t.id,
             name: t.description || 'Unknown Expense',
             amount: parseFloat(t.amount) || 0,
             date: finalDate,
             isOneTime: !t.recurring_id,
+            isYearly: t.is_yearly || false,
+            yearly_date: t.yearly_date,
             day: dayjs(finalDate).date(),
             category_id: t.category_id || null,
             category_name: t.category_name || 'Uncategorized',
@@ -326,7 +401,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
               color: t.category_color || '#808080',
               icon: t.category_icon || 'help-circle'
             } : undefined
-          });
+          };
+
+          // Expand recurring bills
+          const expandedBills = expandRecurringBill(bill);
+          loadedBills.push(...expandedBills);
         }
       });
 
@@ -444,7 +523,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           amount: bill.amount,
           date: dayjs(bill.date).format('YYYY-MM-DD'),
           type: 'expense',
-          category_id: bill.category_id
+          category_id: bill.category_id,
+          is_yearly: bill.isYearly,
+          yearly_date: bill.yearly_date
         }),
       });
 
@@ -576,7 +657,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           recurring_type: isIncome ? (transaction as Income).occurrenceType : undefined,
           first_date: isIncome ? (transaction as Income).firstDate : undefined,
           secondDate: isIncome ? (transaction as Income).secondDate : undefined,
-          category_id: !isIncome ? (transaction as Bill).category_id : undefined
+          category_id: !isIncome ? (transaction as Bill).category_id : undefined,
+          is_yearly: !isIncome ? (transaction as Bill).isYearly : undefined,
+          yearly_date: !isIncome ? (transaction as Bill).yearly_date : undefined
         }),
       });
 

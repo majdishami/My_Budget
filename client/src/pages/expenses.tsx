@@ -118,7 +118,12 @@ export default function ExpenseReport() {
   return (
     <div className="container mx-auto p-4">
       <Card className="p-4 mb-4">
-        <h1 className="text-2xl font-bold mb-4">Expense Report</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold">Expense Report</h1>
+          <Button variant="outline" onClick={() => setLocation("/")}>
+            Back
+          </Button>
+        </div>
         <div className="space-y-4">
           <div className="flex items-center gap-4 flex-wrap">
             <Select value={reportType} onValueChange={(value: ReportType) => {
