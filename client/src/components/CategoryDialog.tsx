@@ -27,7 +27,6 @@ interface CategoryDialogProps {
 
 export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: CategoryDialogProps) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
-  const randomInputId = useMemo(() => Math.random().toString(36).substring(7), []);
 
   const defaultFormValues = useMemo(() => ({
     name: initialData?.name || "",
@@ -49,13 +48,11 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
 
   const handleSubmit = async (data: CategoryFormData) => {
     try {
-      console.log('Form data before validation:', data);
       const formattedData = {
         name: data.name.trim(),
         color: data.color,
         icon: data.icon?.trim() || null
       };
-      console.log('Formatted data:', formattedData);
       await onSubmit(formattedData);
       form.reset();
       onOpenChange(false);
@@ -75,18 +72,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
           <form 
             onSubmit={form.handleSubmit(handleSubmit)} 
             className="space-y-4"
-            autoComplete="off"
           >
-            {/* Hidden input to prevent autofill */}
-            <input 
-              type="text" 
-              id="prevent_autofill" 
-              name="prevent_autofill" 
-              style={{ display: 'none' }}
-              tabIndex={-1}
-              autoComplete="off"
-            />
-
             <FormField
               control={form.control}
               name="name"
@@ -98,16 +84,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       placeholder="Enter category name" 
                       {...field} 
                       type="text"
-                      name={`category_name_${randomInputId}`}
-                      autoComplete="new-password"
-                      data-lpignore="true"
-                      data-form-type="other"
-                      aria-autocomplete="none"
-                      aria-label="Category name"
-                      data-private="true"
-                      autoCapitalize="off"
-                      autoCorrect="off"
-                      maxLength={50}
+                      autoComplete="off"
                     />
                   </FormControl>
                   <FormMessage />
@@ -161,15 +138,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       value={field.value || ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
                       type="text"
-                      name={`category_icon_${randomInputId}`}
-                      autoComplete="new-password"
-                      data-lpignore="true"
-                      data-form-type="other"
-                      aria-autocomplete="none"
-                      aria-label="Category icon"
-                      data-private="true"
-                      autoCapitalize="off"
-                      autoCorrect="off"
+                      autoComplete="off"
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground mt-1">
