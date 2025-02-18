@@ -281,23 +281,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Invalid transaction: missing ID');
       }
 
-      // For incomes, the ID might be in format "number-sequence"
-      // For bills, it's just a number
       const id = transaction.id.toString();
-      const baseId = id.includes('-') ? id.split('-')[0] : id;
-
-      // Validate that we have a numeric ID
-      if (!baseId || isNaN(Number(baseId))) {
-        throw new Error(`Invalid transaction ID format: ${baseId}`);
-      }
-
       logger.info("[DataContext] Deleting transaction:", {
-        originalId: transaction.id,
-        baseId,
+        id,
         type: 'source' in transaction ? 'income' : 'bill'
       });
 
-      const response = await fetch(`/api/transactions/${baseId}`, {
+      const response = await fetch(`/api/transactions/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -311,10 +301,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Update local state
       if ('source' in transaction) {
-        // For incomes, remove all instances of the recurring income (all entries with same base ID)
+        // For incomes, remove all instances of the recurring income
+        const baseId = id.includes('-') ? id.split('-')[0] : id;
         setIncomes(prev => prev.filter(inc => !inc.id.startsWith(baseId)));
       } else {
-        setBills(prev => prev.filter(bill => bill.id !== transaction.id));
+        setBills(prev => prev.filter(bill => bill.id !== id));
       }
 
       // Invalidate cache
