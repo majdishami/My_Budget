@@ -54,16 +54,18 @@ export function LeftSidebar({
 
   // Function to format the date display for incomes
   const formatIncomeDisplay = (income: Income) => {
-    if (income.source === "Majdi's Salary") {
-      return "Twice Monthly";
-    }
-    if (income.source === "Ruba's Salary") {
-      return "Bi-Weekly";
-    }
-    return income.occurrenceType === 'twice-monthly' ? 'Twice Monthly' :
-           income.occurrenceType === 'biweekly' ? 'Bi-Weekly' :
-           income.occurrenceType === 'monthly' ? 'Monthly' :
-           income.occurrenceType === 'weekly' ? 'Weekly' : 'One Time';
+    const frequencyMap: Record<string, string> = {
+      "twice-monthly": "Twice Monthly",
+      "biweekly": "Bi-Weekly",
+      "monthly": "Monthly",
+      "weekly": "Weekly",
+    };
+
+    return income.source === "Majdi's Salary"
+      ? "Twice Monthly"
+      : income.source === "Ruba's Salary"
+      ? "Bi-Weekly"
+      : frequencyMap[income.occurrenceType] || "One Time";
   };
 
   // Handle delete request
