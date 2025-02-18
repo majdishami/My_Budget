@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp, decimal, date, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
+import { z } from "zod";
 
 // User table
 export const users = pgTable("users", {
@@ -37,13 +38,37 @@ export const transactions = pgTable("transactions", {
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull(),
   type: text("type").notNull(), // 'income' or 'expense'
-  category_id: integer("category_id").references(() => categories.id),
+  category_id: integer("category_id").references(() => categories.id), // Nullable for legacy data support
   user_id: integer("user_id").references(() => users.id).notNull(),
   created_at: timestamp("created_at").defaultNow(),
 });
 
-export const insertTransactionSchema = createInsertSchema(transactions);
+// Enhanced insert schema with category validation
+export const insertTransactionSchema = createInsertSchema(transactions, {
+  type: z.enum(['income', 'expense']),
+  category_id: z.number().nullable().optional(),
+  description: z.string().min(1, "Description is required"),
+  amount: z.number().positive("Amount must be positive"),
+  date: z.date()
+});
 
+// Bills table
+export const bills = pgTable("bills", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  day: integer("day").notNull(),
+  category_id: integer("category_id").references(() => categories.id), // Nullable for legacy data support
+  created_at: timestamp("created_at").defaultNow(),
+});
+
+// Enhanced insert schema with category validation
+export const insertBillSchema = createInsertSchema(bills, {
+  name: z.string().min(1, "Name is required"),
+  amount: z.number().positive("Amount must be positive"),
+  day: z.number().min(1).max(31),
+  category_id: z.number().nullable().optional()
+});
 
 // Tags table
 export const tags = pgTable("tags", {
@@ -95,7 +120,15 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   }),
 }));
 
+export const billsRelations = relations(bills, ({ one }) => ({
+  category: one(categories, {
+    fields: [bills.category_id],
+    references: [categories.id],
+  }),
+}));
+
 export const categoriesRelations = relations(categories, ({ many }) => ({
   transactions: many(transactions),
   goals: many(goals),
+  bills: many(bills),
 }));
