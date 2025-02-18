@@ -35,7 +35,11 @@ function Calendar({
         caption_label: "text-sm font-medium",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
-          "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background hover:bg-accent hover:text-accent-foreground h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+          "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "disabled:opacity-50 disabled:pointer-events-none",
+          "ring-offset-background hover:bg-accent hover:text-accent-foreground",
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
@@ -64,8 +68,16 @@ function Calendar({
         day_hidden: "invisible",
       }, classNames)}
       components={{
-        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
-        IconRight: () => <ChevronRight className="h-4 w-4" />,
+        IconLeft: ({ ...props }) => (
+          <button {...props} aria-label="Previous month">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        ),
+        IconRight: ({ ...props }) => (
+          <button {...props} aria-label="Next month">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        ),
         DayContent: ({ date, ...contentProps }) => (
           <DayContent 
             day={date} 
