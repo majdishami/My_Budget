@@ -388,6 +388,15 @@ export function Budget() {
     );
   }, [selectedMonth, selectedYear]);
 
+  // Precompute transactions for all days in the month
+  const dayTransactions = useMemo(() => {
+    return Array.from({ length: daysInMonth }, (_, i) => ({
+      day: i + 1,
+      incomes: getIncomeForDay(i + 1),
+      bills: getBillsForDay(i + 1)
+    }));
+  }, [daysInMonth, getIncomeForDay, getBillsForDay]);
+
   // Loading state
   if (isLoading) {
     return (
@@ -497,14 +506,16 @@ export function Budget() {
                     }
 
                     const isToday = isCurrentDay(dayNumber);
+                    const dayData = dayTransactions[dayNumber - 1];
+
                     return (
                       <DayCell
                         key={dayIndex}
                         day={dayNumber}
                         isCurrentDay={isToday}
                         selectedDay={selectedDay}
-                        dayIncomes={getIncomeForDay(dayNumber)}
-                        dayBills={getBillsForDay(dayNumber)}
+                        dayIncomes={dayData.incomes}
+                        dayBills={dayData.bills}
                         onDayClick={(day) => {
                           setSelectedDay(day);
                           setShowDailySummary(true);
@@ -527,8 +538,8 @@ export function Budget() {
         selectedDay={selectedDay}
         selectedMonth={selectedMonth}
         selectedYear={selectedYear}
-        dayIncomes={getIncomeForDay(selectedDay)}
-        dayBills={getBillsForDay(selectedDay)}
+        dayIncomes={dayTransactions[selectedDay - 1]?.incomes || []}
+        dayBills={dayTransactions[selectedDay - 1]?.bills || []}
         totalIncomeUpToToday={calculateRunningTotals(selectedDay).totalIncome}
         totalBillsUpToToday={calculateRunningTotals(selectedDay).totalBills}
         monthlyTotals={monthlyTotals}
