@@ -141,63 +141,75 @@ const expandRecurringBill = (baseBill: Bill, months: number = 12) => {
     throw new Error('Invalid date format in bill');
   }
 
-  // If it's a one-time bill, return as is
+  const baseDate = dayjs(baseBill.date);
+  const startDate = dayjs().startOf('month').subtract(6, 'month');
+  const endDate = dayjs().endOf('month').add(6, 'month');
+
+  // If it's explicitly marked as one-time, return as is
   if (baseBill.isOneTime) {
-    return [baseBill];
+    if (baseDate.isBetween(startDate, endDate, 'day', '[]')) {
+      return [baseBill];
+    }
+    return [];
   }
 
-  const baseDate = dayjs(baseBill.date);
+  // For monthly bills (any bill with a day set is considered monthly recurring)
+  if (baseBill.day) {
+    let currentDate = startDate.date(baseBill.day);
 
-  // For monthly bills
-  if (!baseBill.isYearly) {
-    for (let i = 0; i < months; i++) {
-      const date = baseDate.add(i, 'month');
+    // Adjust if the day is greater than the days in the month
+    if (baseBill.day > currentDate.daysInMonth()) {
+      currentDate = currentDate.endOf('month');
+    }
 
-      // Skip if date is invalid
-      if (!date.isValid()) {
-        logger.error("[DataContext] Generated invalid date:", {
-          date: date.format(),
-          bill: baseBill
-        });
-        continue;
-      }
-
-      // Generate instance ID using the same function as income
-      const instanceId = generateInstanceId(baseBill.id, i);
+    while (currentDate.isBefore(endDate)) {
+      // Generate instance ID using the base ID and the month difference
+      const monthDiff = currentDate.diff(baseDate, 'month');
+      const instanceId = generateInstanceId(baseBill.id, monthDiff);
 
       bills.push({
         ...baseBill,
         id: instanceId,
-        date: date.format('YYYY-MM-DD')
+        date: currentDate.format('YYYY-MM-DD')
       });
+
+      // Move to next month
+      currentDate = currentDate.add(1, 'month');
+      // Adjust for months with fewer days
+      if (baseBill.day > currentDate.daysInMonth()) {
+        currentDate = currentDate.endOf('month');
+      }
     }
-  } else if (baseBill.yearly_date) {
+  } else if (baseBill.isYearly && baseBill.yearly_date) {
     // For yearly bills
     const yearlyDate = dayjs(baseBill.yearly_date);
-    for (let i = 0; i < Math.ceil(months / 12); i++) {
-      const date = yearlyDate.add(i, 'year');
+    let currentDate = yearlyDate;
 
-      if (!date.isValid()) {
-        logger.error("[DataContext] Generated invalid yearly date:", {
-          date: date.format(),
-          bill: baseBill
+    while (currentDate.isBefore(endDate)) {
+      if (currentDate.isAfter(startDate)) {
+        const yearDiff = currentDate.diff(yearlyDate, 'year');
+        const instanceId = generateInstanceId(baseBill.id, yearDiff);
+
+        bills.push({
+          ...baseBill,
+          id: instanceId,
+          date: currentDate.format('YYYY-MM-DD')
         });
-        continue;
       }
-
-      const instanceId = generateInstanceId(baseBill.id, i);
-
-      bills.push({
-        ...baseBill,
-        id: instanceId,
-        date: date.format('YYYY-MM-DD')
-      });
+      currentDate = currentDate.add(1, 'year');
+    }
+  } else {
+    // If no recurrence info is available, treat as one-time
+    if (baseDate.isBetween(startDate, endDate, 'day', '[]')) {
+      bills.push(baseBill);
     }
   }
 
   logger.info("[DataContext] Expanded recurring bill:", {
     baseId: baseBill.id,
+    name: baseBill.name,
     isYearly: baseBill.isYearly,
+    day: baseBill.day,
     instanceCount: bills.length
   });
 
