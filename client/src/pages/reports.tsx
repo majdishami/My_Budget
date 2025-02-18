@@ -51,9 +51,6 @@ export default function Reports() {
 
   // Calculate totals when date range changes
   useEffect(() => {
-    const startDate = dayjs(dateRange.from);
-    const endDate = dayjs(dateRange.to);
-
     const calculateTotals = () => {
       try {
         setIsLoading(true);
@@ -62,47 +59,41 @@ export default function Reports() {
         let expenses = 0;
         const newTransactions: Transaction[] = [];
 
-        // Helper function to check if a date has occurred
+        // Convert date range to dayjs for calculations
+        const startDate = dayjs(dateRange.from);
+        const endDate = dayjs(dateRange.to);
+
+        // Helper function to check if a date is in the past or today
         const hasDateOccurred = (checkDate: dayjs.Dayjs) => {
-          return checkDate.isBefore(today) || 
-                 (checkDate.isSame(today, 'day') && 
-                  checkDate.isSame(today, 'month') && 
-                  checkDate.isSame(today, 'year'));
+          return checkDate.isBefore(today) || checkDate.isSame(today, 'day');
         };
 
-        // Calculate Majdi's salary (1st and 15th of each month)
-        let currentDate = startDate.startOf('month');
-        while (currentDate.isSameOrBefore(endDate)) {
-          // Only process dates within the selected range
-          if (currentDate.isBetween(startDate, endDate, 'month', '[]')) {
-            const firstPayday = currentDate.date(1);
-            const fifteenthPayday = currentDate.date(15);
-
-            if (firstPayday.isBetween(startDate, endDate, 'day', '[]')) {
-              if (hasDateOccurred(firstPayday)) {
-                income += 4739;
-                newTransactions.push({
-                  date: firstPayday.format('YYYY-MM-DD'),
-                  description: "Majdi's Salary",
-                  amount: 4739,
-                  type: 'income'
-                });
-              }
-            }
-
-            if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]')) {
-              if (hasDateOccurred(fifteenthPayday)) {
-                income += 4739;
-                newTransactions.push({
-                  date: fifteenthPayday.format('YYYY-MM-DD'),
-                  description: "Majdi's Salary",
-                  amount: 4739,
-                  type: 'income'
-                });
-              }
-            }
+        // Calculate Majdi's salary for the selected month only
+        const currentMonth = startDate.startOf('month');
+        if (currentMonth.isBetween(startDate, endDate, 'month', '[]')) {
+          // First paycheck of the month
+          const firstPayday = currentMonth.date(1);
+          if (firstPayday.isBetween(startDate, endDate, 'day', '[]') && hasDateOccurred(firstPayday)) {
+            income += 4739;
+            newTransactions.push({
+              date: firstPayday.format('YYYY-MM-DD'),
+              description: "Majdi's Salary",
+              amount: 4739,
+              type: 'income'
+            });
           }
-          currentDate = currentDate.add(1, 'month');
+
+          // Second paycheck of the month
+          const fifteenthPayday = currentMonth.date(15);
+          if (fifteenthPayday.isBetween(startDate, endDate, 'day', '[]') && hasDateOccurred(fifteenthPayday)) {
+            income += 4739;
+            newTransactions.push({
+              date: fifteenthPayday.format('YYYY-MM-DD'),
+              description: "Majdi's Salary",
+              amount: 4739,
+              type: 'income'
+            });
+          }
         }
 
         // Calculate Ruba's bi-weekly salary
@@ -112,21 +103,19 @@ export default function Reports() {
         }
 
         while (biweeklyDate.isSameOrBefore(endDate)) {
-          if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]')) {
-            if (hasDateOccurred(biweeklyDate)) {
-              income += 2168;
-              newTransactions.push({
-                date: biweeklyDate.format('YYYY-MM-DD'),
-                description: "Ruba's Salary",
-                amount: 2168,
-                type: 'income'
-              });
-            }
+          if (biweeklyDate.isBetween(startDate, endDate, 'day', '[]') && hasDateOccurred(biweeklyDate)) {
+            income += 2168;
+            newTransactions.push({
+              date: biweeklyDate.format('YYYY-MM-DD'),
+              description: "Ruba's Salary",
+              amount: 2168,
+              type: 'income'
+            });
           }
           biweeklyDate = biweeklyDate.add(14, 'day');
         }
 
-        // Calculate expenses for each month in the date range
+        // Monthly expenses for the selected month
         const monthlyExpenses = [
           { description: 'ATT Phone Bill', amount: 429, date: 1 },
           { description: "Maid's 1st payment", amount: 120, date: 1 },
@@ -145,26 +134,20 @@ export default function Reports() {
           { description: 'Car Insurance for 3 cars', amount: 704, date: 28 }
         ];
 
-        // Process expenses month by month within the date range
-        currentDate = dayjs(startDate).startOf('month');
-        while (currentDate.isSameOrBefore(endDate, 'month')) {
-          // Only process if the month is within the selected range
-          if (currentDate.isBetween(startDate, endDate, 'month', '[]')) {
-            monthlyExpenses.forEach(expense => {
-              const expenseDate = currentDate.date(expense.date);
-              if (expenseDate.isBetween(startDate, endDate, 'day', '[]') && 
-                  hasDateOccurred(expenseDate)) {
-                expenses += expense.amount;
-                newTransactions.push({
-                  date: expenseDate.format('YYYY-MM-DD'),
-                  description: expense.description,
-                  amount: expense.amount,
-                  type: 'expense'
-                });
-              }
-            });
-          }
-          currentDate = currentDate.add(1, 'month');
+        // Process expenses only for the selected month
+        if (currentMonth.isBetween(startDate, endDate, 'month', '[]')) {
+          monthlyExpenses.forEach(expense => {
+            const expenseDate = currentMonth.date(expense.date);
+            if (expenseDate.isBetween(startDate, endDate, 'day', '[]') && hasDateOccurred(expenseDate)) {
+              expenses += expense.amount;
+              newTransactions.push({
+                date: expenseDate.format('YYYY-MM-DD'),
+                description: expense.description,
+                amount: expense.amount,
+                type: 'expense'
+              });
+            }
+          });
         }
 
         setTotals({
