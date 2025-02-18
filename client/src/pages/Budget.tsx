@@ -279,7 +279,7 @@ export function Budget() {
       result.push({
         ...bill,
         id: `${bill.id}-onetime`,
-        date: dayjs(b.date).format('YYYY-MM-DD')
+        date: dayjs(bill.date).format('YYYY-MM-DD')
       });
     });
 
