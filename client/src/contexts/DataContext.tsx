@@ -137,8 +137,9 @@ const filterBillsForCalendar = (bills: Bill[]) => {
 
   bills.forEach(bill => {
     const billDate = dayjs(bill.date);
-    // Only use the day of month for the key to ensure one instance per day
-    const billKey = `${bill.name}-${billDate.date()}`;
+    // Create a unique key combining name, amount, and day of month
+    // This ensures we only show one instance of each recurring bill per day
+    const billKey = `${bill.name}-${bill.amount}-${billDate.date()}`;
 
     if (!uniqueBills.has(billKey)) {
       uniqueBills.set(billKey, bill);
@@ -187,13 +188,10 @@ const expandRecurringBill = (baseBill: Bill) => {
     }
   }
 
-  logger.info("[DataContext] Expanded recurring bill:", {
-    baseId: baseBill.id,
-    name: baseBill.name,
-    startDate: startDate.format('YYYY-MM-DD'),
-    endDate: endDate.format('YYYY-MM-DD'),
-    instanceCount: bills.length
-  });
+  // For calendar view, filter to show only one instance per month
+  if (window.location.pathname === '/') {
+    return filterBillsForCalendar(bills);
+  }
 
   return bills;
 };
