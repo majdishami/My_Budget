@@ -71,6 +71,7 @@ export function LeftSidebar({
 
   // Handle delete request
   const handleDeleteRequest = (type: 'income' | 'bill', data: Income | Bill) => {
+    console.log('Deleting transaction:', { type, data }); // Add logging
     setDeletingTransaction({ type, data });
     setIsDeleteConfirmOpen(true);
   };
@@ -164,7 +165,7 @@ export function LeftSidebar({
           </div>
           <div className="space-y-1">
             {[...bills]
-              .sort((a, b) => b.amount - a.amount) 
+              .sort((a, b) => b.amount - a.amount)
               .map((bill, index) => (
                 <div
                   key={bill.id}
