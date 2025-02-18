@@ -40,6 +40,17 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
     },
   });
 
+  // Reset form when dialog opens/closes or initialData changes
+  useState(() => {
+    if (isOpen) {
+      form.reset({
+        name: initialData?.name ?? "",
+        color: initialData?.color ?? "#000000",
+        icon: initialData?.icon ?? null,
+      });
+    }
+  }, [isOpen, initialData, form]);
+
   const handleSubmit = async (data: CategoryFormData) => {
     try {
       await onSubmit({
@@ -80,7 +91,12 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input {...field} type="text" placeholder="Enter category name" />
+                    <Input 
+                      {...field} 
+                      type="text" 
+                      placeholder="Enter category name"
+                      autoComplete="off"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -138,6 +154,7 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       placeholder="e.g., shopping-cart"
                       value={field.value ?? ""}
                       onChange={(e) => field.onChange(e.target.value || null)}
+                      autoComplete="off"
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground mt-1">

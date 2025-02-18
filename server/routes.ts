@@ -86,6 +86,34 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Add category deletion endpoint after the update endpoint
+  app.delete('/api/categories/:id', async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      console.log('[Categories API] Deleting category:', categoryId);
+
+      const existingCategory = await db.query.categories.findFirst({
+        where: eq(categories.id, categoryId)
+      });
+
+      if (!existingCategory) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+
+      // Delete the category
+      await db.delete(categories)
+        .where(eq(categories.id, categoryId));
+
+      console.log('[Categories API] Successfully deleted category:', categoryId);
+      res.status(204).send();
+    } catch (error) {
+      console.error('[Categories API] Error deleting category:', error);
+      res.status(500).json({
+        message: error instanceof Error ? error.message : 'Failed to delete category'
+      });
+    }
+  });
+
 
   // Bills Routes with proper icon handling and cache prevention
   app.get('/api/bills', async (req, res) => {
