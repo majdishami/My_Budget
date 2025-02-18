@@ -84,45 +84,51 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const processTransactions = (transactions: any[]) => {
     try {
       logger.info("[DataContext] Processing transactions...");
+      const loadedIncomes: Income[] = [];
+      const loadedBills: Bill[] = [];
 
-      const loadedIncomes = transactions
-        .filter((t: any) => t.type === 'income')
-        .map((t: any) => ({
-          id: t.id,
-          source: t.description || 'Unknown Source',
-          amount: parseFloat(t.amount) || 0,
-          date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-          occurrenceType: t.recurring_type || 'once',
-          firstDate: t.first_date,
-          secondDate: t.second_date
-        }))
-        .reduce((acc: Income[], income) => {
-          return [...acc, ...expandRecurringIncome(income)];
-        }, []);
+      transactions.forEach((t: any) => {
+        const date = dayjs(t.date).isValid()
+          ? dayjs(t.date).format('YYYY-MM-DD')
+          : dayjs().format('YYYY-MM-DD');
+
+        if (t.type === 'income') {
+          const income = {
+            id: t.id,
+            source: t.description || 'Unknown Source',
+            amount: parseFloat(t.amount) || 0,
+            date,
+            occurrenceType: t.recurring_type || 'once',
+            firstDate: t.first_date,
+            secondDate: t.second_date
+          };
+          // Expand recurring incomes
+          const expandedIncomes = expandRecurringIncome(income);
+          loadedIncomes.push(...expandedIncomes);
+        } else if (t.type === 'expense') {
+          loadedBills.push({
+            id: t.id,
+            name: t.description || 'Unknown Expense',
+            amount: parseFloat(t.amount) || 0,
+            date,
+            isOneTime: !t.recurring_id,
+            day: dayjs(t.date).date(),
+            category_id: t.category_id || null,
+            category_name: t.category_name || 'Uncategorized',
+            category_color: t.category_color || '#808080',
+            category_icon: t.category_icon || 'help-circle',
+            category: t.category_id ? {
+              name: t.category_name || 'Uncategorized',
+              color: t.category_color || '#808080',
+              icon: t.category_icon || 'help-circle'
+            } : undefined
+          });
+        }
+      });
 
       setIncomes(loadedIncomes);
-
-      const loadedBills = transactions
-        .filter((t: any) => t.type === 'expense')
-        .map((t: any) => ({
-          id: t.id,
-          name: t.description || 'Unknown Expense',
-          amount: parseFloat(t.amount) || 0,
-          date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-          isOneTime: !t.recurring_id,
-          day: dayjs(t.date).date(),
-          category_id: t.category_id || null,
-          category_name: t.category_name || 'Uncategorized',
-          category_color: t.category_color || '#808080',
-          category_icon: t.category_icon || 'help-circle',
-          category: t.category_id ? {
-            name: t.category_name || 'Uncategorized',
-            color: t.category_color || '#808080',
-            icon: t.category_icon || 'help-circle'
-          } : undefined
-        }));
-
       setBills(loadedBills);
+
       logger.info("[DataContext] Successfully processed transactions:", {
         incomesCount: loadedIncomes.length,
         billsCount: loadedBills.length
@@ -197,7 +203,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           type: 'income',
           recurring_type: income.occurrenceType,
           first_date: income.firstDate,
-          second_date: income.secondDate
+          secondDate: income.secondDate
         }),
       });
 
@@ -350,7 +356,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           type: isIncome ? 'income' : 'expense',
           recurring_type: isIncome ? (transaction as Income).occurrenceType : undefined,
           first_date: isIncome ? (transaction as Income).firstDate : undefined,
-          second_date: isIncome ? (transaction as Income).secondDate : undefined,
+          secondDate: isIncome ? (transaction as Income).secondDate : undefined,
           category_id: !isIncome ? (transaction as Bill).category_id : undefined
         }),
       });
