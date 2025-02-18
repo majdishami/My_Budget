@@ -33,17 +33,17 @@ interface Transaction {
   occurred: boolean;
 }
 
-interface ExpenseReportDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
 interface MonthlyTransactions {
   monthKey: string;
   transactions: Transaction[];
   total: number;
   paid: number;
   pending: number;
+}
+
+interface ExpenseReportDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseReportDialogProps) {
@@ -63,19 +63,13 @@ export default function ExpenseReportDialog({ isOpen, onOpenChange }: ExpenseRep
 
   // Handle date selection
   const handleDateSelect = (selectedDate: DateRange | undefined) => {
-    if (selectedDate?.from && !selectedDate.to) {
-      // If only start date is selected, keep it selected
-      setDate({ from: selectedDate.from, to: undefined });
-    } else {
-      setDate(selectedDate);
-    }
+    setDate(selectedDate);
   };
 
   // Query transactions for the selected date range
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ['/api/transactions', { 
       type: 'expense',
-      // Do not use startOf/endOf month to allow precise date range selection
       startDate: date?.from?.toISOString(),
       endDate: date?.to?.toISOString()
     }],
