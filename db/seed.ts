@@ -1,6 +1,6 @@
 import { db } from "./index";
 import { categories } from "./schema";
-import { isNull } from "drizzle-orm";
+import { isNull, sql } from "drizzle-orm";
 
 const defaultCategories = [
   {
@@ -93,17 +93,18 @@ export async function seedCategories() {
   try {
     console.log('Starting categories seeding process...');
 
-    // Check for existing categories with detailed logging
-    console.log('Checking for existing categories...');
+    // Check for existing categories with optimized COUNT query
+    console.log('Checking for existing default categories...');
     const defaultCatsCount = await db
-      .select()
+      .select({ count: sql<number>`count(*)` })
       .from(categories)
       .where(isNull(categories.user_id));
 
-    console.log(`Found ${defaultCatsCount.length} default categories`);
+    const existingCategories = Number(defaultCatsCount[0]?.count) || 0;
+    console.log(`Found ${existingCategories} default categories`);
 
     // Only seed if no default categories exist
-    if (defaultCatsCount.length === 0) {
+    if (existingCategories === 0) {
       console.log('No default categories found. Seeding default categories...');
       try {
         // Insert new categories
@@ -111,15 +112,21 @@ export async function seedCategories() {
         console.log('Successfully seeded default categories');
         return result;
       } catch (error) {
-        console.error('Error during category insertion:', error);
+        console.error('Error during category insertion:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          details: error instanceof Error ? error.stack : undefined
+        });
         throw error;
       }
     } else {
       console.log('Default categories already exist, skipping seed');
-      return defaultCatsCount;
+      return { skipped: true, existingCount: existingCategories };
     }
   } catch (error) {
-    console.error('Fatal error in seedCategories:', error);
+    console.error('Fatal error in seedCategories:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      details: error instanceof Error ? error.stack : undefined
+    });
     throw error;
   }
 }
