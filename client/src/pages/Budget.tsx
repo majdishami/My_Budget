@@ -263,15 +263,17 @@ export function Budget() {
           result.push(bill);
           uniqueBills.add(bill.name);
         }
-      } else if (bill.day === day) {
-        // For monthly bills, show them every month on their specified day
-        const recurringBill = {
-          ...bill,
-          id: `${bill.id}-${selectedMonth}-${selectedYear}`,
-          date: dayjs().year(selectedYear).month(selectedMonth - 1).date(day).format('YYYY-MM-DD')
-        };
-        result.push(recurringBill);
-        uniqueBills.add(bill.name);
+      } else {
+        // For monthly bills, always show them every month on their specified day
+        if (bill.day === day) {
+          const recurringBill = {
+            ...bill,
+            id: `${bill.id}-${selectedMonth}-${selectedYear}`,
+            date: dayjs().year(selectedYear).month(selectedMonth - 1).date(day).format('YYYY-MM-DD')
+          };
+          result.push(recurringBill);
+          uniqueBills.add(bill.name);
+        }
       }
     });
 
