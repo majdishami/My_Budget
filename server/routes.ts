@@ -90,19 +90,31 @@ export function registerRoutes(app: Express): Server {
   app.delete('/api/categories/:id', async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
-      console.log('[Categories API] Deleting category:', categoryId);
+      console.log('[Categories API] Attempting to delete category:', categoryId);
 
       const existingCategory = await db.query.categories.findFirst({
         where: eq(categories.id, categoryId)
       });
 
       if (!existingCategory) {
+        console.log('[Categories API] Category not found:', categoryId);
         return res.status(404).json({ message: 'Category not found' });
       }
 
-      // Delete the category
-      await db.delete(categories)
-        .where(eq(categories.id, categoryId));
+      // Delete associated transactions and bills first
+      await db.transaction(async (tx) => {
+        // Delete associated transactions
+        await tx.delete(transactions)
+          .where(eq(transactions.category_id, categoryId));
+
+        // Delete associated bills
+        await tx.delete(bills)
+          .where(eq(bills.category_id, categoryId));
+
+        // Delete the category
+        await tx.delete(categories)
+          .where(eq(categories.id, categoryId));
+      });
 
       console.log('[Categories API] Successfully deleted category:', categoryId);
       res.status(204).send();
@@ -110,8 +122,7 @@ export function registerRoutes(app: Express): Server {
       console.error('[Categories API] Error deleting category:', error);
       if (!res.headersSent) {
         res.status(500).json({ 
-          message: 'Failed to delete category',
-          details: process.env.NODE_ENV === 'development' ? error : undefined
+          message: error instanceof Error ? error.message : 'Failed to delete category'
         });
       }
     }

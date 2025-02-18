@@ -11,7 +11,7 @@ import { ChromePicker } from 'react-color';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 
-// This schema must match the server-side insertCategorySchema
+// Schema must match server-side
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required").max(255),
   color: z.string().min(1, "Color is required").max(50),
@@ -95,14 +95,11 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       {...field} 
                       type="text" 
                       placeholder="Enter category name"
-                      key={`category-name-${Math.random()}`}
-                      autoComplete="new-password"
+                      autoComplete="off"
                       autoCapitalize="off"
                       autoCorrect="off"
                       spellCheck="false"
-                      data-form-type="other"
                       data-lpignore="true"
-                      data-form-type="other"
                       aria-autocomplete="none"
                     />
                   </FormControl>
