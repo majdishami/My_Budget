@@ -78,6 +78,16 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
             className="space-y-4"
             autoComplete="off"
           >
+            {/* Hidden input to prevent autofill */}
+            <input 
+              type="text" 
+              id="prevent_autofill" 
+              name="prevent_autofill" 
+              style={{ display: 'none' }}
+              tabIndex={-1}
+              autoComplete="off"
+            />
+
             <FormField
               control={form.control}
               name="name"
@@ -98,6 +108,8 @@ export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: 
                       data-private="true"
                       autoCapitalize="off"
                       autoCorrect="off"
+                      maxLength={50}
+                      pattern="[A-Za-z0-9\s\-_]+"
                     />
                   </FormControl>
                   <FormMessage />
