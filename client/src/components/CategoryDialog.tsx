@@ -27,7 +27,6 @@ interface CategoryDialogProps {
 
 export function CategoryDialog({ isOpen, onOpenChange, onSubmit, initialData }: CategoryDialogProps) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
-  // Generate random input names to prevent browser autocomplete
   const randomInputId = useMemo(() => Math.random().toString(36).substring(7), []);
 
   const defaultFormValues = useMemo(() => ({
