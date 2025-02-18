@@ -66,8 +66,8 @@ function Calendar({
         DayContent: ({ date, ...contentProps }) => (
           <DayContent 
             day={date} 
-            bills={bills} 
-            incomes={incomes} 
+            bills={bills ?? []} 
+            incomes={incomes ?? []} 
             onClick={onDayClick}
             {...contentProps} 
           />
