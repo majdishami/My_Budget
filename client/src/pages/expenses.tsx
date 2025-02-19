@@ -1,26 +1,22 @@
 import { useState } from 'react';
-import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useLocation } from "wouter";
-import { Bill } from "@/types";
-import { ReportFilter } from "@/components/ReportFilter";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import dayjs from "dayjs";
+import { useQuery } from "@tanstack/react-query";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ReportFilter } from "@/components/ReportFilter";
+import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
-import { useQuery } from "@tanstack/react-query";
-
-type ReportType = 'all' | 'category' | 'individual';
-type CategoryFilter = 'all' | string;
 
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { bills, categories, isLoading } = useData();
-  const [reportType, setReportType] = useState<ReportType>('all');
-  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
-  const [selectedExpense, setSelectedExpense] = useState<string>('all');
+  const [reportType, setReportType] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedExpense, setSelectedExpense] = useState('all');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
@@ -42,10 +38,7 @@ export default function ExpenseReport() {
   });
 
   const filteredExpenses = expenses.filter(expense => {
-    if (!expense || typeof expense !== 'object') {
-      logger.error("[ExpenseReport] Invalid expense data:", { expense });
-      return false;
-    }
+    if (!expense) return false;
 
     const categoryMatches = selectedCategory === 'all' || 
                         expense.category_id === Number(selectedCategory);
@@ -61,7 +54,6 @@ export default function ExpenseReport() {
       logger.warn("[ExpenseReport] Attempted to show report without date range");
       return;
     }
-
     setIsDialogOpen(true);
   };
 
@@ -103,7 +95,7 @@ export default function ExpenseReport() {
           <div className="flex items-center gap-4 flex-wrap">
             <Select 
               value={reportType} 
-              onValueChange={(value: ReportType) => {
+              onValueChange={(value) => {
                 setReportType(value);
                 if (value !== 'category') setSelectedCategory('all');
                 if (value !== 'individual') setSelectedExpense('all');
