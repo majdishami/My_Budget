@@ -15,7 +15,7 @@ interface DataContextType {
   editTransaction: (transaction: Income | Bill) => Promise<void>;
   resetData: () => Promise<void>;
   refresh: () => Promise<void>;
-  addIncomeToData: (income: Income) => void;
+  addIncomeToData: (income: Income) => Promise<void>;
   isLoading: boolean;
   error: Error | null;
 }
@@ -717,10 +717,60 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Function to add income directly to state without API call
-  const addIncomeToData = (income: Income) => {
-    const expandedIncomes = expandRecurringIncome(income);
-    setIncomes(prev => [...prev, ...expandedIncomes]);
-    logger.info("[DataContext] Added income to local state:", { income, expandedCount: expandedIncomes.length });
+  const addIncomeToData = async (income: Income) => {
+    try {
+      logger.info("[DataContext] Adding new income to database and state:", { income });
+
+      // First save to database
+      const response = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          description: income.source,
+          amount: income.amount,
+          date: dayjs(income.date).format('YYYY-MM-DD'),
+          type: 'income',
+          recurring_type: income.occurrenceType,
+          first_date: income.firstDate,
+          second_date: income.secondDate
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to create income');
+      }
+
+      const newTransaction = await response.json();
+
+      // Create a new income object with the server-generated ID
+      const newIncome: Income = {
+        ...income,
+        id: newTransaction.id
+      };
+
+      // Expand the recurring income
+      const expandedIncomes = expandRecurringIncome(newIncome);
+
+      // Update local state
+      setIncomes(prev => [...prev, ...expandedIncomes]);
+
+      // Invalidate cache to ensure fresh data on next load
+      sessionStorage.removeItem(getCacheKey());
+
+      logger.info("[DataContext] Successfully added income to database and state", {
+        originalIncome: newIncome,
+        expandedCount: expandedIncomes.length
+      });
+    } catch (error) {
+      logger.error("[DataContext] Error in addIncomeToData:", {
+        error: error instanceof Error ? error.message : String(error),
+        income
+      });
+      throw error;
+    }
   };
 
   useEffect(() => {
