@@ -494,7 +494,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           amount: income.amount,
           date: dayjs(income.date).format('YYYY-MM-DD'),
           type: 'income',
-          recurring_type: income.occurrenceType || 'once', // Explicitly set recurring_type
+          recurring_type: income.occurrenceType || 'once',
           first_date: income.firstDate,
           second_date: income.secondDate,
           is_recurring: income.occurrenceType !== 'once' // Explicitly set is_recurring
