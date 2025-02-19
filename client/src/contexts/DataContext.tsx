@@ -374,39 +374,48 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const loadedBills: Bill[] = [];
       const loadedCategories = new Map<number, Category>();
 
+      // Process all transactions
       transactions.forEach((t: any) => {
-        const date = dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : null;
-        if (!date) {
-          logger.warn(`[DataContext] Invalid date for transaction ID: ${t.id}, using today's date.`);
-        }
-
-        const finalDate = date || dayjs().format('YYYY-MM-DD');
+        // Validate and format date
+        const date = dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD');
 
         if (t.type === 'income') {
           const income = {
             id: t.id,
             source: t.description || 'Unknown Source',
             amount: parseFloat(t.amount) || 0,
-            date: finalDate,
+            date,
             occurrenceType: t.recurring_type || 'once',
             firstDate: t.first_date,
-            secondDate: t.second_date
+            secondDate: t.second_date,
+            is_recurring: t.is_recurring
           };
 
-          // Only expand if it's a recurring income and recurring_type is set
-          if (t.recurring_type && t.recurring_type !== 'once' && t.is_recurring) {
+          logger.info("[DataContext] Processing income:", {
+            id: income.id,
+            source: income.source,
+            amount: income.amount,
+            date: income.date,
+            occurrenceType: income.occurrenceType,
+            is_recurring: income.is_recurring
+          });
+
+          // Only expand if it's a recurring income
+          if (income.is_recurring && income.occurrenceType !== 'once') {
             const expandedIncomes = expandRecurringIncome(income);
             logger.info("[DataContext] Generated expanded incomes:", {
+              originalId: income.id,
               count: expandedIncomes.length,
               firstDate: expandedIncomes[0]?.date,
-              lastDate: expandedIncomes[expandedIncomes.length - 1]?.date
+              lastDate: expandedIncomes[expandedIncomes.length - 1]?.date,
+              amounts: expandedIncomes.map(i => i.amount)
             });
             loadedIncomes.push(...expandedIncomes);
           } else {
             loadedIncomes.push(income);
           }
         } else if (t.type === 'expense') {
-          // If this transaction has a category, add it to our categories map
+          // Process bills (unchanged)
           if (t.category_id) {
             loadedCategories.set(t.category_id, {
               id: t.category_id,
@@ -420,11 +429,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             id: t.id,
             name: t.description || 'Unknown Expense',
             amount: parseFloat(t.amount) || 0,
-            date: finalDate,
+            date,
             isOneTime: !t.recurring_id,
             isYearly: t.is_yearly || false,
             yearly_date: t.yearly_date,
-            day: dayjs(finalDate).date(),
+            day: dayjs(date).date(),
             category_id: t.category_id || null,
             category_name: t.category_name || 'Uncategorized',
             category_color: t.category_color || '#808080',
@@ -436,18 +445,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             } : undefined
           };
 
-          // Expand recurring bills
           const expandedBills = expandRecurringBill(bill);
-          // For calendar view, filter to show only one instance per month
           const billsToAdd = window.location.pathname === '/' ? filterBillsForCalendar(expandedBills) : expandedBills;
           loadedBills.push(...billsToAdd);
         }
       });
 
-      // Sort incomes by date before setting state
+      // Sort incomes by date
       const sortedIncomes = loadedIncomes.sort((a, b) =>
         dayjs(a.date).valueOf() - dayjs(b.date).valueOf()
       );
+
+      // Log monthly totals for verification
+      const monthlyTotals = new Map<string, number>();
+      sortedIncomes.forEach(income => {
+        const monthKey = dayjs(income.date).format('YYYY-MM');
+        monthlyTotals.set(
+          monthKey,
+          (monthlyTotals.get(monthKey) || 0) + income.amount
+        );
+      });
+
+      logger.info("[DataContext] Monthly income totals:", {
+        totals: Object.fromEntries(monthlyTotals)
+      });
 
       setIncomes(sortedIncomes);
       setBills(loadedBills);
@@ -456,7 +477,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       logger.info("[DataContext] Successfully processed transactions:", {
         incomesCount: sortedIncomes.length,
         billsCount: loadedBills.length,
-        categoriesCount: loadedCategories.size
+        categoriesCount: loadedCategories.size,
       });
     } catch (error) {
       logger.error("[DataContext] Error processing transactions:", error);
