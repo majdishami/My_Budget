@@ -83,7 +83,11 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
     switch (baseIncome.occurrenceType) {
       case 'monthly':
         // Keep the same day of month as the original date
-        const monthlyDate = currentDate.date(baseDate.date());
+        let monthlyDate = currentDate.date(baseDate.date());
+        // Handle months with fewer days
+        if (monthlyDate.month() !== currentDate.month()) {
+          monthlyDate = currentDate.endOf('month');
+        }
         incomes.push({
           ...baseIncome,
           id: generateInstanceId(baseIncome.id, incomes.length),
@@ -138,7 +142,7 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
 
       case 'weekly':
         let weekDate = currentDate;
-        while (weekDate.month() === currentDate.month()) {
+        while (weekDate.isBefore(currentDate.add(1, 'month'))) {
           incomes.push({
             ...baseIncome,
             id: generateInstanceId(baseIncome.id, incomes.length),
@@ -151,6 +155,11 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         break;
     }
   }
+
+  logger.info("[DataContext] Generated income instances:", {
+    count: incomes.length,
+    dates: incomes.map(inc => inc.date)
+  });
 
   return incomes;
 };
@@ -556,6 +565,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Invalidate cache
       sessionStorage.removeItem(getCacheKey());
+      logger.info("[DataContext] Cache invalidated after adding income");
 
     } catch (error) {
       logger.error("[DataContext] Error in addIncome:", error);
