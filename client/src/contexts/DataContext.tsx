@@ -66,7 +66,8 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   }
 
   const baseDate = dayjs(baseIncome.date);
-  const startDate = dayjs('2025-01-01');
+  // Use the original date's month as the start point
+  const startDate = baseDate.startOf('month');
   const endDate = startDate.add(months, 'months');
 
   logger.info("[DataContext] Expanding recurring income:", {
@@ -81,10 +82,12 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   while (currentDate.isBefore(endDate)) {
     switch (baseIncome.occurrenceType) {
       case 'monthly':
+        // Keep the same day of month as the original date
+        const monthlyDate = currentDate.date(baseDate.date());
         incomes.push({
           ...baseIncome,
           id: generateInstanceId(baseIncome.id, incomes.length),
-          date: currentDate.format('YYYY-MM-DD'),
+          date: monthlyDate.format('YYYY-MM-DD'),
           occurrenceType: 'monthly'
         });
         currentDate = currentDate.add(1, 'month');
@@ -112,15 +115,23 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         break;
 
       case 'biweekly':
+        // For Ruba's salary or any biweekly income
         let biweekDate = currentDate;
-        while (biweekDate.month() === currentDate.month()) {
+        // Ensure we start on a Friday for Ruba's salary
+        if (baseIncome.source === "Ruba's Salary") {
+          while (biweekDate.day() !== 5) { // 5 is Friday
+            biweekDate = biweekDate.add(1, 'day');
+          }
+        }
+
+        while (biweekDate.isBefore(currentDate.add(1, 'month'))) {
           incomes.push({
             ...baseIncome,
             id: generateInstanceId(baseIncome.id, incomes.length),
             date: biweekDate.format('YYYY-MM-DD'),
             occurrenceType: 'biweekly'
           });
-          biweekDate = biweekDate.add(2, 'weeks');
+          biweekDate = biweekDate.add(14, 'days');
         }
         currentDate = currentDate.add(1, 'month');
         break;
@@ -513,11 +524,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const newTransaction = await response.json();
       logger.info("[DataContext] Server response:", newTransaction);
 
-      // Create a new income object with the server-generated ID
+      // Create a new income object with the server-generated ID and original date
       const newIncome: Income = {
         ...income,
         id: newTransaction.id,
-        occurrenceType: income.occurrenceType // Ensure occurrenceType is preserved
+        date: income.date, // Preserve the original date
+        occurrenceType: income.occurrenceType
       };
 
       // For recurring incomes, expand them
