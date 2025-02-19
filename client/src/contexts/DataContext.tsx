@@ -751,14 +751,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         id: newTransaction.id
       };
 
-      // Expand the recurring income
+      // Expand the recurring income with proper validation
       const expandedIncomes = expandRecurringIncome(newIncome);
 
-      // Update local state
-      setIncomes(prev => [...prev, ...expandedIncomes]);
+      // Update local state with the new expanded incomes
+      setIncomes(prev => {
+        const updatedIncomes = [...prev];
+        // Remove any existing incomes with the same source if it's recurring
+        if (newIncome.occurrenceType !== 'once') {
+          const index = updatedIncomes.findIndex(i => i.source === newIncome.source);
+          if (index !== -1) {
+            updatedIncomes.splice(index, 1);
+          }
+        }
+        return [...updatedIncomes, ...expandedIncomes];
+      });
 
-      // Invalidate cache to ensure fresh data on next load
+      // Force cache invalidation
       sessionStorage.removeItem(getCacheKey());
+
+      // Trigger an immediate data refresh to ensure consistency
+      await loadData();
 
       logger.info("[DataContext] Successfully added income to database and state", {
         originalIncome: newIncome,

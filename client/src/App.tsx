@@ -103,9 +103,21 @@ function Router() {
     let totalIncome = 0;
     let totalBills = 0;
 
+    // Create a Set to track processed income sources to avoid duplicates
+    const processedIncomeSources = new Set<string>();
+
     // Calculate total income for the selected month
     incomes.forEach(income => {
       const incomeDate = dayjs(income.date);
+
+      // For recurring incomes, only count each source once per month
+      if (income.occurrenceType !== 'once') {
+        const key = `${income.source}-${selectedMonth}-${selectedYear}`;
+        if (processedIncomeSources.has(key)) {
+          return; // Skip if we've already processed this income source for this month
+        }
+        processedIncomeSources.add(key);
+      }
 
       // Handle different income types
       switch (income.occurrenceType) {
@@ -113,71 +125,78 @@ function Router() {
           const firstDate = income.firstDate || 1;
           const secondDate = income.secondDate || 15;
 
-          // Check first date
-          if (dayjs().year(selectedYear).month(selectedMonth - 1).date(firstDate).isValid()) {
-            totalIncome += income.amount;
-          }
-          // Check second date
-          if (dayjs().year(selectedYear).month(selectedMonth - 1).date(secondDate).isValid()) {
-            totalIncome += income.amount;
+          // Check if the dates fall in the selected month/year
+          if (selectedYear === incomeDate.year() && selectedMonth === incomeDate.month() + 1) {
+            // Add income for both dates
+            totalIncome += income.amount * 2;
           }
           break;
 
         case 'monthly':
-          const adjustedDate = dayjs().year(selectedYear).month(selectedMonth - 1).date(incomeDate.date());
-          if (adjustedDate.isValid() && adjustedDate.month() === selectedMonth - 1) {
+          // Check if this income occurs in the selected month/year
+          if (selectedYear === incomeDate.year() && selectedMonth === incomeDate.month() + 1) {
             totalIncome += income.amount;
           }
           break;
 
         case 'weekly':
-          const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month');
-          const lastDayOfMonth = firstDayOfMonth.endOf('month');
-          const dayOfWeek = incomeDate.day();
+          if (selectedYear === incomeDate.year() && selectedMonth === incomeDate.month() + 1) {
+            // Calculate number of occurrences in the month
+            const firstDay = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month');
+            const lastDay = firstDay.endOf('month');
+            let occurrences = 0;
+            let currentDate = firstDay;
 
-          let currentDate = firstDayOfMonth;
-          while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
-            if (currentDate.day() === dayOfWeek) {
-              totalIncome += income.amount;
+            while (currentDate.isBefore(lastDay) || currentDate.isSame(lastDay, 'day')) {
+              if (currentDate.day() === incomeDate.day()) {
+                occurrences++;
+              }
+              currentDate = currentDate.add(1, 'day');
             }
-            currentDate = currentDate.add(1, 'day');
+            totalIncome += income.amount * occurrences;
           }
           break;
 
         case 'biweekly':
-          if (income.source === "Ruba's Salary") {
-            // Special case for Ruba's salary
-            const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month');
-            const lastDayOfMonth = firstDayOfMonth.endOf('month');
-            const startDate = dayjs('2025-01-10');
+          if (selectedYear === incomeDate.year() && selectedMonth === incomeDate.month() + 1) {
+            // Special handling for specific salaries
+            if (income.source === "Ruba's Salary") {
+              const startDate = dayjs('2025-01-10');
+              const firstDay = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month');
+              const lastDay = firstDay.endOf('month');
+              let occurrences = 0;
+              let currentDate = firstDay;
 
-            let current = firstDayOfMonth;
-            while (current.isBefore(lastDayOfMonth) || current.isSame(lastDayOfMonth, 'day')) {
-              if (current.day() === 5) { // Friday
-                const weeksDiff = current.diff(startDate, 'week');
-                if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
-                  totalIncome += income.amount;
+              while (currentDate.isBefore(lastDay) || currentDate.isSame(lastDay, 'day')) {
+                if (currentDate.day() === 5) { // Friday
+                  const weeksDiff = currentDate.diff(startDate, 'week');
+                  if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+                    occurrences++;
+                  }
                 }
+                currentDate = currentDate.add(1, 'day');
               }
-              current = current.add(1, 'day');
-            }
-          } else {
-            const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month');
-            const lastDayOfMonth = firstDayOfMonth.endOf('month');
-            const startDate = dayjs(income.date);
+              totalIncome += income.amount * occurrences;
+            } else {
+              // Standard biweekly calculation
+              const firstDay = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month');
+              const lastDay = firstDay.endOf('month');
+              let occurrences = 0;
+              let currentDate = firstDay;
 
-            let current = firstDayOfMonth;
-            while (current.isBefore(lastDayOfMonth) || current.isSame(lastDayOfMonth, 'day')) {
-              const weeksDiff = current.diff(startDate, 'week');
-              if (weeksDiff >= 0 && weeksDiff % 2 === 0 && current.day() === startDate.day()) {
-                totalIncome += income.amount;
+              while (currentDate.isBefore(lastDay) || currentDate.isSame(lastDay, 'day')) {
+                const weeksDiff = currentDate.diff(incomeDate, 'week');
+                if (weeksDiff >= 0 && weeksDiff % 2 === 0 && currentDate.day() === incomeDate.day()) {
+                  occurrences++;
+                }
+                currentDate = currentDate.add(1, 'day');
               }
-              current = current.add(1, 'day');
+              totalIncome += income.amount * occurrences;
             }
           }
           break;
 
-        default: // 'once' or other types
+        default: // 'once'
           if (incomeDate.year() === selectedYear && incomeDate.month() === selectedMonth - 1) {
             totalIncome += income.amount;
           }
@@ -185,7 +204,7 @@ function Router() {
       }
     });
 
-    // Calculate total bills
+    // Calculate total bills (unchanged)
     bills.forEach(bill => {
       if (bill.isYearly && bill.yearly_date) {
         const billDate = dayjs(bill.yearly_date);
