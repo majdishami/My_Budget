@@ -15,11 +15,10 @@ export function formatCurrency(amount: number) {
   }).format(Math.round(amount));
 }
 
-// Browser-compatible UUID v4 generation that explicitly returns string
-export function generateId(): string {
-  const timestamp = Date.now().toString(36);
-  const randomStr = Math.random().toString(36).substring(2, 8);
-  return `${timestamp}-${randomStr}`;
+// Generate a numeric ID for new transactions
+export function generateId(): number {
+  // Use timestamp for uniqueness but ensure it's a positive integer
+  return Math.floor(Date.now() / 1000);
 }
 
 // Get current date dynamically

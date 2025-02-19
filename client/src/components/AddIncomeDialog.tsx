@@ -85,6 +85,7 @@ export function AddIncomeDialog({
         newIncome.secondDate = values.secondDate;
       }
 
+      logger.info("Creating new income with generated ID:", { id: newIncome.id, type: typeof newIncome.id });
       await onConfirm(newIncome);
       form.reset();
       onOpenChange(false);
