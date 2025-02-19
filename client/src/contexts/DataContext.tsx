@@ -60,10 +60,14 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
     throw new Error('Invalid date format in income');
   }
 
-  // Validate ID
-  if (typeof baseIncome.id !== 'number' || isNaN(baseIncome.id)) {
-    logger.error("[DataContext] Invalid income ID:", { income: baseIncome });
-    throw new Error('Invalid income ID: must be a number');
+  // Strict ID validation
+  if (typeof baseIncome.id !== 'number' || isNaN(baseIncome.id) || baseIncome.id <= 0) {
+    logger.error("[DataContext] Invalid income ID:", { 
+      id: baseIncome.id, 
+      type: typeof baseIncome.id,
+      income: baseIncome 
+    });
+    throw new Error('Invalid income ID: must be a positive number');
   }
 
   // For one-time income, return as is
@@ -72,6 +76,11 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   }
 
   const baseDate = dayjs(baseIncome.date);
+  logger.info("[DataContext] Expanding recurring income:", { 
+    baseId: baseIncome.id,
+    occurrenceType: baseIncome.occurrenceType,
+    baseDate: baseDate.format('YYYY-MM-DD')
+  });
 
   for (let i = 0; i < months; i++) {
     let date;
@@ -122,7 +131,7 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
     });
   }
 
-  logger.info("[DataContext] Expanded recurring income:", {
+  logger.info("[DataContext] Successfully expanded recurring income:", {
     baseId: baseIncome.id,
     occurrenceType: baseIncome.occurrenceType,
     instanceCount: incomes.length
@@ -466,7 +475,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       logger.info("[DataContext] Adding income:", { income });
 
-      const newTransaction = await fetchJsonWithErrorHandling('/api/transactions', {
+      const response = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -482,15 +491,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to create income');
+      }
+
+      const newTransaction = await response.json();
+
       logger.info("[DataContext] Successfully added income to database:", newTransaction);
 
-      // Create a new income object with the ID from the server response
+      if (typeof newTransaction.id !== 'number' || isNaN(newTransaction.id)) {
+        logger.error("[DataContext] Invalid transaction ID received:", newTransaction);
+        throw new Error('Server returned invalid transaction ID');
+      }
+
+      // Create a new income object with the validated ID from the server response
       const newIncome: Income = {
         ...income,
         id: newTransaction.id
       };
 
-      // Now expand the income with a valid ID
+      logger.info("[DataContext] Created new income with ID:", { id: newIncome.id });
+
+      // Now expand the income with the validated ID
       const expandedIncomes = expandRecurringIncome(newIncome);
       setIncomes(prev => [...prev, ...expandedIncomes]);
 
