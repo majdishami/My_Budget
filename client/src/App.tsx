@@ -4,7 +4,7 @@
  * ================================================
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Switch, Route, Link, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -64,16 +64,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 
+
 function Router() {
-  // Hooks for data and location - always called first
-  const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
-  const [location] = useLocation();
+  const { isLoading, error, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
+  const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
 
-  // Static values and memoized constants
   const today = useMemo(() => dayjs('2025-02-11'), []);
 
-  // All useState hooks grouped together
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedYear, setSelectedYear] = useState(() => today.year());
@@ -89,7 +87,6 @@ function Router() {
   const [selectedIncome, setSelectedIncome] = useState<Income | null>(null);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
 
-  // Memoized calculations
   const currentDate = useMemo(() => ({
     day: today.date(),
     weekday: today.format('dddd'),
@@ -103,14 +100,11 @@ function Router() {
     let totalIncome = 0;
     let totalBills = 0;
 
-    // Track processed recurring incomes to avoid duplicates
     const processedIncomeSources = new Map<string, { count: number; amount: number }>();
 
-    // Calculate total income for the selected month
     incomes.forEach(income => {
       const incomeDate = dayjs(income.date);
 
-      // Skip if not in selected month/year
       if (incomeDate.year() !== selectedYear || incomeDate.month() !== selectedMonth - 1) {
         return;
       }
@@ -120,24 +114,20 @@ function Router() {
         return;
       }
 
-      // Handle recurring incomes
       const key = `${income.source}-${income.occurrenceType}`;
       const existing = processedIncomeSources.get(key);
 
       if (existing) {
-        // Update count for recurring income
         existing.count += 1;
         processedIncomeSources.set(key, existing);
       } else {
-        // First occurrence of this income in the month
         let occurrenceCount = 1;
 
         switch (income.occurrenceType) {
           case 'twice-monthly':
-            occurrenceCount = 2; // Always twice per month
+            occurrenceCount = 2;
             break;
           case 'weekly':
-            // Count weeks in the month
             occurrenceCount = Math.floor(dayjs()
               .year(selectedYear)
               .month(selectedMonth - 1)
@@ -145,7 +135,6 @@ function Router() {
               .date() / 7);
             break;
           case 'biweekly':
-            // Approximately 2 occurrences per month
             occurrenceCount = 2;
             break;
           case 'monthly':
@@ -160,27 +149,18 @@ function Router() {
       }
     });
 
-    // Sum up all recurring incomes
-    processedIncomeSources.forEach(({ count, amount }) => {
-      totalIncome += amount * count;
-    });
-
-    // Calculate total bills
     bills.forEach(bill => {
       const billDate = dayjs(bill.date || bill.yearly_date);
 
       if (bill.isYearly) {
-        // Only include if it occurs in this month
         if (billDate.month() === selectedMonth - 1) {
           totalBills += bill.amount;
         }
       } else if (bill.isOneTime) {
-        // Only include if it occurs in selected month/year
         if (billDate.year() === selectedYear && billDate.month() === selectedMonth - 1) {
           totalBills += bill.amount;
         }
       } else {
-        // Regular monthly bill
         totalBills += bill.amount;
       }
     });
@@ -192,7 +172,6 @@ function Router() {
     };
   }, [incomes, bills, selectedYear, selectedMonth]);
 
-  // Event handlers
   const handleDeleteTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
     if (type === 'income') {
       setSelectedIncome(transaction as Income);
@@ -205,7 +184,6 @@ function Router() {
   const handleEditTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
     if (type === 'income') {
       const income = transaction as Income;
-      // Set correct occurrence type based on source
       if (income.source === "Majdi's Salary") {
         income.occurrenceType = 'twice-monthly';
         income.firstDate = 1;
@@ -236,7 +214,6 @@ function Router() {
     try {
       logger.info("Adding new income:", { income: newIncome });
 
-      // Special handling for specific income sources
       if (newIncome.source === "Majdi's Salary") {
         newIncome.occurrenceType = 'twice-monthly';
         newIncome.firstDate = 1;
@@ -246,8 +223,6 @@ function Router() {
       }
 
       await addIncomeToData(newIncome);
-
-      // Force a refresh of the data after adding income
       await refresh();
 
       setShowAddIncomeDialog(false);
@@ -269,7 +244,13 @@ function Router() {
     }
   };
 
-  // Loading and error states
+  const handleErrorReset = useCallback(() => {
+    if (error) {
+      refresh().catch(console.error);
+    }
+    setLocation("/");
+  }, [error, refresh, setLocation]);
+
   if (isLoading || isRefreshing) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -283,7 +264,7 @@ function Router() {
     );
   }
 
-  if (dataError) {
+  if (error) {
     return (
       <Alert
         variant="destructive"
@@ -291,7 +272,7 @@ function Router() {
         role="alert"
       >
         <AlertDescription className="flex items-center gap-2">
-          {dataError.message}
+          {error.message}
           <button
             onClick={() => refresh()}
             className="p-1 hover:bg-accent rounded"
@@ -305,7 +286,7 @@ function Router() {
   }
 
   return (
-    <ErrorBoundary name="MainRouter">
+    <ErrorBoundary name="MainRouter" onReset={handleErrorReset}>
       <div className="min-h-screen flex flex-col bg-background">
         <ErrorBoundary name="Navigation">
           <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -436,7 +417,6 @@ function Router() {
                           <DropdownMenuLabel>Edit Expenses</DropdownMenuLabel>
                           <div className="max-h-[25vh] overflow-y-auto">
                             {bills.map((bill) => {
-                              // Determine category-based color
                               const categoryColor =
                                 bill.category_id === 1 ? "text-blue-600" :
                                   bill.category_id === 2 ? "text-green-600" :
@@ -498,20 +478,16 @@ function Router() {
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel>Edit Income</DropdownMenuLabel>
                           {incomes.reduce((uniqueIncomes: Income[], income) => {
-                            // For recurring incomes, only show the next occurrence
                             if (income.occurrenceType !== 'once') {
                               const existingIncome = uniqueIncomes.find(i => i.source === income.source);
                               if (!existingIncome || dayjs(income.date).isBefore(dayjs(existingIncome.date))) {
-                                // Remove any existing income with same source
                                 const filteredIncomes = uniqueIncomes.filter(i => i.source !== income.source);
                                 return [...filteredIncomes, income];
                               }
                               return uniqueIncomes;
                             }
-                            // For one-time incomes, show all
                             return [...uniqueIncomes, income];
                           }, []).map((income) => {
-                            // Determine the correct occurrence type label
                             let occurrenceTypeLabel = income.occurrenceType;
                             if (income.source === "Majdi's Salary") {
                               occurrenceTypeLabel = "twice-monthly";
@@ -543,7 +519,6 @@ function Router() {
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel>Delete Income</DropdownMenuLabel>
                           {incomes.reduce((uniqueIncomes: Income[], income) => {
-                            // Same reduction logic as above for delete section
                             if (income.occurrenceType !== 'once') {
                               const existingIncome = uniqueIncomes.find(i => i.source === income.source);
                               if (!existingIncome || dayjs(income.date).isBefore(dayjs(existingIncome.date))) {
@@ -554,7 +529,6 @@ function Router() {
                             }
                             return [...uniqueIncomes, income];
                           }, []).map((income) => {
-                            // Determine the correct occurrence type label for delete section
                             let occurrenceTypeLabel = income.occurrenceType;
                             if (income.source === "Majdi's Salary") {
                               occurrenceTypeLabel = "twice-monthly";
@@ -753,7 +727,6 @@ function App() {
       <ErrorBoundary
         name="RootErrorBoundary"
         onReset={() => {
-          // Clear any cached data and reload the app
           queryClient.clear();
           window.location.reload();
         }}

@@ -1,10 +1,11 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useEffect } from 'react';
 import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, RefreshCcw, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useLocation } from 'wouter';
 
 interface Props {
   children: ReactNode;
@@ -25,6 +26,20 @@ export class ErrorBoundary extends Component<Props, State> {
     hasError: false,
     errorCount: 0
   };
+
+  private handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && this.state.hasError) {
+      this.handleReset();
+    }
+  };
+
+  public componentDidMount() {
+    window.addEventListener('keydown', this.handleKeyDown);
+  }
+
+  public componentWillUnmount() {
+    window.removeEventListener('keydown', this.handleKeyDown);
+  }
 
   public static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error, errorCount: 1 };
@@ -52,12 +67,17 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.props.onReset) {
       this.props.onReset();
     }
+
+    // Reset error state
     this.setState({ 
       hasError: false, 
       error: undefined, 
       errorInfo: undefined,
       errorCount: 0 
     });
+
+    // Force reload the current route
+    window.location.reload();
   };
 
   private handleDownloadLogs = () => {
@@ -85,7 +105,7 @@ export class ErrorBoundary extends Component<Props, State> {
       }[severity];
 
       return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <Card className="w-full max-w-2xl p-6">
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-5 w-5" />
@@ -99,7 +119,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     An unexpected error occurred in {this.props.name || 'the application'}. 
-                    Our team has been notified and is working to fix the issue.
+                    Press ESC or click Try Again to return to the application.
                   </p>
 
                   {/* Error details (only in development) */}
