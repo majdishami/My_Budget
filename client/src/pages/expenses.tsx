@@ -32,7 +32,10 @@ export default function ExpenseReport() {
   const [reportType, setReportType] = useState<ReportType>('all');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [selectedExpense, setSelectedExpense] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: undefined,
+    to: undefined
+  });
 
   // Get unique expenses for the dropdown
   const uniqueExpenses = useMemo(() => {
@@ -48,12 +51,12 @@ export default function ExpenseReport() {
   }, [bills]);
 
   // Format dates for API query
-  const formattedStartDate = dateRange?.from ? 
-    dayjs(dateRange.from).format('YYYY-MM-DD') : 
+  const formattedStartDate = date?.from ? 
+    dayjs(date.from).format('YYYY-MM-DD') : 
     undefined;
 
-  const formattedEndDate = dateRange?.to ? 
-    dayjs(dateRange.to).format('YYYY-MM-DD') : 
+  const formattedEndDate = date?.to ? 
+    dayjs(date.to).format('YYYY-MM-DD') : 
     undefined;
 
   // Fetch filtered expenses from API
@@ -92,7 +95,7 @@ export default function ExpenseReport() {
   }, [reportExpenses, selectedCategory, selectedExpense]);
 
   const handleShowReport = () => {
-    if (!dateRange?.from || !dateRange?.to) {
+    if (!date?.from || !date?.to) {
       logger.warn("[ExpenseReport] Attempted to show report without date range");
       return;
     }
@@ -100,7 +103,7 @@ export default function ExpenseReport() {
     setIsDialogOpen(true);
     logger.info("[ExpenseReport] Opening report dialog with expenses:", {
       expenseCount: filteredExpenses.length,
-      dateRange,
+      date,
       reportType
     });
   };
@@ -199,13 +202,13 @@ export default function ExpenseReport() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <DateRangePicker
-                value={dateRange}
-                onChange={setDateRange}
+                date={date}
+                onDateChange={setDate}
                 className="w-full"
               />
             </div>
             <Button 
-              onClick={() => setDateRange(undefined)}
+              onClick={() => setDate(undefined)}
               variant="outline"
             >
               Reset Range
@@ -215,19 +218,19 @@ export default function ExpenseReport() {
           <Button 
             onClick={handleShowReport} 
             className="w-full"
-            disabled={!dateRange?.from || !dateRange?.to}
+            disabled={!date?.from || !date?.to}
           >
             Generate Report
           </Button>
         </div>
       </Card>
 
-      {isDialogOpen && dateRange && (
+      {isDialogOpen && date?.from && date?.to && (
         <ExpenseReportDialog
           isOpen={isDialogOpen}
           onOpenChange={handleOpenChange}
           expenses={filteredExpenses}
-          dateRange={dateRange}
+          dateRange={date}
           onBack={() => setIsDialogOpen(false)}
         />
       )}
