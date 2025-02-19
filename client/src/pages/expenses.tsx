@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import dayjs from "dayjs";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
+import { useQuery } from "@tanstack/react-query";
 
 type ReportType = 'all' | 'category' | 'individual';
 type CategoryFilter = 'all' | string;
@@ -40,86 +41,34 @@ export default function ExpenseReport() {
     return Array.from(uniqueMap.values());
   }, [bills]);
 
-  // Filter bills based on report type and selected filters with improved date handling
+  // Fetch filtered expenses from API
+  const { data: reportExpenses, isLoading: apiIsLoading } = useQuery({
+    queryKey: [
+      '/api/reports/expenses',
+      dateRange.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : undefined,
+      dateRange.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : undefined,
+      selectedCategory,
+      selectedExpense
+    ],
+    enabled: isDialogOpen && !!dateRange.from && !!dateRange.to
+  });
+
+  // Filter the report expenses based on category and individual filters
   const filteredExpenses = useMemo(() => {
-    logger.info("[ExpenseReport] Filtering expenses:", {
-      billsCount: bills?.length,
-      reportType,
-      dateRange,
-      selectedCategory
-    });
+    if (!reportExpenses) return [];
 
-    return (bills || []).reduce((filtered, bill) => {
-      // Handle both one-time and recurring bills
-      const billDate = bill.date ? dayjs(bill.date) : 
-                      (bill.day ? dayjs().date(bill.day) : undefined);
-
-      // Skip bills without valid dates
-      if (!billDate) {
-        logger.warn("[ExpenseReport] Bill without valid date:", { bill });
-        return filtered;
-      }
-
-      let dateMatches = true;
-
-      // Apply date range filter if dates are selected
-      if (dateRange.from && dateRange.to) {
-        const start = dayjs(dateRange.from).startOf('day');
-        const end = dayjs(dateRange.to).endOf('day');
-
-        // For recurring bills, check if the day falls within the range
-        if (bill.day) {
-          const billDay = billDate.date();
-          const daysInRange = [];
-          let currentDate = start.clone();
-
-          while (currentDate.isBefore(end) || currentDate.isSame(end, 'day')) {
-            if (currentDate.date() === billDay) {
-              daysInRange.push(currentDate.format('YYYY-MM-DD'));
-            }
-            currentDate = currentDate.add(1, 'day');
-          }
-
-          dateMatches = daysInRange.length > 0;
-        } else {
-          // For one-time bills, check if the exact date falls within range
-          dateMatches = billDate.isBetween(start, end, 'day', '[]');
-        }
-      }
-
+    return reportExpenses.filter(expense => {
       // Apply category filter if selected
       const categoryMatches = selectedCategory === 'all' || 
-                            bill.category_id === Number(selectedCategory);
+                          expense.category_id === Number(selectedCategory);
 
       // Apply individual expense filter if selected
       const expenseMatches = selectedExpense === 'all' || 
-                            `${bill.name}-${bill.amount}` === selectedExpense;
+                          `${expense.description}-${expense.amount}` === selectedExpense;
 
-      if (dateMatches && categoryMatches && expenseMatches) {
-        filtered.push({
-          id: typeof bill.id === 'string' ? parseInt(bill.id) : bill.id,
-          date: billDate.format('YYYY-MM-DD'),
-          description: bill.name,
-          amount: bill.amount,
-          type: 'expense' as const,
-          category_name: bill.category_name,
-          category_color: bill.category_color,
-          category_icon: bill.category_icon
-        });
-      }
-
-      return filtered;
-    }, [] as Array<{
-      id: number;
-      date: string;
-      description: string;
-      amount: number;
-      type: 'expense';
-      category_name?: string;
-      category_color?: string;
-      category_icon?: string | null;
-    }>);
-  }, [bills, reportType, dateRange, selectedCategory, selectedExpense]);
+      return categoryMatches && expenseMatches;
+    });
+  }, [reportExpenses, selectedCategory, selectedExpense]);
 
   const handleShowReport = () => {
     setIsDialogOpen(true);
@@ -141,7 +90,7 @@ export default function ExpenseReport() {
     setLocation("/");
   };
 
-  if (isLoading) {
+  if (isLoading || apiIsLoading) {
     return (
       <div className="container mx-auto p-4">
         <Card className="p-4">
