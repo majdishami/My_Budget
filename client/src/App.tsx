@@ -64,7 +64,6 @@ import { Badge } from "@/components/ui/badge";
 import { logger } from './lib/logger';
 
 
-
 function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
   const [location] = useLocation();
@@ -82,6 +81,9 @@ function Router() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedIncome, setSelectedIncome] = useState<Income | null>(null);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+  const [selectedYear, setSelectedYear] = useState(today.year()); // Added state for year
+  const [selectedMonth, setSelectedMonth] = useState(today.month() + 1); // Added state for month
+
 
   const handleDeleteTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
     if (type === 'income') {
@@ -198,6 +200,129 @@ function Router() {
       setIsRefreshing(false);
     }
   };
+
+  const monthlyTotals = useMemo(() => {
+    let totalIncome = 0;
+    let totalBills = 0;
+
+    // Calculate total income for the selected month
+    incomes.forEach(income => {
+      const incomeDate = dayjs(income.date);
+
+      // Special case for Ruba's salary which is bi-weekly
+      if (income.source === "Ruba's Salary") {
+        const firstDayOfMonth = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month');
+        const lastDayOfMonth = firstDayOfMonth.endOf('month');
+        const startDate = dayjs('2025-01-10'); // Start bi-weekly calculation from this date
+
+        // Iterate through each day in the month
+        let currentDate = firstDayOfMonth;
+        while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
+          // Check if it's a Friday and matches bi-weekly schedule
+          if (currentDate.day() === 5) { // Friday
+            const weeksDiff = currentDate.diff(startDate, 'week');
+            if (weeksDiff >= 0 && weeksDiff % 2 === 0) {
+              totalIncome += income.amount;
+            }
+          }
+          currentDate = currentDate.add(1, 'day');
+        }
+      } else if (income.occurrenceType === 'twice-monthly') {
+        // For twice-monthly incomes, add amount if either date matches
+        const firstDate = income.firstDate || 1;
+        const secondDate = income.secondDate || 15;
+
+        const firstOccurrence = dayjs()
+          .year(selectedYear)
+          .month(selectedMonth - 1)
+          .date(firstDate);
+
+        const secondOccurrence = dayjs()
+          .year(selectedYear)
+          .month(selectedMonth - 1)
+          .date(secondDate);
+
+        // Check if dates exist in current month
+        if (firstOccurrence.isValid() && firstOccurrence.month() === selectedMonth - 1) {
+          totalIncome += income.amount;
+        }
+        if (secondOccurrence.isValid() && secondOccurrence.month() === selectedMonth - 1) {
+          totalIncome += income.amount;
+        }
+      } else if (income.occurrenceType === 'monthly') {
+        // For monthly incomes, check if the day exists in current month
+        const adjustedDate = dayjs()
+          .year(selectedYear)
+          .month(selectedMonth - 1)
+          .date(incomeDate.date());
+
+        if (adjustedDate.isValid() && adjustedDate.month() === selectedMonth - 1) {
+          totalIncome += income.amount;
+        }
+      } else if (income.occurrenceType === 'weekly') {
+        // For weekly incomes, count occurrences in the month
+        const firstDayOfMonth = dayjs()
+          .year(selectedYear)
+          .month(selectedMonth - 1)
+          .startOf('month');
+        const lastDayOfMonth = firstDayOfMonth.endOf('month');
+        const dayOfWeek = incomeDate.day();
+
+        let currentDate = firstDayOfMonth;
+        while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
+          if (currentDate.day() === dayOfWeek) {
+            totalIncome += income.amount;
+          }
+          currentDate = currentDate.add(1, 'day');
+        }
+      } else if (income.occurrenceType === 'biweekly') {
+        // For bi-weekly incomes
+        const firstDayOfMonth = dayjs()
+          .year(selectedYear)
+          .month(selectedMonth - 1)
+          .startOf('month');
+        const lastDayOfMonth = firstDayOfMonth.endOf('month');
+        const startDate = dayjs(income.date);
+
+        let currentDate = firstDayOfMonth;
+        while (currentDate.isBefore(lastDayOfMonth) || currentDate.isSame(lastDayOfMonth, 'day')) {
+          const weeksDiff = currentDate.diff(startDate, 'week');
+          if (weeksDiff >= 0 && weeksDiff % 2 === 0 && currentDate.day() === startDate.day()) {
+            totalIncome += income.amount;
+          }
+          currentDate = currentDate.add(1, 'day');
+        }
+      } else {
+        // For one-time incomes, check if it falls in the current month
+        if (incomeDate.year() === selectedYear && incomeDate.month() === selectedMonth - 1) {
+          totalIncome += income.amount;
+        }
+      }
+    });
+
+    // Calculate total bills for the selected month
+    bills.forEach(bill => {
+      if (bill.isYearly && bill.yearly_date) {
+        const billDate = dayjs(bill.yearly_date);
+        if (billDate.month() === selectedMonth - 1) {
+          totalBills += bill.amount;
+        }
+      } else if (bill.isOneTime && bill.date) {
+        const billDate = dayjs(bill.date);
+        if (billDate.year() === selectedYear && billDate.month() === selectedMonth - 1) {
+          totalBills += bill.amount;
+        }
+      } else {
+        totalBills += bill.amount;
+      }
+    });
+
+    return {
+      totalIncome,
+      totalBills,
+      balance: totalIncome - totalBills
+    };
+  }, [incomes, bills, selectedYear, selectedMonth]);
 
   return (
     <ErrorBoundary name="MainRouter">
