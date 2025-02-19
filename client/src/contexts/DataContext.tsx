@@ -484,21 +484,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       logger.info("[DataContext] Adding income:", { income });
 
+      const payload = {
+        description: income.source,
+        amount: income.amount,
+        date: dayjs(income.date).format('YYYY-MM-DD'),
+        type: 'income',
+        recurring_type: income.occurrenceType,
+        first_date: income.firstDate,
+        second_date: income.secondDate,
+        is_recurring: income.occurrenceType !== 'once'
+      };
+
+      logger.info("[DataContext] Sending request with payload:", payload);
+
       const response = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          description: income.source,
-          amount: income.amount,
-          date: dayjs(income.date).format('YYYY-MM-DD'),
-          type: 'income',
-          recurring_type: income.occurrenceType || 'once',
-          first_date: income.firstDate,
-          second_date: income.secondDate,
-          is_recurring: income.occurrenceType !== 'once' // Explicitly set is_recurring
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -507,12 +511,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       const newTransaction = await response.json();
+      logger.info("[DataContext] Server response:", newTransaction);
 
       // Create a new income object with the server-generated ID
       const newIncome: Income = {
         ...income,
         id: newTransaction.id,
-        occurrenceType: income.occurrenceType || 'once' // Ensure occurrenceType is set
+        occurrenceType: income.occurrenceType // Ensure occurrenceType is preserved
       };
 
       // For recurring incomes, expand them
@@ -525,16 +530,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         });
 
         setIncomes(prev => {
+          // Remove any existing incomes with the same source
           const filtered = prev.filter(i => i.source !== newIncome.source);
+          // Add expanded incomes
           return [...filtered, ...expandedIncomes];
         });
       } else {
         setIncomes(prev => [...prev, newIncome]);
       }
 
-      // Invalidate cache and force a refresh
-      sessionStorage.removeItem(getCacheKey());
+      // Force a complete data refresh to ensure sums are updated
       await loadData();
+
+      // Invalidate cache
+      sessionStorage.removeItem(getCacheKey());
 
     } catch (error) {
       logger.error("[DataContext] Error in addIncome:", error);
