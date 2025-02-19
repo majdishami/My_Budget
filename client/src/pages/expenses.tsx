@@ -41,22 +41,29 @@ export default function ExpenseReport() {
     return Array.from(uniqueMap.values());
   }, [bills]);
 
+  // Format dates for API query
+  const formattedStartDate = dateRange.from ? 
+    dayjs(dateRange.from).startOf('day').format('YYYY-MM-DD') : 
+    undefined;
+
+  const formattedEndDate = dateRange.to ? 
+    dayjs(dateRange.to).endOf('day').format('YYYY-MM-DD') : 
+    undefined;
+
   // Fetch filtered expenses from API
-  const { data: reportExpenses, isLoading: apiIsLoading } = useQuery({
+  const { data: reportExpenses = [], isLoading: apiIsLoading } = useQuery({
     queryKey: [
       '/api/reports/expenses',
-      dateRange.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : undefined,
-      dateRange.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : undefined,
+      formattedStartDate,
+      formattedEndDate,
       selectedCategory,
       selectedExpense
     ],
-    enabled: isDialogOpen && !!dateRange.from && !!dateRange.to
+    enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
   });
 
   // Filter the report expenses based on category and individual filters
   const filteredExpenses = useMemo(() => {
-    if (!reportExpenses) return [];
-
     return reportExpenses.filter(expense => {
       // Apply category filter if selected
       const categoryMatches = selectedCategory === 'all' || 
@@ -71,6 +78,11 @@ export default function ExpenseReport() {
   }, [reportExpenses, selectedCategory, selectedExpense]);
 
   const handleShowReport = () => {
+    if (!dateRange.from || !dateRange.to) {
+      logger.warn("[ExpenseReport] Attempted to show report without date range");
+      return;
+    }
+
     setIsDialogOpen(true);
     logger.info("[ExpenseReport] Opening report dialog with expenses:", {
       expenseCount: filteredExpenses.length,
@@ -183,7 +195,11 @@ export default function ExpenseReport() {
             </Button>
           </div>
 
-          <Button onClick={handleShowReport} className="w-full">
+          <Button 
+            onClick={handleShowReport} 
+            className="w-full"
+            disabled={!dateRange.from || !dateRange.to}
+          >
             Generate Report
           </Button>
         </div>

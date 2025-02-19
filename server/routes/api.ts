@@ -25,13 +25,23 @@ router.post('/api/categories/reindex', async (req, res) => {
 router.get('/api/reports/expenses', async (req, res) => {
   try {
     // Get start and end dates from query params
-    const startDate = req.query.start_date ? 
-      new Date(req.query.start_date as string) : 
-      new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const { start_date, end_date } = req.query;
 
-    const endDate = req.query.end_date ? 
-      new Date(req.query.end_date as string) : 
-      new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+    if (!start_date || !end_date) {
+      return res.status(400).json({ 
+        error: 'Missing required date range parameters' 
+      });
+    }
+
+    // Parse and validate dates
+    const startDate = new Date(start_date as string);
+    const endDate = new Date(end_date as string);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ 
+        error: 'Invalid date format. Please use YYYY-MM-DD format.' 
+      });
+    }
 
     // Query for both one-time and recurring expenses
     const query = `
@@ -56,7 +66,8 @@ router.get('/api/reports/expenses', async (req, res) => {
             WHEN b.day IS NOT NULL THEN 
               (SELECT dt::date 
                FROM date_series 
-               WHERE EXTRACT(DAY FROM dt) = b.day)
+               WHERE EXTRACT(DAY FROM dt) = b.day
+               LIMIT 1)
             ELSE b.date::date
           END as expense_date
         FROM bills b
@@ -81,7 +92,7 @@ router.get('/api/reports/expenses', async (req, res) => {
       ORDER BY expense_date, name;
     `;
 
-    const result = await db.execute(sql.raw(query, [startDate, endDate]));
+    const result = await db.execute(sql`${query}`, [startDate, endDate]);
 
     const expenses = result.rows.map(row => ({
       id: row.id,
