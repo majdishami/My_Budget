@@ -383,9 +383,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             firstDate: t.first_date,
             secondDate: t.second_date
           };
-          // Expand recurring incomes
-          const expandedIncomes = expandRecurringIncome(income);
-          loadedIncomes.push(...expandedIncomes);
+
+          // Only expand if it's a recurring income
+          if (t.recurring_type && t.recurring_type !== 'once') {
+            const expandedIncomes = expandRecurringIncome(income);
+            loadedIncomes.push(...expandedIncomes);
+          } else {
+            loadedIncomes.push(income);
+          }
         } else if (t.type === 'expense') {
           // If this transaction has a category, add it to our categories map
           if (t.category_id) {
@@ -747,8 +752,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           type: 'income',
           recurring_type: income.occurrenceType,
           first_date: income.firstDate,
-          second_date: income.secondDate,
-          is_recurring: income.occurrenceType !== 'once'
+          second_date: income.secondDate
         }),
       });
 
@@ -766,37 +770,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         id: newTransaction.id
       };
 
-      // Expand the recurring income and add to state
-      const expandedIncomes = expandRecurringIncome(newIncome);
-      logger.info("[DataContext] Generated expanded incomes:", {
-        count: expandedIncomes.length,
-        firstDate: expandedIncomes[0]?.date,
-        lastDate: expandedIncomes[expandedIncomes.length - 1]?.date
-      });
+      // For recurring incomes, expand them
+      if (income.occurrenceType !== 'once') {
+        const expandedIncomes = expandRecurringIncome(newIncome);
+        logger.info("[DataContext] Generated expanded incomes:", {
+          count: expandedIncomes.length,
+          firstDate: expandedIncomes[0]?.date,
+          lastDate: expandedIncomes[expandedIncomes.length - 1]?.date
+        });
 
-      // Update state with expanded incomes
-      setIncomes(prev => {
-        // Remove any existing incomes with the same source
-        const filtered = prev.filter(i =>
-          i.source !== newIncome.source ||
-          (i.occurrenceType === 'once' && newIncome.occurrenceType === 'once')
-        );
-        return [...filtered, ...expandedIncomes];
-      });
+        setIncomes(prev => {
+          // Remove any existing incomes with the same source
+          const filtered = prev.filter(i => i.source !== newIncome.source);
+          return [...filtered, ...expandedIncomes];
+        });
+      } else {
+        // For one-time incomes, just add them directly
+        setIncomes(prev => [...prev, newIncome]);
+      }
 
-      // Force cache invalidation
+      // Invalidate cache and force a refresh
       sessionStorage.removeItem(getCacheKey());
-
-      logger.info("[DataContext] Successfully added income to database and state", {
-        originalIncome: newIncome,
-        expandedCount: expandedIncomes.length
-      });
+      await loadData();
 
     } catch (error) {
-      logger.error("[DataContext] Error in addIncomeToData:", {
-        error: error instanceof Error ? error.message : String(error),
-        income
-      });
+      logger.error("[DataContext] Error in addIncomeToData:", error);
       throw error;
     }
   };
