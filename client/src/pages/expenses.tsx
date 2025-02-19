@@ -18,10 +18,9 @@ interface ExpenseTransaction {
   id: number;
   name: string;
   amount: number;
-  category_id?: number;
-  description?: string;
+  category_id: number | null;
+  description: string;
   date: string;
-  type: 'expense';
 }
 
 export default function ExpenseReport() {
@@ -64,13 +63,7 @@ export default function ExpenseReport() {
 
   // Fetch filtered expenses from API
   const { data: reportExpenses = [], isLoading: apiIsLoading } = useQuery({
-    queryKey: [
-      '/api/reports/expenses',
-      formattedStartDate,
-      formattedEndDate,
-      selectedCategory,
-      selectedExpense
-    ],
+    queryKey: ['/api/reports/expenses', formattedStartDate, formattedEndDate],
     enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
   });
 
