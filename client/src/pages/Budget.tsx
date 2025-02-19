@@ -244,42 +244,36 @@ export function Budget() {
     return result;
   }, [incomes, selectedYear, selectedMonth]);
 
-  // getBillsForDay function update
+  // Update getBillsForDay function to handle date calculations consistently
   const getBillsForDay = useCallback((day: number) => {
     if (day <= 0 || day > daysInMonth) return [];
 
-    return bills.map(bill => {
-      const uniqueId = `${bill.id}-${selectedMonth}-${selectedYear}`;
-
+    return bills.filter(bill => {
       if (bill.isOneTime && bill.date) {
         const billDate = dayjs(bill.date);
-        if (billDate.year() === selectedYear && 
-            billDate.month() === selectedMonth && 
-            billDate.date() === day) {
-          return { ...bill, id: uniqueId };
-        }
+        return billDate.year() === selectedYear && 
+               billDate.month() === selectedMonth && 
+               billDate.date() === day;
       } else if (bill.isYearly && bill.yearly_date) {
         const yearlyDate = dayjs(bill.yearly_date);
-        if (yearlyDate.month() === selectedMonth && 
-            yearlyDate.date() === day) {
-          return { ...bill, id: uniqueId };
-        }
-      } else if (bill.day === day) {
-        return { 
-          ...bill, 
-          id: uniqueId,
-          date: dayjs()
-            .year(selectedYear)
-            .month(selectedMonth)
-            .date(day)
-            .format('YYYY-MM-DD')
-        };
+        return yearlyDate.month() === selectedMonth && 
+               yearlyDate.date() === day;
+      } else {
+        // Monthly recurring bill
+        return bill.day === day;
       }
-      return null;
-    }).filter(Boolean) as Bill[];
+    }).map(bill => ({
+      ...bill,
+      id: `${bill.id}-${selectedMonth}-${selectedYear}`,
+      date: dayjs()
+        .year(selectedYear)
+        .month(selectedMonth)
+        .date(day)
+        .format('YYYY-MM-DD')
+    }));
   }, [bills, selectedYear, selectedMonth, daysInMonth]);
 
-  // Update monthlyTotals calculation
+  // Update monthlyTotals calculation to use consistent date handling
   const monthlyTotals = useMemo(() => {
     let totalIncome = 0;
     let totalBills = 0;
@@ -308,22 +302,20 @@ export function Budget() {
     let totalIncome = 0;
     let totalBills = 0;
 
-    const targetDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
-
     // Calculate income up to target date
     for (let currentDay = 1; currentDay <= day; currentDay++) {
       const dayIncomes = getIncomeForDay(currentDay);
       totalIncome += dayIncomes.reduce((sum, income) => sum + income.amount, 0);
     }
 
-    // Calculate bills up to target date (all bills recur monthly)
+    // Calculate bills up to target date
     for (let currentDay = 1; currentDay <= day; currentDay++) {
       const dayBills = getBillsForDay(currentDay);
       totalBills += dayBills.reduce((sum, bill) => sum + bill.amount, 0);
     }
 
     return { totalIncome, totalBills };
-  }, [getIncomeForDay, getBillsForDay, selectedYear, selectedMonth]);
+  }, [getIncomeForDay, getBillsForDay]);
 
   // Handle month and year changes with validation
   const handleMonthChange = useCallback((month: number) => {
