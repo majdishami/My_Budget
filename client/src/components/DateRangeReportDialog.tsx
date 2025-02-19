@@ -72,9 +72,9 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   const handleDateSelect = (selectedDate: DateRange | undefined) => {
     if (selectedDate?.from && !selectedDate.to) {
       // If only start date is selected, automatically set end date to the same date
-      setDate({ 
+      setDate({
         from: selectedDate.from,
-        to: selectedDate.from 
+        to: selectedDate.from
       });
     } else {
       setDate(selectedDate);
@@ -251,11 +251,11 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Select Date Range</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center space-y-4 py-4">
+          <div className="flex flex-col items-center space-y-4 py-4 overflow-y-auto">
             <div className="border rounded-lg p-4 bg-background">
               <Calendar
                 mode="range"
@@ -301,7 +301,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
             <Button
               variant="outline"
               onClick={() => {
-                setDate(defaultDateRange);
+                setDate(undefined);
                 onOpenChange(false);
               }}
             >
@@ -401,8 +401,8 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                   <CardTitle className="text-lg font-medium flex justify-between items-center">
                     <span>{dayjs(monthKey).format('MMMM YYYY')}</span>
                     <span className={`text-base ${
-                      monthlyTotal.income - monthlyTotal.expenses >= 0 
-                        ? 'text-green-600' 
+                      monthlyTotal.income - monthlyTotal.expenses >= 0
+                        ? 'text-green-600'
                         : 'text-red-600'
                     }`}>
                       Net: {formatCurrency(monthlyTotal.income - monthlyTotal.expenses)}
