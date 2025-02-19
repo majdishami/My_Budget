@@ -50,7 +50,11 @@ export default function Reports() {
     select: (data) => data.map(t => ({
       ...t,
       isPending: dayjs(t.date).isAfter(today)
-    }))
+    })),
+    // Add refetch settings to ensure data freshness
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0
   });
 
   // Calculate totals

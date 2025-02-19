@@ -279,26 +279,17 @@ export function Budget() {
     }).filter(Boolean) as Bill[];
   }, [bills, selectedYear, selectedMonth, daysInMonth]);
 
-  // Update monthly totals calculation
+  // Update monthlyTotals calculation
   const monthlyTotals = useMemo(() => {
-    let totalIncome = 4739 * 2; // Majdi's salary occurs twice per month
+    // Calculate total income for the current month
+    const currentMonthIncomes = incomes.filter(income => 
+      dayjs(income.date).month() === selectedMonth && 
+      dayjs(income.date).year() === selectedYear
+    );
 
-    // Compute Ruba's bi-weekly salary dynamically
-    let firstFriday = dayjs().year(selectedYear).month(selectedMonth).startOf('month').day(5);
-    if (firstFriday.date() > 7) firstFriday = firstFriday.add(7, 'day'); // Ensure first Friday falls within the month
+    const totalIncome = currentMonthIncomes.reduce((sum, income) => sum + income.amount, 0);
 
-    let currentFriday = firstFriday;
-    while (currentFriday.month() === selectedMonth) {
-      // Only add salary if it's a valid payday (biweekly from Jan 10, 2025)
-      const startDate = dayjs('2025-01-10');
-      const weeksDiff = currentFriday.diff(startDate, 'week');
-      if (currentFriday.isSameOrAfter(startDate) && weeksDiff % 2 === 0) {
-        totalIncome += 2168; // Add Ruba's salary
-      }
-      currentFriday = currentFriday.add(14, 'days');
-    }
-
-    // Calculate total expenses in a single pass
+    // Calculate total expenses for the current month
     const totalExpenses = bills.reduce((sum, bill) => sum + bill.amount, 0);
 
     return {
@@ -306,7 +297,7 @@ export function Budget() {
       expenses: totalExpenses,
       net: totalIncome - totalExpenses
     };
-  }, [bills, selectedMonth, selectedYear]);
+  }, [incomes, bills, selectedMonth, selectedYear]);
 
   // Calculate running totals for a specific day
   const calculateRunningTotals = useCallback((day: number) => {
