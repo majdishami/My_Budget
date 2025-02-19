@@ -251,11 +251,11 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] h-auto">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Select Date Range</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center space-y-4 py-4">
+          <div className="flex flex-col items-center py-4">
             <div className="border rounded-lg p-4 bg-background">
               <Calendar
                 mode="range"
@@ -267,7 +267,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
               />
             </div>
             {remainingCalcs && (
-              <Card className="w-full">
+              <Card className="w-full mt-4">
                 <CardHeader>
                   <CardTitle className="text-sm font-medium">
                     Remaining Till End Of Month
@@ -286,7 +286,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
                 </CardContent>
               </Card>
             )}
-            <div className="text-sm font-medium text-muted-foreground">
+            <div className="text-sm font-medium text-muted-foreground mt-4">
               {date?.from ? (
                 <>
                   Selected Range: {dayjs(date.from).format('MMM D, YYYY')}
@@ -322,7 +322,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex flex-col space-y-2">
+        <DialogHeader className="flex flex-col space-y-2 sticky top-0 bg-background z-10">
           <div className="flex justify-between items-center">
             <DialogTitle className="text-xl">
               Financial Report
@@ -331,8 +331,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
               variant="outline" 
               onClick={() => {
                 setShowReport(false);
-                // Reset state when going back to prevent stretching
-                setDate(defaultDateRange);
+                setRemainingCalcs(null);
               }}
             >
               Back to Selection
