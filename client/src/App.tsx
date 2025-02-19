@@ -68,9 +68,13 @@ function Router() {
   const { isLoading, error: dataError, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
   const [location] = useLocation();
   const isMobile = useIsMobile();
+  const today = dayjs('2025-02-11');
+
+  // Group all state hooks together at the top
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const today = dayjs('2025-02-11');
+  const [selectedYear, setSelectedYear] = useState(today.year());
+  const [selectedMonth, setSelectedMonth] = useState(today.month() + 1);
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -81,8 +85,6 @@ function Router() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedIncome, setSelectedIncome] = useState<Income | null>(null);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
-  const [selectedYear, setSelectedYear] = useState(today.year()); // Added state for year
-  const [selectedMonth, setSelectedMonth] = useState(today.month() + 1); // Added state for month
 
 
   const handleDeleteTransaction = (type: 'income' | 'bill', transaction: Income | Bill) => {
