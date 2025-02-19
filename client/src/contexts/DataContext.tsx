@@ -115,31 +115,14 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
 
       case 'biweekly':
         // Add instances every two weeks
-        if (baseIncome.source === "Ruba's Salary") {
-          // Special case for Ruba's salary (every other Friday)
-          let weekDate = currentDate.day(5); // Set to Friday
-          if (weekDate.isBefore(currentDate)) {
-            weekDate = weekDate.add(1, 'week');
-          }
-          while (weekDate.month() === currentDate.month()) {
-            incomes.push({
-              ...baseIncome,
-              id: generateInstanceId(baseIncome.id, incomes.length),
-              date: weekDate.format('YYYY-MM-DD')
-            });
-            weekDate = weekDate.add(2, 'weeks');
-          }
-        } else {
-          // Standard biweekly
-          let biweekDate = currentDate;
-          while (biweekDate.month() === currentDate.month()) {
-            incomes.push({
-              ...baseIncome,
-              id: generateInstanceId(baseIncome.id, incomes.length),
-              date: biweekDate.format('YYYY-MM-DD')
-            });
-            biweekDate = biweekDate.add(2, 'weeks');
-          }
+        let biweekDate = currentDate;
+        while (biweekDate.month() === currentDate.month()) {
+          incomes.push({
+            ...baseIncome,
+            id: generateInstanceId(baseIncome.id, incomes.length),
+            date: biweekDate.format('YYYY-MM-DD')
+          });
+          biweekDate = biweekDate.add(2, 'weeks');
         }
         currentDate = currentDate.add(1, 'month');
         break;
