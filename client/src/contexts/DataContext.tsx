@@ -478,14 +478,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           type: 'income',
           recurring_type: income.occurrenceType,
           first_date: income.firstDate,
-          secondDate: income.secondDate
+          second_date: income.secondDate
         }),
       });
 
       logger.info("[DataContext] Successfully added income to database:", newTransaction);
 
-      // Add to local state directly instead of reloading
-      const expandedIncomes = expandRecurringIncome(income);
+      // Create a new income object with the ID from the server response
+      const newIncome: Income = {
+        ...income,
+        id: newTransaction.id
+      };
+
+      // Now expand the income with a valid ID
+      const expandedIncomes = expandRecurringIncome(newIncome);
       setIncomes(prev => [...prev, ...expandedIncomes]);
 
       // Invalidate cache
