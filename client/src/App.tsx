@@ -252,8 +252,23 @@ function Router() {
   const handleAddIncome = async (newIncome: Income) => {
     try {
       logger.info("Adding new income:", { income: newIncome });
+
+      // Special handling for specific income sources
+      if (newIncome.source === "Majdi's Salary") {
+        newIncome.occurrenceType = 'twice-monthly';
+        newIncome.firstDate = 1;
+        newIncome.secondDate = 15;
+      } else if (newIncome.source === "Ruba's Salary") {
+        newIncome.occurrenceType = 'biweekly';
+      }
+
       await addIncomeToData(newIncome);
+
+      // Force a refresh of the data after adding income
+      await refresh();
+
       setShowAddIncomeDialog(false);
+      logger.info("Successfully added new income", { income: newIncome });
     } catch (error) {
       logger.error("Error adding income:", {
         error: error instanceof Error ? error.message : String(error)
