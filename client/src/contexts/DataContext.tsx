@@ -719,9 +719,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // Function to add income directly to state without API call
   const addIncomeToData = async (income: Income) => {
     try {
-      logger.info("[DataContext] Adding new income to database and state:", { income });
+      logger.info("[DataContext] Adding new income to database:", { income });
 
-      // First save to database
+      // First save to database with proper recurring information
       const response = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
@@ -734,7 +734,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           type: 'income',
           recurring_type: income.occurrenceType,
           first_date: income.firstDate,
-          second_date: income.secondDate
+          second_date: income.secondDate,
+          // Add explicit recurring flag for database
+          is_recurring: income.occurrenceType !== 'once'
         }),
       });
 
@@ -744,6 +746,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       const newTransaction = await response.json();
+      logger.info("[DataContext] Server response:", { newTransaction });
 
       // Create a new income object with the server-generated ID
       const newIncome: Income = {
@@ -753,16 +756,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Expand the recurring income with proper validation
       const expandedIncomes = expandRecurringIncome(newIncome);
+      logger.info("[DataContext] Generated expanded incomes:", {
+        count: expandedIncomes.length,
+        firstDate: expandedIncomes[0]?.date,
+        lastDate: expandedIncomes[expandedIncomes.length - 1]?.date
+      });
 
       // Update local state with the new expanded incomes
       setIncomes(prev => {
         const updatedIncomes = [...prev];
         // Remove any existing incomes with the same source if it's recurring
         if (newIncome.occurrenceType !== 'once') {
-          const index = updatedIncomes.findIndex(i => i.source === newIncome.source);
-          if (index !== -1) {
-            updatedIncomes.splice(index, 1);
-          }
+          const filtered = updatedIncomes.filter(i => i.source !== newIncome.source);
+          return [...filtered, ...expandedIncomes];
         }
         return [...updatedIncomes, ...expandedIncomes];
       });
