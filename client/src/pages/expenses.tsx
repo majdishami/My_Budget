@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useLocation } from "wouter";
 import { Bill } from "@/types";
@@ -14,15 +14,6 @@ import { useQuery } from "@tanstack/react-query";
 type ReportType = 'all' | 'category' | 'individual';
 type CategoryFilter = 'all' | string;
 
-interface ExpenseTransaction {
-  id: number;
-  name: string;
-  amount: number;
-  category_id: number | null;
-  description: string;
-  date: string;
-}
-
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
@@ -33,62 +24,37 @@ export default function ExpenseReport() {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
-  // Get unique expenses for the dropdown
-  const uniqueExpenses = useMemo(() => {
-    if (!bills) return [];
-    const uniqueMap = new Map<string, Bill>();
-    bills.forEach(bill => {
-      const key = `${bill.name}-${bill.amount}`;
-      if (!uniqueMap.has(key)) {
-        uniqueMap.set(key, bill);
-      }
-    });
-    return Array.from(uniqueMap.values());
-  }, [bills]);
+  const uniqueExpenses = bills?.filter((bill, index, self) =>
+    index === self.findIndex((b) => b.name === bill.name && b.amount === bill.amount)
+  ) ?? [];
 
-  // Format dates for API query
-  const formattedStartDate = startDate ? 
-    dayjs(startDate).format('YYYY-MM-DD') : 
-    undefined;
+  const formattedStartDate = startDate ? dayjs(startDate).format('YYYY-MM-DD') : undefined;
+  const formattedEndDate = endDate ? dayjs(endDate).format('YYYY-MM-DD') : undefined;
 
-  const formattedEndDate = endDate ? 
-    dayjs(endDate).format('YYYY-MM-DD') : 
-    undefined;
-
-  // Handle date range changes
   const handleDateRangeChange = (range: { from: Date; to: Date }) => {
     setStartDate(range.from);
     setEndDate(range.to);
   };
 
-  // Fetch filtered expenses from API
-  const { data: reportExpenses = [], isLoading: apiIsLoading } = useQuery({
+  const { data: expenses = [], isLoading: apiIsLoading } = useQuery({
     queryKey: ['/api/reports/expenses', formattedStartDate, formattedEndDate],
     enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
   });
 
-  // Filter and process the report expenses
-  const filteredExpenses = useMemo(() => {
-    try {
-      return (reportExpenses as ExpenseTransaction[]).filter(expense => {
-        if (!expense || typeof expense !== 'object') {
-          logger.error("[ExpenseReport] Invalid expense data:", { expense });
-          return false;
-        }
-
-        const categoryMatches = selectedCategory === 'all' || 
-                            expense.category_id === Number(selectedCategory);
-
-        const expenseMatches = selectedExpense === 'all' || 
-                            `${expense.name}-${expense.amount}` === selectedExpense;
-
-        return categoryMatches && expenseMatches;
-      });
-    } catch (error) {
-      logger.error("[ExpenseReport] Error processing expenses:", { error });
-      return [];
+  const filteredExpenses = expenses.filter(expense => {
+    if (!expense || typeof expense !== 'object') {
+      logger.error("[ExpenseReport] Invalid expense data:", { expense });
+      return false;
     }
-  }, [reportExpenses, selectedCategory, selectedExpense]);
+
+    const categoryMatches = selectedCategory === 'all' || 
+                        expense.category_id === Number(selectedCategory);
+
+    const expenseMatches = selectedExpense === 'all' || 
+                        `${expense.name}-${expense.amount}` === selectedExpense;
+
+    return categoryMatches && expenseMatches;
+  });
 
   const handleShowReport = () => {
     if (!startDate || !endDate) {
@@ -97,12 +63,6 @@ export default function ExpenseReport() {
     }
 
     setIsDialogOpen(true);
-    logger.info("[ExpenseReport] Opening report dialog with expenses:", {
-      expenseCount: filteredExpenses.length,
-      startDate,
-      endDate,
-      reportType
-    });
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -145,7 +105,6 @@ export default function ExpenseReport() {
               value={reportType} 
               onValueChange={(value: ReportType) => {
                 setReportType(value);
-                // Reset filters when changing report type
                 if (value !== 'category') setSelectedCategory('all');
                 if (value !== 'individual') setSelectedExpense('all');
               }}
@@ -176,7 +135,7 @@ export default function ExpenseReport() {
               </Select>
             )}
 
-            {reportType === 'individual' && uniqueExpenses && uniqueExpenses.length > 0 && (
+            {reportType === 'individual' && uniqueExpenses.length > 0 && (
               <Select value={selectedExpense} onValueChange={setSelectedExpense}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Select expense" />
