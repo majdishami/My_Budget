@@ -34,6 +34,10 @@ export const transactions = pgTable("transactions", {
   type: text("type").notNull(), // 'income' or 'expense'
   category_id: integer("category_id").references(() => categories.id),
   created_at: timestamp("created_at").defaultNow(),
+  recurring_type: text("recurring_type"),
+  is_recurring: boolean("is_recurring").default(false),
+  first_date: integer("first_date"),
+  second_date: integer("second_date")
 });
 
 // Bills table with all required fields
@@ -80,6 +84,10 @@ export const insertTransactionSchema = z.object({
     .transform((str) => str ? new Date(str) : new Date()),
   type: z.enum(["income", "expense"]),
   category_id: z.number().min(1, "Category ID is required").nullable().optional(),
+  recurring_type: z.enum(["once", "monthly", "twice-monthly", "biweekly", "weekly"]).optional(),
+  is_recurring: z.boolean().optional(),
+  first_date: z.number().optional(),
+  second_date: z.number().optional()
 });
 
 export const insertBillSchema = z.object({

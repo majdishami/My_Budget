@@ -425,8 +425,19 @@ export function registerRoutes(app: Express): Server {
       console.log('[Transactions API] Creating new transaction:', req.body);
       const transactionData = await insertTransactionSchema.parseAsync(req.body);
 
+      // Create the transaction with recurring fields
       const [newTransaction] = await db.insert(transactions)
-        .values(transactionData)
+        .values({
+          description: transactionData.description,
+          amount: transactionData.amount,
+          date: new Date(transactionData.date),
+          type: transactionData.type,
+          category_id: transactionData.category_id,
+          recurring_type: transactionData.recurring_type || null,
+          is_recurring: transactionData.is_recurring || false,
+          first_date: transactionData.first_date || null,
+          second_date: transactionData.second_date || null
+        })
         .returning();
 
       console.log('[Transactions API] Created transaction:', newTransaction);
