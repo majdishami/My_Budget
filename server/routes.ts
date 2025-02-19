@@ -374,7 +374,29 @@ export function registerRoutes(app: Express): Server {
             is_virtual: true
           };
 
-          // Get the day of month from the original transaction date
+          // Special handling for Ruba's salary (biweekly on Fridays)
+          if (transaction.description === "Ruba's Salary") {
+            let currentDate = startDate.clone();
+            // Ensure we start on a Friday
+            while (currentDate.day() !== 5) { // 5 is Friday
+              currentDate = currentDate.add(1, 'day');
+            }
+
+            while (currentDate.isSameOrBefore(endDate)) {
+              if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
+                virtualTransactions.push({
+                  ...baseTransaction,
+                  date: currentDate.format('YYYY-MM-DD'),
+                  id: `${transaction.id}_${currentDate.format('YYYY-MM-DD')}`
+                });
+              }
+              // Add two weeks to get to next payday
+              currentDate = currentDate.add(14, 'days');
+            }
+            continue;
+          }
+
+          // Handle other recurring transactions as before
           const originalDate = dayjs(transaction.date);
           const dayOfMonth = transaction.recurring_type === 'twice-monthly'
             ? null // Handle twice-monthly separately
