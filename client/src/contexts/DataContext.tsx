@@ -367,7 +367,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Update the processTransactions function
   const processTransactions = (transactions: any[]) => {
     try {
       logger.info("[DataContext] Processing transactions...");
@@ -397,6 +396,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           // Only expand if it's a recurring income and recurring_type is set
           if (t.recurring_type && t.recurring_type !== 'once' && t.is_recurring) {
             const expandedIncomes = expandRecurringIncome(income);
+            logger.info("[DataContext] Generated expanded incomes:", {
+              count: expandedIncomes.length,
+              firstDate: expandedIncomes[0]?.date,
+              lastDate: expandedIncomes[expandedIncomes.length - 1]?.date
+            });
             loadedIncomes.push(...expandedIncomes);
           } else {
             loadedIncomes.push(income);
@@ -440,12 +444,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-      setIncomes(loadedIncomes);
+      // Sort incomes by date before setting state
+      const sortedIncomes = loadedIncomes.sort((a, b) =>
+        dayjs(a.date).valueOf() - dayjs(b.date).valueOf()
+      );
+
+      setIncomes(sortedIncomes);
       setBills(loadedBills);
       setCategories(Array.from(loadedCategories.values()));
 
       logger.info("[DataContext] Successfully processed transactions:", {
-        incomesCount: loadedIncomes.length,
+        incomesCount: sortedIncomes.length,
         billsCount: loadedBills.length,
         categoriesCount: loadedCategories.size
       });
@@ -455,9 +464,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Improved cache management
-
-  // Improved loadData function with proper caching
   const loadData = async () => {
     try {
       setIsLoading(true);
@@ -498,7 +504,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Function to add income
   const addIncome = async (income: Income) => {
     try {
       setError(null);
@@ -533,44 +538,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const newTransaction = await response.json();
       logger.info("[DataContext] Server response:", newTransaction);
 
-      // Create a new income object with the server-generated ID
-      const newIncome: Income = {
-        ...income,
-        id: newTransaction.id
-      };
+      // Invalidate cache before loading new data
+      sessionStorage.removeItem(getCacheKey());
 
-      // For recurring incomes, expand them
-      if (income.occurrenceType !== 'once') {
-        const expandedIncomes = expandRecurringIncome(newIncome);
-        logger.info("[DataContext] Generated expanded incomes:", {
-          count: expandedIncomes.length,
-          firstDate: expandedIncomes[0]?.date,
-          lastDate: expandedIncomes[expandedIncomes.length - 1]?.date
-        });
-
-        setIncomes(prev => {
-          // Remove any existing incomes with the same source
-          const filtered = prev.filter(i => i.source !== newIncome.source);
-          return [...filtered, ...expandedIncomes];
-        });
-      } else {
-        setIncomes(prev => [...prev, newIncome]);
-      }
-
-      // Force a complete data refresh to ensure sums are updated
+      // Force a complete data refresh
       await loadData();
 
-      // Invalidate cache
-      sessionStorage.removeItem(getCacheKey());
-      logger.info("[DataContext] Cache invalidated after adding income");
-
+      logger.info("[DataContext] Successfully added income and refreshed data");
     } catch (error) {
       logger.error("[DataContext] Error in addIncome:", error);
       throw error;
     }
   };
 
-  // Add a new bill
   const addBill = async (bill: Bill) => {
     try {
       setError(null);
@@ -612,7 +592,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Delete transaction function with properly scoped variables
   const deleteTransaction = async (transaction: Income | Bill) => {
     // Determine transaction type first, before try block
     const isIncome = 'source' in transaction;
@@ -682,7 +661,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Edit a transaction with optimistic updates
   const editTransaction = async (transaction: Income | Bill) => {
     try {
       setError(null);
@@ -753,7 +731,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Function to add income directly to state without API call
   const addIncomeToData = async (income: Income) => {
     try {
       logger.info("[DataContext] Adding new income to database:", { income });
@@ -821,12 +798,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     loadData();
   }, []);
 
-  // Save multiple incomes
   const saveIncomes = async (newIncomes: Income[]) => {
     await Promise.all(newIncomes.map(income => addIncome(income)));
   };
 
-  // Save multiple bills
   const saveBills = async (newBills: Bill[]) => {
     await Promise.all(newBills.map(bill => addBill(bill)));
   };
