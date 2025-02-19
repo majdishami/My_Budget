@@ -281,23 +281,27 @@ export function Budget() {
 
   // Update monthlyTotals calculation
   const monthlyTotals = useMemo(() => {
-    // Calculate total income for the current month
-    const currentMonthIncomes = incomes.filter(income => 
-      dayjs(income.date).month() === selectedMonth && 
-      dayjs(income.date).year() === selectedYear
-    );
+    let totalIncome = 0;
+    let totalBills = 0;
 
-    const totalIncome = currentMonthIncomes.reduce((sum, income) => sum + income.amount, 0);
+    // Calculate total income for the selected month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayIncomes = getIncomeForDay(day);
+      totalIncome += dayIncomes.reduce((sum, income) => sum + income.amount, 0);
+    }
 
-    // Calculate total expenses for the current month
-    const totalExpenses = bills.reduce((sum, bill) => sum + bill.amount, 0);
+    // Calculate total bills for the selected month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayBills = getBillsForDay(day);
+      totalBills += dayBills.reduce((sum, bill) => sum + bill.amount, 0);
+    }
 
     return {
       income: totalIncome,
-      expenses: totalExpenses,
-      net: totalIncome - totalExpenses
+      expenses: totalBills,
+      net: totalIncome - totalBills
     };
-  }, [incomes, bills, selectedMonth, selectedYear]);
+  }, [daysInMonth, getIncomeForDay, getBillsForDay]);
 
   // Calculate running totals for a specific day
   const calculateRunningTotals = useCallback((day: number) => {

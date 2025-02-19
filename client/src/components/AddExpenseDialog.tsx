@@ -117,9 +117,10 @@ export function AddExpenseDialog({
     if (!validateForm()) return;
 
     const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
+    const timestamp = Date.now();
 
     const newBill: Bill = {
-      id: generateId(),
+      id: `exp_${timestamp}_${Math.random().toString(36).substr(2, 9)}`, // Generate a unique ID
       name: name.trim(),
       amount: parseFloat(amount),
       day: frequency === 'monthly' ? monthlyDueDate?.getDate() : undefined,
@@ -182,24 +183,24 @@ export function AddExpenseDialog({
               {/* Expense Type Selection */}
               <div className="flex gap-2">
                 <Button
-                  variant={frequency === 'monthly' ? "default" : "ghost"}
-                  className="flex-1"
+                  variant={frequency === 'monthly' ? "default" : "outline"}
+                  className={`flex-1 ${frequency === 'monthly' ? 'bg-primary text-primary-foreground' : ''}`}
                   onClick={() => setFrequency('monthly')}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   Monthly
                 </Button>
                 <Button
-                  variant={frequency === 'yearly' ? "default" : "ghost"}
-                  className="flex-1"
+                  variant={frequency === 'yearly' ? "default" : "outline"}
+                  className={`flex-1 ${frequency === 'yearly' ? 'bg-primary text-primary-foreground' : ''}`}
                   onClick={() => setFrequency('yearly')}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   Yearly
                 </Button>
                 <Button
-                  variant={frequency === 'one-time' ? "default" : "ghost"}
-                  className="flex-1"
+                  variant={frequency === 'one-time' ? "default" : "outline"}
+                  className={`flex-1 ${frequency === 'one-time' ? 'bg-primary text-primary-foreground' : ''}`}
                   onClick={() => setFrequency('one-time')}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
