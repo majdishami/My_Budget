@@ -10,6 +10,14 @@ import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
 
+interface Expense {
+  id: number;
+  name: string;
+  amount: number;
+  category_id: number | null;
+  date: string;
+}
+
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
@@ -32,14 +40,12 @@ export default function ExpenseReport() {
     setEndDate(range.to);
   };
 
-  const { data: expenses = [], isLoading: apiIsLoading } = useQuery({
+  const { data: expenses = [], isLoading: apiIsLoading } = useQuery<Expense[]>({
     queryKey: ['/api/reports/expenses', formattedStartDate, formattedEndDate],
     enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
   });
 
   const filteredExpenses = expenses.filter(expense => {
-    if (!expense) return false;
-
     const categoryMatches = selectedCategory === 'all' || 
                         expense.category_id === Number(selectedCategory);
 
