@@ -391,25 +391,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             is_recurring: t.is_recurring
           };
 
-          logger.info("[DataContext] Processing income:", {
-            id: income.id,
-            source: income.source,
-            amount: income.amount,
-            date: income.date,
-            occurrenceType: income.occurrenceType,
-            is_recurring: income.is_recurring
-          });
-
           // Only expand if it's a recurring income
           if (income.is_recurring && income.occurrenceType !== 'once') {
             const expandedIncomes = expandRecurringIncome(income);
-            logger.info("[DataContext] Generated expanded incomes:", {
-              originalId: income.id,
-              count: expandedIncomes.length,
-              firstDate: expandedIncomes[0]?.date,
-              lastDate: expandedIncomes[expandedIncomes.length - 1]?.date,
-              amounts: expandedIncomes.map(i => i.amount)
-            });
             loadedIncomes.push(...expandedIncomes);
           } else {
             loadedIncomes.push(income);
@@ -456,14 +440,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         dayjs(a.date).valueOf() - dayjs(b.date).valueOf()
       );
 
-      // Log monthly totals for verification
+      // Calculate and log monthly totals for verification
       const monthlyTotals = new Map<string, number>();
       sortedIncomes.forEach(income => {
         const monthKey = dayjs(income.date).format('YYYY-MM');
-        monthlyTotals.set(
-          monthKey,
-          (monthlyTotals.get(monthKey) || 0) + income.amount
-        );
+        const currentTotal = monthlyTotals.get(monthKey) || 0;
+        monthlyTotals.set(monthKey, currentTotal + income.amount);
       });
 
       logger.info("[DataContext] Monthly income totals:", {
@@ -541,8 +523,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         is_recurring: income.occurrenceType !== 'once'
       };
 
-      logger.info("[DataContext] Sending request with payload:", payload);
-
       const response = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
@@ -556,10 +536,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorData || 'Failed to create income');
       }
 
-      const newTransaction = await response.json();
-      logger.info("[DataContext] Server response:", newTransaction);
-
-      // Invalidate cache before loading new data
+      // Clear cache and force immediate refresh
       sessionStorage.removeItem(getCacheKey());
 
       // Force a complete data refresh
