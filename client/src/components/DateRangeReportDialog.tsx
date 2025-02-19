@@ -251,11 +251,11 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   if (!showReport) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-hidden">
+        <DialogContent className="sm:max-w-[425px] h-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Select Date Range</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center space-y-4 py-4 overflow-y-auto">
+          <div className="flex flex-col items-center space-y-4 py-4">
             <div className="border rounded-lg p-4 bg-background">
               <Calendar
                 mode="range"
@@ -327,7 +327,14 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
             <DialogTitle className="text-xl">
               Financial Report
             </DialogTitle>
-            <Button variant="outline" onClick={() => setShowReport(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowReport(false);
+                // Reset state when going back to prevent stretching
+                setDate(defaultDateRange);
+              }}
+            >
               Back to Selection
             </Button>
           </div>
