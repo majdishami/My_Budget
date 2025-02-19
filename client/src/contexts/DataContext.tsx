@@ -62,10 +62,10 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
 
   // Strict ID validation
   if (typeof baseIncome.id !== 'number' || isNaN(baseIncome.id) || baseIncome.id <= 0) {
-    logger.error("[DataContext] Invalid income ID:", { 
-      id: baseIncome.id, 
+    logger.error("[DataContext] Invalid income ID:", {
+      id: baseIncome.id,
       type: typeof baseIncome.id,
-      income: baseIncome 
+      income: baseIncome
     });
     throw new Error('Invalid income ID: must be a positive number');
   }
@@ -76,7 +76,7 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   }
 
   const baseDate = dayjs(baseIncome.date);
-  logger.info("[DataContext] Expanding recurring income:", { 
+  logger.info("[DataContext] Expanding recurring income:", {
     baseId: baseIncome.id,
     occurrenceType: baseIncome.occurrenceType,
     baseDate: baseDate.format('YYYY-MM-DD')
@@ -497,24 +497,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       const newTransaction = await response.json();
+      logger.info("[DataContext] Server response for new transaction:", newTransaction);
 
-      logger.info("[DataContext] Successfully added income to database:", newTransaction);
-
-      if (typeof newTransaction.id !== 'number' || isNaN(newTransaction.id)) {
-        logger.error("[DataContext] Invalid transaction ID received:", newTransaction);
+      // Ensure we have a valid numeric ID
+      const transactionId = parseInt(newTransaction.id);
+      if (isNaN(transactionId) || transactionId <= 0) {
+        logger.error("[DataContext] Invalid transaction ID received:", {
+          rawId: newTransaction.id,
+          parsedId: transactionId,
+          transaction: newTransaction
+        });
         throw new Error('Server returned invalid transaction ID');
       }
 
-      // Create a new income object with the validated ID from the server response
+      // Create a new income object with the validated numeric ID
       const newIncome: Income = {
         ...income,
-        id: newTransaction.id
+        id: transactionId
       };
 
-      logger.info("[DataContext] Created new income with ID:", { id: newIncome.id });
+      logger.info("[DataContext] Created new income with validated ID:", {
+        id: newIncome.id,
+        type: typeof newIncome.id
+      });
 
-      // Now expand the income with the validated ID
+      // Expand the income with the validated numeric ID
       const expandedIncomes = expandRecurringIncome(newIncome);
+
+      // Update state with expanded incomes
       setIncomes(prev => [...prev, ...expandedIncomes]);
 
       // Invalidate cache
