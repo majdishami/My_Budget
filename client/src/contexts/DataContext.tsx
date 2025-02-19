@@ -374,8 +374,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             secondDate: t.second_date
           };
 
-          // Only expand if it's a recurring income
-          if (t.recurring_type && t.recurring_type !== 'once') {
+          // Only expand if it's a recurring income and recurring_type is set
+          if (t.recurring_type && t.recurring_type !== 'once' && t.is_recurring) {
             const expandedIncomes = expandRecurringIncome(income);
             loadedIncomes.push(...expandedIncomes);
           } else {
@@ -494,9 +494,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           amount: income.amount,
           date: dayjs(income.date).format('YYYY-MM-DD'),
           type: 'income',
-          recurring_type: income.occurrenceType,
+          recurring_type: income.occurrenceType || 'once', // Explicitly set recurring_type
           first_date: income.firstDate,
-          second_date: income.secondDate
+          second_date: income.secondDate,
+          is_recurring: income.occurrenceType !== 'once' // Explicitly set is_recurring
         }),
       });
 
@@ -510,7 +511,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Create a new income object with the server-generated ID
       const newIncome: Income = {
         ...income,
-        id: newTransaction.id
+        id: newTransaction.id,
+        occurrenceType: income.occurrenceType || 'once' // Ensure occurrenceType is set
       };
 
       // For recurring incomes, expand them
