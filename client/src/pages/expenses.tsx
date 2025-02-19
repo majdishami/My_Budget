@@ -40,7 +40,7 @@ export default function ExpenseReport() {
     return Array.from(uniqueMap.values());
   }, [bills]);
 
-  // Filter bills based on report type and selected filters
+  // Filter bills based on report type and selected filters with improved date handling
   const filteredExpenses = useMemo(() => {
     logger.info("[ExpenseReport] Filtering expenses:", {
       billsCount: bills?.length,
@@ -50,11 +50,13 @@ export default function ExpenseReport() {
     });
 
     return (bills || []).reduce((filtered, bill) => {
-      const billDate = dayjs(bill.date);
+      // Handle both one-time and recurring bills
+      const billDate = bill.date ? dayjs(bill.date) : 
+                      (bill.day ? dayjs().date(bill.day) : undefined);
 
-      // Skip invalid dates
-      if (!billDate.isValid()) {
-        logger.warn("[ExpenseReport] Invalid bill date:", { bill });
+      // Skip bills without valid dates
+      if (!billDate) {
+        logger.warn("[ExpenseReport] Bill without valid date:", { bill });
         return filtered;
       }
 
@@ -64,7 +66,25 @@ export default function ExpenseReport() {
       if (dateRange.from && dateRange.to) {
         const start = dayjs(dateRange.from).startOf('day');
         const end = dayjs(dateRange.to).endOf('day');
-        dateMatches = billDate.isBetween(start, end, 'day', '[]');
+
+        // For recurring bills, check if the day falls within the range
+        if (bill.day) {
+          const billDay = billDate.date();
+          const daysInRange = [];
+          let currentDate = start.clone();
+
+          while (currentDate.isBefore(end) || currentDate.isSame(end, 'day')) {
+            if (currentDate.date() === billDay) {
+              daysInRange.push(currentDate.format('YYYY-MM-DD'));
+            }
+            currentDate = currentDate.add(1, 'day');
+          }
+
+          dateMatches = daysInRange.length > 0;
+        } else {
+          // For one-time bills, check if the exact date falls within range
+          dateMatches = billDate.isBetween(start, end, 'day', '[]');
+        }
       }
 
       // Apply category filter if selected
@@ -77,7 +97,7 @@ export default function ExpenseReport() {
 
       if (dateMatches && categoryMatches && expenseMatches) {
         filtered.push({
-          id: bill.id,
+          id: typeof bill.id === 'string' ? parseInt(bill.id) : bill.id,
           date: billDate.format('YYYY-MM-DD'),
           description: bill.name,
           amount: bill.amount,

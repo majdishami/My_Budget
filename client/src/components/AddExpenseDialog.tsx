@@ -186,7 +186,9 @@ export function AddExpenseDialog({
                 <div className="flex gap-2">
                   <Button
                     variant={frequency === 'monthly' ? 'default' : 'outline'}
-                    className="flex-1"
+                    className={`flex-1 ${
+                      frequency === 'monthly' ? 'bg-primary text-primary-foreground' : ''
+                    }`}
                     onClick={() => setFrequency('monthly')}
                   >
                     <Calendar className="w-4 h-4 mr-2" />
@@ -194,7 +196,9 @@ export function AddExpenseDialog({
                   </Button>
                   <Button
                     variant={frequency === 'yearly' ? 'default' : 'outline'}
-                    className="flex-1"
+                    className={`flex-1 ${
+                      frequency === 'yearly' ? 'bg-primary text-primary-foreground' : ''
+                    }`}
                     onClick={() => setFrequency('yearly')}
                   >
                     <Calendar className="w-4 h-4 mr-2" />
@@ -202,7 +206,9 @@ export function AddExpenseDialog({
                   </Button>
                   <Button
                     variant={frequency === 'one-time' ? 'default' : 'outline'}
-                    className="flex-1"
+                    className={`flex-1 ${
+                      frequency === 'one-time' ? 'bg-primary text-primary-foreground' : ''
+                    }`}
                     onClick={() => setFrequency('one-time')}
                   >
                     <Calendar className="w-4 h-4 mr-2" />
@@ -286,7 +292,7 @@ export function AddExpenseDialog({
                     mode="single"
                     selected={frequency === 'one-time' ? oneTimeDate : monthlyDueDate}
                     onSelect={frequency === 'one-time' ? setOneTimeDate : setMonthlyDueDate}
-                    className="rounded-md [&_.rdp-month]:!w-[280px] [&_.rdp-cell]:!p-0 [&_.rdp-cell]:!w-8 [&_.rdp-cell]:!h-8 [&_.rdp-head_th]:!w-8 [&_.rdp-head_th]:!h-8 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-8 [&_.rdp-caption]:!h-8"
+                    className="rounded-md [&_.rdp-month]:!w-[280px] [&_.rdp-cell]:!p-0 [&_.rdp-cell]:!w-8 [&_.rdp-cell]:!h-8 [&_.rdp-head_th]:!w-8 [&_.rdp-head_th]:!h-8 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-8 [&_.rdp-caption]:!h-8 [&_.rdp-day_selected]:!bg-primary [&_.rdp-day_selected]:!text-primary-foreground [&_.rdp-day_selected]:!font-bold"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
