@@ -12,21 +12,10 @@ import { logger } from "@/lib/logger";
 
 interface Expense {
   id: number;
-  name: string;
-  amount: number;
-  category_id: number | null;
-  date: string;
-}
-
-interface ExpenseTransaction {
-  id: number;
   date: string;
   description: string;
   amount: number;
-  type: 'expense';
-  category_name?: string;
-  category_color?: string;
-  category_icon?: string;
+  category_id: number | null;
 }
 
 export default function ExpenseReport() {
@@ -56,26 +45,24 @@ export default function ExpenseReport() {
     enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
   });
 
-  const filteredExpenses: ExpenseTransaction[] = expenses.filter(expense => {
-    const categoryMatches = selectedCategory === 'all' || 
-                        expense.category_id === Number(selectedCategory);
-
-    const expenseMatches = selectedExpense === 'all' || 
-                        `${expense.name}-${expense.amount}` === selectedExpense;
-
-    return categoryMatches && expenseMatches;
-  }).map(expense => {
+  const filteredExpenses = expenses.map(expense => {
     const category = categories?.find(c => c.id === expense.category_id);
     return {
       id: expense.id,
       date: expense.date,
-      description: expense.name,
+      description: expense.description,
       amount: expense.amount,
       type: 'expense' as const,
       category_name: category?.name,
       category_color: category?.color,
       category_icon: category?.icon
     };
+  }).filter(expense => {
+    const categoryMatches = selectedCategory === 'all' || 
+                        expense.category_id === Number(selectedCategory);
+    const expenseMatches = selectedExpense === 'all' || 
+                        `${expense.description}-${expense.amount}` === selectedExpense;
+    return categoryMatches && expenseMatches;
   });
 
   const handleShowReport = () => {
