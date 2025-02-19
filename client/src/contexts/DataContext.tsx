@@ -498,7 +498,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Add a new income
+  // Function to add income
   const addIncome = async (income: Income) => {
     try {
       setError(null);
@@ -532,6 +532,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const newTransaction = await response.json();
       logger.info("[DataContext] Server response:", newTransaction);
+
+      // Create a new income object with the server-generated ID
+      const newIncome: Income = {
+        ...income,
+        id: newTransaction.id
+      };
+
+      // For recurring incomes, expand them
+      if (income.occurrenceType !== 'once') {
+        const expandedIncomes = expandRecurringIncome(newIncome);
+        logger.info("[DataContext] Generated expanded incomes:", {
+          count: expandedIncomes.length,
+          firstDate: expandedIncomes[0]?.date,
+          lastDate: expandedIncomes[expandedIncomes.length - 1]?.date
+        });
+
+        setIncomes(prev => {
+          // Remove any existing incomes with the same source
+          const filtered = prev.filter(i => i.source !== newIncome.source);
+          return [...filtered, ...expandedIncomes];
+        });
+      } else {
+        setIncomes(prev => [...prev, newIncome]);
+      }
 
       // Force a complete data refresh to ensure sums are updated
       await loadData();
