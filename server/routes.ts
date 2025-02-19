@@ -239,12 +239,6 @@ export function registerRoutes(app: Express): Server {
         rawEndDate: req.query.endDate
       });
 
-      if (type && !['income', 'expense'].includes(type)) {
-        return res.status(400).json({
-          message: 'Invalid transaction type. Must be either "income" or "expense".'
-        });
-      }
-
       // Build base query for actual transactions
       let query = db
         .select({
@@ -254,6 +248,10 @@ export function registerRoutes(app: Express): Server {
           date: transactions.date,
           type: transactions.type,
           category_id: transactions.category_id,
+          recurring_type: transactions.recurring_type,
+          is_recurring: transactions.is_recurring,
+          first_date: transactions.first_date,
+          second_date: transactions.second_date,
           category_name: sql<string>`COALESCE(${categories.name}, 'Uncategorized')`,
           category_color: sql<string>`COALESCE(${categories.color}, '#6366F1')`,
           category_icon: sql<string>`COALESCE(${categories.icon}, 'receipt')`
@@ -281,106 +279,83 @@ export function registerRoutes(app: Express): Server {
 
       const actualTransactions = await query;
 
-      console.log('[Transactions API] Actual transactions found:', {
-        count: actualTransactions.length,
-        dateRange: {
-          start: startDate?.format('YYYY-MM-DD'),
-          end: endDate?.format('YYYY-MM-DD')
-        },
-        sampleDates: actualTransactions.slice(0, 3).map(t => dayjs(t.date).format('YYYY-MM-DD'))
-      });
-
-      // Only generate virtual transactions if we have a date range
+      // Generate virtual transactions for recurring incomes and expenses
       let virtualTransactions: any[] = [];
-      if (startDate && endDate && (!type || type === 'expense')) {
-        // Get all bills
-        const allBills = await db
-          .select()
-          .from(bills)
-          .leftJoin(categories, eq(bills.category_id, categories.id));
+      if (startDate && endDate) {
+        for (const transaction of actualTransactions) {
+          if (!transaction.is_recurring) continue;
 
-        console.log('[Transactions API] Processing bills for virtual transactions:', {
-          billsCount: allBills.length,
-          dateRange: {
-            start: startDate.format('YYYY-MM-DD'),
-            end: endDate.format('YYYY-MM-DD')
-          }
-        });
+          const baseTransaction = {
+            ...transaction,
+            amount: Number(transaction.amount),
+            is_virtual: true
+          };
 
-        // Process each bill
-        for (const bill of allBills) {
-          const billData = bill.bills;
+          let currentDate = dayjs(transaction.date);
+          while (currentDate.isSameOrBefore(endDate)) {
+            if (currentDate.isAfter(startDate)) {
+              switch (transaction.recurring_type) {
+                case 'monthly':
+                  virtualTransactions.push({
+                    ...baseTransaction,
+                    date: currentDate.format('YYYY-MM-DD'),
+                    id: `${transaction.id}_${currentDate.format('YYYY-MM-DD')}`
+                  });
+                  break;
+                case 'twice-monthly':
+                  if (transaction.first_date && transaction.second_date) {
+                    const firstDate = currentDate.date(transaction.first_date);
+                    const secondDate = currentDate.date(transaction.second_date);
 
-          // For one-time bills
-          if (billData.is_one_time && billData.date) {
-            const billDate = dayjs(billData.date);
-            if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
-              virtualTransactions.push({
-                description: billData.name,
-                amount: Number(billData.amount),
-                date: billDate.format('YYYY-MM-DD'),
-                type: 'expense',
-                category_id: billData.category_id,
-                category_name: bill.categories?.name || 'Uncategorized',
-                category_color: bill.categories?.color || '#6366F1',
-                category_icon: bill.categories?.icon || 'receipt',
-                is_virtual: true
-              });
-            }
-            continue;
-          }
+                    if (firstDate.isBetween(startDate, endDate, 'day', '[]')) {
+                      virtualTransactions.push({
+                        ...baseTransaction,
+                        date: firstDate.format('YYYY-MM-DD'),
+                        id: `${transaction.id}_${firstDate.format('YYYY-MM-DD')}`
+                      });
+                    }
 
-          // For yearly bills
-          if (billData.is_yearly && billData.yearly_date) {
-            const yearlyDate = dayjs(billData.yearly_date);
-            // Check for each year in the range
-            let yearCheck = startDate.startOf('year');
-            while (yearCheck.isBefore(endDate)) {
-              const billDate = yearlyDate.year(yearCheck.year());
-              if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
-                virtualTransactions.push({
-                  description: billData.name,
-                  amount: Number(billData.amount),
-                  date: billDate.format('YYYY-MM-DD'),
-                  type: 'expense',
-                  category_id: billData.category_id,
-                  category_name: bill.categories?.name || 'Uncategorized',
-                  category_color: bill.categories?.color || '#6366F1',
-                  category_icon: bill.categories?.icon || 'receipt',
-                  is_virtual: true
-                });
+                    if (secondDate.isBetween(startDate, endDate, 'day', '[]')) {
+                      virtualTransactions.push({
+                        ...baseTransaction,
+                        date: secondDate.format('YYYY-MM-DD'),
+                        id: `${transaction.id}_${secondDate.format('YYYY-MM-DD')}`
+                      });
+                    }
+                  }
+                  break;
+                case 'biweekly':
+                  while (currentDate.isSameOrBefore(endDate) && currentDate.isSame(dayjs(transaction.date), 'month')) {
+                    if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
+                      virtualTransactions.push({
+                        ...baseTransaction,
+                        date: currentDate.format('YYYY-MM-DD'),
+                        id: `${transaction.id}_${currentDate.format('YYYY-MM-DD')}`
+                      });
+                    }
+                    currentDate = currentDate.add(14, 'day');
+                  }
+                  break;
+                case 'weekly':
+                  while (currentDate.isSameOrBefore(endDate) && currentDate.isSame(dayjs(transaction.date), 'month')) {
+                    if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
+                      virtualTransactions.push({
+                        ...baseTransaction,
+                        date: currentDate.format('YYYY-MM-DD'),
+                        id: `${transaction.id}_${currentDate.format('YYYY-MM-DD')}`
+                      });
+                    }
+                    currentDate = currentDate.add(7, 'day');
+                  }
+                  break;
               }
-              yearCheck = yearCheck.add(1, 'year');
             }
-            continue;
-          }
-
-          // For monthly bills
-          let currentMonth = startDate.startOf('month');
-          while (currentMonth.isSameOrBefore(endDate)) {
-            const billDate = billData.day === 1
-              ? currentMonth.date(1)
-              : currentMonth.date(billData.day);
-
-            if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
-              virtualTransactions.push({
-                description: billData.name,
-                amount: Number(billData.amount),
-                date: billDate.format('YYYY-MM-DD'),
-                type: 'expense',
-                category_id: billData.category_id,
-                category_name: bill.categories?.name || 'Uncategorized',
-                category_color: bill.categories?.color || '#6366F1',
-                category_icon: bill.categories?.icon || 'receipt',
-                is_virtual: true
-              });
-            }
-            currentMonth = currentMonth.add(1, 'month');
+            currentDate = currentDate.add(1, 'month');
           }
         }
       }
 
-      console.log('[Transactions API] Virtual transactions generated:', {
+      console.log('[Transactions API] Generated virtual transactions:', {
         count: virtualTransactions.length,
         sampleDates: virtualTransactions.slice(0, 3).map(t => t.date)
       });
