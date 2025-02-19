@@ -18,6 +18,17 @@ interface Expense {
   date: string;
 }
 
+interface ExpenseTransaction {
+  id: number;
+  date: string;
+  description: string;
+  amount: number;
+  type: 'expense';
+  category_name?: string;
+  category_color?: string;
+  category_icon?: string;
+}
+
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
@@ -45,7 +56,7 @@ export default function ExpenseReport() {
     enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
   });
 
-  const filteredExpenses = expenses.filter(expense => {
+  const filteredExpenses: ExpenseTransaction[] = expenses.filter(expense => {
     const categoryMatches = selectedCategory === 'all' || 
                         expense.category_id === Number(selectedCategory);
 
@@ -53,6 +64,18 @@ export default function ExpenseReport() {
                         `${expense.name}-${expense.amount}` === selectedExpense;
 
     return categoryMatches && expenseMatches;
+  }).map(expense => {
+    const category = categories?.find(c => c.id === expense.category_id);
+    return {
+      id: expense.id,
+      date: expense.date,
+      description: expense.name,
+      amount: expense.amount,
+      type: 'expense' as const,
+      category_name: category?.name,
+      category_color: category?.color,
+      category_icon: category?.icon
+    };
   });
 
   const handleShowReport = () => {
