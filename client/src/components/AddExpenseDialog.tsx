@@ -185,49 +185,28 @@ export function AddExpenseDialog({
                 <Label>Expense Frequency</Label>
                 <div className="flex gap-2">
                   <Button
-                    variant="outline"
-                    className={`flex-1 relative ${
-                      frequency === 'monthly'
-                        ? 'ring-2 ring-primary bg-primary/10'
-                        : 'hover:bg-accent'
-                    }`}
+                    variant={frequency === 'monthly' ? 'default' : 'outline'}
+                    className="flex-1"
                     onClick={() => setFrequency('monthly')}
                   >
                     <Calendar className="w-4 h-4 mr-2" />
                     Monthly
-                    {frequency === 'monthly' && (
-                      <div className="absolute right-2 w-2 h-2 rounded-full bg-primary" />
-                    )}
                   </Button>
                   <Button
-                    variant="outline"
-                    className={`flex-1 relative ${
-                      frequency === 'yearly'
-                        ? 'ring-2 ring-primary bg-primary/10'
-                        : 'hover:bg-accent'
-                    }`}
+                    variant={frequency === 'yearly' ? 'default' : 'outline'}
+                    className="flex-1"
                     onClick={() => setFrequency('yearly')}
                   >
                     <Calendar className="w-4 h-4 mr-2" />
                     Yearly
-                    {frequency === 'yearly' && (
-                      <div className="absolute right-2 w-2 h-2 rounded-full bg-primary" />
-                    )}
                   </Button>
                   <Button
-                    variant="outline"
-                    className={`flex-1 relative ${
-                      frequency === 'one-time'
-                        ? 'ring-2 ring-primary bg-primary/10'
-                        : 'hover:bg-accent'
-                    }`}
+                    variant={frequency === 'one-time' ? 'default' : 'outline'}
+                    className="flex-1"
                     onClick={() => setFrequency('one-time')}
                   >
                     <Calendar className="w-4 h-4 mr-2" />
                     One-time
-                    {frequency === 'one-time' && (
-                      <div className="absolute right-2 w-2 h-2 rounded-full bg-primary" />
-                    )}
                   </Button>
                 </div>
               </div>
