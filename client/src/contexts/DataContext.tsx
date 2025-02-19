@@ -611,19 +611,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Invalid transaction: Transaction object is required with a numeric ID');
       }
 
+      // Get the base ID for the transaction (in case it's a recurring instance)
+      const baseId = getBaseId(transaction.id);
+      logger.info("[DataContext] Calculated base ID for deletion:", {
+        originalId: transaction.id,
+        baseId: baseId
+      });
+
       // Optimistic update: Remove from state immediately
       if (isIncome) {
-        setIncomes(prev => prev.filter(inc => inc.id !== transaction.id));
+        setIncomes(prev => prev.filter(inc => getBaseId(inc.id) !== baseId));
       } else {
-        setBills(prev => prev.filter(bill => bill.id !== transaction.id));
+        setBills(prev => prev.filter(bill => getBaseId(bill.id) !== baseId));
       }
 
       logger.info("[DataContext] Optimistically removed transaction from state:", {
-        id: transaction.id,
+        id: baseId,
         type: isIncome ? 'income' : 'bill'
       });
 
-      const response = await fetch(`/api/transactions/${transaction.id}`, {
+      const response = await fetch(`/api/transactions/${baseId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
