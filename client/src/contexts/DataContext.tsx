@@ -60,81 +60,112 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
     throw new Error('Invalid date format in income');
   }
 
-  // Strict ID validation
-  if (typeof baseIncome.id !== 'number' || isNaN(baseIncome.id) || baseIncome.id <= 0) {
-    logger.error("[DataContext] Invalid income ID:", {
-      id: baseIncome.id,
-      type: typeof baseIncome.id,
-      income: baseIncome
-    });
-    throw new Error('Invalid income ID: must be a positive number');
-  }
-
   // For one-time income, return as is
   if (baseIncome.occurrenceType === 'once') {
     return [baseIncome];
   }
 
   const baseDate = dayjs(baseIncome.date);
+  const startDate = dayjs('2025-01-01');
+  const endDate = startDate.add(months, 'months');
+
   logger.info("[DataContext] Expanding recurring income:", {
     baseId: baseIncome.id,
     occurrenceType: baseIncome.occurrenceType,
-    baseDate: baseDate.format('YYYY-MM-DD')
+    baseDate: baseDate.format('YYYY-MM-DD'),
+    startDate: startDate.format('YYYY-MM-DD'),
+    endDate: endDate.format('YYYY-MM-DD')
   });
 
-  for (let i = 0; i < months; i++) {
-    let date;
+  let currentDate = startDate;
+  while (currentDate.isBefore(endDate)) {
     switch (baseIncome.occurrenceType) {
       case 'monthly':
-        date = baseDate.add(i, 'month');
-        break;
-      case 'biweekly':
-        date = baseDate.add(i * 2, 'week');
-        break;
-      case 'twice-monthly':
-        if (baseIncome.firstDate && baseIncome.secondDate) {
-          const monthDate = baseDate.add(Math.floor(i / 2), 'month');
-          date = i % 2 === 0
-            ? monthDate.date(baseIncome.firstDate)
-            : monthDate.date(baseIncome.secondDate);
-        } else {
-          date = baseDate.add(i * 2, 'week');
-        }
-        break;
-      case 'weekly':
-        date = baseDate.add(i, 'week');
-        break;
-      default:
-        logger.error("[DataContext] Unknown occurrence type:", {
-          type: baseIncome.occurrenceType,
-          income: baseIncome
+        // Add one instance per month
+        incomes.push({
+          ...baseIncome,
+          id: generateInstanceId(baseIncome.id, incomes.length),
+          date: currentDate.format('YYYY-MM-DD')
         });
-        throw new Error(`Unknown occurrence type: ${baseIncome.occurrenceType}`);
+        currentDate = currentDate.add(1, 'month');
+        break;
+
+      case 'twice-monthly':
+        // Add two instances per month
+        const firstDate = baseIncome.firstDate || 1;
+        const secondDate = baseIncome.secondDate || 15;
+
+        const firstInstance = currentDate.date(firstDate);
+        const secondInstance = currentDate.date(secondDate);
+
+        incomes.push({
+          ...baseIncome,
+          id: generateInstanceId(baseIncome.id, incomes.length),
+          date: firstInstance.format('YYYY-MM-DD')
+        });
+
+        incomes.push({
+          ...baseIncome,
+          id: generateInstanceId(baseIncome.id, incomes.length),
+          date: secondInstance.format('YYYY-MM-DD')
+        });
+
+        currentDate = currentDate.add(1, 'month');
+        break;
+
+      case 'biweekly':
+        // Add instances every two weeks
+        if (baseIncome.source === "Ruba's Salary") {
+          // Special case for Ruba's salary (every other Friday)
+          let weekDate = currentDate.day(5); // Set to Friday
+          if (weekDate.isBefore(currentDate)) {
+            weekDate = weekDate.add(1, 'week');
+          }
+          while (weekDate.month() === currentDate.month()) {
+            incomes.push({
+              ...baseIncome,
+              id: generateInstanceId(baseIncome.id, incomes.length),
+              date: weekDate.format('YYYY-MM-DD')
+            });
+            weekDate = weekDate.add(2, 'weeks');
+          }
+        } else {
+          // Standard biweekly
+          let biweekDate = currentDate;
+          while (biweekDate.month() === currentDate.month()) {
+            incomes.push({
+              ...baseIncome,
+              id: generateInstanceId(baseIncome.id, incomes.length),
+              date: biweekDate.format('YYYY-MM-DD')
+            });
+            biweekDate = biweekDate.add(2, 'weeks');
+          }
+        }
+        currentDate = currentDate.add(1, 'month');
+        break;
+
+      case 'weekly':
+        // Add instances every week
+        let weekDate = currentDate;
+        while (weekDate.month() === currentDate.month()) {
+          incomes.push({
+            ...baseIncome,
+            id: generateInstanceId(baseIncome.id, incomes.length),
+            date: weekDate.format('YYYY-MM-DD')
+          });
+          weekDate = weekDate.add(1, 'week');
+        }
+        currentDate = currentDate.add(1, 'month');
+        break;
     }
-
-    // Validate generated date
-    if (!date.isValid()) {
-      logger.error("[DataContext] Generated invalid date:", {
-        date: date.format(),
-        income: baseIncome
-      });
-      continue;
-    }
-
-    // Generate instance ID using the new function
-    const instanceId = generateInstanceId(baseIncome.id, i);
-
-    incomes.push({
-      ...baseIncome,
-      id: instanceId,
-      date: date.format('YYYY-MM-DD')
-    });
   }
 
   logger.info("[DataContext] Successfully expanded recurring income:", {
     baseId: baseIncome.id,
     occurrenceType: baseIncome.occurrenceType,
-    instanceCount: incomes.length
+    instanceCount: incomes.length,
+    firstDate: incomes[0]?.date,
+    lastDate: incomes[incomes.length - 1]?.date
   });
 
   return incomes;
@@ -721,7 +752,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       logger.info("[DataContext] Adding new income to database:", { income });
 
-      // First save to database with proper recurring information
       const response = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
@@ -735,7 +765,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           recurring_type: income.occurrenceType,
           first_date: income.firstDate,
           second_date: income.secondDate,
-          // Add explicit recurring flag for database
           is_recurring: income.occurrenceType !== 'once'
         }),
       });
@@ -754,7 +783,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         id: newTransaction.id
       };
 
-      // Expand the recurring income with proper validation
+      // Expand the recurring income and add to state
       const expandedIncomes = expandRecurringIncome(newIncome);
       logger.info("[DataContext] Generated expanded incomes:", {
         count: expandedIncomes.length,
@@ -762,27 +791,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         lastDate: expandedIncomes[expandedIncomes.length - 1]?.date
       });
 
-      // Update local state with the new expanded incomes
+      // Update state with expanded incomes
       setIncomes(prev => {
-        const updatedIncomes = [...prev];
-        // Remove any existing incomes with the same source if it's recurring
-        if (newIncome.occurrenceType !== 'once') {
-          const filtered = updatedIncomes.filter(i => i.source !== newIncome.source);
-          return [...filtered, ...expandedIncomes];
-        }
-        return [...updatedIncomes, ...expandedIncomes];
+        // Remove any existing incomes with the same source
+        const filtered = prev.filter(i =>
+          i.source !== newIncome.source ||
+          (i.occurrenceType === 'once' && newIncome.occurrenceType === 'once')
+        );
+        return [...filtered, ...expandedIncomes];
       });
 
       // Force cache invalidation
       sessionStorage.removeItem(getCacheKey());
 
-      // Trigger an immediate data refresh to ensure consistency
-      await loadData();
-
       logger.info("[DataContext] Successfully added income to database and state", {
         originalIncome: newIncome,
         expandedCount: expandedIncomes.length
       });
+
     } catch (error) {
       logger.error("[DataContext] Error in addIncomeToData:", {
         error: error instanceof Error ? error.message : String(error),
