@@ -373,33 +373,47 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const loadedIncomes: Income[] = [];
       const loadedBills: Bill[] = [];
       const loadedCategories = new Map<number, Category>();
+      const processedSources = new Set<string>(); // Track processed income sources
 
-      // Process all transactions
+      // First pass: Process all one-time incomes
       transactions.forEach((t: any) => {
-        // Validate and format date
-        const date = dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD');
-
-        if (t.type === 'income') {
+        if (t.type === 'income' && (!t.is_recurring || t.recurring_type === 'once')) {
           const income = {
             id: t.id,
             source: t.description || 'Unknown Source',
             amount: parseFloat(t.amount) || 0,
-            date,
-            occurrenceType: t.recurring_type || 'once',
+            date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+            occurrenceType: 'once',
+            is_recurring: false
+          };
+          loadedIncomes.push(income);
+          processedSources.add(income.source);
+        }
+      });
+
+      // Second pass: Process recurring incomes
+      transactions.forEach((t: any) => {
+        if (t.type === 'income' && t.is_recurring && t.recurring_type !== 'once' && !processedSources.has(t.description)) {
+          const income = {
+            id: t.id,
+            source: t.description || 'Unknown Source',
+            amount: parseFloat(t.amount) || 0,
+            date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+            occurrenceType: t.recurring_type,
             firstDate: t.first_date,
             secondDate: t.second_date,
-            is_recurring: t.is_recurring
+            is_recurring: true
           };
 
-          // Only expand if it's a recurring income
-          if (income.is_recurring && income.occurrenceType !== 'once') {
-            const expandedIncomes = expandRecurringIncome(income);
-            loadedIncomes.push(...expandedIncomes);
-          } else {
-            loadedIncomes.push(income);
-          }
-        } else if (t.type === 'expense') {
-          // Process bills (unchanged)
+          const expandedIncomes = expandRecurringIncome(income);
+          loadedIncomes.push(...expandedIncomes);
+          processedSources.add(income.source);
+        }
+      });
+
+      // Process bills (unchanged)
+      transactions.forEach((t: any) => {
+        if (t.type === 'expense') {
           if (t.category_id) {
             loadedCategories.set(t.category_id, {
               id: t.category_id,
@@ -413,11 +427,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             id: t.id,
             name: t.description || 'Unknown Expense',
             amount: parseFloat(t.amount) || 0,
-            date,
+            date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
             isOneTime: !t.recurring_id,
             isYearly: t.is_yearly || false,
             yearly_date: t.yearly_date,
-            day: dayjs(date).date(),
+            day: dayjs(t.date).date(),
             category_id: t.category_id || null,
             category_name: t.category_name || 'Uncategorized',
             category_color: t.category_color || '#808080',
@@ -449,7 +463,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
 
       logger.info("[DataContext] Monthly income totals:", {
-        totals: Object.fromEntries(monthlyTotals)
+        totals: Object.fromEntries(monthlyTotals),
+        totalIncomes: sortedIncomes.length,
+        uniqueSources: Array.from(processedSources)
       });
 
       setIncomes(sortedIncomes);
@@ -526,7 +542,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify(payload),
       });
@@ -536,13 +553,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorData || 'Failed to create income');
       }
 
-      // Clear cache and force immediate refresh
+      // Clear cache
       sessionStorage.removeItem(getCacheKey());
 
-      // Force a complete data refresh
+      // Force immediate data refresh
       await loadData();
 
-      logger.info("[DataContext] Successfully added income and refreshed data");
+      logger.info("[DataContext] Successfully added income, forcing refresh");
     } catch (error) {
       logger.error("[DataContext] Error in addIncome:", error);
       throw error;
