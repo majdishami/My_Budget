@@ -81,46 +81,44 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   while (currentDate.isBefore(endDate)) {
     switch (baseIncome.occurrenceType) {
       case 'monthly':
-        // Add one instance per month
         incomes.push({
           ...baseIncome,
           id: generateInstanceId(baseIncome.id, incomes.length),
-          date: currentDate.format('YYYY-MM-DD')
+          date: currentDate.format('YYYY-MM-DD'),
+          occurrenceType: 'monthly'
         });
         currentDate = currentDate.add(1, 'month');
         break;
 
       case 'twice-monthly':
-        // Add two instances per month
         const firstDate = baseIncome.firstDate || 1;
         const secondDate = baseIncome.secondDate || 15;
-
-        const firstInstance = currentDate.date(firstDate);
-        const secondInstance = currentDate.date(secondDate);
 
         incomes.push({
           ...baseIncome,
           id: generateInstanceId(baseIncome.id, incomes.length),
-          date: firstInstance.format('YYYY-MM-DD')
+          date: currentDate.date(firstDate).format('YYYY-MM-DD'),
+          occurrenceType: 'twice-monthly'
         });
 
         incomes.push({
           ...baseIncome,
           id: generateInstanceId(baseIncome.id, incomes.length),
-          date: secondInstance.format('YYYY-MM-DD')
+          date: currentDate.date(secondDate).format('YYYY-MM-DD'),
+          occurrenceType: 'twice-monthly'
         });
 
         currentDate = currentDate.add(1, 'month');
         break;
 
       case 'biweekly':
-        // Add instances every two weeks
         let biweekDate = currentDate;
         while (biweekDate.month() === currentDate.month()) {
           incomes.push({
             ...baseIncome,
             id: generateInstanceId(baseIncome.id, incomes.length),
-            date: biweekDate.format('YYYY-MM-DD')
+            date: biweekDate.format('YYYY-MM-DD'),
+            occurrenceType: 'biweekly'
           });
           biweekDate = biweekDate.add(2, 'weeks');
         }
@@ -128,13 +126,13 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         break;
 
       case 'weekly':
-        // Add instances every week
         let weekDate = currentDate;
         while (weekDate.month() === currentDate.month()) {
           incomes.push({
             ...baseIncome,
             id: generateInstanceId(baseIncome.id, incomes.length),
-            date: weekDate.format('YYYY-MM-DD')
+            date: weekDate.format('YYYY-MM-DD'),
+            occurrenceType: 'weekly'
           });
           weekDate = weekDate.add(1, 'week');
         }
@@ -142,14 +140,6 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         break;
     }
   }
-
-  logger.info("[DataContext] Successfully expanded recurring income:", {
-    baseId: baseIncome.id,
-    occurrenceType: baseIncome.occurrenceType,
-    instanceCount: incomes.length,
-    firstDate: incomes[0]?.date,
-    lastDate: incomes[incomes.length - 1]?.date
-  });
 
   return incomes;
 };
@@ -516,44 +506,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       const newTransaction = await response.json();
-      logger.info("[DataContext] Server response for new transaction:", newTransaction);
 
-      // Ensure we have a valid numeric ID
-      const transactionId = parseInt(newTransaction.id);
-      if (isNaN(transactionId) || transactionId <= 0) {
-        logger.error("[DataContext] Invalid transaction ID received:", {
-          rawId: newTransaction.id,
-          parsedId: transactionId,
-          transaction: newTransaction
-        });
-        throw new Error('Server returned invalid transaction ID');
-      }
-
-      // Create a new income object with the validated numeric ID
+      // Create a new income object with the server-generated ID
       const newIncome: Income = {
         ...income,
-        id: transactionId
+        id: newTransaction.id
       };
 
-      logger.info("[DataContext] Created new income with validated ID:", {
-        id: newIncome.id,
-        type: typeof newIncome.id
-      });
+      // For recurring incomes, expand them
+      if (income.occurrenceType !== 'once') {
+        const expandedIncomes = expandRecurringIncome(newIncome);
+        logger.info("[DataContext] Generated expanded incomes:", {
+          count: expandedIncomes.length,
+          firstDate: expandedIncomes[0]?.date,
+          lastDate: expandedIncomes[expandedIncomes.length - 1]?.date
+        });
 
-      // Expand the income with the validated numeric ID
-      const expandedIncomes = expandRecurringIncome(newIncome);
+        setIncomes(prev => {
+          const filtered = prev.filter(i => i.source !== newIncome.source);
+          return [...filtered, ...expandedIncomes];
+        });
+      } else {
+        setIncomes(prev => [...prev, newIncome]);
+      }
 
-      // Update state with expanded incomes
-      setIncomes(prev => [...prev, ...expandedIncomes]);
-
-      // Invalidate cache
+      // Invalidate cache and force a refresh
       sessionStorage.removeItem(getCacheKey());
-      logger.info("[DataContext] Cache invalidated after adding income");
+      await loadData();
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to add income";
-      logger.error("[DataContext] Error in addIncome:", { error });
-      setError(new Error(errorMessage));
+      logger.error("[DataContext] Error in addIncome:", error);
       throw error;
     }
   };
