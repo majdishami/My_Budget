@@ -32,10 +32,7 @@ export default function ExpenseReport() {
   const [reportType, setReportType] = useState<ReportType>('all');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [selectedExpense, setSelectedExpense] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: undefined,
-    to: undefined
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   // Get unique expenses for the dropdown
   const uniqueExpenses = useMemo(() => {
@@ -51,11 +48,11 @@ export default function ExpenseReport() {
   }, [bills]);
 
   // Format dates for API query
-  const formattedStartDate = dateRange.from ? 
+  const formattedStartDate = dateRange?.from ? 
     dayjs(dateRange.from).format('YYYY-MM-DD') : 
     undefined;
 
-  const formattedEndDate = dateRange.to ? 
+  const formattedEndDate = dateRange?.to ? 
     dayjs(dateRange.to).format('YYYY-MM-DD') : 
     undefined;
 
@@ -95,7 +92,7 @@ export default function ExpenseReport() {
   }, [reportExpenses, selectedCategory, selectedExpense]);
 
   const handleShowReport = () => {
-    if (!dateRange.from || !dateRange.to) {
+    if (!dateRange?.from || !dateRange?.to) {
       logger.warn("[ExpenseReport] Attempted to show report without date range");
       return;
     }
@@ -208,7 +205,7 @@ export default function ExpenseReport() {
               />
             </div>
             <Button 
-              onClick={() => setDateRange({ from: undefined, to: undefined })}
+              onClick={() => setDateRange(undefined)}
               variant="outline"
             >
               Reset Range
@@ -218,14 +215,14 @@ export default function ExpenseReport() {
           <Button 
             onClick={handleShowReport} 
             className="w-full"
-            disabled={!dateRange.from || !dateRange.to}
+            disabled={!dateRange?.from || !dateRange?.to}
           >
             Generate Report
           </Button>
         </div>
       </Card>
 
-      {isDialogOpen && (
+      {isDialogOpen && dateRange && (
         <ExpenseReportDialog
           isOpen={isDialogOpen}
           onOpenChange={handleOpenChange}
