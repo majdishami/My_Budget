@@ -595,6 +595,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // Delete transaction function with properly scoped variables
   const deleteTransaction = async (transaction: Income | Bill) => {
+    // Determine transaction type first, before try block
+    const isIncome = 'source' in transaction;
+    // Store current state for potential rollback
+    const previousIncomes = [...incomes];
+    const previousBills = [...bills];
+
     try {
       setError(null);
       logger.info("[DataContext] Starting deletion of transaction:", transaction);
@@ -604,13 +610,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         logger.error("[DataContext] Invalid transaction ID:", { id: transaction?.id, type: typeof transaction?.id });
         throw new Error('Invalid transaction: Transaction object is required with a numeric ID');
       }
-
-      // Determine transaction type and store it in wider scope
-      const isIncome = 'source' in transaction;
-
-      // Store current state for potential rollback
-      const previousIncomes = [...incomes];
-      const previousBills = [...bills];
 
       // Optimistic update: Remove from state immediately
       if (isIncome) {
