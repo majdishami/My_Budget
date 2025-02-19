@@ -605,12 +605,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Invalid transaction: Transaction object is required with a numeric ID');
       }
 
+      // Determine transaction type
+      const isIncome = 'source' in transaction;
+
       // Store current state for potential rollback
       const previousIncomes = [...incomes];
       const previousBills = [...bills];
 
       // Optimistic update: Remove from state immediately
-      if ('source' in transaction) {
+      if (isIncome) {
         setIncomes(prev => prev.filter(inc => inc.id !== transaction.id));
       } else {
         setBills(prev => prev.filter(bill => bill.id !== transaction.id));
@@ -618,7 +621,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       logger.info("[DataContext] Optimistically removed transaction from state:", {
         id: transaction.id,
-        type: 'source' in transaction ? 'income' : 'bill'
+        type: isIncome ? 'income' : 'bill'
       });
 
       const response = await fetch(`/api/transactions/${transaction.id}`, {
@@ -642,16 +645,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       logger.error("[DataContext] Error in deleteTransaction:", { error });
 
       // Revert optimistic update on error
-      try {
-        setIncomes(prev => 'source' in transaction ? previousIncomes : prev);
-        setBills(prev => !('source' in transaction) ? previousBills : prev);
-        logger.info("[DataContext] Successfully rolled back state after delete failure");
-      } catch (rollbackError) {
-        logger.error("[DataContext] Failed to rollback state after delete failure:", { rollbackError });
-        // Force a full refresh if rollback fails
-        await loadData();
+      if (isIncome) {
+        setIncomes(previousIncomes);
+      } else {
+        setBills(previousBills);
       }
 
+      logger.info("[DataContext] Successfully rolled back state after delete failure");
       setError(new Error(errorMessage));
       throw error;
     }

@@ -282,6 +282,89 @@ export function registerRoutes(app: Express): Server {
       // Generate virtual transactions for recurring incomes and expenses
       let virtualTransactions: any[] = [];
       if (startDate && endDate) {
+        // Process bills first
+        const allBills = await db.select({
+          id: bills.id,
+          bills: bills,
+          categories: categories
+        }).from(bills).leftJoin(categories, eq(bills.category_id, categories.id));
+
+        // Process each bill
+        for (const bill of allBills) {
+          const billData = bill.bills;
+
+          // For one-time bills
+          if (billData.is_one_time && billData.date) {
+            const billDate = dayjs(billData.date);
+            if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
+              virtualTransactions.push({
+                id: `bill_${billData.id}_${billDate.format('YYYY-MM-DD')}`,
+                description: billData.name,
+                amount: Number(billData.amount),
+                date: billDate.format('YYYY-MM-DD'),
+                type: 'expense',
+                category_id: billData.category_id,
+                category_name: bill.categories?.name || 'Uncategorized',
+                category_color: bill.categories?.color || '#6366F1',
+                category_icon: bill.categories?.icon || 'receipt',
+                is_virtual: true
+              });
+            }
+            continue;
+          }
+
+          // For yearly bills
+          if (billData.is_yearly && billData.yearly_date) {
+            const yearlyDate = dayjs(billData.yearly_date);
+            // Check for each year in the range
+            let yearCheck = startDate.startOf('year');
+            while (yearCheck.isBefore(endDate)) {
+              const billDate = yearlyDate.year(yearCheck.year());
+              if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
+                virtualTransactions.push({
+                  id: `bill_${billData.id}_${billDate.format('YYYY-MM-DD')}`,
+                  description: billData.name,
+                  amount: Number(billData.amount),
+                  date: billDate.format('YYYY-MM-DD'),
+                  type: 'expense',
+                  category_id: billData.category_id,
+                  category_name: bill.categories?.name || 'Uncategorized',
+                  category_color: bill.categories?.color || '#6366F1',
+                  category_icon: bill.categories?.icon || 'receipt',
+                  is_virtual: true
+                });
+              }
+              yearCheck = yearCheck.add(1, 'year');
+            }
+            continue;
+          }
+
+          // For monthly bills
+          let currentMonth = startDate.startOf('month');
+          while (currentMonth.isSameOrBefore(endDate)) {
+            const billDate = billData.day === 1
+              ? currentMonth.date(1)
+              : currentMonth.date(billData.day);
+
+            if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
+              virtualTransactions.push({
+                id: `bill_${billData.id}_${billDate.format('YYYY-MM-DD')}`,
+                description: billData.name,
+                amount: Number(billData.amount),
+                date: billDate.format('YYYY-MM-DD'),
+                type: 'expense',
+                category_id: billData.category_id,
+                category_name: bill.categories?.name || 'Uncategorized',
+                category_color: bill.categories?.color || '#6366F1',
+                category_icon: bill.categories?.icon || 'receipt',
+                is_virtual: true
+              });
+            }
+            currentMonth = currentMonth.add(1, 'month');
+          }
+        }
+
+        // Process recurring transactions (incomes)
         for (const transaction of actualTransactions) {
           if (!transaction.is_recurring) continue;
 
@@ -291,66 +374,49 @@ export function registerRoutes(app: Express): Server {
             is_virtual: true
           };
 
-          let currentDate = dayjs(transaction.date);
-          while (currentDate.isSameOrBefore(endDate)) {
-            if (currentDate.isAfter(startDate)) {
-              switch (transaction.recurring_type) {
-                case 'monthly':
-                  virtualTransactions.push({
-                    ...baseTransaction,
-                    date: currentDate.format('YYYY-MM-DD'),
-                    id: `${transaction.id}_${currentDate.format('YYYY-MM-DD')}`
-                  });
-                  break;
-                case 'twice-monthly':
-                  if (transaction.first_date && transaction.second_date) {
-                    const firstDate = currentDate.date(transaction.first_date);
-                    const secondDate = currentDate.date(transaction.second_date);
+          // Get the day of month from the original transaction date
+          const originalDate = dayjs(transaction.date);
+          const dayOfMonth = transaction.recurring_type === 'twice-monthly'
+            ? null // Handle twice-monthly separately
+            : originalDate.date();
 
-                    if (firstDate.isBetween(startDate, endDate, 'day', '[]')) {
-                      virtualTransactions.push({
-                        ...baseTransaction,
-                        date: firstDate.format('YYYY-MM-DD'),
-                        id: `${transaction.id}_${firstDate.format('YYYY-MM-DD')}`
-                      });
-                    }
+          let currentMonth = startDate.startOf('month');
 
-                    if (secondDate.isBetween(startDate, endDate, 'day', '[]')) {
-                      virtualTransactions.push({
-                        ...baseTransaction,
-                        date: secondDate.format('YYYY-MM-DD'),
-                        id: `${transaction.id}_${secondDate.format('YYYY-MM-DD')}`
-                      });
-                    }
-                  }
-                  break;
-                case 'biweekly':
-                  while (currentDate.isSameOrBefore(endDate) && currentDate.isSame(dayjs(transaction.date), 'month')) {
-                    if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
-                      virtualTransactions.push({
-                        ...baseTransaction,
-                        date: currentDate.format('YYYY-MM-DD'),
-                        id: `${transaction.id}_${currentDate.format('YYYY-MM-DD')}`
-                      });
-                    }
-                    currentDate = currentDate.add(14, 'day');
-                  }
-                  break;
-                case 'weekly':
-                  while (currentDate.isSameOrBefore(endDate) && currentDate.isSame(dayjs(transaction.date), 'month')) {
-                    if (currentDate.isBetween(startDate, endDate, 'day', '[]')) {
-                      virtualTransactions.push({
-                        ...baseTransaction,
-                        date: currentDate.format('YYYY-MM-DD'),
-                        id: `${transaction.id}_${currentDate.format('YYYY-MM-DD')}`
-                      });
-                    }
-                    currentDate = currentDate.add(7, 'day');
-                  }
-                  break;
+          while (currentMonth.isSameOrBefore(endDate)) {
+            if (transaction.recurring_type === 'twice-monthly' && transaction.first_date && transaction.second_date) {
+              // Handle twice-monthly transactions
+              const firstDate = currentMonth.date(transaction.first_date);
+              const secondDate = currentMonth.date(transaction.second_date);
+
+              if (firstDate.isBetween(startDate, endDate, 'day', '[]')) {
+                virtualTransactions.push({
+                  ...baseTransaction,
+                  date: firstDate.format('YYYY-MM-DD'),
+                  id: `${transaction.id}_${firstDate.format('YYYY-MM-DD')}`
+                });
+              }
+
+              if (secondDate.isBetween(startDate, endDate, 'day', '[]')) {
+                virtualTransactions.push({
+                  ...baseTransaction,
+                  date: secondDate.format('YYYY-MM-DD'),
+                  id: `${transaction.id}_${secondDate.format('YYYY-MM-DD')}`
+                });
+              }
+            } else if (dayOfMonth) {
+              // Handle monthly transactions
+              const transactionDate = currentMonth.date(dayOfMonth);
+
+              if (transactionDate.isBetween(startDate, endDate, 'day', '[]')) {
+                virtualTransactions.push({
+                  ...baseTransaction,
+                  date: transactionDate.format('YYYY-MM-DD'),
+                  id: `${transaction.id}_${transactionDate.format('YYYY-MM-DD')}`
+                });
               }
             }
-            currentDate = currentDate.add(1, 'month');
+
+            currentMonth = currentMonth.add(1, 'month');
           }
         }
       }
@@ -360,7 +426,7 @@ export function registerRoutes(app: Express): Server {
         sampleDates: virtualTransactions.slice(0, 3).map(t => t.date)
       });
 
-      // Combine and format transactions
+      // Combine and format all transactions
       const combinedTransactions = [
         ...actualTransactions.map(t => ({
           ...t,
@@ -369,16 +435,6 @@ export function registerRoutes(app: Express): Server {
         })),
         ...virtualTransactions
       ].sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
-
-      console.log('[Transactions API] Final response:', {
-        actualTransactions: actualTransactions.length,
-        virtualTransactions: virtualTransactions.length,
-        totalTransactions: combinedTransactions.length,
-        dateRange: {
-          start: startDate?.format('YYYY-MM-DD'),
-          end: endDate?.format('YYYY-MM-DD')
-        }
-      });
 
       // Add cache control headers
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
