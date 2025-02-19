@@ -10,9 +10,22 @@ import dayjs from "dayjs";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
 import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
 
 type ReportType = 'all' | 'category' | 'individual';
 type CategoryFilter = 'all' | string;
+
+// Define the expense schema
+const expenseSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  amount: z.number(),
+  category_id: z.number().optional(),
+  description: z.string().optional(),
+  date: z.string().optional(),
+});
+
+type ExpenseType = z.infer<typeof expenseSchema>;
 
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -31,8 +44,9 @@ export default function ExpenseReport() {
 
   // Get unique expenses for the dropdown
   const uniqueExpenses = useMemo(() => {
+    if (!bills) return [];
     const uniqueMap = new Map<string, Bill>();
-    bills?.forEach(bill => {
+    bills.forEach(bill => {
       const key = `${bill.name}-${bill.amount}`;
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, bill);
@@ -62,19 +76,34 @@ export default function ExpenseReport() {
     enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
   });
 
-  // Filter the report expenses based on category and individual filters
+  // Filter and validate the report expenses
   const filteredExpenses = useMemo(() => {
-    return reportExpenses.filter(expense => {
-      // Apply category filter if selected
-      const categoryMatches = selectedCategory === 'all' || 
-                          expense.category_id === Number(selectedCategory);
+    try {
+      const validatedExpenses = reportExpenses.map(expense => {
+        const result = expenseSchema.safeParse(expense);
+        if (!result.success) {
+          logger.error("[ExpenseReport] Invalid expense data:", {
+            expense,
+            errors: result.error
+          });
+          return null;
+        }
+        return result.data;
+      }).filter(Boolean) as ExpenseType[];
 
-      // Apply individual expense filter if selected
-      const expenseMatches = selectedExpense === 'all' || 
-                          `${expense.description}-${expense.amount}` === selectedExpense;
+      return validatedExpenses.filter(expense => {
+        const categoryMatches = selectedCategory === 'all' || 
+                            expense.category_id === Number(selectedCategory);
 
-      return categoryMatches && expenseMatches;
-    });
+        const expenseMatches = selectedExpense === 'all' || 
+                            `${expense.name}-${expense.amount}` === selectedExpense;
+
+        return categoryMatches && expenseMatches;
+      });
+    } catch (error) {
+      logger.error("[ExpenseReport] Error processing expenses:", { error });
+      return [];
+    }
   }, [reportExpenses, selectedCategory, selectedExpense]);
 
   const handleShowReport = () => {
@@ -127,12 +156,15 @@ export default function ExpenseReport() {
         </div>
         <div className="space-y-4">
           <div className="flex items-center gap-4 flex-wrap">
-            <Select value={reportType} onValueChange={(value: ReportType) => {
-              setReportType(value);
-              // Reset filters when changing report type
-              if (value !== 'category') setSelectedCategory('all');
-              if (value !== 'individual') setSelectedExpense('all');
-            }}>
+            <Select 
+              value={reportType} 
+              onValueChange={(value: ReportType) => {
+                setReportType(value);
+                // Reset filters when changing report type
+                if (value !== 'category') setSelectedCategory('all');
+                if (value !== 'individual') setSelectedExpense('all');
+              }}
+            >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Select report type" />
               </SelectTrigger>
