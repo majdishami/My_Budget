@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { Bill } from "@/types";
 import { ReminderDialog } from "@/components/ReminderDialog";
-import { Bell, AlertCircle, Calendar } from "lucide-react";
+import { Bell, AlertCircle, Calendar, Tag } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import { generateId } from "@/lib/utils";
@@ -23,6 +23,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import dayjs from "dayjs";
+import { findBestCategoryMatch } from "@/lib/smartTagging";
 
 interface Category {
   id: number;
@@ -51,6 +52,12 @@ export function AddExpenseDialog({
   const [frequency, setFrequency] = useState<'monthly' | 'yearly' | 'one-time'>('monthly');
   const [monthlyDueDate, setMonthlyDueDate] = useState<Date | undefined>(new Date());
   const [oneTimeDate, setOneTimeDate] = useState<Date | undefined>(new Date());
+  const [suggestedCategory, setSuggestedCategory] = useState<{
+    id: number;
+    name: string;
+    color: string;
+    confidence: number;
+  } | null>(null);
 
   // Fetch categories
   const { data: categories = [] } = useQuery<Category[]>({
@@ -83,6 +90,7 @@ export function AddExpenseDialog({
     setFrequency('monthly');
     setMonthlyDueDate(new Date());
     setOneTimeDate(new Date());
+    setSuggestedCategory(null);
   };
 
   const validateForm = (): boolean => {
@@ -133,6 +141,33 @@ export function AddExpenseDialog({
     resetForm();
   };
 
+  // Smart category suggestion
+  useEffect(() => {
+    if (name.trim()) {
+      const match = findBestCategoryMatch(name, categories);
+      if (match && match.confidence > 0.5) {
+        setSuggestedCategory({
+          id: match.category.id,
+          name: match.category.name,
+          color: match.category.color,
+          confidence: match.confidence
+        });
+      } else {
+        setSuggestedCategory(null);
+      }
+    } else {
+      setSuggestedCategory(null);
+    }
+  }, [name, categories]);
+
+  // Apply suggested category
+  const applySuggestedCategory = () => {
+    if (suggestedCategory) {
+      setCategoryId(suggestedCategory.id.toString());
+      setErrors(prev => ({ ...prev, category: undefined }));
+    }
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -172,21 +207,37 @@ export function AddExpenseDialog({
                 </Button>
               </div>
 
-              {/* Name Input */}
+              {/* Name Input with Category Suggestion */}
               <div className="grid gap-1">
                 <Label htmlFor="expense-name">Name</Label>
-                <Input
-                  id="expense-name"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    setErrors(prev => ({ ...prev, name: undefined }));
-                  }}
-                  placeholder="Enter expense name"
-                  autoComplete="new-expense"
-                  autocomplete="off"
-                  spellCheck="false"
-                />
+                <div className="relative">
+                  <Input
+                    id="expense-name"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      setErrors(prev => ({ ...prev, name: undefined }));
+                    }}
+                    placeholder="Enter expense name"
+                    autoComplete="off"
+                    className={suggestedCategory ? "pr-24" : ""}
+                  />
+                  {suggestedCategory && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="absolute right-1 top-1 h-7 px-2 flex items-center gap-1"
+                      onClick={applySuggestedCategory}
+                    >
+                      <Tag className="h-3 w-3" />
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: suggestedCategory.color }}
+                      />
+                      {suggestedCategory.name}
+                    </Button>
+                  )}
+                </div>
                 {errors.name && (
                   <Alert variant="destructive" className="py-1">
                     <AlertCircle className="h-4 w-4" />
@@ -222,9 +273,9 @@ export function AddExpenseDialog({
               {/* Calendar */}
               <div className="grid gap-1">
                 <Label>
-                  {frequency === 'monthly' ? "Monthly Due Date" : 
-                   frequency === 'yearly' ? "Yearly Due Date" : 
-                   "Expense Date"}
+                  {frequency === 'monthly' ? "Monthly Due Date" :
+                    frequency === 'yearly' ? "Yearly Due Date" :
+                      "Expense Date"}
                 </Label>
                 <div className="border rounded-md">
                   <CalendarComponent

@@ -10,11 +10,14 @@ import { Circle, Palette } from "lucide-react";
 import { ChromePicker } from 'react-color';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { findBestCategoryMatch } from "@/lib/smartTagging";
+import { Category } from "@/types";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required").max(255),
   color: z.string().min(1, "Color is required").max(50),
   icon: z.string().nullish(),
+  suggested_category_id: z.number().nullish(),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -25,6 +28,8 @@ interface CategoryDialogProps {
   onSubmit: (data: CategoryFormData) => Promise<void>;
   initialData?: CategoryFormData;
   showSuccessMessage?: boolean;
+  expenseDescription?: string;
+  categories?: Category[];
 }
 
 export function CategoryDialog({ 
@@ -32,7 +37,9 @@ export function CategoryDialog({
   onOpenChange, 
   onSubmit, 
   initialData,
-  showSuccessMessage = false 
+  showSuccessMessage = false,
+  expenseDescription,
+  categories = []
 }: CategoryDialogProps) {
   const { toast } = useToast();
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
@@ -44,6 +51,7 @@ export function CategoryDialog({
       name: initialData?.name ?? "",
       color: initialData?.color ?? "#000000",
       icon: initialData?.icon ?? null,
+      suggested_category_id: null,
     },
   });
 
@@ -57,6 +65,22 @@ export function CategoryDialog({
     }
   }, [isOpen, initialData, form]);
 
+  // Auto-suggest category based on expense description
+  useEffect(() => {
+    if (expenseDescription && categories.length > 0) {
+      const match = findBestCategoryMatch(expenseDescription, categories);
+      if (match && match.confidence > 0.5) {
+        form.setValue('suggested_category_id', match.category.id);
+        // Optionally, you can auto-fill the form with the suggested category
+        if (!initialData) {
+          form.setValue('name', match.category.name);
+          form.setValue('color', match.category.color || '#000000');
+          form.setValue('icon', match.category.icon || null);
+        }
+      }
+    }
+  }, [expenseDescription, categories, form, initialData]);
+
   const handleSubmit = async (data: CategoryFormData) => {
     if (submitting) return;
 
@@ -66,6 +90,7 @@ export function CategoryDialog({
         name: data.name.trim(),
         color: data.color,
         icon: data.icon?.trim() ?? null,
+        suggested_category_id: data.suggested_category_id,
       });
 
       if (showSuccessMessage) {
