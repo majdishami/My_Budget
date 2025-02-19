@@ -184,7 +184,7 @@ export function AddExpenseDialog({
               <div className="flex gap-2">
                 <Button
                   variant={frequency === 'monthly' ? "default" : "outline"}
-                  className={`flex-1 ${frequency === 'monthly' ? 'bg-primary text-primary-foreground' : ''}`}
+                  className="flex-1"
                   onClick={() => setFrequency('monthly')}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
@@ -192,7 +192,7 @@ export function AddExpenseDialog({
                 </Button>
                 <Button
                   variant={frequency === 'yearly' ? "default" : "outline"}
-                  className={`flex-1 ${frequency === 'yearly' ? 'bg-primary text-primary-foreground' : ''}`}
+                  className="flex-1"
                   onClick={() => setFrequency('yearly')}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
@@ -200,7 +200,7 @@ export function AddExpenseDialog({
                 </Button>
                 <Button
                   variant={frequency === 'one-time' ? "default" : "outline"}
-                  className={`flex-1 ${frequency === 'one-time' ? 'bg-primary text-primary-foreground' : ''}`}
+                  className="flex-1"
                   onClick={() => setFrequency('one-time')}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
