@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useLocation } from "wouter";
 import { Bill } from "@/types";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { ReportFilter } from "@/components/ReportFilter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,7 +10,6 @@ import dayjs from "dayjs";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
 import { useQuery } from "@tanstack/react-query";
-import { type DateRange } from "react-day-picker";
 
 type ReportType = 'all' | 'category' | 'individual';
 type CategoryFilter = 'all' | string;
@@ -21,7 +20,7 @@ interface ExpenseTransaction {
   amount: number;
   category_id?: number;
   description?: string;
-  date?: string;
+  date: string;
   type: 'expense';
 }
 
@@ -32,10 +31,8 @@ export default function ExpenseReport() {
   const [reportType, setReportType] = useState<ReportType>('all');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [selectedExpense, setSelectedExpense] = useState<string>('all');
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: undefined,
-    to: undefined
-  });
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   // Get unique expenses for the dropdown
   const uniqueExpenses = useMemo(() => {
@@ -51,13 +48,19 @@ export default function ExpenseReport() {
   }, [bills]);
 
   // Format dates for API query
-  const formattedStartDate = date?.from ? 
-    dayjs(date.from).format('YYYY-MM-DD') : 
+  const formattedStartDate = startDate ? 
+    dayjs(startDate).format('YYYY-MM-DD') : 
     undefined;
 
-  const formattedEndDate = date?.to ? 
-    dayjs(date.to).format('YYYY-MM-DD') : 
+  const formattedEndDate = endDate ? 
+    dayjs(endDate).format('YYYY-MM-DD') : 
     undefined;
+
+  // Handle date range changes
+  const handleDateRangeChange = (range: { from: Date; to: Date }) => {
+    setStartDate(range.from);
+    setEndDate(range.to);
+  };
 
   // Fetch filtered expenses from API
   const { data: reportExpenses = [], isLoading: apiIsLoading } = useQuery({
@@ -95,7 +98,7 @@ export default function ExpenseReport() {
   }, [reportExpenses, selectedCategory, selectedExpense]);
 
   const handleShowReport = () => {
-    if (!date?.from || !date?.to) {
+    if (!startDate || !endDate) {
       logger.warn("[ExpenseReport] Attempted to show report without date range");
       return;
     }
@@ -103,7 +106,8 @@ export default function ExpenseReport() {
     setIsDialogOpen(true);
     logger.info("[ExpenseReport] Opening report dialog with expenses:", {
       expenseCount: filteredExpenses.length,
-      date,
+      startDate,
+      endDate,
       reportType
     });
   };
@@ -199,38 +203,30 @@ export default function ExpenseReport() {
             )}
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <DateRangePicker
-                date={date}
-                onDateChange={setDate}
-                className="w-full"
-              />
-            </div>
-            <Button 
-              onClick={() => setDate(undefined)}
-              variant="outline"
-            >
-              Reset Range
-            </Button>
-          </div>
+          <ReportFilter
+            onDateRangeChange={handleDateRangeChange}
+            maxDateRange={90}
+          />
 
           <Button 
             onClick={handleShowReport} 
             className="w-full"
-            disabled={!date?.from || !date?.to}
+            disabled={!startDate || !endDate}
           >
             Generate Report
           </Button>
         </div>
       </Card>
 
-      {isDialogOpen && date?.from && date?.to && (
+      {isDialogOpen && startDate && endDate && (
         <ExpenseReportDialog
           isOpen={isDialogOpen}
           onOpenChange={handleOpenChange}
           expenses={filteredExpenses}
-          dateRange={date}
+          dateRange={{
+            from: startDate,
+            to: endDate
+          }}
           onBack={() => setIsDialogOpen(false)}
         />
       )}
