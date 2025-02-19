@@ -10,22 +10,20 @@ import dayjs from "dayjs";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
 import { useQuery } from "@tanstack/react-query";
-import { z } from "zod";
+import { type DateRange } from "react-day-picker";
 
 type ReportType = 'all' | 'category' | 'individual';
 type CategoryFilter = 'all' | string;
 
-// Define the expense schema
-const expenseSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  amount: z.number(),
-  category_id: z.number().optional(),
-  description: z.string().optional(),
-  date: z.string().optional(),
-});
-
-type ExpenseType = z.infer<typeof expenseSchema>;
+interface ExpenseTransaction {
+  id: number;
+  name: string;
+  amount: number;
+  category_id?: number;
+  description?: string;
+  date?: string;
+  type: 'expense';
+}
 
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -34,10 +32,7 @@ export default function ExpenseReport() {
   const [reportType, setReportType] = useState<ReportType>('all');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [selectedExpense, setSelectedExpense] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined
   });
@@ -57,11 +52,11 @@ export default function ExpenseReport() {
 
   // Format dates for API query
   const formattedStartDate = dateRange.from ? 
-    dayjs(dateRange.from).startOf('day').format('YYYY-MM-DD') : 
+    dayjs(dateRange.from).format('YYYY-MM-DD') : 
     undefined;
 
   const formattedEndDate = dateRange.to ? 
-    dayjs(dateRange.to).endOf('day').format('YYYY-MM-DD') : 
+    dayjs(dateRange.to).format('YYYY-MM-DD') : 
     undefined;
 
   // Fetch filtered expenses from API
@@ -76,22 +71,15 @@ export default function ExpenseReport() {
     enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
   });
 
-  // Filter and validate the report expenses
+  // Filter and process the report expenses
   const filteredExpenses = useMemo(() => {
     try {
-      const validatedExpenses = reportExpenses.map(expense => {
-        const result = expenseSchema.safeParse(expense);
-        if (!result.success) {
-          logger.error("[ExpenseReport] Invalid expense data:", {
-            expense,
-            errors: result.error
-          });
-          return null;
+      return (reportExpenses as ExpenseTransaction[]).filter(expense => {
+        if (!expense || typeof expense !== 'object') {
+          logger.error("[ExpenseReport] Invalid expense data:", { expense });
+          return false;
         }
-        return result.data;
-      }).filter(Boolean) as ExpenseType[];
 
-      return validatedExpenses.filter(expense => {
         const categoryMatches = selectedCategory === 'all' || 
                             expense.category_id === Number(selectedCategory);
 
@@ -214,8 +202,8 @@ export default function ExpenseReport() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <DateRangePicker
-                date={dateRange}
-                onDateChange={setDateRange}
+                value={dateRange}
+                onChange={setDateRange}
                 className="w-full"
               />
             </div>
