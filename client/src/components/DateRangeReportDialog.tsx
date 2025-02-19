@@ -58,20 +58,30 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   const [showReport, setShowReport] = useState(false);
   const [remainingCalcs, setRemainingCalcs] = useState<RemainingCalculations | null>(null);
 
+  // Reset all state when dialog closes
+  const resetState = useCallback(() => {
+    setShowReport(false);
+    setTransactions([]);
+    setRemainingCalcs(null);
+    setDate(defaultDateRange);
+  }, [defaultDateRange]);
+
+  // Handle dialog close from any source (X button, back button, cancel)
+  const handleClose = useCallback(() => {
+    resetState();
+    onOpenChange(false);
+  }, [onOpenChange, resetState]);
+
   // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      setShowReport(false);
-      setTransactions([]);
-      setRemainingCalcs(null);
-      setDate(defaultDateRange);
+      resetState();
     }
-  }, [isOpen, defaultDateRange]);
+  }, [isOpen, resetState]);
 
   // Handle date selection
   const handleDateSelect = (selectedDate: DateRange | undefined) => {
     if (selectedDate?.from && !selectedDate.to) {
-      // If only start date is selected, automatically set end date to the same date
       setDate({
         from: selectedDate.from,
         to: selectedDate.from
@@ -250,7 +260,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
 
   if (!showReport) {
     return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Select Date Range</DialogTitle>
@@ -300,10 +310,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => {
-                setDate(undefined);
-                onOpenChange(false);
-              }}
+              onClick={handleClose}
             >
               Cancel
             </Button>
@@ -320,7 +327,7 @@ export default function DateRangeReportDialog({ isOpen, onOpenChange }: DateRang
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-col space-y-2 sticky top-0 bg-background z-10">
           <div className="flex justify-between items-center">
