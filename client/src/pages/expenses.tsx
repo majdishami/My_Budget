@@ -33,11 +33,7 @@ export default function ExpenseReportPage() {
         });
 
         const response = await fetch(`/api/reports/expenses?${params}`);
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch expenses');
-        }
-
+        if (!response.ok) throw new Error('Failed to fetch expenses');
         const data = await response.json();
         return data;
       } catch (error) {
@@ -50,7 +46,7 @@ export default function ExpenseReportPage() {
 
   const isLoading = dataLoading || apiLoading;
 
-  // Filter options
+  // Create base filter options
   const filterOptions = [
     {
       label: "General",
@@ -58,6 +54,16 @@ export default function ExpenseReportPage() {
         {
           value: 'all-expenses',
           label: '📊 All Expenses',
+          className: 'text-blue-600 font-medium'
+        },
+        {
+          value: 'recurring-only',
+          label: '🔄 Recurring Only',
+          className: 'text-blue-600 font-medium'
+        },
+        {
+          value: 'one-time-only',
+          label: '1️⃣ One-time Only',
           className: 'text-blue-600 font-medium'
         }
       ]
@@ -72,8 +78,8 @@ export default function ExpenseReportPage() {
     }
   ];
 
-  // Only add Individual Expenses section if there are expenses
-  if (expenses.length > 0) {
+  // Add individual expenses if there are any
+  if (expenses && expenses.length > 0) {
     filterOptions.push({
       label: "Individual Expenses",
       options: expenses
