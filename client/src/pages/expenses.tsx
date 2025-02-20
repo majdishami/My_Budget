@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation } from "wouter";
 import dayjs from "dayjs";
 import { useQuery } from "@tanstack/react-query";
@@ -12,58 +12,29 @@ import { logger } from "@/lib/logger";
 import { DateRange } from "react-day-picker";
 import { formatCurrency } from '@/lib/utils';
 
-interface Expense {
-  id: number;
-  date: string;
-  description: string;
-  amount: number;
-  category_id?: number;
-}
-
 export default function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const { categories = [], expenses: allExpenses = [], isLoading: dataLoading, error } = useData();
+  const { categories, expenses: allExpenses = [], isLoading: dataLoading, error } = useData();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [selectedType, setSelectedType] = useState<string>("all-expenses");
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>();
-  const [selectedExpenseId, setSelectedExpenseId] = useState<number | undefined>();
+  const [filter, setFilter] = useState<string>("all-expenses");
 
   const { data: expenses = [], isLoading: apiLoading } = useQuery({
-    queryKey: ['/api/reports/expenses', {
-      startDate: dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : undefined,
-      endDate: dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : undefined,
-      type: selectedType,
-      categoryId: selectedCategoryId,
-      expenseId: selectedExpenseId
-    }],
+    queryKey: ['/api/reports/expenses', dateRange?.from, dateRange?.to, filter],
     queryFn: async () => {
       if (!dateRange?.from || !dateRange?.to) return [];
 
       const params = new URLSearchParams();
       params.append('start_date', dayjs(dateRange.from).format('YYYY-MM-DD'));
       params.append('end_date', dayjs(dateRange.to).format('YYYY-MM-DD'));
-      params.append('type', selectedType);
+      params.append('filter', filter);
 
-      if (selectedCategoryId) {
-        params.append('category_id', selectedCategoryId.toString());
-      }
-      if (selectedExpenseId) {
-        params.append('expense_id', selectedExpenseId.toString());
-      }
-
-      const response = await fetch(`/api/reports/expenses?${params.toString()}`);
+      const response = await fetch(`/api/reports/expenses?${params}`);
       if (!response.ok) throw new Error('Failed to fetch expenses');
       return response.json();
     },
     enabled: Boolean(dateRange?.from && dateRange?.to)
   });
-
-  // Reset secondary selections when type changes
-  useEffect(() => {
-    setSelectedCategoryId(undefined);
-    setSelectedExpenseId(undefined);
-  }, [selectedType]);
 
   const isLoading = dataLoading || apiLoading;
 
@@ -105,6 +76,35 @@ export default function ExpenseReportPage() {
     setIsDialogOpen(open);
   };
 
+  const getFilterOptions = () => {
+    const options = [
+      { value: 'all-expenses', label: '✓ All Expenses' },
+      { value: 'all-categories', label: 'All Categories' }
+    ];
+
+    // Add individual category options
+    if (categories?.length > 0) {
+      categories.forEach(category => {
+        options.push({
+          value: `category-${category.id}`,
+          label: `Category: ${category.name}`
+        });
+      });
+    }
+
+    // Add individual expense options
+    if (allExpenses?.length > 0) {
+      allExpenses.forEach(expense => {
+        options.push({
+          value: `expense-${expense.id}`,
+          label: `${expense.description} (${formatCurrency(expense.amount)})`
+        });
+      });
+    }
+
+    return options;
+  };
+
   return (
     <div className="container mx-auto p-4">
       <Card className="p-4 mb-4">
@@ -117,56 +117,20 @@ export default function ExpenseReportPage() {
 
         <div className="space-y-4">
           <Select
-            defaultValue="all-expenses"
-            value={selectedType}
-            onValueChange={setSelectedType}
+            value={filter}
+            onValueChange={setFilter}
           >
             <SelectTrigger>
-              <SelectValue>All Expenses</SelectValue>
+              <SelectValue placeholder="Select filter type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all-expenses">✓ All Expenses</SelectItem>
-              <SelectItem value="all-categories">All Categories</SelectItem>
-              <SelectItem value="individual-categories">Individual Categories</SelectItem>
-              <SelectItem value="individual-expenses">Individual Expenses</SelectItem>
+              {getFilterOptions().map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-
-          {selectedType === 'individual-categories' && (
-            <Select
-              value={selectedCategoryId?.toString()}
-              onValueChange={(value) => setSelectedCategoryId(Number(value))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id.toString()}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          {selectedType === 'individual-expenses' && (
-            <Select
-              value={selectedExpenseId?.toString()}
-              onValueChange={(value) => setSelectedExpenseId(Number(value))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select an expense" />
-              </SelectTrigger>
-              <SelectContent>
-                {allExpenses.map((expense) => (
-                  <SelectItem key={expense.id} value={expense.id.toString()}>
-                    {expense.description} ({formatCurrency(expense.amount)})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
 
           <ReportFilter
             onDateRangeChange={(range) => {
@@ -178,9 +142,7 @@ export default function ExpenseReportPage() {
           <Button
             onClick={handleShowReport}
             className="w-full"
-            disabled={!dateRange?.from || !dateRange?.to ||
-                     (selectedType === 'individual-categories' && !selectedCategoryId) ||
-                     (selectedType === 'individual-expenses' && !selectedExpenseId)}
+            disabled={!dateRange?.from || !dateRange?.to}
           >
             Generate Report
           </Button>
