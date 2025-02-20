@@ -1,5 +1,4 @@
 import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm';
 
 if (!process.env.DATABASE_URL) {
   console.error("ERROR: DATABASE_URL is not defined in .env file.");
@@ -20,9 +19,6 @@ const poolConfig = {
 
 // Initialize pool with configuration
 const pool = new Pool(poolConfig);
-
-// Initialize db with Drizzle ORM
-const db = drizzle(pool);
 
 // Add error handling for the pool
 pool.on('error', (err: Error & { code?: string }) => {
@@ -102,22 +98,3 @@ async function testConnection(retries = 5) {
         `);
 
         const categoryCount = await client.query('SELECT COUNT(*) FROM categories');
-        console.log(`Database status: ${tables.rows[0].table_count} tables, ${categoryCount.rows[0].count} categories`);
-      } finally {
-        client.release();
-      }
-      break; // Exit loop on success
-    } catch (error) {
-      console.error(`Connection attempt ${attempt} failed:`, error);
-      if (attempt === retries) {
-        console.error('Max retries reached, unable to establish a database connection.');
-        process.exit(1);
-      }
-      await new Promise(res => setTimeout(res, 2000 * attempt)); // Exponential backoff
-    }
-  }
-}
-
-testConnection();
-
-export { pool, db };

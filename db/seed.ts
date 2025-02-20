@@ -1,6 +1,9 @@
-import { db } from "./index";
-import { categories } from "./schema";
-import { sql } from "drizzle-orm";
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+});
 
 const defaultCategories = [
   {
@@ -77,52 +80,30 @@ const defaultCategories = [
 
 export async function seedCategories() {
   try {
-    // Check for existing categories with optimized COUNT query
-    const defaultCatsCount = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(categories);
+    const client = await pool.connect();
 
-    const existingCategories = Number(defaultCatsCount[0]?.count) || 0;
+    // Check for existing categories with optimized COUNT query
+    const defaultCatsCount = await client.query(`
+      SELECT COUNT(*) as count
+      FROM categories
+    `);
+
+    const existingCategories = Number(defaultCatsCount.rows[0]?.count) || 0;
     console.log(`Found ${existingCategories} default categories. ${existingCategories === 0 ? 'Seeding new categories...' : 'Skipping seeding.'}`);
 
-    try {
-      const result = await db.insert(categories)
-        .values(defaultCategories)
-        .onConflictDoNothing({ 
-          target: [categories.name]
-        });
-
-      return {
-        success: true,
-        operation: 'upsert',
-        existingCount: existingCategories,
-        inserted: existingCategories === 0 ? defaultCategories.length : 0,
-        skipped: existingCategories > 0,
-        message: 'Categories initialization complete'
-      };
-    } catch (error) {
-      console.error('Category upsert failed:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        details: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
-        operation: 'category_upsert',
-        dbQuery: "INSERT INTO categories (name, color, icon) VALUES ... ON CONFLICT DO NOTHING",
-        timestamp: new Date().toISOString()
-      });
-      throw error;
+    if (existingCategories === 0) {
+      const insertQuery = `
+        INSERT INTO categories (name, color, icon)
+        VALUES ${defaultCategories.map(cat => `('${cat.name}', '${cat.color}', '${cat.icon}')`).join(', ')}
+        ON CONFLICT DO NOTHING
+      `;
+      await client.query(insertQuery);
+      console.log('Categories seeded successfully');
     }
-  } catch (error) {
-    console.error('Fatal seeding error:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      details: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
-      context: 'category_seeding',
-      timestamp: new Date().toISOString()
-    });
 
-    return {
-      success: false,
-      operation: 'seeding',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    };
+    client.release();
+  } catch (error) {
+    console.error('Error seeding categories:', error);
+    throw error;
   }
 }
