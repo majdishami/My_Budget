@@ -8,8 +8,16 @@ import path from "path";
 import fileUpload from 'express-fileupload';
 import cors from 'cors';
 import morgan from 'morgan';
+import { Pool } from 'pg';
 
 const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Database connection configuration
+const pool = new Pool({
+  connectionString: 'postgres://localhost:5432/my_budget',
+  ssl: { rejectUnauthorized: false }, // Disable SSL
+});
 
 // Create tmp directory if it doesn't exist
 const tmpDir = path.join(process.cwd(), 'tmp');
@@ -80,6 +88,16 @@ app.use((req, res, next) => {
 
 // Register sync routes
 app.use(syncRouter);
+
+app.get('/transactions', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM transactions');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Failed to load transactions:', err);
+    res.status(500).send('Failed to load transactions');
+  }
+});
 
 (async () => {
   try {
