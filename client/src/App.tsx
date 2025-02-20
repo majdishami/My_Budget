@@ -36,7 +36,7 @@ import MonthlyReport from "@/pages/monthly";
 import AnnualReport from "@/pages/annual";
 import DateRangeReport from "@/pages/date-range";
 import IncomeReport from "@/pages/income";
-import ExpenseReport from "@/pages/expenses";
+import ExpenseReportPage from "@/pages/expenses"; // Assumed correct import
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { EditIncomeDialog } from "@/components/EditIncomeDialog";
@@ -637,7 +637,7 @@ function Router() {
               <Route path="/reports/annual" component={AnnualReport} />
               <Route path="/reports/date-range" component={DateRangeReport} />
               <Route path="/reports/income" component={IncomeReport} />
-              <Route path="/reports/expenses" component={ExpenseReport} />
+              <Route path="/reports/expenses" component={ExpenseReportPage} />
               <Route component={NotFound} />
             </Switch>
           </div>

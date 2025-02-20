@@ -4,7 +4,6 @@ import dayjs from "dayjs";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReportFilter } from "@/components/ReportFilter";
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
@@ -19,16 +18,22 @@ interface Expense {
   category_id?: number;
 }
 
-const ExpenseReport = () => {
+function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { bills = [], categories = [], isLoading: dataLoading, error } = useData();
-  const [reportType, setReportType] = useState<string>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedExpense, setSelectedExpense] = useState<string>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
-  // Handle error state from DataContext
+  const { data: expenses = [], isLoading: apiLoading } = useQuery({
+    queryKey: ['/api/reports/expenses', {
+      startDate: dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : undefined,
+      endDate: dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : undefined
+    }],
+    enabled: Boolean(dateRange?.from) && Boolean(dateRange?.to) //Only fetch when a date range is selected
+  });
+
+  const isLoading = dataLoading || apiLoading;
+
   if (error) {
     return (
       <div className="container mx-auto p-4">
@@ -40,50 +45,6 @@ const ExpenseReport = () => {
       </div>
     );
   }
-
-  const uniqueExpenses = bills.filter((bill, index, self) =>
-    index === self.findIndex((b) => b.name === bill.name && b.amount === bill.amount)
-  );
-
-  // API query enabled only when date range is selected
-  const { data: expenses = [], isLoading: apiLoading } = useQuery<Expense[]>({
-    queryKey: ['/api/reports/expenses', {
-      startDate: dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : null,
-      endDate: dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : null
-    }],
-    enabled: isDialogOpen && Boolean(dateRange?.from) && Boolean(dateRange?.to)
-  });
-
-  const isLoading = dataLoading || apiLoading;
-
-  const filteredExpenses = expenses.map(expense => {
-    const category = categories.find(c => c.id === expense.category_id);
-    return {
-      id: expense.id,
-      date: expense.date,
-      description: expense.description,
-      amount: expense.amount,
-      type: 'expense' as const,
-      category_name: category?.name,
-      category_color: category?.color,
-      category_icon: category?.icon || undefined
-    };
-  });
-
-  const handleShowReport = () => {
-    if (!dateRange?.from || !dateRange?.to) {
-      logger.warn("[ExpenseReport] Attempted to show report without date range");
-      return;
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      setLocation("/");
-    }
-    setIsDialogOpen(open);
-  };
 
   if (isLoading) {
     return (
@@ -98,6 +59,29 @@ const ExpenseReport = () => {
       </div>
     );
   }
+
+  const filteredExpenses = expenses.map(expense => {
+    const category = categories.find(c => c.id === expense.category_id);
+    return {
+      ...expense,
+      type: 'expense' as const,
+      category_name: category?.name,
+      category_color: category?.color,
+      category_icon: category?.icon
+    };
+  });
+
+  const handleShowReport = () => {
+    if (!dateRange?.from || !dateRange?.to) {
+      logger.warn("[ExpenseReport] Attempted to show report without date range");
+      return;
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -135,6 +119,6 @@ const ExpenseReport = () => {
       )}
     </div>
   );
-};
+}
 
-export default ExpenseReport;
+export default ExpenseReportPage;

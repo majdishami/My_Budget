@@ -1,0 +1,202 @@
+[
+  {
+    "timestamp": "2025-02-20T02:38:54.700Z",
+    "level": "info",
+    "message": "Logger initialized"
+  },
+  {
+    "timestamp": "2025-02-20T02:38:55.659Z",
+    "level": "info",
+    "message": "[DataContext] Loading transactions from cache...",
+    "context": {
+      "age": 5261
+    }
+  },
+  {
+    "timestamp": "2025-02-20T02:38:55.659Z",
+    "level": "info",
+    "message": "[DataContext] Processing transactions..."
+  },
+  {
+    "timestamp": "2025-02-20T02:38:55.659Z",
+    "level": "info",
+    "message": "[DataContext] Expanding recurring income:",
+    "context": {
+      "baseId": 49,
+      "occurrenceType": "monthly",
+      "baseDate": "2025-02-28",
+      "startDate": "2025-02-01",
+      "endDate": "2026-02-01"
+    }
+  },
+  {
+    "timestamp": "2025-02-20T02:38:55.660Z",
+    "level": "info",
+    "message": "[DataContext] Generated income instances:",
+    "context": {
+      "count": 12,
+      "dates": [
+        "2025-02-28",
+        "2025-03-28",
+        "2025-04-28",
+        "2025-05-28",
+        "2025-06-28",
+        "2025-07-28",
+        "2025-08-28",
+        "2025-09-28",
+        "2025-10-28",
+        "2025-11-28",
+        "2025-12-28",
+        "2026-01-28"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-02-20T02:38:55.660Z",
+    "level": "info",
+    "message": "[DataContext] Expanding recurring income:",
+    "context": {
+      "baseId": 4,
+      "occurrenceType": "biweekly",
+      "baseDate": "2025-02-21",
+      "startDate": "2025-02-01",
+      "endDate": "2026-02-01"
+    }
+  },
+  {
+    "timestamp": "2025-02-20T02:38:55.661Z",
+    "level": "info",
+    "message": "[DataContext] Generated income instances:",
+    "context": {
+      "count": 28,
+      "dates": [
+        "2025-02-07",
+        "2025-02-21",
+        "2025-03-07",
+        "2025-03-21",
+        "2025-04-04",
+        "2025-04-18",
+        "2025-05-02",
+        "2025-05-16",
+        "2025-05-30",
+        "2025-06-06",
+        "2025-06-20",
+        "2025-07-04",
+        "2025-07-18",
+        "2025-08-01",
+        "2025-08-15",
+        "2025-08-29",
+        "2025-09-05",
+        "2025-09-19",
+        "2025-10-03",
+        "2025-10-17",
+        "2025-10-31",
+        "2025-11-07",
+        "2025-11-21",
+        "2025-12-05",
+        "2025-12-19",
+        "2026-01-02",
+        "2026-01-16",
+        "2026-01-30"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-02-20T02:38:55.661Z",
+    "level": "info",
+    "message": "[DataContext] Expanding recurring income:",
+    "context": {
+      "baseId": 2,
+      "occurrenceType": "twice-monthly",
+      "baseDate": "2025-02-15",
+      "startDate": "2025-02-01",
+      "endDate": "2026-02-01"
+    }
+  },
+  {
+    "timestamp": "2025-02-20T02:38:55.661Z",
+    "level": "info",
+    "message": "[DataContext] Generated income instances:",
+    "context": {
+      "count": 24,
+      "dates": [
+        "2025-02-01",
+        "2025-02-15",
+        "2025-03-01",
+        "2025-03-15",
+        "2025-04-01",
+        "2025-04-15",
+        "2025-05-01",
+        "2025-05-15",
+        "2025-06-01",
+        "2025-06-15",
+        "2025-07-01",
+        "2025-07-15",
+        "2025-08-01",
+        "2025-08-15",
+        "2025-09-01",
+        "2025-09-15",
+        "2025-10-01",
+        "2025-10-15",
+        "2025-11-01",
+        "2025-11-15",
+        "2025-12-01",
+        "2025-12-15",
+        "2026-01-01",
+        "2026-01-15"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-02-20T02:38:55.667Z",
+    "level": "info",
+    "message": "[DataContext] Monthly income totals:",
+    "context": {
+      "totals": {
+        "2025-02": 13815,
+        "2025-03": 13815,
+        "2025-04": 13815,
+        "2025-05": 15983,
+        "2025-06": 13815,
+        "2025-07": 13815,
+        "2025-08": 15983,
+        "2025-09": 13815,
+        "2025-10": 15983,
+        "2025-11": 13815,
+        "2025-12": 13815,
+        "2026-01": 15983
+      },
+      "totalIncomes": 64,
+      "uniqueSources": [
+        "test monthly income 1",
+        "Ruba's Salary",
+        "Majdi's Salary"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-02-20T02:38:55.667Z",
+    "level": "info",
+    "message": "[DataContext] Successfully processed transactions:",
+    "context": {
+      "incomesCount": 64,
+      "billsCount": 16,
+      "categoriesCount": 12
+    }
+  },
+  {
+    "timestamp": "2025-02-20T02:39:00.698Z",
+    "level": "error",
+    "message": "Uncaught error in component:",
+    "context": {
+      "error": {},
+      "componentStack": "\nExpenseReport@https://c4796656-4985-4d88-b374-008434be740d-00-uu2uj4zm1vqa.spock.replit.dev/src/pages/expenses.tsx:30:51\nRoute@https://c4796656-4985-4d88-b374-008434be740d-00-uu2uj4zm1vqa.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js:338:14\nSwitch@https://c4796656-4985-4d88-b374-008434be740d-00-uu2uj4zm1vqa.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js:395:27\ndiv\nmain\ndiv\nErrorBoundary@https://c4796656-4985-4d88-b374-008434be740d-00-uu2uj4zm1vqa.spock.replit.dev/src/components/ErrorBoundary.tsx:13:10\nRouter@https://c4796656-4985-4d88-b374-008434be740d-00-uu2uj4zm1vqa.spock.replit.dev/src/App.tsx:86:126\nErrorBoundary@https://c4796656-4985-4d88-b374-008434be740d-00-uu2uj4zm1vqa.spock.replit.dev/src/components/ErrorBoundary.tsx:13:10\nQueryClientProvider@https://c4796656-4985-4d88-b374-008434be740d-00-uu2uj4zm1vqa.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js:2844:9\nApp\nDataProvider@https://c4796656-4985-4d88-b374-008434be740d-00-uu2uj4zm1vqa.spock.replit.dev/src/contexts/DataContext.tsx:277:5\nSuspense",
+      "componentName": "MainRouter",
+      "timestamp": "2025-02-20T02:39:00.698Z",
+      "errorCount": 2,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15",
+      "location": "https://c4796656-4985-4d88-b374-008434be740d-00-uu2uj4zm1vqa.spock.replit.dev/reports/expenses"
+    },
+    "stack": ""
+  }
+]
