@@ -84,10 +84,6 @@ export default function ExpenseReport() {
     setIsDialogOpen(open);
   };
 
-  const handleBack = () => {
-    setLocation("/");
-  };
-
   if (isLoading) {
     return (
       <div className="container mx-auto p-4">
@@ -107,7 +103,7 @@ export default function ExpenseReport() {
       <Card className="p-4 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">Expense Report</h1>
-          <Button variant="outline" onClick={handleBack}>
+          <Button variant="outline" onClick={() => setLocation("/")}>
             Back
           </Button>
         </div>
