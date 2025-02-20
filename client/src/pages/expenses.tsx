@@ -9,7 +9,6 @@ import { ReportFilter } from "@/components/ReportFilter";
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
-import { DateRange } from "react-day-picker";
 
 interface Expense {
   id: number;
@@ -19,6 +18,11 @@ interface Expense {
   category_id?: number;
 }
 
+interface DateRange {
+  from: Date;
+  to: Date;
+}
+
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
@@ -26,7 +30,10 @@ export default function ExpenseReport() {
   const [reportType, setReportType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedExpense, setSelectedExpense] = useState('all');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: new Date(),
+    to: new Date()
+  });
 
   // Handle error state from DataContext
   if (error) {
@@ -45,16 +52,12 @@ export default function ExpenseReport() {
     index === self.findIndex((b) => b.name === bill.name && b.amount === bill.amount)
   );
 
-  const formattedStartDate = dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : undefined;
-  const formattedEndDate = dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : undefined;
-
-  const handleDateRangeChange = (newRange: DateRange) => {
-    setDateRange(newRange);
-  };
+  const formattedStartDate = dayjs(dateRange.from).format('YYYY-MM-DD');
+  const formattedEndDate = dayjs(dateRange.to).format('YYYY-MM-DD');
 
   const { data: expenses = [], isLoading: apiLoading } = useQuery<Expense[]>({
     queryKey: ['/api/reports/expenses', formattedStartDate, formattedEndDate],
-    enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
+    enabled: isDialogOpen
   });
 
   const isLoading = dataLoading || apiLoading;
@@ -74,10 +77,6 @@ export default function ExpenseReport() {
   });
 
   const handleShowReport = () => {
-    if (!dateRange?.from || !dateRange?.to) {
-      logger.warn("[ExpenseReport] Attempted to show report without date range");
-      return;
-    }
     setIsDialogOpen(true);
   };
 
@@ -172,21 +171,20 @@ export default function ExpenseReport() {
           </div>
 
           <ReportFilter
-            onDateRangeChange={handleDateRangeChange}
+            onDateRangeChange={setDateRange}
             maxDateRange={90}
           />
 
           <Button 
             onClick={handleShowReport} 
             className="w-full"
-            disabled={!dateRange?.from || !dateRange?.to}
           >
             Generate Report
           </Button>
         </div>
       </Card>
 
-      {isDialogOpen && dateRange?.from && dateRange?.to && (
+      {isDialogOpen && (
         <ExpenseReportDialog
           isOpen={isDialogOpen}
           onOpenChange={handleOpenChange}
