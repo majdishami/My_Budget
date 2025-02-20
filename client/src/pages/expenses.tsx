@@ -11,27 +11,37 @@ import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
 import { DateRange } from "react-day-picker";
 import { formatCurrency } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 export default function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const { categories, expenses: allExpenses = [], isLoading: dataLoading, error } = useData();
+  const { categories, expenses: allExpenses, isLoading: dataLoading, error } = useData();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filter, setFilter] = useState<string>("all-expenses");
 
-  const { data: expenses = [], isLoading: apiLoading } = useQuery({
-    queryKey: ['/api/reports/expenses', dateRange?.from, dateRange?.to, filter],
+  const { data: filteredExpenses = [], isLoading: apiLoading } = useQuery({
+    queryKey: ['/api/reports/expenses', {
+      startDate: dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : null,
+      endDate: dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : null,
+      filter
+    }],
     queryFn: async () => {
       if (!dateRange?.from || !dateRange?.to) return [];
 
       const params = new URLSearchParams();
-      params.append('start_date', dayjs(dateRange.from).format('YYYY-MM-DD'));
-      params.append('end_date', dayjs(dateRange.to).format('YYYY-MM-DD'));
+      params.append('startDate', dayjs(dateRange.from).format('YYYY-MM-DD'));
+      params.append('endDate', dayjs(dateRange.to).format('YYYY-MM-DD'));
       params.append('filter', filter);
 
-      const response = await fetch(`/api/reports/expenses?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch expenses');
-      return response.json();
+      try {
+        const response = await fetch(`/api/reports/expenses?${params}`);
+        if (!response.ok) throw new Error('Failed to fetch expenses');
+        return response.json();
+      } catch (err) {
+        logger.error('[ExpenseReport] Error fetching expenses:', err);
+        return [];
+      }
     },
     enabled: Boolean(dateRange?.from && dateRange?.to)
   });
@@ -44,20 +54,6 @@ export default function ExpenseReportPage() {
         <Card className="p-4">
           <div className="text-red-500">
             Error loading data: {error.message}
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-4">
-        <Card className="p-4">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
           </div>
         </Card>
       </div>
@@ -78,8 +74,16 @@ export default function ExpenseReportPage() {
 
   const getFilterOptions = () => {
     const options = [
-      { value: 'all-expenses', label: '✓ All Expenses' },
-      { value: 'all-categories', label: 'All Categories' }
+      {
+        value: 'all-expenses',
+        label: '✓ All Expenses',
+        className: 'text-blue-600 font-medium'
+      },
+      {
+        value: 'all-categories',
+        label: '📁 All Categories',
+        className: 'text-purple-600 font-medium'
+      }
     ];
 
     // Add individual category options
@@ -87,7 +91,8 @@ export default function ExpenseReportPage() {
       categories.forEach(category => {
         options.push({
           value: `category-${category.id}`,
-          label: `Category: ${category.name}`
+          label: `${category.name}`,
+          className: 'text-purple-500'
         });
       });
     }
@@ -97,7 +102,8 @@ export default function ExpenseReportPage() {
       allExpenses.forEach(expense => {
         options.push({
           value: `expense-${expense.id}`,
-          label: `${expense.description} (${formatCurrency(expense.amount)})`
+          label: `${expense.description} (${formatCurrency(expense.amount)})`,
+          className: expense.amount > 0 ? 'text-green-500' : 'text-red-500'
         });
       });
     }
@@ -120,12 +126,16 @@ export default function ExpenseReportPage() {
             value={filter}
             onValueChange={setFilter}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Select filter type" />
             </SelectTrigger>
             <SelectContent>
               {getFilterOptions().map(option => (
-                <SelectItem key={option.value} value={option.value}>
+                <SelectItem
+                  key={option.value}
+                  value={option.value}
+                  className={cn("cursor-pointer", option.className)}
+                >
                   {option.label}
                 </SelectItem>
               ))}
@@ -153,7 +163,7 @@ export default function ExpenseReportPage() {
         <ExpenseReportDialog
           isOpen={isDialogOpen}
           onOpenChange={handleOpenChange}
-          expenses={expenses}
+          expenses={filteredExpenses}
           dateRange={dateRange}
         />
       )}
