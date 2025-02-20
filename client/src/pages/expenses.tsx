@@ -9,6 +9,7 @@ import { ReportFilter } from "@/components/ReportFilter";
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
+import { DateRange } from "react-day-picker";
 
 interface Expense {
   id: number;
@@ -18,11 +19,6 @@ interface Expense {
   category_id?: number;
 }
 
-interface DateRange {
-  from: Date;
-  to: Date;
-}
-
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
@@ -30,7 +26,7 @@ export default function ExpenseReport() {
   const [reportType, setReportType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedExpense, setSelectedExpense] = useState('all');
-  const [dateRange, setDateRange] = useState<DateRange | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   // Handle error state from DataContext
   if (error) {
@@ -52,10 +48,8 @@ export default function ExpenseReport() {
   const formattedStartDate = dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : undefined;
   const formattedEndDate = dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : undefined;
 
-  const handleDateRangeChange = (range: DateRange) => {
-    if (range.from && range.to) {
-      setDateRange(range);
-    }
+  const handleDateRangeChange = (newRange: DateRange) => {
+    setDateRange(newRange);
   };
 
   const { data: expenses = [], isLoading: apiLoading } = useQuery<Expense[]>({
