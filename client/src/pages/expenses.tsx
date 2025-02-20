@@ -11,35 +11,31 @@ import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
 
 export default function ExpenseReport() {
-  const [, setLocation] = useLocation();
-  const data = useData();
-
-  // Guard against data context not being ready
-  if (!data) {
-    return (
-      <div className="container mx-auto p-4">
-        <Card className="p-4">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  const { bills, categories, isLoading: dataLoading } = data;
-
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [, setLocation] = useLocation();
+  const { bills = [], categories = [], isLoading: dataLoading, error } = useData();
   const [reportType, setReportType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedExpense, setSelectedExpense] = useState('all');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
-  const uniqueExpenses = bills?.filter((bill, index, self) =>
+  // Handle error state from DataContext
+  if (error) {
+    return (
+      <div className="container mx-auto p-4">
+        <Card className="p-4">
+          <div className="text-red-500">
+            Error loading data: {error.message}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  const uniqueExpenses = bills.filter((bill, index, self) =>
     index === self.findIndex((b) => b.name === bill.name && b.amount === bill.amount)
-  ) ?? [];
+  );
 
   const formattedStartDate = startDate ? dayjs(startDate).format('YYYY-MM-DD') : undefined;
   const formattedEndDate = endDate ? dayjs(endDate).format('YYYY-MM-DD') : undefined;
@@ -57,7 +53,7 @@ export default function ExpenseReport() {
   const isLoading = dataLoading || apiLoading;
 
   const filteredExpenses = expenses.map(expense => {
-    const category = categories?.find(c => c.id === expense.category_id);
+    const category = categories.find(c => c.id === expense.category_id);
     return {
       id: expense.id,
       date: expense.date,
@@ -132,7 +128,7 @@ export default function ExpenseReport() {
               </SelectContent>
             </Select>
 
-            {(reportType === 'category' || reportType === 'all') && categories && categories.length > 0 && (
+            {(reportType === 'category' || reportType === 'all') && categories.length > 0 && (
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Select category" />
@@ -192,7 +188,6 @@ export default function ExpenseReport() {
             from: startDate,
             to: endDate
           }}
-          onBack={() => setIsDialogOpen(false)}
         />
       )}
     </div>
