@@ -23,7 +23,7 @@ export default function ExpenseReportPage() {
   const { data: filteredExpenses = [], isLoading: apiLoading } = useQuery({
     queryKey: ['/api/reports/expenses', dateRange?.from?.toISOString() || null, dateRange?.to?.toISOString() || null, filter],
     queryFn: async () => {
-      if (!dateRange?.from || !dateRange?.to) return [];
+      if (!dateRange?.from || !dateRange?.to) return expenses;
 
       try {
         const params = new URLSearchParams({
@@ -34,11 +34,13 @@ export default function ExpenseReportPage() {
 
         const response = await fetch(`/api/reports/expenses?${params}`);
         if (!response.ok) throw new Error('Failed to fetch expenses');
-        const data = await response.json();
-        return data;
+        return await response.json();
       } catch (error) {
         console.error('Error fetching expenses:', error);
-        return [];
+        return expenses.filter(expense => {
+          const expenseDate = dayjs(expense.date);
+          return expenseDate.isAfter(dateRange.from) && expenseDate.isBefore(dateRange.to);
+        });
       }
     },
     enabled: Boolean(dateRange?.from && dateRange?.to)
@@ -46,7 +48,7 @@ export default function ExpenseReportPage() {
 
   const isLoading = dataLoading || apiLoading;
 
-  // Create base filter options
+  // Filter options
   const filterOptions = [
     {
       label: "General",
@@ -54,16 +56,6 @@ export default function ExpenseReportPage() {
         {
           value: 'all-expenses',
           label: '📊 All Expenses',
-          className: 'text-blue-600 font-medium'
-        },
-        {
-          value: 'recurring-only',
-          label: '🔄 Recurring Only',
-          className: 'text-blue-600 font-medium'
-        },
-        {
-          value: 'one-time-only',
-          label: '1️⃣ One-time Only',
           className: 'text-blue-600 font-medium'
         }
       ]
@@ -83,8 +75,8 @@ export default function ExpenseReportPage() {
     filterOptions.push({
       label: "Individual Expenses",
       options: expenses
-        .sort((a, b) => b.amount - a.amount)
-        .map(expense => ({
+        .sort((a: any, b: any) => b.amount - a.amount)
+        .map((expense: any) => ({
           value: `expense-${expense.id}`,
           label: `💰 ${expense.description} (${formatCurrency(expense.amount)})`,
           className: cn(

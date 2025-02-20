@@ -77,7 +77,7 @@ export default function ExpenseReportDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center space-x-2 sticky top-0 bg-background z-10 pb-4">
           <Button 
             variant="ghost" 
