@@ -96,7 +96,7 @@ export default function ExpenseReportDialog({
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <DialogTitle className="text-xl">
+          <DialogTitle>
             Expense Report
             <div className="text-sm font-normal text-muted-foreground mt-1">
               {dateRange?.from ? (

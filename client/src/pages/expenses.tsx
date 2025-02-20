@@ -21,15 +21,15 @@ export default function ExpenseReportPage() {
   const [filter, setFilter] = useState<string>("all-expenses");
 
   const { data: filteredExpenses = [], isLoading: apiLoading } = useQuery({
-    queryKey: ['/api/reports/expenses', dateRange?.from?.toISOString(), dateRange?.to?.toISOString(), filter],
+    queryKey: ['/api/reports/expenses', dateRange?.from?.toISOString() || null, dateRange?.to?.toISOString() || null, filter],
     queryFn: async () => {
       if (!dateRange?.from || !dateRange?.to) return [];
 
       try {
         const params = new URLSearchParams({
-          start: dayjs(dateRange.from).format('YYYY-MM-DD'),
-          end: dayjs(dateRange.to).format('YYYY-MM-DD'),
-          type: filter
+          start_date: dayjs(dateRange.from).format('YYYY-MM-DD'),
+          end_date: dayjs(dateRange.to).format('YYYY-MM-DD'),
+          filter_type: filter
         });
 
         const response = await fetch(`/api/reports/expenses?${params.toString()}`);
@@ -77,11 +77,6 @@ export default function ExpenseReportPage() {
           value: 'all-expenses',
           label: '📊 All Expenses',
           className: 'text-blue-600 font-medium'
-        },
-        {
-          value: 'all-categories',
-          label: '📁 All Categories',
-          className: 'text-purple-600 font-medium'
         }
       ]
     },
@@ -90,19 +85,21 @@ export default function ExpenseReportPage() {
       options: categories.map(category => ({
         value: `category-${category.id}`,
         label: `📂 ${category.name}`,
-        className: 'text-purple-500 pl-4'
+        className: 'text-purple-600 pl-4'
       }))
     },
     {
       label: "Individual Expenses",
-      options: expenses.map(expense => ({
-        value: `expense-${expense.id}`,
-        label: `${expense.description} (${formatCurrency(expense.amount)})`,
-        className: cn(
-          'pl-4',
-          expense.amount >= 0 ? 'text-green-600' : 'text-red-600'
-        )
-      }))
+      options: expenses
+        .sort((a, b) => b.amount - a.amount)
+        .map(expense => ({
+          value: `expense-${expense.id}`,
+          label: `${expense.description} (${formatCurrency(expense.amount)})`,
+          className: cn(
+            'pl-6',
+            expense.amount >= 0 ? 'text-green-600' : 'text-red-600'
+          )
+        }))
     }
   ];
 
