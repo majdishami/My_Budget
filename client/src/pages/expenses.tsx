@@ -16,7 +16,7 @@ export default function ExpenseReportPage() {
   const [, setLocation] = useLocation();
   const { categories = [], isLoading: dataLoading, error } = useData();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [selectedType, setSelectedType] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<string>("all-expenses");
 
   const { data: expenses = [], isLoading: apiLoading } = useQuery({
     queryKey: ['/api/reports/expenses', dateRange?.from, dateRange?.to, selectedType],
@@ -86,7 +86,7 @@ export default function ExpenseReportPage() {
 
         <div className="space-y-4">
           <Select 
-            defaultValue="all" 
+            defaultValue="all-expenses" 
             value={selectedType}
             onValueChange={setSelectedType}
           >
@@ -94,9 +94,10 @@ export default function ExpenseReportPage() {
               <SelectValue>All Expenses</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">✓ All Expenses</SelectItem>
-              <SelectItem value="recurring">Recurring Only</SelectItem>
-              <SelectItem value="one-time">One-time Only</SelectItem>
+              <SelectItem value="all-expenses">✓ All Expenses</SelectItem>
+              <SelectItem value="all-categories">All Categories</SelectItem>
+              <SelectItem value="individual-categories">Individual Categories</SelectItem>
+              <SelectItem value="individual-expenses">Individual Expenses</SelectItem>
             </SelectContent>
           </Select>
 
