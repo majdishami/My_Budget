@@ -1,17 +1,17 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "commonjs",
+    "module": "esnext",
     "lib": ["es2020"],
     "allowJs": true,
     "outDir": "./dist",
-    "rootDir": "./server",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node"
   },
-  "include": ["server/**/*"],
+  "include": ["server/**/*", "vite.config.ts"],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }
