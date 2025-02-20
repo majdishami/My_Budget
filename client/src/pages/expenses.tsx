@@ -16,26 +16,26 @@ import { cn } from "@/lib/utils";
 export default function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const { categories, expenses: allExpenses, isLoading: dataLoading, error } = useData();
+  const { categories, expenses: allExpenses = [], isLoading: dataLoading, error } = useData();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filter, setFilter] = useState<string>("all-expenses");
 
   const { data: filteredExpenses = [], isLoading: apiLoading } = useQuery({
     queryKey: ['/api/reports/expenses', {
-      startDate: dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : null,
-      endDate: dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : null,
+      from: dateRange?.from,
+      to: dateRange?.to,
       filter
     }],
     queryFn: async () => {
       if (!dateRange?.from || !dateRange?.to) return [];
 
       const params = new URLSearchParams();
-      params.append('startDate', dayjs(dateRange.from).format('YYYY-MM-DD'));
-      params.append('endDate', dayjs(dateRange.to).format('YYYY-MM-DD'));
+      params.append('from', dayjs(dateRange.from).format('YYYY-MM-DD'));
+      params.append('to', dayjs(dateRange.to).format('YYYY-MM-DD'));
       params.append('filter', filter);
 
       try {
-        const response = await fetch(`/api/reports/expenses?${params}`);
+        const response = await fetch(`/api/reports/expenses?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch expenses');
         return response.json();
       } catch (err) {
@@ -75,38 +75,37 @@ export default function ExpenseReportPage() {
   const getFilterOptions = () => {
     const options = [
       {
-        value: 'all-expenses',
-        label: '✓ All Expenses',
-        className: 'text-blue-600 font-medium'
+        group: 'general',
+        options: [
+          {
+            value: 'all-expenses',
+            label: '📊 All Expenses',
+            className: 'text-blue-600 font-medium'
+          },
+          {
+            value: 'all-categories',
+            label: '📁 All Categories',
+            className: 'text-purple-600 font-medium'
+          }
+        ]
       },
       {
-        value: 'all-categories',
-        label: '📁 All Categories',
-        className: 'text-purple-600 font-medium'
-      }
-    ];
-
-    // Add individual category options
-    if (categories?.length > 0) {
-      categories.forEach(category => {
-        options.push({
+        group: 'categories',
+        options: categories?.map(category => ({
           value: `category-${category.id}`,
-          label: `${category.name}`,
+          label: `📂 ${category.name}`,
           className: 'text-purple-500'
-        });
-      });
-    }
-
-    // Add individual expense options
-    if (allExpenses?.length > 0) {
-      allExpenses.forEach(expense => {
-        options.push({
+        })) || []
+      },
+      {
+        group: 'expenses',
+        options: allExpenses?.map(expense => ({
           value: `expense-${expense.id}`,
           label: `${expense.description} (${formatCurrency(expense.amount)})`,
           className: expense.amount > 0 ? 'text-green-500' : 'text-red-500'
-        });
-      });
-    }
+        })) || []
+      }
+    ];
 
     return options;
   };
@@ -130,14 +129,19 @@ export default function ExpenseReportPage() {
               <SelectValue placeholder="Select filter type" />
             </SelectTrigger>
             <SelectContent>
-              {getFilterOptions().map(option => (
-                <SelectItem
-                  key={option.value}
-                  value={option.value}
-                  className={cn("cursor-pointer", option.className)}
-                >
-                  {option.label}
-                </SelectItem>
+              {getFilterOptions().map((group) => (
+                <div key={group.group}>
+                  {group.options.map(option => (
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                      className={cn("cursor-pointer", option.className)}
+                    >
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                  {group.options.length > 0 && <div className="h-px bg-gray-200 my-2" />}
+                </div>
               ))}
             </SelectContent>
           </Select>
