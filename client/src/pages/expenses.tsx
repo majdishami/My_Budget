@@ -18,20 +18,14 @@ interface Expense {
   category_id?: number;
 }
 
-function ExpenseReportPage() {
+export default function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { bills = [], categories = [], isLoading: dataLoading, error } = useData();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const { data: expenses = [], isLoading: apiLoading } = useQuery({
-    queryKey: [
-      '/api/reports/expenses', 
-      {
-        startDate: dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : null,
-        endDate: dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : null
-      }
-    ],
+    queryKey: ['/api/reports/expenses', dateRange?.from, dateRange?.to],
     enabled: Boolean(dateRange?.from && dateRange?.to)
   });
 
@@ -123,5 +117,3 @@ function ExpenseReportPage() {
     </div>
   );
 }
-
-export default ExpenseReportPage;
