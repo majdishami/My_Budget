@@ -23,10 +23,10 @@ export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { bills = [], categories = [], isLoading: dataLoading, error } = useData();
-  const [reportType, setReportType] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedExpense, setSelectedExpense] = useState('all');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [reportType, setReportType] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedExpense, setSelectedExpense] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   // Handle error state from DataContext
   if (error) {
