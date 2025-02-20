@@ -148,11 +148,10 @@ export default function ExpenseReportDialog({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
+                      <TableHead className="w-24">Date</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right w-24">Amount</TableHead>
+                      <TableHead className="w-24">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -163,15 +162,18 @@ export default function ExpenseReportDialog({
                           key={transaction.id}
                           className={transaction.isPending ? "bg-yellow-50" : ""}
                         >
-                          <TableCell>{dayjs(transaction.displayDate).format('MMM D, YYYY')}</TableCell>
-                          <TableCell>{transaction.description}</TableCell>
-                          <TableCell className="text-right font-medium text-red-600">
+                          <TableCell className="whitespace-nowrap">
+                            {dayjs(transaction.displayDate).format('MM/DD/YY')}
+                          </TableCell>
+                          <TableCell className="max-w-[150px] truncate">
+                            {transaction.description}
+                          </TableCell>
+                          <TableCell className="text-right font-medium text-red-600 whitespace-nowrap">
                             {formatCurrency(transaction.amount)}
                           </TableCell>
-                          <TableCell>{transaction.category_name || 'Uncategorized'}</TableCell>
                           <TableCell>
                             <span className={transaction.isPending ? "text-yellow-600" : "text-green-600"}>
-                              {transaction.isPending ? 'Pending' : 'Completed'}
+                              {transaction.isPending ? 'Pending' : 'Done'}
                             </span>
                           </TableCell>
                         </TableRow>

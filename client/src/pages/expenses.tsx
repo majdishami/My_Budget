@@ -19,6 +19,7 @@ export default function ExpenseReportPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filter, setFilter] = useState<string>("all-expenses");
 
+  // Fetch filtered expenses when date range changes
   const { data: filteredExpenses = [], isLoading: apiLoading } = useQuery({
     queryKey: ['/api/reports/expenses', dateRange?.from?.toISOString() || null, dateRange?.to?.toISOString() || null, filter],
     queryFn: async () => {
@@ -31,11 +32,16 @@ export default function ExpenseReportPage() {
           filter_type: filter
         });
 
-        const response = await fetch(`/api/reports/expenses?${params.toString()}`);
-        if (!response.ok) throw new Error('Failed to fetch expenses');
-        return await response.json();
-      } catch (err) {
-        console.error('[ExpenseReport] Error:', err);
+        const response = await fetch(`/api/reports/expenses?${params}`);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch expenses');
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error fetching expenses:', error);
         return [];
       }
     },
@@ -58,15 +64,19 @@ export default function ExpenseReportPage() {
     },
     {
       label: "Categories",
-      options: (categories || []).map(category => ({
+      options: categories.map(category => ({
         value: `category-${category.id}`,
         label: `📂 ${category.name}`,
         className: 'text-purple-600 pl-4'
       }))
-    },
-    {
+    }
+  ];
+
+  // Only add Individual Expenses section if there are expenses
+  if (expenses.length > 0) {
+    filterOptions.push({
       label: "Individual Expenses",
-      options: (expenses || [])
+      options: expenses
         .sort((a, b) => b.amount - a.amount)
         .map(expense => ({
           value: `expense-${expense.id}`,
@@ -76,8 +86,8 @@ export default function ExpenseReportPage() {
             expense.amount >= 0 ? 'text-green-600' : 'text-red-600'
           )
         }))
-    }
-  ];
+    });
+  }
 
   return (
     <div className="container mx-auto p-4">
