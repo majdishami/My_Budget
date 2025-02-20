@@ -13,10 +13,23 @@ import { DateRange } from "react-day-picker";
 import { formatCurrency } from '@/lib/utils';
 import { cn } from "@/lib/utils";
 
+interface Expense {
+  id: number;
+  amount: number;
+  description: string;
+  date: string;
+  category_id?: number;
+}
+
+interface Category {
+  id: number;
+  name: string;
+}
+
 export default function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const { categories = [], expenses = [], isLoading: dataLoading, error } = useData();
+  const { expenses = [], categories = [], isLoading: dataLoading } = useData();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filter, setFilter] = useState<string>("all-expenses");
 
@@ -45,30 +58,6 @@ export default function ExpenseReportPage() {
 
   const isLoading = dataLoading || apiLoading;
 
-  if (error) {
-    return (
-      <div className="container mx-auto p-4">
-        <Card className="p-4">
-          <div className="text-red-500">
-            Error loading data: {error.message}
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  const handleShowReport = () => {
-    if (!dateRange?.from || !dateRange?.to) {
-      logger.warn("[ExpenseReport] Attempted to show report without date range");
-      return;
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    setIsDialogOpen(open);
-  };
-
   const filterOptions = [
     {
       label: "General",
@@ -82,7 +71,7 @@ export default function ExpenseReportPage() {
     },
     {
       label: "Categories",
-      options: categories.map(category => ({
+      options: categories.map((category: Category) => ({
         value: `category-${category.id}`,
         label: `📂 ${category.name}`,
         className: 'text-purple-600 pl-4'
@@ -91,8 +80,8 @@ export default function ExpenseReportPage() {
     {
       label: "Individual Expenses",
       options: expenses
-        .sort((a, b) => b.amount - a.amount)
-        .map(expense => ({
+        .sort((a: Expense, b: Expense) => b.amount - a.amount)
+        .map((expense: Expense) => ({
           value: `expense-${expense.id}`,
           label: `${expense.description} (${formatCurrency(expense.amount)})`,
           className: cn(
@@ -121,7 +110,7 @@ export default function ExpenseReportPage() {
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select filter type" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[300px]">
               {filterOptions.map((group) => (
                 <div key={group.label} className="py-2">
                   <div className="px-2 text-sm font-medium text-muted-foreground mb-1">
@@ -150,7 +139,7 @@ export default function ExpenseReportPage() {
           />
 
           <Button
-            onClick={handleShowReport}
+            onClick={() => setIsDialogOpen(true)}
             className="w-full"
             disabled={!dateRange?.from || !dateRange?.to}
           >
@@ -162,7 +151,7 @@ export default function ExpenseReportPage() {
       {isDialogOpen && dateRange?.from && dateRange?.to && (
         <ExpenseReportDialog
           isOpen={isDialogOpen}
-          onOpenChange={handleOpenChange}
+          onOpenChange={setIsDialogOpen}
           expenses={filteredExpenses}
           dateRange={dateRange}
         />

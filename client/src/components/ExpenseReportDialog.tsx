@@ -86,7 +86,7 @@ export default function ExpenseReportDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center space-x-2">
           <Button 
             variant="ghost" 
@@ -112,7 +112,7 @@ export default function ExpenseReportDialog({
 
         <div className="space-y-4">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Card>
               <CardHeader className="py-2">
                 <CardTitle className="text-sm font-medium">Completed</CardTitle>
