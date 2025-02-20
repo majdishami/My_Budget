@@ -11,15 +11,31 @@ import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
 
 export default function ExpenseReport() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
+  const data = useData();
+
+  // Guard against data context not being ready
+  if (!data) {
+    return (
+      <div className="container mx-auto p-4">
+        <Card className="p-4">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  const { bills, categories, isLoading: dataLoading } = data;
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [reportType, setReportType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedExpense, setSelectedExpense] = useState('all');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-
-  const { bills, categories, isLoading: dataLoading } = useData();
 
   const uniqueExpenses = bills?.filter((bill, index, self) =>
     index === self.findIndex((b) => b.name === bill.name && b.amount === bill.amount)
