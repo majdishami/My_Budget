@@ -21,7 +21,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
 import { useState, useMemo } from 'react';
 
-// Define strict types for transactions
 type ExpenseTransaction = {
   id: number;
   date: string;
@@ -87,7 +86,7 @@ export default function ExpenseReportDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center space-x-2">
           <Button 
             variant="ghost" 
@@ -111,37 +110,37 @@ export default function ExpenseReportDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">Completed Expenses</CardTitle>
+              <CardHeader className="py-2">
+                <CardTitle className="text-sm font-medium">Completed</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-lg font-bold text-red-600">
                   {formatCurrency(totals.completed)}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">Pending Expenses</CardTitle>
+              <CardHeader className="py-2">
+                <CardTitle className="text-sm font-medium">Pending</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">
+                <div className="text-lg font-bold text-yellow-600">
                   {formatCurrency(totals.pending)}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              <CardHeader className="py-2">
+                <CardTitle className="text-sm font-medium">Total</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-lg font-bold text-red-600">
                   {formatCurrency(total)}
                 </div>
               </CardContent>
@@ -150,43 +149,45 @@ export default function ExpenseReportDialog({
 
           {/* Transactions Table */}
           <Card>
-            <CardHeader>
+            <CardHeader className="py-2">
               <CardTitle>Transaction Details</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {processedTransactions
-                    .sort((a, b) => dayjs(b.displayDate).diff(dayjs(a.displayDate)))
-                    .map((transaction) => (
-                      <TableRow 
-                        key={transaction.id}
-                        className={transaction.isPending ? "bg-yellow-50" : ""}
-                      >
-                        <TableCell>{dayjs(transaction.displayDate).format('MMM D, YYYY')}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell className="text-right font-medium text-red-600">
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                        <TableCell>{transaction.category_name || 'Uncategorized'}</TableCell>
-                        <TableCell>
-                          <span className={transaction.isPending ? "text-yellow-600" : "text-green-600"}>
-                            {transaction.isPending ? 'Pending' : 'Completed'}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
+            <CardContent className="p-2">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {processedTransactions
+                      .sort((a, b) => dayjs(b.displayDate).diff(dayjs(a.displayDate)))
+                      .map((transaction) => (
+                        <TableRow 
+                          key={transaction.id}
+                          className={transaction.isPending ? "bg-yellow-50" : ""}
+                        >
+                          <TableCell>{dayjs(transaction.displayDate).format('MMM D, YYYY')}</TableCell>
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell className="text-right font-medium text-red-600">
+                            {formatCurrency(transaction.amount)}
+                          </TableCell>
+                          <TableCell>{transaction.category_name || 'Uncategorized'}</TableCell>
+                          <TableCell>
+                            <span className={transaction.isPending ? "text-yellow-600" : "text-green-600"}>
+                              {transaction.isPending ? 'Pending' : 'Completed'}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>

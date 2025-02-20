@@ -21,15 +21,15 @@ export default function ExpenseReportPage() {
   const [filter, setFilter] = useState<string>("all-expenses");
 
   const { data: filteredExpenses = [], isLoading: apiLoading } = useQuery({
-    queryKey: ['/api/reports/expenses', dateRange?.from, dateRange?.to, filter],
+    queryKey: ['/api/reports/expenses', dateRange?.from?.toISOString(), dateRange?.to?.toISOString(), filter],
     queryFn: async () => {
       if (!dateRange?.from || !dateRange?.to) return [];
 
       try {
         const params = new URLSearchParams({
-          from: dayjs(dateRange.from).format('YYYY-MM-DD'),
-          to: dayjs(dateRange.to).format('YYYY-MM-DD'),
-          filter
+          start: dayjs(dateRange.from).format('YYYY-MM-DD'),
+          end: dayjs(dateRange.to).format('YYYY-MM-DD'),
+          type: filter
         });
 
         const response = await fetch(`/api/reports/expenses?${params.toString()}`);
@@ -100,7 +100,7 @@ export default function ExpenseReportPage() {
         label: `${expense.description} (${formatCurrency(expense.amount)})`,
         className: cn(
           'pl-4',
-          expense.amount > 0 ? 'text-green-500' : 'text-red-500'
+          expense.amount >= 0 ? 'text-green-600' : 'text-red-600'
         )
       }))
     }
