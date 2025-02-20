@@ -11,6 +11,14 @@ import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
 import { DateRange } from "react-day-picker";
 
+interface Expense {
+  id: number;
+  date: string;
+  description: string;
+  amount: number;
+  category_id?: number;
+}
+
 export default function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
@@ -102,7 +110,9 @@ export default function ExpenseReportPage() {
           </Select>
 
           <ReportFilter
-            onDateRangeChange={setDateRange}
+            onDateRangeChange={(range) => {
+              setDateRange(range || undefined);
+            }}
             maxDateRange={90}
           />
 
