@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ReportFilter } from "@/components/ReportFilter";
+import { ReportFilter } from '@/components/ReportFilter';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";

@@ -33,12 +33,6 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
         return;
       }
 
-      if (dateRange.from > new Date()) {
-        setError('Start date cannot be in the future');
-        onDateRangeChange(undefined);
-        return;
-      }
-
       setError(null);
       onDateRangeChange(dateRange);
     } else {
@@ -83,7 +77,6 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
                     selected={dateRange}
                     onSelect={setDateRange}
                     numberOfMonths={2}
-                    disabled={(date) => date > new Date()}
                     initialFocus
                   />
                 </PopoverContent>
