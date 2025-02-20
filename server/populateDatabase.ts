@@ -9,7 +9,7 @@ const backupData = JSON.parse(fs.readFileSync(backupFilePath, 'utf8'));
 // Database connection configuration
 const client = new Client({
   connectionString: 'postgres://localhost:5432/my_budget',
-  ssl: false // Disable SSL
+  ssl: { rejectUnauthorized: false } // Disable SSL
 });
 
 async function populateDatabase() {

@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3001;
 // Database connection configuration
 const pool = new Pool({
   connectionString: 'postgres://localhost:5432/my_budget',
-  ssl: false // Disable SSL
+  ssl: { rejectUnauthorized: false } // Disable SSL
 });
 
 // Create tmp directory if it doesn't exist
