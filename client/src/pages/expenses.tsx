@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReportFilter } from '@/components/ReportFilter';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
@@ -13,16 +14,20 @@ import { DateRange } from "react-day-picker";
 export default function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const { bills = [], categories = [], isLoading: dataLoading, error } = useData();
+  const { categories = [], isLoading: dataLoading, error } = useData();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [selectedType, setSelectedType] = useState<string>("all");
 
   const { data: expenses = [], isLoading: apiLoading } = useQuery({
-    queryKey: ['/api/reports/expenses', dateRange?.from, dateRange?.to],
+    queryKey: ['/api/reports/expenses', dateRange?.from, dateRange?.to, selectedType],
     queryFn: async () => {
       if (!dateRange?.from || !dateRange?.to) return [];
-      const startDate = dayjs(dateRange.from).format('YYYY-MM-DD');
-      const endDate = dayjs(dateRange.to).format('YYYY-MM-DD');
-      const response = await fetch(`/api/reports/expenses?start_date=${startDate}&end_date=${endDate}`);
+      const params = new URLSearchParams({
+        start_date: dayjs(dateRange.from).format('YYYY-MM-DD'),
+        end_date: dayjs(dateRange.to).format('YYYY-MM-DD'),
+        type: selectedType
+      });
+      const response = await fetch(`/api/reports/expenses?${params}`);
       if (!response.ok) throw new Error('Failed to fetch expenses');
       return response.json();
     },
@@ -80,6 +85,22 @@ export default function ExpenseReportPage() {
         </div>
 
         <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Select 
+              value={selectedType} 
+              onValueChange={setSelectedType}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Expenses</SelectItem>
+                <SelectItem value="recurring">Recurring Only</SelectItem>
+                <SelectItem value="one-time">One-time Only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <ReportFilter
             onDateRangeChange={setDateRange}
             maxDateRange={90}
