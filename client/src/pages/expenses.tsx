@@ -85,21 +85,20 @@ export default function ExpenseReportPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Select 
-              value={selectedType} 
-              onValueChange={setSelectedType}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Expenses</SelectItem>
-                <SelectItem value="recurring">Recurring Only</SelectItem>
-                <SelectItem value="one-time">One-time Only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select 
+            defaultValue="all" 
+            value={selectedType}
+            onValueChange={setSelectedType}
+          >
+            <SelectTrigger>
+              <SelectValue>All Expenses</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">✓ All Expenses</SelectItem>
+              <SelectItem value="recurring">Recurring Only</SelectItem>
+              <SelectItem value="one-time">One-time Only</SelectItem>
+            </SelectContent>
+          </Select>
 
           <ReportFilter
             onDateRangeChange={setDateRange}
