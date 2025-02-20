@@ -22,14 +22,17 @@ function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { bills = [], categories = [], isLoading: dataLoading, error } = useData();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const { data: expenses = [], isLoading: apiLoading } = useQuery({
-    queryKey: ['/api/reports/expenses', {
-      startDate: dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : undefined,
-      endDate: dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : undefined
-    }],
-    enabled: Boolean(dateRange?.from) && Boolean(dateRange?.to) //Only fetch when a date range is selected
+    queryKey: [
+      '/api/reports/expenses', 
+      {
+        startDate: dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : null,
+        endDate: dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : null
+      }
+    ],
+    enabled: Boolean(dateRange?.from && dateRange?.to)
   });
 
   const isLoading = dataLoading || apiLoading;
