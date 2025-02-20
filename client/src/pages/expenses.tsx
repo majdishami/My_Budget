@@ -48,12 +48,12 @@ export default function ExpenseReport() {
     index === self.findIndex((b) => b.name === bill.name && b.amount === bill.amount)
   );
 
-  const formattedStartDate = dayjs(dateRange.from).format('YYYY-MM-DD');
-  const formattedEndDate = dayjs(dateRange.to).format('YYYY-MM-DD');
+  const formattedStartDate = dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : undefined;
+  const formattedEndDate = dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : undefined;
 
   const { data: expenses = [], isLoading: apiLoading } = useQuery<Expense[]>({
     queryKey: ['/api/reports/expenses', formattedStartDate, formattedEndDate],
-    enabled: isDialogOpen
+    enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
   });
 
   const isLoading = dataLoading || apiLoading;
@@ -73,6 +73,10 @@ export default function ExpenseReport() {
   });
 
   const handleShowReport = () => {
+    if (!dateRange?.from || !dateRange?.to) {
+      logger.warn("[ExpenseReport] Attempted to show report without date range");
+      return;
+    }
     setIsDialogOpen(true);
   };
 
@@ -167,25 +171,33 @@ export default function ExpenseReport() {
           </div>
 
           <ReportFilter
-            onDateRangeChange={(range) => setDateRange(range)}
+            onDateRangeChange={(range: DateRange) => {
+              if (range?.from && range?.to) {
+                setDateRange({ from: range.from, to: range.to });
+              }
+            }}
             maxDateRange={90}
           />
 
           <Button 
             onClick={handleShowReport} 
             className="w-full"
+            disabled={!dateRange?.from || !dateRange?.to}
           >
             Generate Report
           </Button>
         </div>
       </Card>
 
-      {isDialogOpen && dateRange && (
+      {isDialogOpen && dateRange?.from && dateRange?.to && (
         <ExpenseReportDialog
           isOpen={isDialogOpen}
           onOpenChange={handleOpenChange}
           expenses={filteredExpenses}
-          dateRange={dateRange}
+          dateRange={{ 
+            from: dateRange.from,
+            to: dateRange.to
+          }}
         />
       )}
     </div>

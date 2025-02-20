@@ -17,7 +17,7 @@ interface ReportFilterProps {
 
 export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFilterProps) {
   const { toast } = useToast();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(),
     to: new Date()
   });
@@ -46,8 +46,10 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
   }, [dateRange, maxDateRange, onDateRangeChange]);
 
   const handleDateSelect = (range: DateRange | undefined) => {
+    if (!range) return;
+
     setDateRange(range);
-    if (!range?.from || !range?.to) {
+    if (!range.from || !range.to) {
       toast({
         title: "Invalid Date Range",
         description: "Please select both start and end dates",
