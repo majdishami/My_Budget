@@ -10,23 +10,16 @@ import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
 
-interface Expense {
-  id: number;
-  date: string;
-  description: string;
-  amount: number;
-  category_id: number | null;
-}
-
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const { bills, categories, isLoading } = useData();
   const [reportType, setReportType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedExpense, setSelectedExpense] = useState('all');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+
+  const { bills, categories, isLoading: dataLoading } = useData();
 
   const uniqueExpenses = bills?.filter((bill, index, self) =>
     index === self.findIndex((b) => b.name === bill.name && b.amount === bill.amount)
@@ -40,10 +33,12 @@ export default function ExpenseReport() {
     setEndDate(range.to);
   };
 
-  const { data: expenses = [], isLoading: apiIsLoading } = useQuery<Expense[]>({
+  const { data: expenses = [], isLoading: apiLoading } = useQuery({
     queryKey: ['/api/reports/expenses', formattedStartDate, formattedEndDate],
     enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
   });
+
+  const isLoading = dataLoading || apiLoading;
 
   const filteredExpenses = expenses.map(expense => {
     const category = categories?.find(c => c.id === expense.category_id);
@@ -57,12 +52,6 @@ export default function ExpenseReport() {
       category_color: category?.color,
       category_icon: category?.icon
     };
-  }).filter(expense => {
-    const categoryMatches = selectedCategory === 'all' || 
-                        expense.category_id === Number(selectedCategory);
-    const expenseMatches = selectedExpense === 'all' || 
-                        `${expense.description}-${expense.amount}` === selectedExpense;
-    return categoryMatches && expenseMatches;
   });
 
   const handleShowReport = () => {
@@ -84,7 +73,7 @@ export default function ExpenseReport() {
     setLocation("/");
   };
 
-  if (isLoading || apiIsLoading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto p-4">
         <Card className="p-4">
