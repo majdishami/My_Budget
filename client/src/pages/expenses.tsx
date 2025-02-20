@@ -19,7 +19,7 @@ interface Expense {
   category_id?: number;
 }
 
-export default function ExpenseReport() {
+const ExpenseReport = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { bills = [], categories = [], isLoading: dataLoading, error } = useData();
@@ -108,62 +108,8 @@ export default function ExpenseReport() {
             Back
           </Button>
         </div>
+
         <div className="space-y-4">
-          <div className="flex items-center gap-4 flex-wrap">
-            <Select 
-              value={reportType} 
-              onValueChange={(value) => {
-                setReportType(value);
-                if (value !== 'category') setSelectedCategory('all');
-                if (value !== 'individual') setSelectedExpense('all');
-              }}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select report type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Expenses</SelectItem>
-                <SelectItem value="category">By Category</SelectItem>
-                <SelectItem value="individual">Individual Expense</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {(reportType === 'category' || reportType === 'all') && categories.length > 0 && (
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category.id} value={category.id.toString()}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            {reportType === 'individual' && uniqueExpenses.length > 0 && (
-              <Select value={selectedExpense} onValueChange={setSelectedExpense}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select expense" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Expenses</SelectItem>
-                  {uniqueExpenses.map(bill => (
-                    <SelectItem 
-                      key={`${bill.name}-${bill.amount}`} 
-                      value={`${bill.name}-${bill.amount}`}
-                    >
-                      {bill.name} (${bill.amount})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
           <ReportFilter
             onDateRangeChange={setDateRange}
             maxDateRange={90}
@@ -189,4 +135,6 @@ export default function ExpenseReport() {
       )}
     </div>
   );
-}
+};
+
+export default ExpenseReport;
