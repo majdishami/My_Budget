@@ -9,6 +9,7 @@ import { ReportFilter } from "@/components/ReportFilter";
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
+import { DateRange } from "react-day-picker";
 
 interface Expense {
   id: number;
@@ -16,11 +17,6 @@ interface Expense {
   description: string;
   amount: number;
   category_id?: number;
-}
-
-interface DateRange {
-  from: Date;
-  to: Date;
 }
 
 export default function ExpenseReport() {
@@ -171,7 +167,7 @@ export default function ExpenseReport() {
           </div>
 
           <ReportFilter
-            onDateRangeChange={setDateRange}
+            onDateRangeChange={(range) => setDateRange(range)}
             maxDateRange={90}
           />
 
@@ -184,7 +180,7 @@ export default function ExpenseReport() {
         </div>
       </Card>
 
-      {isDialogOpen && (
+      {isDialogOpen && dateRange && (
         <ExpenseReportDialog
           isOpen={isDialogOpen}
           onOpenChange={handleOpenChange}

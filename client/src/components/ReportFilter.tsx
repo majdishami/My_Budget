@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 
 interface ReportFilterProps {
-  onDateRangeChange: (range: { from: Date; to: Date }) => void;
+  onDateRangeChange: (range: DateRange) => void;
   maxDateRange?: number; // Maximum number of days allowed in range
 }
 
@@ -19,7 +19,7 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
   const { toast } = useToast();
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(),
-    to: new Date(),
+    to: new Date()
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +41,7 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
       }
 
       setError(null);
-      onDateRangeChange({ from: dateRange.from, to: dateRange.to });
+      onDateRangeChange(dateRange);
     }
   }, [dateRange, maxDateRange, onDateRangeChange]);
 
