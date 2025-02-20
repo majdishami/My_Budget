@@ -25,17 +25,7 @@ export default function ExpenseReportPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const { data: expenses = [], isLoading: apiLoading } = useQuery({
-    queryKey: ['/api/reports/expenses'],
-    queryFn: async () => {
-      if (!dateRange?.from || !dateRange?.to) return [];
-      const params = new URLSearchParams({
-        start_date: dayjs(dateRange.from).format('YYYY-MM-DD'),
-        end_date: dayjs(dateRange.to).format('YYYY-MM-DD')
-      });
-      const response = await fetch(`/api/reports/expenses?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch expenses');
-      return response.json();
-    },
+    queryKey: ['/api/reports/expenses', dateRange?.from, dateRange?.to],
     enabled: Boolean(dateRange?.from && dateRange?.to)
   });
 
@@ -67,7 +57,7 @@ export default function ExpenseReportPage() {
     );
   }
 
-  const filteredExpenses = expenses.map(expense => {
+  const filteredExpenses = expenses.map((expense: Expense) => {
     const category = categories.find(c => c.id === expense.category_id);
     return {
       ...expense,
