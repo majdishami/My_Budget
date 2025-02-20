@@ -12,26 +12,10 @@ import { DateRange } from "react-day-picker";
 import { formatCurrency } from '@/lib/utils';
 import { cn } from "@/lib/utils";
 
-// Types
-type DataContextType = {
-  expenses: Array<{
-    id: number;
-    amount: number;
-    description: string;
-    date: string;
-    category_id?: number;
-  }>;
-  categories: Array<{
-    id: number;
-    name: string;
-  }>;
-  isLoading: boolean;
-};
-
 export default function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const { expenses, categories, isLoading: dataLoading } = useData() as DataContextType;
+  const { expenses = [], categories = [], isLoading: dataLoading } = useData();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filter, setFilter] = useState<string>("all-expenses");
 
@@ -60,7 +44,7 @@ export default function ExpenseReportPage() {
 
   const isLoading = dataLoading || apiLoading;
 
-  // Filter options with proper categories and expenses
+  // Filter options
   const filterOptions = [
     {
       label: "General",
