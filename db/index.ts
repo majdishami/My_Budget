@@ -98,3 +98,17 @@ async function testConnection(retries = 5) {
         `);
 
         const categoryCount = await client.query('SELECT COUNT(*) FROM categories');
+        client.release();
+        return true;
+      } catch (queryError) {
+        console.error('Query error:', queryError);
+        client.release();
+      }
+    } catch (connectionError) {
+      console.error('Connection error:', connectionError);
+    }
+  }
+  return false;
+}
+
+testConnection();
