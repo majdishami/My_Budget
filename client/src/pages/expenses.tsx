@@ -45,13 +45,13 @@ export default function ExpenseReport() {
     index === self.findIndex((b) => b.name === bill.name && b.amount === bill.amount)
   );
 
-  // Only format dates if they exist
-  const formattedStartDate = dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : undefined;
-  const formattedEndDate = dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : undefined;
-
+  // API query enabled only when date range is selected
   const { data: expenses = [], isLoading: apiLoading } = useQuery<Expense[]>({
-    queryKey: ['/api/reports/expenses', formattedStartDate, formattedEndDate],
-    enabled: isDialogOpen && Boolean(formattedStartDate) && Boolean(formattedEndDate)
+    queryKey: ['/api/reports/expenses', {
+      startDate: dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : null,
+      endDate: dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : null
+    }],
+    enabled: isDialogOpen && Boolean(dateRange?.from) && Boolean(dateRange?.to)
   });
 
   const isLoading = dataLoading || apiLoading;
