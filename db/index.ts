@@ -1,31 +1,5 @@
-import pkg from 'pg';
-const { Pool } = pkg;
-import { drizzle } from 'drizzle-orm/node-postgres';
-import * as schema from "./schema";
-import { config } from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { seedCategories } from './seed';
-
-// Get current file path in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load environment variables from .env file using reliable path resolution
-const envPath = path.resolve(__dirname, '../.env');
-console.log('Loading environment variables from:', envPath);
-try {
-  const result = config({ path: envPath });
-
-  if (result.error) {
-    throw new Error(`Failed to load .env file: ${result.error.message}`);
-  }
-
-  console.log('.env file loaded successfully');
-} catch (error) {
-  console.error('Error loading environment variables:', error);
-  process.exit(1);
-}
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm';
 
 if (!process.env.DATABASE_URL) {
   console.error("ERROR: DATABASE_URL is not defined in .env file.");
@@ -35,9 +9,7 @@ if (!process.env.DATABASE_URL) {
 // Pool configuration with improved connection handling
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false
-  } : undefined,
+  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
@@ -50,7 +22,7 @@ const poolConfig = {
 const pool = new Pool(poolConfig);
 
 // Initialize db with Drizzle ORM
-const db = drizzle(pool, { schema });
+const db = drizzle(pool);
 
 // Add error handling for the pool
 pool.on('error', (err: Error & { code?: string }) => {
@@ -131,40 +103,21 @@ async function testConnection(retries = 5) {
 
         const categoryCount = await client.query('SELECT COUNT(*) FROM categories');
         console.log(`Database status: ${tables.rows[0].table_count} tables, ${categoryCount.rows[0].count} categories`);
-
-        if (parseInt(categoryCount.rows[0].count) === 0) {
-          console.log('Initializing default categories...');
-          await seedCategories();
-        }
-
-        return true;
       } finally {
         client.release();
       }
+      break; // Exit loop on success
     } catch (error) {
+      console.error(`Connection attempt ${attempt} failed:`, error);
       if (attempt === retries) {
-        throw error;
+        console.error('Max retries reached, unable to establish a database connection.');
+        process.exit(1);
       }
-
-      const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 1000, 30000);
-      console.log(`Connection retry ${attempt}/${retries} in ${(delay/1000).toFixed(1)}s`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise(res => setTimeout(res, 2000 * attempt)); // Exponential backoff
     }
   }
-  return false;
 }
 
-// Initialize connection
-console.log('Initializing database connection...');
-testConnection().catch(error => {
-  console.error('Database configuration error:', {
-    message: error instanceof Error ? error.message : 'Unknown error',
-    code: (error as any)?.code,
-    stack: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
-    timestamp: new Date().toISOString()
-  });
+testConnection();
 
-  process.nextTick(() => process.exit(1));
-});
-
-export { db, pool };
+export { pool, db };
