@@ -8,28 +8,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ReportFilter } from '@/components/ReportFilter';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
-import { logger } from "@/lib/logger";
 import { DateRange } from "react-day-picker";
 import { formatCurrency } from '@/lib/utils';
 import { cn } from "@/lib/utils";
 
-interface Expense {
-  id: number;
-  amount: number;
-  description: string;
-  date: string;
-  category_id?: number;
-}
-
-interface Category {
-  id: number;
-  name: string;
-}
+// Types
+type DataContextType = {
+  expenses: Array<{
+    id: number;
+    amount: number;
+    description: string;
+    date: string;
+    category_id?: number;
+  }>;
+  categories: Array<{
+    id: number;
+    name: string;
+  }>;
+  isLoading: boolean;
+};
 
 export default function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const { expenses = [], categories = [], isLoading: dataLoading } = useData();
+  const { expenses, categories, isLoading: dataLoading } = useData() as DataContextType;
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filter, setFilter] = useState<string>("all-expenses");
 
@@ -47,9 +49,9 @@ export default function ExpenseReportPage() {
 
         const response = await fetch(`/api/reports/expenses?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch expenses');
-        return response.json();
+        return await response.json();
       } catch (err) {
-        logger.error('[ExpenseReport] Error fetching expenses:', err);
+        console.error('[ExpenseReport] Error:', err);
         return [];
       }
     },
@@ -58,6 +60,7 @@ export default function ExpenseReportPage() {
 
   const isLoading = dataLoading || apiLoading;
 
+  // Filter options with proper categories and expenses
   const filterOptions = [
     {
       label: "General",
@@ -71,7 +74,7 @@ export default function ExpenseReportPage() {
     },
     {
       label: "Categories",
-      options: categories.map((category: Category) => ({
+      options: (categories || []).map(category => ({
         value: `category-${category.id}`,
         label: `📂 ${category.name}`,
         className: 'text-purple-600 pl-4'
@@ -79,11 +82,11 @@ export default function ExpenseReportPage() {
     },
     {
       label: "Individual Expenses",
-      options: expenses
-        .sort((a: Expense, b: Expense) => b.amount - a.amount)
-        .map((expense: Expense) => ({
+      options: (expenses || [])
+        .sort((a, b) => b.amount - a.amount)
+        .map(expense => ({
           value: `expense-${expense.id}`,
-          label: `${expense.description} (${formatCurrency(expense.amount)})`,
+          label: `💰 ${expense.description} (${formatCurrency(expense.amount)})`,
           className: cn(
             'pl-6',
             expense.amount >= 0 ? 'text-green-600' : 'text-red-600'
@@ -132,9 +135,7 @@ export default function ExpenseReportPage() {
           </Select>
 
           <ReportFilter
-            onDateRangeChange={(range) => {
-              setDateRange(range || undefined);
-            }}
+            onDateRangeChange={setDateRange}
             maxDateRange={90}
           />
 

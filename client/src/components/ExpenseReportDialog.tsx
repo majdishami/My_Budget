@@ -18,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { logger } from "@/lib/logger";
 import { useState, useMemo } from 'react';
 
 type ExpenseTransaction = {
@@ -47,7 +46,7 @@ export default function ExpenseReportDialog({
   dateRange,
   onBack 
 }: ExpenseReportDialogProps) {
-  const today = useMemo(() => dayjs(), []); // Memoize today's date
+  const today = useMemo(() => dayjs(), []); 
 
   // Process transactions with pending status
   const processedTransactions = useMemo(() => expenses.map(transaction => {
@@ -76,27 +75,19 @@ export default function ExpenseReportDialog({
 
   const total = totals.completed + totals.pending;
 
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
-    } else {
-      onOpenChange(false);
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex flex-row items-center space-x-2">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="flex flex-row items-center space-x-2 sticky top-0 bg-background z-10 pb-4">
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={handleBack}
+            onClick={() => onOpenChange(false)}
             className="h-8 w-8"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <DialogTitle>
+          <DialogTitle className="text-lg">
             Expense Report
             <div className="text-sm font-normal text-muted-foreground mt-1">
               {dateRange?.from ? (
