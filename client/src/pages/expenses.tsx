@@ -26,10 +26,7 @@ export default function ExpenseReport() {
   const [reportType, setReportType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedExpense, setSelectedExpense] = useState('all');
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(),
-    to: new Date()
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   // Handle error state from DataContext
   if (error) {
@@ -58,7 +55,7 @@ export default function ExpenseReport() {
 
   const isLoading = dataLoading || apiLoading;
 
-  const filteredExpenses = (expenses || []).map(expense => {
+  const filteredExpenses = expenses.map(expense => {
     const category = categories.find(c => c.id === expense.category_id);
     return {
       id: expense.id,
@@ -171,11 +168,7 @@ export default function ExpenseReport() {
           </div>
 
           <ReportFilter
-            onDateRangeChange={(range: DateRange) => {
-              if (range?.from && range?.to) {
-                setDateRange({ from: range.from, to: range.to });
-              }
-            }}
+            onDateRangeChange={setDateRange}
             maxDateRange={90}
           />
 
@@ -194,10 +187,7 @@ export default function ExpenseReport() {
           isOpen={isDialogOpen}
           onOpenChange={handleOpenChange}
           expenses={filteredExpenses}
-          dateRange={{ 
-            from: dateRange.from,
-            to: dateRange.to
-          }}
+          dateRange={dateRange}
         />
       )}
     </div>

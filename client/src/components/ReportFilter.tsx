@@ -11,16 +11,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 
 interface ReportFilterProps {
-  onDateRangeChange: (range: DateRange) => void;
+  onDateRangeChange: (range: DateRange | undefined) => void;
   maxDateRange?: number; // Maximum number of days allowed in range
 }
 
 export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFilterProps) {
   const { toast } = useToast();
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(),
-    to: new Date()
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [error, setError] = useState<string | null>(null);
 
   // Validate date range whenever it changes
@@ -42,14 +39,14 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
 
       setError(null);
       onDateRangeChange(dateRange);
+    } else {
+      onDateRangeChange(undefined);
     }
   }, [dateRange, maxDateRange, onDateRangeChange]);
 
   const handleDateSelect = (range: DateRange | undefined) => {
-    if (!range) return;
-
     setDateRange(range);
-    if (!range.from || !range.to) {
+    if (!range?.from || !range?.to) {
       toast({
         title: "Invalid Date Range",
         description: "Please select both start and end dates",
@@ -96,7 +93,6 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
                     onSelect={handleDateSelect}
                     numberOfMonths={2}
                     disabled={(date) => date > new Date()}
-                    defaultMonth={dateRange?.from}
                     initialFocus
                   />
                 </PopoverContent>
