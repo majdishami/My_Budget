@@ -10,14 +10,6 @@ import { useData } from "@/contexts/DataContext";
 import { logger } from "@/lib/logger";
 import { DateRange } from "react-day-picker";
 
-interface Expense {
-  id: number;
-  date: string;
-  description: string;
-  amount: number;
-  category_id?: number;
-}
-
 export default function ExpenseReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
@@ -26,6 +18,14 @@ export default function ExpenseReportPage() {
 
   const { data: expenses = [], isLoading: apiLoading } = useQuery({
     queryKey: ['/api/reports/expenses', dateRange?.from, dateRange?.to],
+    queryFn: async () => {
+      if (!dateRange?.from || !dateRange?.to) return [];
+      const startDate = dayjs(dateRange.from).format('YYYY-MM-DD');
+      const endDate = dayjs(dateRange.to).format('YYYY-MM-DD');
+      const response = await fetch(`/api/reports/expenses?start_date=${startDate}&end_date=${endDate}`);
+      if (!response.ok) throw new Error('Failed to fetch expenses');
+      return response.json();
+    },
     enabled: Boolean(dateRange?.from && dateRange?.to)
   });
 
@@ -56,17 +56,6 @@ export default function ExpenseReportPage() {
       </div>
     );
   }
-
-  const filteredExpenses = expenses.map((expense: Expense) => {
-    const category = categories.find(c => c.id === expense.category_id);
-    return {
-      ...expense,
-      type: 'expense' as const,
-      category_name: category?.name,
-      category_color: category?.color,
-      category_icon: category?.icon
-    };
-  });
 
   const handleShowReport = () => {
     if (!dateRange?.from || !dateRange?.to) {
@@ -110,7 +99,7 @@ export default function ExpenseReportPage() {
         <ExpenseReportDialog
           isOpen={isDialogOpen}
           onOpenChange={handleOpenChange}
-          expenses={filteredExpenses}
+          expenses={expenses}
           dateRange={dateRange}
         />
       )}
