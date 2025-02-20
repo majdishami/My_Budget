@@ -45,6 +45,7 @@ export default function ExpenseReport() {
     index === self.findIndex((b) => b.name === bill.name && b.amount === bill.amount)
   );
 
+  // Only format dates if they exist
   const formattedStartDate = dateRange?.from ? dayjs(dateRange.from).format('YYYY-MM-DD') : undefined;
   const formattedEndDate = dateRange?.to ? dayjs(dateRange.to).format('YYYY-MM-DD') : undefined;
 

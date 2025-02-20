@@ -29,11 +29,13 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
 
       if (daysDiff > maxDateRange) {
         setError(`Date range cannot exceed ${maxDateRange} days`);
+        onDateRangeChange(undefined);
         return;
       }
 
       if (dateRange.from > new Date()) {
         setError('Start date cannot be in the future');
+        onDateRangeChange(undefined);
         return;
       }
 
@@ -41,20 +43,9 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
       onDateRangeChange(dateRange);
     } else {
       onDateRangeChange(undefined);
+      setError(null);
     }
   }, [dateRange, maxDateRange, onDateRangeChange]);
-
-  const handleDateSelect = (range: DateRange | undefined) => {
-    setDateRange(range);
-    if (!range?.from || !range?.to) {
-      toast({
-        title: "Invalid Date Range",
-        description: "Please select both start and end dates",
-        variant: "destructive",
-      });
-      return;
-    }
-  };
 
   return (
     <Card>
@@ -90,7 +81,7 @@ export function ReportFilter({ onDateRangeChange, maxDateRange = 90 }: ReportFil
                   <Calendar
                     mode="range"
                     selected={dateRange}
-                    onSelect={handleDateSelect}
+                    onSelect={setDateRange}
                     numberOfMonths={2}
                     disabled={(date) => date > new Date()}
                     initialFocus
