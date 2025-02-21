@@ -1,138 +1,120 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { createServer } from "http";
-import syncRouter from "./routes/sync";
-import fs from "fs";
-import path from "path";
-import fileUpload from 'express-fileupload';
-import cors from 'cors';
-import morgan from 'morgan';
+import { Pool } from 'pg';
 
-const app = express();
-
-// Create tmp directory if it doesn't exist
-const tmpDir = path.join(process.cwd(), 'tmp');
-if (!fs.existsSync(tmpDir)) {
-  fs.mkdirSync(tmpDir, { recursive: true });
+if (!process.env.DATABASE_URL) {
+  console.error("ERROR: DATABASE_URL is not defined in .env file.");
+  process.exit(1);
 }
 
-// Basic middleware setup
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// Pool configuration with improved connection handling
+const poolConfig = {
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  maxUses: 7500,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000
+};
 
-// Configure CORS with basic settings
-app.use(cors());
+// Initialize pool with configuration
+const pool = new Pool(poolConfig);
 
-// Enhanced logging middleware using morgan
-app.use(morgan('combined'));
+// Initialize db with Drizzle ORM
+const db = drizzle(pool, { schema });
 
-// Configure file upload middleware with improved security
-app.use(fileUpload({
-  limits: { 
-    fileSize: 50 * 1024 * 1024 // 50MB max file size
-  },
-  useTempFiles: true,
-  tempFileDir: tmpDir,
-  debug: process.env.NODE_ENV !== 'production',
-  safeFileNames: true,
-  preserveExtension: true,
-  abortOnLimit: true,
-  uploadTimeout: 30000, // 30 seconds
-  createParentPath: true,
-  defParamCharset: 'utf8',
-  responseOnLimit: 'File size limit has been reached',
-  parseNested: false // Prevent deeply nested form data
-}));
+// Add error handling for the pool
+pool.on('error', (err: Error & { code?: string }) => {
+  const errorContext = {
+    message: err.message,
+    code: err.code,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    timestamp: new Date().toISOString()
+  };
 
-// Enhanced request logging middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
+  switch (err.code) {
+    case '57P01': // Admin shutdown
+    case '57P02': // Crash shutdown
+    case '57P03': // Cannot connect now
+      let attempt = 0;
+      const maxAttempts = 5;
+      const maxDelay = 30000;
 
-  console.log('[Request] New request:', {
-    method: req.method,
-    path: req.path
-  });
+      const reconnect = () => {
+        if (attempt >= maxAttempts) {
+          console.error(`Connection failed after ${maxAttempts} attempts, shutting down:`, errorContext);
+          process.nextTick(() => process.exit(1));
+          return;
+        }
 
-  if (req.files) {
-    const fileInfo = Object.entries(req.files).map(([key, file]) => ({
-      fieldName: key,
-      originalName: Array.isArray(file) ? file.map(f => f.name) : file.name
-    }));
-    log(`Files received: ${JSON.stringify(fileInfo)}`);
+        attempt++;
+        const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 1000, maxDelay);
+
+        console.log(`Reconnection attempt ${attempt}/${maxAttempts} in ${(delay/1000).toFixed(1)}s`);
+
+        setTimeout(async () => {
+          try {
+            const client = await pool.connect();
+            console.log(`Reconnected successfully on attempt ${attempt}`);
+            client.release();
+            attempt = 0;
+          } catch (error) {
+            console.error(`Reconnection failed (attempt ${attempt}/${maxAttempts})`, {
+              message: error instanceof Error ? error.message : 'Unknown error',
+              nextRetry: Math.min(1000 * Math.pow(2, attempt + 1), maxDelay) / 1000,
+              timestamp: new Date().toISOString()
+            });
+            reconnect();
+          }
+        }, delay);
+      };
+
+      reconnect();
+      break;
+
+    case '08006': // Connection failure
+    case '08001': // Unable to establish connection
+      console.error('Fatal connection error:', errorContext);
+      process.nextTick(() => process.exit(1));
+      break;
+
+    default:
+      console.error('Database error:', errorContext);
+      break;
   }
-
-  if (Object.keys(req.query).length > 0) {
-    log(`Query params: ${JSON.stringify(req.query)}`);
-  }
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    const size = res.get('content-length');
-    if (path.startsWith("/api")) {
-      log(`${req.method} ${path} ${res.statusCode} ${size || 0}b in ${duration}ms`);
-    }
-  });
-
-  next();
 });
 
-// Register sync routes
-app.use(syncRouter);
+// Enhanced connection testing with concise logging
+async function testConnection(retries = 5) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query('SELECT NOW()');
+        console.log('Database connection established');
 
-(async () => {
-  try {
-    console.log('Starting server initialization...');
+        const tables = await client.query(`
+          SELECT COUNT(*) as table_count 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_type = 'BASE TABLE';
+        `);
 
-    // Initialize routes
-    const server = registerRoutes(app);
-
-    // Enhanced error handler with better error details
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      console.error('Server error:', {
-        message: err.message,
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-        code: err.code,
-        status: err.status || err.statusCode
-      });
-
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ 
-        message,
-        error: process.env.NODE_ENV === 'development' ? err.stack : undefined
-      });
-    });
-
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else {
-      serveStatic(app);
+        const categoryCount = await client.query('SELECT COUNT(*) FROM categories');
+        console.log(`Database status: ${tables.rows[0].table_count} tables, ${categoryCount.rows[0].count} categories`);
+      } finally {
+        client.release();
+      }
+      break; // Exit loop on success
+    } catch (error) {
+      console.error(`Connection attempt ${attempt} failed:`, error);
+      if (attempt === retries) {
+        console.error('Max retries reached, unable to establish a database connection.');
+        process.exit(1);
+      }
+      await new Promise(res => setTimeout(res, 2000 * attempt)); // Exponential backoff
     }
-
-    // Use different ports for Replit vs local development
-    const isReplit = process.env.REPL_ID !== undefined;
-    const PORT = parseInt(process.env.PORT || (isReplit ? '5000' : '5001'));
-    const HOST = '0.0.0.0';
-
-    server.listen(PORT, HOST, () => {
-      console.log(`Server is running at http://${HOST}:${PORT}`);
-      console.log(`Server environment: ${app.get("env")}`);
-      console.log(`CORS enabled for all origins`);
-    });
-
-    // Handle graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM signal received: closing HTTP server');
-      server.close(() => {
-        console.log('HTTP server closed');
-        process.exit(0);
-      });
-    });
-
-  } catch (error) {
-    console.error('Fatal error during server initialization:', error);
-    process.exit(1);
   }
-})();
+}
+
+testConnection();

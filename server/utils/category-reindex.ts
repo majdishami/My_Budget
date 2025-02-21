@@ -1,67 +1,57 @@
-import { db } from '@db';
-import { categories, bills, transactions } from '@db/schema';
-import { sql } from 'drizzle-orm';
-import { eq } from 'drizzle-orm';
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+});
 
 export async function reindexCategories() {
-  console.log('Starting category reindexing...');
-
   try {
-    return await db.transaction(async (tx) => {
-      // Get all categories ordered by name
-      const existingCategories = await tx.select().from(categories).orderBy(categories.name);
-      console.log(`Found ${existingCategories.length} categories to reindex`);
+    const client = await pool.connect();
 
-      // First, ensure all categories have icons
-      const updatedCategories = existingCategories.map(cat => ({
-        ...cat,
-        icon: cat.icon || getDefaultIcon(cat.name),
-        color: cat.color || getDefaultColor(cat.name)
-      }));
+    const existingCategories = await client.query('SELECT * FROM categories');
 
-      // Create a mapping of old to new IDs
-      const idMapping = new Map<number, number>();
-      updatedCategories.forEach((cat, index) => {
-        idMapping.set(cat.id, index + 1); // Start from 1 for the new sequential IDs
-      });
+    // First, ensure all categories have icons
+    const updatedCategories = existingCategories.rows.map(cat => ({
+      ...cat,
+      icon: cat.icon || getDefaultIcon(cat.name),
+      color: cat.color || getDefaultColor(cat.name)
+    }));
 
-      // Update references and categories
-      for (const [oldId, newId] of idMapping) {
-        // Update bills references
-        await tx.update(bills)
-          .set({ category_id: newId })
-          .where(eq(bills.category_id, oldId));
-
-        // Update transactions references
-        await tx.update(transactions)
-          .set({ category_id: newId })
-          .where(eq(transactions.category_id, oldId));
-
-        // Update category
-        const category = updatedCategories.find(c => c.id === oldId);
-        if (category) {
-          await tx.update(categories)
-            .set({ 
-              id: newId,
-              icon: category.icon,
-              color: category.color 
-            })
-            .where(eq(categories.id, oldId));
-        }
-      }
-
-      // Reset the sequence
-      await tx.execute(sql`SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories))`);
-
-      // Verify the results
-      const reindexedCategories = await tx.select().from(categories).orderBy(categories.id);
-
-      return {
-        success: true,
-        message: 'Categories reindexed and standardized successfully',
-        categories: reindexedCategories
-      };
+    // Create a mapping of old to new IDs
+    const idMapping = new Map<number, number>();
+    updatedCategories.forEach((cat, index) => {
+      idMapping.set(cat.id, index + 1); // Start from 1 for the new sequential IDs
     });
+
+    // Update references and categories
+    for (const [oldId, newId] of idMapping) {
+      // Update bills references
+      await client.query('UPDATE bills SET category_id = $1 WHERE category_id = $2', [newId, oldId]);
+
+      // Update transactions references
+      await client.query('UPDATE transactions SET category_id = $1 WHERE category_id = $2', [newId, oldId]);
+
+      // Update category
+      const category = updatedCategories.find(c => c.id === oldId);
+      if (category) {
+        await client.query('UPDATE categories SET id = $1, icon = $2, color = $3 WHERE id = $4', [newId, category.icon, category.color, oldId]);
+      }
+    }
+
+    // Reset the sequence
+    await client.query('SELECT setval(\'categories_id_seq\', (SELECT MAX(id) FROM categories))');
+
+    // Verify the results
+    const reindexedCategories = await client.query('SELECT * FROM categories ORDER BY id');
+
+    client.release();
+
+    return {
+      success: true,
+      message: 'Categories reindexed and standardized successfully',
+      categories: reindexedCategories.rows
+    };
   } catch (error) {
     console.error('Error reindexing categories:', error);
     throw error;
