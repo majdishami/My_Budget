@@ -1,4 +1,4 @@
-declare module 'passport' {
-  const passport: any;
-  export = passport;
+declare module 'passport-local' {
+  const Strategy: any;
+  export { Strategy };
 }
