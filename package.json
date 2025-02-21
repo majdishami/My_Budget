@@ -44,7 +44,8 @@
     "react-dom": "^18.2.0",
     "lucide-react": "^0.244.0",
     "drizzle-orm": "^0.27.2",
-    "zod": "^3.21.4"
+    "zod": "^3.21.4",
+    "@replit/vite-plugin-shadcn-theme-json": "^1.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
