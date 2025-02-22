@@ -478,227 +478,228 @@ export function registerRoutes(app: Express): Server {
       const transactionData = await insertTransactionSchema.parseAsync(req.body);
 
       // Explicitly determine if transaction is recurring
-      481|       const isRecurring = transactionData.recurring_type && transactionData.recurring_type !== 'once';
-482| 
-483|       console.log('[Transactions API] Processing transaction with recurring info:', {
-484|         recurring_type: transactionData.recurring_type,
-485|         is_recurring: isRecurring
-486|       });
-487| 
-488|       // Create the transaction with recurring fields
-489|       const [newTransaction] = await db.insert(transactions)
-490|         .values({
-491|           description: transactionData.description,
-492|           amount: transactionData.amount,
-493|           date: new Date(transactionData.date),
-494|           type: transactionData.type,
-495|           category_id: transactionData.category_id,
-496|           recurring_type: transactionData.recurring_type || null,
-497|           is_recurring: isRecurring,
-498|           first_date: transactionData.first_date || null,
-499|           second_date: transactionData.second_date || null
-500|         })
-501|         .returning();
-502| 
-503|       console.log('[Transactions API] Created transaction:', newTransaction);
-504|       res.status(201).json(newTransaction);
-505|     } catch (error) {
-506|       console.error('[Transactions API] Error creating transaction:', error);
-507|       res.status(400).json({
-508|         message: error instanceof Error ? error.message : 'Invalid request data'
-509|       });
-510|     }
-511|   });
-512| 
-513|   app.patch('/api/transactions/:id', async (req, res) => {
-514|     try {
-515|       console.log('[Transactions API] Updating transaction:', {
-516|         id: req.params.id,
-517|         data: req.body
-518|       });
-519| 
-520|       const transactionId = parseInt(req.params.id);
-521|       const existingTransaction = await db.query.transactions.findFirst({
-522|         where: eq(transactions.id, transactionId)
-523|       });
-524| 
-525|       if (!existingTransaction) {
-526|         return res.status(404).json({ message: 'Transaction not found' });
-527|       }
-528| 
-529|       // Update all transactions with the same description and category to maintain consistency
-530|       const oldDescription = existingTransaction.description.toLowerCase();
-531|       const newDescription = req.body.description.toLowerCase();
-532| 
-533|       // Start a transaction to ensure all updates happen together
-534|       let updatedTransaction;
-535|       try {
-536|         await db.transaction(async (tx) => {
-537|           // First update the specific transaction
-538|           [updatedTransaction] = await tx.update(transactions)
-539|             .set({
-540|               description: req.body.description,
-541|               amount: req.body.amount,
-542|               date: new Date(req.body.date),
-543|               type: req.body.type,
-544|               category_id: req.body.category_id
-545|             })
-546|             .where(eq(transactions.id, transactionId))
-547|             .returning();
-548| 
-549|           // Then update all related transactions to maintain consistency
-550|           if (oldDescription !== newDescription || existingTransaction.category_id !== req.body.category_id) {
-551|             await tx.update(transactions)
-552|               .set({
-553|                 description: req.body.description,
-554|                 category_id: req.body.category_id
-555|               })
-556|               .where(
-557|                 and(
-558|                   eq(transactions.type, existingTransaction.type),
-559|                   ilike(transactions.description, oldDescription),
-560|                   eq(transactions.category_id, existingTransaction.category_id)
-561|                 )
-562|               );
-563|           }
-564|         });
-565|       } catch (error) {
-566|         console.error('[Transactions API] Transaction update failed:', error);
-567|         throw error;
-568|       }
-569| 
-570|       console.log('[Transactions API] Successfully updated transaction:', updatedTransaction);
-571| 
-572|       // Add aggressive cache control headers
-573|       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-574|       res.set('Pragma', 'no-cache');
-575|       res.set('Expires', '0');
-576| 
-577|       res.json(updatedTransaction);
-578|     } catch (error) {
-579|       console.error('[Transactions API] Error updating transaction:', error);
-580|       res.status(400).json({
-581|         message: error instanceof Error ? error.message : 'Invalid request data'
-582|       });
-583|     }
-584|   });
-585| 
-586|   app.delete('/api/transactions/:id', async (req, res) => {
-587|     try {
-588|       const transactionId = parseInt(req.params.id, 10);
-589|       if (isNaN(transactionId)) {
-590|         return res.status(400).json({
-591|           message: 'Invalid transaction ID',
-592|           error: 'Transaction ID must be a number'
-593|         });
-594|       }
-595| 
-596|       console.log('[Transactions API] Attempting to delete transaction:', { id: transactionId });
-597| 
-598|       const transaction = await db.query.transactions.findFirst({
-599|         where: eq(transactions.id, transactionId)
-600|       });
-601| 
-602|       if (!transaction) {
-603|         console.log('[Transactions API] Transaction not found:', { id: transactionId });
-604|         return res.status(404).json({
-605|           message: 'Transaction not found',
-606|           error: `No transaction found with ID ${transactionId}`
-607|         });
-608|       }
-609| 
-610|       const deleted = await db.delete(transactions)
-611|         .where(eq(transactions.id, transactionId))
-612|         .returning();
-613| 
-614|       if (!deleted.length) {
-615|         throw new Error(`Failed to delete transaction ${transactionId}`);
-616|       }
-617| 
-618|       console.log('[Transactions API] Successfully deleted transaction:', {
-619|         id: transactionId,
-620|         deletedCount: deleted.length
-621|       });
-622| 
-623|       return res.status(200).json({
-624|         message: 'Transaction deleted successfully',
-625|         deletedId: transactionId
-626|       });
-627|     } catch (error) {
-628|       console.error('[Transactions API] Error in delete transaction handler:', {
-629|         id: req.params.id,
-630|         error: error instanceof Error ? error.message : 'Unknown error'
-631|       });
-632| 
-633|       return res.status(500).json({
-634|         message: 'Failed to delete transaction',
-635|         error: process.env.NODE_ENV === 'development'
-636|           ? (error instanceof Error ? error.message : 'Unknown error')
-637|           : 'Internal server error'
-638|       });
-639|     }
-640|   });
-641| 
-642|   app.patch('/api/bills/:id', async (req, res) => {
-643|     try {
-644|       console.log('[Bills API] Updating bill:', {
-645|         id: req.params.id,
-646|         data: req.body
-647|       });
-648| 
-649|       const billId = parseInt(req.params.id);
-650|       const existingBill = await db.query.bills.findFirst({
-651|         where: eq(bills.id, billId)
-652|       });
-653| 
-654|       if (!existingBill) {
-655|         return res.status(404).json({ message: 'Bill not found' });
-656|       }
-657| 
-658|       // Update the bill
-659|       const [updatedBill] = await db.update(bills)
-660|         .set({
-661|           name: req.body.name,
-662|           amount: req.body.amount,
-663|           day: req.body.day,
-664|           category_id: req.body.category_id
-665|         })
-666|         .where(eq(bills.id, billId))
-667|         .returning();
-668| 
-669|       // Also update any existing transactions that were generated from this bill
-670|       // to maintain consistency in descriptions and amounts
-671|       if (existingBill.name !== req.body.name) {
-672|         await db.update(transactions)
-673|           .set({
-674|             description: req.body.name,
-675|             category_id: req.body.category_id
-676|           })
-677|           .where(
-678|             and(
-679|               eq(transactions.category_id, existingBill.category_id),
-680|               ilike(transactions.description, `%${existingBill.name}%`)
-681|             )
-682|           );
-683|       }
-684| 
-685|       console.log('[Bills API] Successfully updated bill:', updatedBill);
-686| 
-687|       // Add cache control headers
-688|       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-689|       res.set('Pragma', 'no-cache');
-690|       res.set('Expires', '0');
-691| 
-692|       res.json(updatedBill);
-693|     } catch (error) {
-694|       console.error('[Bills API] Error updating bill:', error);
-695|       res.status(400).json({
-696|         message: error instanceof Error ? error.message : 'Invalid request data'
-697|       });
-698|     }
-699|   });
-700| 
-701|   const httpServer = createServer(app);
-702|   return httpServer;
-703| }
-704| 
+      const isRecurring = transactionData.recurring_type && transactionData.recurring_type !== 'once';
+
+      console.log('[Transactions API] Processing transaction with recurring info:', {
+        recurring_type: transactionData.recurring_type,
+        is_recurring: isRecurring
+      });
+
+      // Create the transaction with recurring fields
+      const [newTransaction] = await db.insert(transactions)
+        .values({
+          description: transactionData.description,
+          amount: transactionData.amount,
+          date: new Date(transactionData.date),
+          type: transactionData.type,
+          category_id: transactionData.category_id,
+          recurring_type: transactionData.recurring_type || null,
+          is_recurring: isRecurring,
+          first_date: transactionData.first_date || null,
+          second_date: transactionData.second_date || null
+        })
+        .returning();
+
+      console.log('[Transactions API] Created transaction:', newTransaction);
+      res.status(201).json(newTransaction);
+    } catch (error) {
+      console.error('[Transactions API] Error creating transaction:', error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Invalid request data'
+      });
+    }
+  });
+
+  app.patch('/api/transactions/:id', async (req, res) => {
+    try {
+      console.log('[Transactions API] Updating transaction:', {
+        id: req.params.id,
+        data: req.body
+      });
+
+      const transactionId = parseInt(req.params.id);
+      const existingTransaction = await db.query.transactions.findFirst({
+        where: eq(transactions.id, transactionId)
+      });
+
+      if (!existingTransaction) {
+        return res.status(404).json({ message: 'Transaction
+          if (!existingTransaction) {
+            return res.status(404).json({ message: 'Transaction not found' });
+          }
+          
+          // Update all transactions with the same description and category to maintain consistency
+          const oldDescription = existingTransaction.description.toLowerCase();
+          const newDescription = req.body.description.toLowerCase();
+          
+          // Start a transaction to ensure all updates happen together
+          let updatedTransaction;
+          try {
+            await db.transaction(async (tx) => {
+              // First update the specific transaction
+              [updatedTransaction] = await tx.update(transactions)
+                .set({
+                  description: req.body.description,
+                  amount: req.body.amount,
+                  date: new Date(req.body.date),
+                  type: req.body.type,
+                  category_id: req.body.category_id
+                })
+                .where(eq(transactions.id, transactionId))
+                .returning();
+          
+              // Then update all related transactions to maintain consistency
+              if (oldDescription !== newDescription || existingTransaction.category_id !== req.body.category_id) {
+                await tx.update(transactions)
+                  .set({
+                    description: req.body.description,
+                    category_id: req.body.category_id
+                  })
+                  .where(
+                    and(
+                      eq(transactions.type, existingTransaction.type),
+                      ilike(transactions.description, oldDescription),
+                      eq(transactions.category_id, existingTransaction.category_id)
+                    )
+                  );
+              }
+            });
+          } catch (error) {
+            console.error('[Transactions API] Transaction update failed:', error);
+            throw error;
+          }
+          
+          console.log('[Transactions API] Successfully updated transaction:', updatedTransaction);
+          
+          // Add aggressive cache control headers
+          res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.set('Pragma', 'no-cache');
+          res.set('Expires', '0');
+          
+          res.json(updatedTransaction);
+          } catch (error) {
+          console.error('[Transactions API] Error updating transaction:', error);
+          res.status(400).json({
+          message: error instanceof Error ? error.message : 'Invalid request data'
+          });
+          }
+          });
+          
+          app.delete('/api/transactions/:id', async (req, res) => {
+          try {
+          const transactionId = parseInt(req.params.id, 10);
+          if (isNaN(transactionId)) {
+            return res.status(400).json({
+              message: 'Invalid transaction ID',
+              error: 'Transaction ID must be a number'
+            });
+          }
+          
+          console.log('[Transactions API] Attempting to delete transaction:', { id: transactionId });
+          
+          const transaction = await db.query.transactions.findFirst({
+            where: eq(transactions.id, transactionId)
+          });
+          
+          if (!transaction) {
+            console.log('[Transactions API] Transaction not found:', { id: transactionId });
+            return res.status(404).json({
+              message: 'Transaction not found',
+              error: `No transaction found with ID ${transactionId}`
+            });
+          }
+          
+          const deleted = await db.delete(transactions)
+            .where(eq(transactions.id, transactionId))
+            .returning();
+          
+          if (!deleted.length) {
+            throw new Error(`Failed to delete transaction ${transactionId}`);
+          }
+          
+          console.log('[Transactions API] Successfully deleted transaction:', {
+            id: transactionId,
+            deletedCount: deleted.length
+          });
+          
+          return res.status(200).json({
+            message: 'Transaction deleted successfully',
+            deletedId: transactionId
+          });
+          } catch (error) {
+          console.error('[Transactions API] Error in delete transaction handler:', {
+            id: req.params.id,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+          
+          return res.status(500).json({
+            message: 'Failed to delete transaction',
+            error: process.env.NODE_ENV === 'development'
+              ? (error instanceof Error ? error.message : 'Unknown error')
+              : 'Internal server error'
+          });
+          }
+          });
+          
+          app.patch('/api/bills/:id', async (req, res) => {
+          try {
+          console.log('[Bills API] Updating bill:', {
+            id: req.params.id,
+            data: req.body
+          });
+          
+          const billId = parseInt(req.params.id);
+          const existingBill = await db.query.bills.findFirst({
+            where: eq(bills.id, billId)
+          });
+          
+          if (!existingBill) {
+            return res.status(404).json({ message: 'Bill not found' });
+          }
+          
+          // Update the bill
+          const [updatedBill] = await db.update(bills)
+            .set({
+              name: req.body.name,
+              amount: req.body.amount,
+              day: req.body.day,
+              category_id: req.body.category_id
+            })
+            .where(eq(bills.id, billId))
+            .returning();
+          
+          // Also update any existing transactions that were generated from this bill
+          // to maintain consistency in descriptions and amounts
+          if (existingBill.name !== req.body.name) {
+            await db.update(transactions)
+              .set({
+                description: req.body.name,
+                category_id: req.body.category_id
+              })
+              .where(
+                and(
+                  eq(transactions.category_id, existingBill.category_id),
+                  ilike(transactions.description, `%${existingBill.name}%`)
+                )
+              );
+          }
+          
+          console.log('[Bills API] Successfully updated bill:', updatedBill);
+          
+          // Add cache control headers
+          res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.set('Pragma', 'no-cache');
+          res.set('Expires', '0');
+          
+          res.json(updatedBill);
+          } catch (error) {
+          console.error('[Bills API] Error updating bill:', error);
+          res.status(400).json({
+            message: error instanceof Error ? error.message : 'Invalid request data'
+          });
+          }
+          });
+          
+          const httpServer = createServer(app);
+          return httpServer;
+          }
