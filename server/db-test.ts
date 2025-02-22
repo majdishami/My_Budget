@@ -1,5 +1,5 @@
 import { db, pool } from "@db";
-import { transactions, categories } from "@db/schema";
+import { transactions, categories } from "./schema";
 
 async function testDatabaseConnection() {
   console.log('Testing database connection...');

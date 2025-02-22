@@ -18,7 +18,7 @@ const poolConfig = {
 };
 
 // Initialize pool with configuration
-const pool = new Pool(poolConfig);
+export const pool = new Pool(poolConfig);
 
 // Add error handling for the pool
 pool.on('error', (err: Error & { code?: string }) => {

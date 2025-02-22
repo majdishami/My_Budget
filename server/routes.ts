@@ -2,22 +2,20 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
 import {
-  users,
-  insertUserSchema,
   categories,
   insertCategorySchema,
   transactions,
   bills,
   insertTransactionSchema,
-} from "@db/schema";
-import { eq, desc, ilike, or, and } from "drizzle-orm";
+} from "../db/schema";
+import { eq, ilike, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import dayjs from "dayjs";
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import session from "express-session";
-import ConnectPgSimple from "connect-pg-simple";
-import crypto from "crypto";
+import isBetween from "dayjs/plugin/isBetween";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+
+dayjs.extend(isBetween);
+dayjs.extend(isSameOrBefore);
 
 export function registerRoutes(app: Express): Server {
   // Health check endpoint
@@ -129,7 +127,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      await db.transaction(async (tx) => {
+      await db.transaction(async (tx: any) => {
         await tx.delete(bills).where(eq(bills.category_id, categoryId));
         const result = await tx
           .delete(categories)
@@ -190,7 +188,7 @@ export function registerRoutes(app: Express): Server {
         },
       });
 
-      const formattedBills = allBills.map((bill) => ({
+      const formattedBills = allBills.map((bill: any) => ({
         id: bill.id,
         name: bill.name,
         amount: Number(bill.amount),
@@ -330,7 +328,7 @@ export function registerRoutes(app: Express): Server {
 
           if (billData.is_yearly && billData.yearly_date) {
             const yearlyDate = dayjs(billData.yearly_date);
-            let yearCheck = startDate.startOf("year");
+            let yearCheck: dayjs.Dayjs = startDate.startOf("year");
 
             while (yearCheck.isBefore(endDate)) {
               const billDate = yearlyDate.year(yearCheck.year());
@@ -353,7 +351,7 @@ export function registerRoutes(app: Express): Server {
             continue;
           }
 
-          let currentMonth = startDate.startOf("month");
+          let currentMonth: dayjs.Dayjs = startDate.startOf("month");
           while (currentMonth.isSameOrBefore(endDate)) {
             const billDate =
               billData.day === 1
@@ -388,7 +386,7 @@ export function registerRoutes(app: Express): Server {
           };
 
           if (transaction.description === "Ruba's Salary") {
-            let currentDate = startDate.clone();
+            let currentDate: dayjs.Dayjs = startDate.clone();
             while (currentDate.day() !== 5) {
               currentDate = currentDate.add(1, "day");
             }
@@ -412,7 +410,7 @@ export function registerRoutes(app: Express): Server {
               ? originalDate.date()
               : undefined;
 
-          let currentMonth = startDate.startOf("month");
+          let currentMonth: dayjs.Dayjs = startDate.startOf("month");
           while (currentMonth.isSameOrBefore(endDate)) {
             if (
               transaction.recurring_type === "twice-monthly" &&
@@ -458,7 +456,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       const combinedTransactions = [
-        ...actualTransactions.map((t) => ({
+        ...actualTransactions.map((t: any) => ({
           ...t,
           amount: Number(t.amount),
           date: dayjs(t.date).format("YYYY-MM-DD"),
@@ -543,7 +541,7 @@ export function registerRoutes(app: Express): Server {
       let updatedTransaction;
 
       try {
-        await db.transaction(async (tx) => {
+        await db.transaction(async (tx: any) => {
           updatedTransaction = await tx
             .update(transactions)
             .set({

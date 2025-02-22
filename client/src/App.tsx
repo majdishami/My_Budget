@@ -8,42 +8,42 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Switch, Route, Link, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
-import { Toaster } from "@/components/ui/toaster";
-import { Budget } from "@/pages/Budget";
+// import { Toaster } from "@/components/ui/toaster"; // Removed due to missing module
+import { Budget } from "./pages/Budget";
 import dayjs from 'dayjs';
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { useData } from "@/contexts/DataContext";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+// import { ThemeToggle } from "@/components/ThemeToggle";
+import { useData } from "./contexts/DataContext";
+import { Alert, AlertDescription } from "./components/ui/alert";
 import {
   Loader2, Menu, BarChart4,
   Download, Database, Tags, ChevronDown,
   RotateCw, Plus, Edit, Trash, FileText, Bell,
   PlusCircle
 } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Income, Bill } from "@/types";
+import { Card } from "./components/ui/card";
+import { Sheet, SheetContent, SheetTrigger } from "./components/ui/sheet";
+import { cn } from "./lib/utils";
+// import { useIsMobile } from "@/hooks/use-mobile";
+import { Income, Bill } from "./types";
 import crypto from 'crypto';
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "./components/ui/badge";
 import { logger } from './lib/logger';
-import CategoriesPage from "@/pages/Categories";
-import NotFound from "@/pages/not-found";
-import MonthlyToDateReport from "@/pages/monthly-to-date";
-import MonthlyReport from "@/pages/monthly";
-import AnnualReport from "@/pages/annual";
-import DateRangeReport from "@/pages/date-range";
-import IncomeReport from "@/pages/income";
-import ExpenseReportPage from "@/pages/expenses"; // Assumed correct import
-import { AddIncomeDialog } from "@/components/AddIncomeDialog";
-import { AddExpenseDialog } from "@/components/AddExpenseDialog";
-import { EditIncomeDialog } from "@/components/EditIncomeDialog";
-import EditExpenseDialog from "@/components/EditExpenseDialog";
-import { ExportDialog } from "@/components/ExportDialog";
-import { ViewRemindersDialog } from "@/components/ViewRemindersDialog";
-import { DatabaseSyncDialog } from "@/components/DatabaseSyncDialog";
+import CategoriesPage from "./pages/Categories";
+import NotFound from "./pages/not-found";
+import MonthlyToDateReport from "./pages/monthly-to-date";
+import MonthlyReport from "./pages/monthly";
+import AnnualReport from "./pages/annual";
+import DateRangeReport from "./pages/date-range";
+import IncomeReport from "./pages/income";
+import ExpenseReportPage from "./pages/expenses";
+import { AddIncomeDialog } from "./components/AddIncomeDialog";
+import { AddExpenseDialog } from "./components/AddExpenseDialog";
+import { EditIncomeDialog } from "./components/EditIncomeDialog";
+import EditExpenseDialog from "./components/EditExpenseDialog";
+import { ExportDialog } from "./components/ExportDialog";
+import { ViewRemindersDialog } from "./components/ViewRemindersDialog";
+import { DatabaseSyncDialog } from "./components/DatabaseSyncDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,7 +53,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "./components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,14 +61,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "./components/ui/dropdown-menu";
+import React from "react";
 
 
 
 function Router() {
   const { isLoading, error, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
   const [location, setLocation] = useLocation();
-  const isMobile = useIsMobile();
+  const isMobile = false; // Set a default value or handle it differently
 
   const today = useMemo(() => dayjs('2025-02-11'), []);
 
@@ -310,93 +311,97 @@ function Router() {
                         )} />
                       </button>
                       <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                      </Sheet>
                         <SheetTrigger asChild>
                           <button className="p-2 hover:bg-accent rounded-md">
                             <Menu className="h-5 w-5" />
                           </button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[80vw] sm:w-[350px]">
-                          <nav className="flex flex-col gap-4 mt-4">
-                            <Link href="/" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                              Dashboard
-                            </Link>
-                            <Link href="/categories" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                              <Tags className="h-4 w-4" />
-                              Categories
-                            </Link>
-                            <button
-                              onClick={() => {
-                                setIsMenuOpen(false);
-                                setShowAddExpenseDialog(true);
-                              }}
-                              className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                              Add Expense
-                            </button>
-                            <button
-                              onClick={() => {
-                                setIsMenuOpen(false);
-                                setShowAddIncomeDialog(true);
-                              }}
-                              className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                              Add Income
-                            </button>
-                            <button
-                              onClick={() => {
-                                setIsMenuOpen(false);
-                                setShowRemindersDialog(true);
-                              }}
-                              className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                            >
-                              View Reminders
-                            </button>
-                            <div className="flex flex-col gap-2">
-                              <h3 className="font-medium px-2">Reports</h3>
-                              <Link href="/reports/monthly-to-date" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Monthly to Date
-                              </Link>
-                              <Link href="/reports/monthly" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Monthly Report
-                              </Link>
-                              <Link href="/reports/annual" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Annual Report
-                              </Link>
-                              <Link href="/reports/date-range" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Date Range
-                              </Link>
-                              <Link href="/reports/income" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Income Report
-                              </Link>
-                              <Link href="/reports/expenses" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                Expense Report
-                              </Link>
+                          <>
+                            <div>
+                              <nav className="flex flex-col gap-4 mt-4">
+                                <Link href="/" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                  Dashboard
+                                </Link>
+                                <Link href="/categories" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                  <Tags className="h-4 w-4" />
+                                  Categories
+                                </Link>
+                                <button
+                                  onClick={() => {
+                                    setIsMenuOpen(false);
+                                    setShowAddExpenseDialog(true);
+                                  }}
+                                  className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                                >
+                                  <PlusCircle className="h-4 w-4" />
+                                  Add Expense
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setIsMenuOpen(false);
+                                    setShowAddIncomeDialog(true);
+                                  }}
+                                  className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                                >
+                                  <PlusCircle className="h-4 w-4" />
+                                  Add Income
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setIsMenuOpen(false);
+                                    setShowRemindersDialog(true);
+                                  }}
+                                  className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                                >
+                                  View Reminders
+                                </button>
+                                <div className="flex flex-col gap-2">
+                                  <h3 className="font-medium px-2">Reports</h3>
+                                  <Link href="/reports/monthly-to-date" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                    Monthly to Date
+                                  </Link>
+                                  <Link href="/reports/monthly" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                    Monthly Report
+                                  </Link>
+                                  <Link href="/reports/annual" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                    Annual Report
+                                  </Link>
+                                  <Link href="/reports/date-range" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                    Date Range
+                                  </Link>
+                                  <Link href="/reports/income" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                    Income Report
+                                  </Link>
+                                  <Link href="/reports/expenses" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                    Expense Report
+                                  </Link>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    setIsMenuOpen(false);
+                                    setShowExportDialog(true);
+                                  }}
+                                  className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  Export Data
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setIsMenuOpen(false);
+                                    setShowDatabaseSyncDialog(true);
+                                  }}
+                                  className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                                >
+                                  <Database className="h-4 w-4" />
+                                  Sync Database
+                                </button>
+                              </nav>
                             </div>
-                            <button
-                              onClick={() => {
-                                setIsMenuOpen(false);
-                                setShowExportDialog(true);
-                              }}
-                              className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                            >
-                              <Download className="h-4 w-4" />
-                              Export Data
-                            </button>
-                            <button
-                              onClick={() => {
-                                setIsMenuOpen(false);
-                                setShowDatabaseSyncDialog(true);
-                              }}
-                              className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                            >
-                              <Database className="h-4 w-4" />
-                              Sync Database
-                            </button>
-                          </nav>
+                          </>
                         </SheetContent>
-                      </Sheet>
                     </div>
                   ) : (
                     <div className="flex items-center gap-4">
@@ -503,7 +508,7 @@ function Router() {
                                 <Edit className="mr-2 h-4 w-4" />
                                 <div className="flex items-center gap-2">
                                   <span>{income.source}</span>
-                                  <Badge variant="outline" className="ml-2">
+                                  <Badge className="ml-2">
                                     {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
                                       occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
                                         occurrenceTypeLabel === 'monthly' ? 'Monthly' :
@@ -545,7 +550,7 @@ function Router() {
                                 <Trash className="mr-2 h-4 w-4" />
                                 <div className="flex items-center gap-2">
                                   <span>{income.source}</span>
-                                  <Badge variant="outline" className="ml-2">
+                                  <Badge className="ml-2">
                                     {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
                                       occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
                                         occurrenceTypeLabel === 'monthly' ? 'Monthly' :
@@ -615,7 +620,7 @@ function Router() {
                         Sync Database
                       </button>
 
-                      <ThemeToggle />
+                      {/* <ThemeToggle /> */}
                     </div>
                   )}
                 </div>
@@ -732,7 +737,7 @@ function App() {
         }}
       >
         <Router />
-        <Toaster />
+        {/* <Toaster /> */}
       </ErrorBoundary>
     </QueryClientProvider>
   );

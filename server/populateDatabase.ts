@@ -4,7 +4,46 @@ import path from 'path';
 
 // Read the backup file
 const backupFilePath = path.join(__dirname, '../budget_tracker_2025-02-20T05-48-39-540Z.json');
-const backupData = JSON.parse(fs.readFileSync(backupFilePath, 'utf8'));
+interface Category {
+  id: string;
+  color: string;
+  icon: string;
+}
+
+interface Bill {
+  name: string;
+  amount: number;
+  day: number;
+  category: string;
+  is_one_time: boolean;
+  is_yearly: boolean;
+  date: string;
+  yearly_date: string;
+  reminder_enabled: boolean;
+  reminder_days: number;
+}
+
+interface Transaction {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  type: string;
+  category_id: string;
+  created_at: string;
+  recurring_type: string;
+  is_recurring: boolean;
+  first_date: string;
+  second_date: string;
+}
+
+interface BackupData {
+  categories: { [key: string]: Category };
+  bills: { [key: string]: Bill };
+  transactions: Transaction[];
+}
+
+const backupData: BackupData = JSON.parse(fs.readFileSync(backupFilePath, 'utf8'));
 
 // Database connection configuration
 const client = new Client({

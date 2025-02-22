@@ -1,6 +1,6 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-import { drizzle } from 'drizzle-orm';
+import drizzle from 'drizzle-orm';
 import { schema } from './schema';
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';

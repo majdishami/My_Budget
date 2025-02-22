@@ -1,20 +1,17 @@
 // Important: Calendar must always use table format to maximize transaction visibility in day cells
 // Do not change this to any other format (like the default calendar component)
-import { Route, useRoute } from "wouter";
-import { useState, useEffect, useMemo, useCallback, memo } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
-import { Income, Bill } from "@/types";
-import { cn } from "@/lib/utils";
-import { Card } from "@/components/ui/card";
-import { useData } from "@/contexts/DataContext";
-import DailySummaryDialog from "@/components/DailySummaryDialog";
+import { Income, Bill } from "../types";
+import { cn } from "../lib/utils";
+import { useData } from "../contexts/DataContext";
 import { Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import ThemeToggle from "@/components/ThemeToggle";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import React from "react";
 
 // Initialize dayjs plugins
 dayjs.extend(isBetween);
@@ -67,7 +64,8 @@ const DayCell = memo(({
   dayBills, 
   onDayClick, 
   selectedMonth, 
-  selectedYear 
+  selectedYear,
+  calendarData,
 }: { 
   day: number;
   isCurrentDay: boolean;
@@ -77,6 +75,7 @@ const DayCell = memo(({
   onDayClick: (day: number) => void;
   selectedMonth: number;
   selectedYear: number;
+  calendarData: (number | null)[];
 }) => {
   const sortedIncomes = [...dayIncomes].sort((a, b) => b.amount - a.amount);
   const sortedBills = [...dayBills].sort((a, b) => b.amount - a.amount);
@@ -116,21 +115,26 @@ const DayCell = memo(({
               </span>
             </>
           )}
-        </div>
-      </div>
-      {hasTransactions && (
-        <div className="flex gap-0.5">
-          {sortedIncomes.length > 0 && (
-            <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-green-500" />
+          </div>
+          {hasTransactions && (
+            <div className="flex gap-0.5">
+              {sortedIncomes.length > 0 && (
+                <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-green-500" />
+              )}
+              {sortedBills.length > 0 && (
+                <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-red-500" />
+              )}
+            </div>
           )}
-          {sortedBills.length > 0 && (
-            <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-red-500" />
-          )}
         </div>
-      )}
-    </td>
-  );
-});
+      </td>
+    );
+  }
+);
+
+DayCell.displayName = 'DayCell';
+
+DayCell.displayName = 'DayCell';
 
 DayCell.displayName = 'DayCell';
 
@@ -403,4 +407,102 @@ export function Budget() {
           <select 
             value={selectedMonth}
             onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-            className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w
+            className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w-[100px]"
+          >
+            {months.map(month => (
+              <option key={month.value} value={month.value}>
+                {month.label}
+              </option>
+            ))}
+          </select>
+              <select 
+                value={selectedYear}
+                onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w-[100px]"
+              >
+                {years.map(year => (
+                  <option key={year.value} value={year.value}>
+                    {year.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <th key={day} className="border border-yellow-100/50 p-1 md:p-2">
+                    {day}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: Math.ceil(calendarData.length / 7) }).map((_, weekIndex) => (
+                <tr key={weekIndex}>
+                  {calendarData.slice(weekIndex * 7, weekIndex * 7 + 7).map((day, dayIndex) => (
+                    <DayCell
+                      key={dayIndex}
+                      day={day || 0}
+                      isCurrentDay={isCurrentDay(day || 0)}
+                      selectedDay={selectedDay}
+                      dayIncomes={dayTransactions.find(t => t.day === day)?.incomes || []}
+                      dayBills={dayTransactions.find(t => t.day === day)?.bills || []}
+                      onDayClick={setSelectedDay}
+                      selectedMonth={selectedMonth}
+                      selectedYear={selectedYear}
+                      calendarData={calendarData}
+                    />
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="p-2 md:p-4">
+            <div className="flex justify-between items-center">
+              <div className="text-lg font-medium">
+                Monthly Totals
+              </div>
+              <button
+                onClick={() => setShowDailySummary(!showDailySummary)}
+                className="p-1.5 md:p-2 border rounded bg-background"
+              >
+                {showDailySummary ? 'Hide' : 'Show'} Daily Summary
+              </button>
+            </div>
+            <div className="mt-2">
+              <div className="flex justify-between">
+                <div>Total Income:</div>
+                <div>{formatCurrency(monthlyTotals.income)}</div>
+              </div>
+              <div className="flex justify-between">
+                <div>Total Expenses:</div>
+                <div>{formatCurrency(monthlyTotals.expenses)}</div>
+              </div>
+              <div className="flex justify-between">
+                <div>Net:</div>
+                <div>{formatCurrency(monthlyTotals.net)}</div>
+              </div>
+            </div>
+            {showDailySummary && (
+              <div className="mt-4">
+                <div className="text-lg font-medium">
+                  Daily Summary
+                </div>
+                {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
+                  const day = dayIndex + 1;
+                  const { income, expenses } = calculateRunningTotals(day);
+                  return (
+                    <div key={day} className="flex justify-between mt-2">
+                      <div>Day {day}:</div>
+                      <div>{formatCurrency(income - expenses)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
