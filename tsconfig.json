@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",  // Set to the root of the project
     "target": "ES2020",
     "module": "ESNext",
     "lib": ["ES2020", "DOM"],
@@ -12,7 +13,6 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
     "typeRoots": ["./types", "./node_modules/@types"],
-    "baseUrl": ".",  // Set to the root of the project
     "paths": {
       "@db/*": ["server/db/*"]  // Added path mapping
     }
