@@ -517,4 +517,6 @@ export function registerRoutes(app: Express): Server {
         data: req.body
       });
 
-      const
+      const transactionId = parseInt(req.params.id);
+      const existingTransaction = await db.query.transactions.findFirst({
+        where
