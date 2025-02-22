@@ -172,7 +172,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
   // Bills Routes with proper icon handling and cache prevention
   app.get('/api/bills', async (req, res) => {
     try {
@@ -514,9 +513,4 @@ export function registerRoutes(app: Express): Server {
   app.patch('/api/transactions/:id', async (req, res) => {
     try {
       console.log('[Transactions API] Updating transaction:', {
-        id: req.params.id,
-        data: req.body
-      });
-
-      const transactionId = parseInt(req.params.id);
-      const existingTransaction =
+        id: req.params
