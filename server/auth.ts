@@ -90,7 +90,7 @@ export function setupAuth(app: Express) {
         console.error('[Auth] Login error:', error);
         return done(error);
       }
-    }),
+    })
   );
 
   passport.serializeUser((user: Express.User, done) => {

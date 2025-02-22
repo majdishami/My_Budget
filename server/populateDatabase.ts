@@ -41,8 +41,8 @@ async function populateDatabase() {
     }
 
     console.log('Database populated successfully!');
-  } catch (err) {
-    console.error('Error populating the database:', err);
+  } catch (error) {
+    console.error('Error populating the database:', error);
   } finally {
     await client.end();
   }

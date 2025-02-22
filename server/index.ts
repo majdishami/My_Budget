@@ -50,7 +50,7 @@ pool.on('error', (err: Error & { code?: string }) => {
         attempt++;
         const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 1000, maxDelay);
 
-        console.log(`Reconnection attempt ${attempt}/${maxAttempts} in ${(delay/1000).toFixed(1)}s`);
+        console.log(`Reconnection attempt ${attempt}/${maxAttempts} in ${(delay / 1000).toFixed(1)}s`);
 
         setTimeout(async () => {
           try {
@@ -59,11 +59,7 @@ pool.on('error', (err: Error & { code?: string }) => {
             client.release();
             attempt = 0;
           } catch (error) {
-            console.error(`Reconnection failed (attempt ${attempt}/${maxAttempts})`, {
-              message: error instanceof Error ? error.message : 'Unknown error',
-              nextRetry: Math.min(1000 * Math.pow(2, attempt + 1), maxDelay) / 1000,
-              timestamp: new Date().toISOString()
-            });
+            console.error(`Reconnection failed (attempt ${attempt}/${maxAttempts}):`, errorContext);
             reconnect();
           }
         }, delay);
@@ -92,16 +88,6 @@ async function testConnection(retries = 5) {
       try {
         await client.query('SELECT NOW()');
         console.log('Database connection established');
-
-        const tables = await client.query(`
-          SELECT COUNT(*) as table_count 
-          FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_type = 'BASE TABLE';
-        `);
-
-        const categoryCount = await client.query('SELECT COUNT(*) FROM categories');
-        console.log(`Database status: ${tables.rows[0].table_count} tables, ${categoryCount.rows[0].count} categories`);
       } finally {
         client.release();
       }
@@ -109,7 +95,7 @@ async function testConnection(retries = 5) {
     } catch (error) {
       console.error(`Connection attempt ${attempt} failed:`, error);
       if (attempt === retries) {
-        console.error('Max retries reached, unable to establish a database connection.');
+        console.log('Max retries reached, unable to establish a database connection.');
         process.exit(1);
       }
       await new Promise(res => setTimeout(res, 2000 * attempt)); // Exponential backoff
