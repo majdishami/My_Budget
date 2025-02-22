@@ -519,8 +519,4 @@ export function registerRoutes(app: Express): Server {
       });
 
       const transactionId = parseInt(req.params.id);
-      const existingTransaction = await db.query.transactions.findFirst({
-        where: eq(transactions.id, transactionId)
-      });
-
-      if (!existingTransaction)
+      const existingTransaction =
