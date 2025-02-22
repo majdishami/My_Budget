@@ -172,6 +172,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+
   // Bills Routes with proper icon handling and cache prevention
   app.get('/api/bills', async (req, res) => {
     try {
