@@ -42,8 +42,8 @@ const TransactionCard = memo(({ item, type }: { item: Income | Bill; type: 'inco
     <div 
       className={`flex justify-between items-center text-[8px] md:text-xs ${
         type === 'income' 
-          ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30' 
-          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30'
+          ? 'text-green-600 dark:text-green-400 bg-green-950/30' 
+          : 'text-red-600 dark:text-red-400 bg-red-950/30'
       } rounded px-0.5`}
     >
       <span className="truncate max-w-[60%]">
@@ -59,14 +59,14 @@ const TransactionCard = memo(({ item, type }: { item: Income | Bill; type: 'inco
 TransactionCard.displayName = 'TransactionCard';
 
 // Memoized day cell component
-const DayCell = memo(({ 
+const DayCell = memo(({
   day, 
-  isCurrentDay,
-  selectedDay,
-  dayIncomes,
-  dayBills,
-  onDayClick,
-  selectedMonth,
+  isCurrentDay, 
+  selectedDay, 
+  dayIncomes, 
+  dayBills, 
+  onDayClick, 
+  selectedMonth, 
   selectedYear 
 }: { 
   day: number;
@@ -96,48 +96,38 @@ const DayCell = memo(({
       )}
     >
       <div className="flex justify-between items-start mb-0.5">
-        <div className="flex flex-col items-start">
-          <div className="flex items-center gap-1">
-            {isCurrentDay ? (
-              <>
-                <span className="font-bold text-sm md:text-base lg:text-lg text-primary bg-yellow-200 px-1.5 rounded">
-                  {day}
-                </span>
-                <span className="text-[10px] text-primary bg-yellow-200 px-1 rounded">
-                  {dayOfWeek}
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="font-medium text-sm md:text-base lg:text-lg">
-                  {day}
-                </span>
-                <span className="hidden md:inline text-[10px] text-muted-foreground">
-                  {dayOfWeek}
-                </span>
-              </>
-            )}
-          </div>
+        <div className="flex items-center gap-1">
+          {isCurrentDay ? (
+            <>
+              <span className="font-bold text-sm md:text-base lg:text-primary bg-yellow-200 px-1 rounded">
+                {day}
+              </span>
+              <span className="text-[10px] text-primary bg-yellow-200 px-1 rounded">
+                {dayOfWeek}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="font-medium text-sm md:text-base lg:text-lg">
+                {day}
+              </span>
+              <span className="hidden md:inline text-[10px] text-muted-foreground">
+                {dayOfWeek}
+              </span>
+            </>
+          )}
         </div>
-        {hasTransactions && (
-          <div className="flex gap-0.5">
-            {sortedIncomes.length > 0 && (
-              <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-green-500" />
-            )}
-            {sortedBills.length > 0 && (
-              <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-red-500" />
-            )}
-          </div>
-        )}
       </div>
-      <div className="space-y-0.5 text-[8px] md:text-xs max-h-[calc(100%-1.5rem)] overflow-y-auto">
-        {sortedIncomes.map((income) => (
-          <TransactionCard key={income.id} item={income} type="income" />
-        ))}
-        {sortedBills.map((bill) => (
-          <TransactionCard key={bill.id} item={bill} type="bill" />
-        ))}
-      </div>
+      {hasTransactions && (
+        <div className="flex gap-0.5">
+          {sortedIncomes.length > 0 && (
+            <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-green-500" />
+          )}
+          {sortedBills.length > 0 && (
+            <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-red-500" />
+          )}
+        </div>
+      )}
     </td>
   );
 });
@@ -146,9 +136,9 @@ DayCell.displayName = 'DayCell';
 
 export function Budget() {
   const { incomes, bills: rawBills, isLoading, error } = useData();
-  const today = useMemo(() => dayjs(), []); 
+  const today = useMemo(() => dayjs(), []);
   const [selectedDay, setSelectedDay] = useState(today.date());
-  const [selectedMonth, setSelectedMonth] = useState(today.month()); // Changed to 0-based
+  const [selectedMonth, setSelectedMonth] = useState(today.month() + 1); // Changed to 0-based
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [showDailySummary, setShowDailySummary] = useState(false);
 
@@ -171,15 +161,13 @@ export function Budget() {
       value: i, // Changed to 0-based
       label: dayjs().month(i).format('MMMM')
     })), 
-  ); 
-
-  // Update years calculation to only show 2025 and future years
+  []);
   const years = useMemo(() => 
     Array.from({ length: 6 }, (_, i) => ({
       value: 2025 + i,
       label: (2025 + i).toString()
     })), 
-  ); 
+  );
 
   // Update getIncomeForDay to handle recurring incomes across all months
   const getIncomeForDay = useCallback((day: number) => {
@@ -212,7 +200,6 @@ export function Budget() {
       const startDate = dayjs('2025-01-10'); // First payment date
 
       // Calculate if this is a valid payday by checking the exact number of weeks
-      // from the start date
       const weeksDiff = Math.floor(currentDate.diff(startDate, 'days') / 7);
 
       // Only include if the date is on or after start date and matches biweekly pattern
@@ -232,10 +219,12 @@ export function Budget() {
     // Handle one-time incomes
     incomes.forEach(income => {
       const incomeDate = dayjs(income.date);
-      if (incomeDate.date() === day && 
-          incomeDate.month() === selectedMonth && 
-          incomeDate.year() === selectedYear &&
-          !uniqueIncomes.has(income.source)) {
+      if (
+        incomeDate.date() === day && 
+        incomeDate.month() === selectedMonth && 
+        incomeDate.year() === selectedYear && 
+        !uniqueIncomes.has(income.source)
+      ) {
         uniqueIncomes.add(income.source);
         result.push(income);
       }
@@ -252,15 +241,15 @@ export function Budget() {
       if (bill.isOneTime && bill.date) {
         const billDate = dayjs(bill.date);
         return billDate.year() === selectedYear && 
-               billDate.month() === selectedMonth && 
-               billDate.date() === day;
+          billDate.month() === selectedMonth && 
+          billDate.date() === day;
       } else if (bill.isYearly && bill.yearly_date) {
         const yearlyDate = dayjs(bill.yearly_date);
         return yearlyDate.month() === selectedMonth && 
-               yearlyDate.date() === day;
+          yearlyDate.date() === day;
       } else {
         // Monthly recurring bill
-        return bill.day === day;
+        return bill.date === day;
       }
     }).map(bill => ({
       ...bill,
@@ -278,13 +267,13 @@ export function Budget() {
     let totalIncome = 0;
     let totalBills = 0;
 
-    // Calculate total income for the selected month
+    const processedIncomeSources = new Map<string, { count: number; amount: number }>();
+
     for (let day = 1; day <= daysInMonth; day++) {
       const dayIncomes = getIncomeForDay(day);
       totalIncome += dayIncomes.reduce((sum, income) => sum + income.amount, 0);
     }
 
-    // Calculate total bills for the selected month
     for (let day = 1; day <= daysInMonth; day++) {
       const dayBills = getBillsForDay(day);
       totalBills += dayBills.reduce((sum, bill) => sum + bill.amount, 0);
@@ -314,7 +303,7 @@ export function Budget() {
       totalBills += dayBills.reduce((sum, bill) => sum + bill.amount, 0);
     }
 
-    return { totalIncome, totalBills };
+    return { income: totalIncome, expenses: totalBills };
   }, [getIncomeForDay, getBillsForDay]);
 
   // Handle month and year changes with validation
@@ -409,130 +398,9 @@ export function Budget() {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col md:flex-row md:items-center justify-between p-2 md:p-4 border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 space-y-2 md:space-y-0">
-        <div className="flex items-center justify-between w-full md:w-auto">
-          <div className="flex items-center gap-1 md:gap-2">
-            <select 
-              value={selectedMonth}
-              onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-              className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w-[120px] text-xs md:text-base"
-              aria-label="Select month"
-            >
-              {months.map(month => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={selectedYear}
-              onChange={(e) => handleYearChange(parseInt(e.target.value))}
-              className="p-1.5 md:p-2 border rounded bg-background min-w-[80px] md:min-w-[100px] text-xs md:text-base"
-              aria-label="Select year"
-            >
-              {years.map(year => (
-                <option key={year.value} value={year.value}>
-                  {year.label}
-                </option>
-              ))}
-            </select>
-
-            {selectedMonth === today.month() && selectedYear === today.year() && (
-              <span className="text-[10px] md:text-sm text-muted-foreground ml-1 md:ml-2">
-                {today.format('ddd')}, {today.format('D')}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center">
-            <ThemeToggle />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 md:flex md:items-center gap-1 md:gap-4">
-          <div>
-            <p className="text-[10px] md:text-sm text-muted-foreground">Month Income</p>
-            <p className="text-xs md:text-lg font-semibold text-green-600 dark:text-green-400">
-              {formatCurrency(monthlyTotals.income)}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] md:text-sm text-muted-foreground">Month Bills</p>
-            <p className="text-xs md:text-lg font-semibold text-red-600 dark:text-red-400">
-              {formatCurrency(monthlyTotals.expenses)}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] md:text-sm text-muted-foreground">Month Net</p>
-            <p className={`text-xs md:text-lg font-semibold ${
-              monthlyTotals.net >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'
-            }`}>
-              {formatCurrency(monthlyTotals.net)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <Card className="m-1 md:m-4">
-        <div className="w-full overflow-hidden">
-          <table className="w-full table-fixed border-collapse text-[10px] md:text-sm lg:text-base">
-            <thead className="sticky top-0 bg-background z-10">
-              <tr>
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                  <th key={day} className="p-0.5 lg:p-2 text-center font-medium text-muted-foreground border border-yellow-100/50 w-[14.28%]">
-                    {day}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-yellow-100/50">
-              {Array.from({ length: calendarData.length > 35 ? 6 : 5 }, (_, weekIndex) => (
-                <tr key={weekIndex} className="divide-x divide-yellow-100/50">
-                  {Array.from({ length: 7 }, (_, dayIndex) => {
-                    const dayNumber = calendarData[weekIndex * 7 + dayIndex];
-                    if (dayNumber === null) {
-                      return <td key={dayIndex} className="border border-yellow-100/50 p-0.5 lg:p-2 bg-muted/10 h-12 md:h-24 lg:h-48" />;
-                    }
-
-                    const isToday = isCurrentDay(dayNumber);
-                    const dayData = dayTransactions[dayNumber - 1];
-
-                    return (
-                      <DayCell
-                        key={dayIndex}
-                        day={dayNumber}
-                        isCurrentDay={isToday}
-                        selectedDay={selectedDay}
-                        dayIncomes={dayData.incomes}
-                        dayBills={dayData.bills}
-                        onDayClick={(day) => {
-                          setSelectedDay(day);
-                          setShowDailySummary(true);
-                        }}
-                        selectedMonth={selectedMonth}
-                        selectedYear={selectedYear}
-                      />
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <DailySummaryDialog
-        isOpen={showDailySummary}
-        onOpenChange={setShowDailySummary}
-        selectedDay={selectedDay}
-        selectedMonth={selectedMonth}
-        selectedYear={selectedYear}
-        dayIncomes={dayTransactions[selectedDay - 1]?.incomes || []}
-        dayBills={dayTransactions[selectedDay - 1]?.bills || []}
-        totalIncomeUpToToday={calculateRunningTotals(selectedDay).totalIncome}
-        totalBillsUpToToday={calculateRunningTotals(selectedDay).totalBills}
-        monthlyTotals={monthlyTotals}
-      />
-    </div>
-  );
-}
+      <div className="flex flex-col md:flex-row md:items-center justify-between p-2 md:p-4">
+        <div className="flex items-center gap-2 mb-0.5">
+          <select 
+            value={selectedMonth}
+            onChange={(e) => handleMonthChange(parseInt(e.target.value))}
+            className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w
