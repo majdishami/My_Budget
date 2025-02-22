@@ -68,7 +68,7 @@ export function setupAuth(app: Express) {
   console.log('[Auth] Setting up passport strategy...');
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy(async (username: string, password: string, done: (error: any, user?: Express.User | false, info?: any) => void) => {
       try {
         console.log('[Auth] Attempting login for user:', username);
         const [user] = await getUserByUsername(username);
@@ -93,12 +93,12 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user: Express.User, done) => {
+  passport.serializeUser((user: Express.User, done: (err: any, id?: number) => void) => {
     console.log('[Auth] Serializing user:', user.id);
     done(null, user.id);
   });
 
-  passport.deserializeUser(async (id: number, done) => {
+  passport.deserializeUser(async (id: number, done: (err: any, user?: Express.User | false) => void) => {
     try {
       console.log('[Auth] Deserializing user:', id);
       const [user] = await db
