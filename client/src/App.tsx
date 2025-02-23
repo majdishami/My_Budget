@@ -318,7 +318,7 @@ function Router() {
                           </button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[80vw] sm:w-[350px]">
-                            <div>
+                            <>
                               <nav className="flex flex-col gap-4 mt-4">
                                 <Link href="/" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
                                   Dashboard
@@ -398,7 +398,7 @@ function Router() {
                                   Sync Database
                                 </button>
                               </nav>
-                            </div>
+                            </>
                         </SheetContent>
                     </div>
                   ) : (
