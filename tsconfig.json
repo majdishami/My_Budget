@@ -14,7 +14,7 @@
     "moduleResolution": "node",
     "typeRoots": ["./types", "./node_modules/@types"],
     "paths": {
-      "@db/*": ["server/db/*"]  // Added path mapping
+      "@db/*": ["db/*"]  // Updated path mapping
     }
   },
   "include": ["server/**/*", "vite.config.ts"],  // Updated include paths
