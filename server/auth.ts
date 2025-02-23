@@ -4,27 +4,15 @@ import { Express } from "express";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { promisify } from "util";
-import { pool } from "../db"; // Adjust the path as necessary
-import { type User as SelectUser } from "../db/schema"; // Adjust the path as necessary
-import { db } from "../db"; // Adjust the path as necessary
-import { users } from "../db/schema"; // Import the users table
+import { users, insertUserSchema, type SelectUser } from "../db/schema"; // Adjust the path as necessary
+import { db, pool } from "../db"; // Adjust the path as necessary
 import { eq } from "drizzle-orm";
 import { fromZodError } from "zod-validation-error";
-import { insertUserSchema } from "../db/schemas"; // Adjust the path as necessary
 import bcrypt from "bcrypt";
 
 declare global {
   namespace Express {
-    interface User extends SelectUser {
-      username: any;
-      id(arg0: string, id: any): unknown;
-    }
-    interface Request {
-      isAuthenticated(): boolean;
-      user?: SelectUser;
-      login(user: SelectUser, done: (err: any) => void): void;
-      logout(done: (err: any) => void): void;
-    }
+    interface User extends SelectUser {}
   }
 }
 
@@ -80,7 +68,7 @@ export function setupAuth(app: Express) {
   console.log('[Auth] Setting up passport strategy...');
 
   passport.use(
-    new LocalStrategy(async (username: string, password: string, done: (arg0: unknown, arg1: boolean | undefined, arg2: { message: string; } | undefined) => any) => {
+    new LocalStrategy(async (username, password, done) => {
       try {
         console.log('[Auth] Attempting login for user:', username);
         const [user] = await getUserByUsername(username);
@@ -97,7 +85,7 @@ export function setupAuth(app: Express) {
         }
 
         console.log('[Auth] Login successful for user:', user.id);
-        return done(null, user, undefined);
+        return done(null, user);
       } catch (error) {
         console.error('[Auth] Login error:', error);
         return done(error);
@@ -105,12 +93,12 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user: Express.User, done: (arg0: null, arg1: any) => void) => {
+  passport.serializeUser((user: Express.User, done) => {
     console.log('[Auth] Serializing user:', user.id);
     done(null, user.id);
   });
 
-  passport.deserializeUser(async (id: number, done: (arg0: unknown, arg1: boolean | undefined) => void) => {
+  passport.deserializeUser(async (id: number, done) => {
     try {
       console.log('[Auth] Deserializing user:', id);
       const [user] = await db
@@ -128,7 +116,7 @@ export function setupAuth(app: Express) {
       done(null, user);
     } catch (error) {
       console.error('[Auth] Deserialization error:', error);
-      done(error, false);
+      done(error);
     }
   });
 
@@ -167,7 +155,7 @@ export function setupAuth(app: Express) {
         })
         .returning();
 
-      req.login(user, (err: any) => {
+      req.login(user, (err) => {
         if (err) return next(err);
         console.log('[Auth] Registration successful. User logged in:', user.id);
         res.status(201).json({ id: user.id, username: user.username });
@@ -181,7 +169,7 @@ export function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     console.log('[Auth] Login attempt:', req.body.username);
 
-    passport.authenticate("local", (err: any, user: { id: any; username: any; }, info: { message: any; }) => {
+    passport.authenticate("local", (err, user, info) => {
       if (err) {
         console.error('[Auth] Login error:', err);
         return next(err);
@@ -192,7 +180,7 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: info?.message || 'Authentication failed' });
       }
 
-      req.login(user, (err: any) => {
+      req.login(user, (err) => {
         if (err) {
           console.error('[Auth] Session creation error:', err);
           return next(err);
@@ -210,7 +198,7 @@ export function setupAuth(app: Express) {
 
   app.post("/api/logout", (req, res) => {
     console.log('[Auth] Logging out user:', req.user ? (req.user as Express.User).id : 'No user');
-    req.logout((err: any) => {
+    req.logout((err) => {
       if (err) {
         console.error('[Auth] Logout error:', err);
         return res.status(500).json({ message: 'Error during logout' });
