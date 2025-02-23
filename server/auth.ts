@@ -1,18 +1,31 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
-import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { promisify } from "util";
-import { users, insertUserSchema, type SelectUser } from "../db/schema"; // Adjust the path as necessary
-import { db, pool } from "../db"; // Adjust the path as necessary
+import { insertUserSchema, users } from "../db/schemas/insertUserSchema"; // Ensure this path is correct and the file exists
+import { pool } from "../db"; // Adjust the path as necessary
 import { eq } from "drizzle-orm";
 import { fromZodError } from "zod-validation-error";
 import bcrypt from "bcrypt";
 
+import { SelectUser } from "../db/types"; // Adjust the path as necessary
+import session from "express-session";
+import type { SessionOptions } from "express-session";
+import { db } from "../db"; // Adjust the path as necessary
+
 declare global {
   namespace Express {
-    interface User extends SelectUser {}
+    interface User extends SelectUser {
+      username: any;
+      id(arg0: string, id: any): unknown;
+    }
+    interface Request {
+      isAuthenticated(): boolean;
+      user?: SelectUser;
+      login(user: Express.User, done: (err: any) => void): void;
+      logout(done: (err: any) => void): void;
+    }
   }
 }
 
@@ -28,7 +41,7 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 async function getUserByUsername(username: string) {
-  return db.select().from(users).where(eq(users.username, username)).limit(1);
+  return db.select().from(users).where(eq(users.username, username)).limit(1).execute();
 }
 
 export function setupAuth(app: Express) {
@@ -40,7 +53,7 @@ export function setupAuth(app: Express) {
     tableName: 'session'
   });
 
-  const sessionSettings: session.SessionOptions = {
+  const sessionSettings: SessionOptions = {
     store,
     secret: process.env.REPL_ID!,
     resave: false,
@@ -68,7 +81,7 @@ export function setupAuth(app: Express) {
   console.log('[Auth] Setting up passport strategy...');
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy(async (username: string, password: string, done: (arg0: unknown, arg1: boolean | undefined, arg2: { message: string; } | undefined) => any) => {
       try {
         console.log('[Auth] Attempting login for user:', username);
         const [user] = await getUserByUsername(username);
@@ -85,23 +98,23 @@ export function setupAuth(app: Express) {
         }
 
         console.log('[Auth] Login successful for user:', user.id);
-        return done(null, user);
+        return done(null, user, undefined);
       } catch (error) {
         console.error('[Auth] Login error:', error);
-        return done(error);
+        return done(error, undefined, { message: 'Deserialization error' });
       }
     })
   );
 
-  passport.serializeUser((user: Express.User, done) => {
+  passport.serializeUser((user: Express.User, done: (arg0: null, arg1: (arg0: string, id: any) => unknown) => void) => {
     console.log('[Auth] Serializing user:', user.id);
     done(null, user.id);
   });
 
-  passport.deserializeUser(async (id: number, done) => {
+  passport.deserializeUser(async (id: number, done: (arg0: unknown, arg1: boolean | undefined, arg2?: { message?: string }) => void) => {
     try {
       console.log('[Auth] Deserializing user:', id);
-      const [user] = await db
+      const [user]: [SelectUser] = await db
         .select()
         .from(users)
         .where(eq(users.id, id))
@@ -116,7 +129,7 @@ export function setupAuth(app: Express) {
       done(null, user);
     } catch (error) {
       console.error('[Auth] Deserialization error:', error);
-      done(error);
+      done(error, undefined);
     }
   });
 
@@ -169,7 +182,7 @@ export function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     console.log('[Auth] Login attempt:', req.body.username);
 
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: any, user: Express.User, info: { message: any; }) => {
       if (err) {
         console.error('[Auth] Login error:', err);
         return next(err);
