@@ -108,6 +108,8 @@ export const insertBillSchema = z.object({
 });
 
 // Export types
-export type Category = typeof categories.$inferSelect;
-export type Bill = typeof bills.$inferSelect;
-export type Transaction = typeof transactions.$inferSelect;
+import { InferModel } from "drizzle-orm";
+
+export type Category = InferModel<typeof categories>;
+export type Bill = InferModel<typeof bills>;
+export type Transaction = InferModel<typeof transactions>;

@@ -318,87 +318,87 @@ function Router() {
                           </button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[80vw] sm:w-[350px]">
-                            <>
-                              <nav className="flex flex-col gap-4 mt-4">
-                                <Link href="/" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                  Dashboard
+                          <>
+                            <nav className="flex flex-col gap-4 mt-4">
+                              <Link href="/" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                Dashboard
+                              </Link>
+                              <Link href="/categories" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                <Tags className="h-4 w-4" />
+                                Categories
+                              </Link>
+                              <button
+                                onClick={() => {
+                                  setIsMenuOpen(false);
+                                  setShowAddExpenseDialog(true);
+                                }}
+                                className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                              >
+                                <PlusCircle className="h-4 w-4" />
+                                Add Expense
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setIsMenuOpen(false);
+                                  setShowAddIncomeDialog(true);
+                                }}
+                                className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                              >
+                                <PlusCircle className="h-4 w-4" />
+                                Add Income
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setIsMenuOpen(false);
+                                  setShowRemindersDialog(true);
+                                }}
+                                className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                              >
+                                View Reminders
+                              </button>
+                              <div className="flex flex-col gap-2">
+                                <h3 className="font-medium px-2">Reports</h3>
+                                <Link href="/reports/monthly-to-date" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                  Monthly to Date
                                 </Link>
-                                <Link href="/categories" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                  <Tags className="h-4 w-4" />
-                                  Categories
+                                <Link href="/reports/monthly" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                  Monthly Report
                                 </Link>
-                                <button
-                                  onClick={() => {
-                                    setIsMenuOpen(false);
-                                    setShowAddExpenseDialog(true);
-                                  }}
-                                  className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                                >
-                                  <PlusCircle className="h-4 w-4" />
-                                  Add Expense
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setIsMenuOpen(false);
-                                    setShowAddIncomeDialog(true);
-                                  }}
-                                  className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                                >
-                                  <PlusCircle className="h-4 w-4" />
-                                  Add Income
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setIsMenuOpen(false);
-                                    setShowRemindersDialog(true);
-                                  }}
-                                  className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                                >
-                                  View Reminders
-                                </button>
-                                <div className="flex flex-col gap-2">
-                                  <h3 className="font-medium px-2">Reports</h3>
-                                  <Link href="/reports/monthly-to-date" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                    Monthly to Date
-                                  </Link>
-                                  <Link href="/reports/monthly" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                    Monthly Report
-                                  </Link>
-                                  <Link href="/reports/annual" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                    Annual Report
-                                  </Link>
-                                  <Link href="/reports/date-range" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                    Date Range
-                                  </Link>
-                                  <Link href="/reports/income" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                    Income Report
-                                  </Link>
-                                  <Link href="/reports/expenses" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                                    Expense Report
-                                  </Link>
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    setIsMenuOpen(false);
-                                    setShowExportDialog(true);
-                                  }}
-                                  className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                                >
-                                  <Download className="h-4 w-4" />
-                                  Export Data
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setIsMenuOpen(false);
-                                    setShowDatabaseSyncDialog(true);
-                                  }}
-                                  className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
-                                >
-                                  <Database className="h-4 w-4" />
-                                  Sync Database
-                                </button>
-                              </nav>
-                            </>
+                                <Link href="/reports/annual" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                  Annual Report
+                                </Link>
+                                <Link href="/reports/date-range" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                  Date Range
+                                </Link>
+                                <Link href="/reports/income" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                  Income Report
+                                </Link>
+                                <Link href="/reports/expenses" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
+                                  Expense Report
+                                </Link>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setIsMenuOpen(false);
+                                  setShowExportDialog(true);
+                                }}
+                                className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                              >
+                                <Download className="h-4 w-4" />
+                                Export Data
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setIsMenuOpen(false);
+                                  setShowDatabaseSyncDialog(true);
+                                }}
+                                className="flex items-center gap-2 p-2 hover:bg-accent rounded-md text-left"
+                              >
+                                <Database className="h-4 w-4" />
+                                Sync Database
+                              </button>
+                            </nav>
+                          </>
                         </SheetContent>
                     </div>
                   ) : (

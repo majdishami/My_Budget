@@ -4,9 +4,9 @@ import { Express } from "express";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { promisify } from "util";
-import { type users as SelectUser } from "../db/schema"; // Replace 'users' with the correct type if different
 import { pool } from "../db"; // Adjust the path as necessary
-import { db } from "../db/connection"; // Adjust the path as necessary
+import { type User as SelectUser } from "../db/schema"; // Adjust the path as necessary
+import { db } from "../db"; // Adjust the path as necessary
 import { users } from "../db/schema"; // Import the users table
 import { eq } from "drizzle-orm";
 import { fromZodError } from "zod-validation-error";
