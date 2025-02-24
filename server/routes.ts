@@ -719,6 +719,89 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Additional routes for bills
+  app.post("/api/bills", async (req, res) => {
+    try {
+      console.log("[Bills API] Creating new bill:", req.body);
+      const billData = await insertBillSchema.parseAsync(req.body);
+      const [newBill] = await db
+        .insert(bills)
+        .values(billData)
+        .returning();
+      console.log("[Bills API] Created bill:", newBill);
+      res.status(201).json(newBill);
+    } catch (error) {
+      console.error("[Bills API] Error creating bill:", error);
+      res.status(400).json({
+        message:
+          error instanceof Error ? error.message : "Invalid request data",
+      });
+    }
+  });
+
+  app.delete("/api/bills/:id", async (req, res) => {
+    const billId = parseInt(req.params.id);
+
+    if (isNaN(billId)) {
+      console.error("[Bills API] Invalid bill ID:", req.params.id);
+      return res.status(400).json({
+        message: "Invalid bill ID",
+        error: "Bill ID must be a number",
+      });
+    }
+
+    try {
+      console.log("[Bills API] Attempting to delete bill:", {
+        id: billId,
+      });
+
+      const bill = await db.query.bills.findFirst({
+        where: eq(bills.id, billId),
+      });
+
+      if (!bill) {
+        console.log("[Bills API] Bill not found:", { id: billId });
+        return res.status(404).json({
+          message: "Bill not found",
+          error: `No bill found with ID ${billId}`,
+        });
+      }
+
+      const deleted = await db
+        .delete(bills)
+        .where(eq(bills.id, billId))
+        .returning();
+
+      if (!deleted.length) {
+        throw new Error("Failed to delete bill");
+      }
+
+      console.log("[Bills API] Successfully deleted bill:", {
+        id: billId,
+        deletedCount: deleted.length,
+      });
+
+      return res.status(200).json({
+        message: "Bill deleted successfully",
+        deletedId: billId,
+      });
+    } catch (error) {
+      console.error("[Bills API] Error in delete bill handler:", {
+        id: billId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return res.status(500).json({
+        message: "Failed to delete bill",
+        error:
+          process.env.NODE_ENV === "development"
+            ? error instanceof Error
+              ? error.message
+              : "Internal server error"
+            : "Internal server error",
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

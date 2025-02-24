@@ -1,5 +1,4 @@
 import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 // Categories table - Lookup table for transaction and bill categories
@@ -55,26 +54,6 @@ export const bills = pgTable("bills", {
   reminder_enabled: boolean("reminder_enabled").default(false).notNull(),
   reminder_days: integer("reminder_days").default(7).notNull()
 });
-
-// Define relationships
-export const categoryRelations = relations(categories, ({ many }) => ({
-  bills: many(bills),
-  transactions: many(transactions),
-}));
-
-export const billRelations = relations(bills, ({ one }) => ({
-  category: one(categories, {
-    fields: [bills.category_id],
-    references: [categories.id],
-  }),
-}));
-
-export const transactionRelations = relations(transactions, ({ one }) => ({
-  category: one(categories, {
-    fields: [transactions.category_id],
-    references: [categories.id],
-  }),
-}));
 
 // Update the insert schemas to handle default dates
 export const insertTransactionSchema = z.object({
