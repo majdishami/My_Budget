@@ -1,4 +1,3 @@
-<<<<<<< Tabnine <<<<<<<
 import passport from "passport";//-
 import { Strategy as LocalStrategy } from "passport-local";//-
 import { Express } from "express";//-
@@ -220,4 +219,3 @@ export function setupAuth(app: Express): void {//-
   console.log('[Auth] Authentication setup completed');//-
 }//-
 import type { SessionOptions } from "express-session"; // Fix: Import SessionOptions correctly//+
->>>>>>> Tabnine >>>>>>>// {"source":"chat"}

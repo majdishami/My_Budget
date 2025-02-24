@@ -377,7 +377,6 @@ export function registerRoutes(app: Express): Server {
           }
         }
 
-<<<<<<< Tabnine <<<<<<<
         for (const transaction of actualTransactions) {//-
           if (!transaction.is_recurring) continue;//-
 //-
@@ -451,7 +450,6 @@ export function registerRoutes(app: Express): Server {
           }//-
         }//-
         import type { UploadedFile } from 'express-fileupload'; // Fix: Import UploadedFile correctly//+
->>>>>>> Tabnine >>>>>>>// {"source":"chat"}
       }
       console.log("[Transactions API] Generated virtual transactions:", {
         count: virtualTransactions.length,

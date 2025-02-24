@@ -1,4 +1,3 @@
-<<<<<<< Tabnine <<<<<<<
 import express, { type Express } from "express";//-
 import fs from "fs";//-
 import path, { dirname } from "path";//-
@@ -98,4 +97,3 @@ export function serveStatic(app: Express) {//-
 //-
 export default httpServer;//-
 import viteConfig from './vite.config'; // Fix: Import viteConfig if it exists//+
->>>>>>> Tabnine >>>>>>>// {"source":"chat"}
