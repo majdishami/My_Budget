@@ -11,11 +11,41 @@ export const categories = pgTable("categories", {
 });
 
 // Create Zod schemas for validation
-export const insertCategorySchema = z.object({
-  name: z.string().min(1, "Category name is required"),
-  color: z.string().min(1, "Color is required"),
-  icon: z.string().nullish(),
-});
+<<<<<<< Tabnine <<<<<<<
+export const insertCategorySchema = z.object({//-
+  name: z.string().min(1, "Category name is required"),//-
+  color: z.string().min(1, "Color is required"),//-
+  icon: z.string().nullish(),//-
+});//-
+import type { InferModel } from "@drizzle-orm/pg-core";//+
+import { drizzleOrmPgPlugin } from "@drizzle-orm/pg-plugin";//+
+import { createSchema, literal } from "drizzle-orm";//+
+//+
+export const schema = createSchema({//+
+  plugins: [drizzleOrmPgPlugin()],//+
+  models: {//+
+    bills: {//+
+      id: literal("id"),//+
+      name: literal("name"),//+
+      amount: literal("amount"),//+
+      day: literal("day"),//+
+      category_id: literal("category_id"),//+
+    },//+
+    categories: {//+
+      id: literal("id"),//+
+      name: literal("name"),//+
+    },//+
+    transactions: {//+
+      id: literal("id"),//+
+      description: literal("description"),//+
+      amount: literal("amount"),//+
+      category_id: literal("category_id"),//+
+    },//+
+  },//+
+});//+
+//+
+export type { InferModel };//+
+>>>>>>> Tabnine >>>>>>>// {"source":"chat"}
 
 // Schema for category updates
 export const updateCategorySchema = z.object({
