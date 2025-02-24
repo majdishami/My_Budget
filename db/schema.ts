@@ -87,7 +87,7 @@ export const insertBillSchema = z.object({
 });
 
 // Export types
-import { InferModel } from "drizzle-orm";
+import { InferModel } from "drizzle-orm/pg-core";
 
 export type Category = InferModel<typeof categories, 'select'>;
 export type Bill = InferModel<typeof bills, 'select'>;
