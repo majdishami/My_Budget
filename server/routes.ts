@@ -422,7 +422,7 @@ export function registerRoutes(app: Express): Server {
               const secondDate = currentMonth.date(transaction.second_date);
 
               if (firstDate.isBetween(startDate, endDate, "day", "[]")) {
-                virtual transactions.push({
+                transactions.push({
                   ...baseTransaction,
                   date: firstDate.format("YYYY-MM-DD"),
                   id: `${transaction.id}_${firstDate.format("YYYY-MM-DD")}`,
