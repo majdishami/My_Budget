@@ -7,6 +7,8 @@ import { createServer, Server } from "http"; // Fix: Import Server from http
 import { drizzle } from "drizzle-orm/node-postgres"; // Fix: Import drizzle from drizzle-orm/node-postgres
 import schema from "./schema"; // Fix: Ensure schema.ts exists and is exported
 import router from "./routes"; // Fix: Ensure routes.ts has a default export
+import { nanoid } from 'nanoid'; // Fix: Import nanoid
+import viteConfig from './vite.config'; // Fix: Import viteConfig if it exists
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

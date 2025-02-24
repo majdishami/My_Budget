@@ -257,7 +257,7 @@ export function registerRoutes(app: Express): Server {
         .from(transactions)
         .leftJoin(categories, eq(transactions.category_id, categories.id));
 
-      const whereConditions = [];
+      const whereConditions: any[] = [];
 
       if (type) {
         whereConditions.push(eq(transactions.type, type));
@@ -422,7 +422,7 @@ export function registerRoutes(app: Express): Server {
               const secondDate = currentMonth.date(transaction.second_date);
 
               if (firstDate.isBetween(startDate, endDate, "day", "[]")) {
-                virtualTransactions.push({
+                virtual transactions.push({
                   ...baseTransaction,
                   date: firstDate.format("YYYY-MM-DD"),
                   id: `${transaction.id}_${firstDate.format("YYYY-MM-DD")}`,
@@ -450,7 +450,6 @@ export function registerRoutes(app: Express): Server {
           }
         }
       }
-
       console.log("[Transactions API] Generated virtual transactions:", {
         count: virtualTransactions.length,
         sampleDates: virtualTransactions.slice(0, 3).map((t) => t.date),
