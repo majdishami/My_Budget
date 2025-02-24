@@ -1,9 +1,37 @@
-import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";//-
-import { z } from "zod";//-
-import { InferModel } from "drizzle-orm"; // Fix: Import InferModel from drizzle-orm//-//-//-
-import { InferModel } from "drizzle-orm";//+//-//-
-//-//-
-// Categories table - Lookup table for transaction and bill categories//-//-
+import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";//-//-//-
+import { z } from "zod";//-//-//-
+import { InferModel } from "drizzle-orm"; // Fix: Import InferModel from drizzle-orm//-//-//-//-//-
+//-//-//-//-
+import type { Category, Bill, Transaction } from "./schema"; // Fix: Import types from "./schema"//+//-
+// Categories table - Lookup table for transaction and bill categories//-//-//-
+export const insertTransactionSchema = z.object({//+//-
+  description: z.string().min(1, "Description is required"),//+//-
+  amount: z.number(),//+//-
+  date: z.string()//+//-
+    .transform((str) => str ? new Date(str) : new Date()),//+//-
+  type: z.enum(["income", "expense"]),//+//-
+  category_id: z.number().min(1, "Category ID is required").nullable().optional(),//+//-
+  recurring_type: z.enum(["once", "monthly", "twice-monthly", "biweekly", "weekly"]).optional(),//+//-
+  is_recurring: z.boolean().optional(),//+//-
+  first_date: z.number().optional(),//+//-
+  second_date: z.number().optional(),//+//-
+});//+//-
+export const insertBillSchema = z.object({//+
+  name: z.string().min(1, "Bill name is required"),//+
+  amount: z.number().min(0, "Amount must be non-negative"),//+
+  day: z.number().min(1).max(31),//+
+  category_id: z.number().min(1, "Category ID is required").nullable().optional(),//+
+  is_one_time: z.boolean().optional(),//+
+  is_yearly: z.boolean().optional(),//+
+  date: z.string()//+
+    .transform((str) => str ? new Date(str) : new Date())//+
+    .optional(),//+
+  yearly_date: z.string()//+
+    .transform((str) => str ? new Date(str) : new Date())//+
+    .optional(),//+
+  reminder_enabled: z.boolean().optional(),//+
+  reminder_days: z.number().optional(),//+
+});//+
 export const categories = pgTable("categories", {//-//-//-//-//-
   id: serial("id").primaryKey(),//-//-//-//-//-
   name: text("name").notNull(),//-//-//-//-//-

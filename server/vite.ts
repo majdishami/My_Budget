@@ -20,27 +20,46 @@ const httpServer = createServer(app);//-
 app.use(express.json());//-
 app.use(express.urlencoded({ extended: true }));//-
 //-//-//-//-//-
-const db = drizzle(httpServer, {//-//-//-//-//-//-
-  schema,//-//-//-//-//-//-
+const db = drizzle(httpServer, {//-//-//-//-//-//-//-
+  schema,//-//-//-//-//-//-//-
+import schema from "./schema";//+//-
+// Fix: Change the type of db to NodePgClient//+//-//-//-
+const db = drizzle(httpServer, {//+//-//-//-//-//-
+  schema,//+//-//-//-//-//-
+const viteServer = createViteServer({//+
+  appType: "./src/main",//+
+  server: {//+
+    middleware: [//+
+      sessionMiddleware({//+
+        store: new MemoryStore(),//+
+        secret: "keyboard cat",//+
+        resave: false,//+
+        saveUninitialized: true,//+
+        cookie: {//+
+          secure: process.env.NODE_ENV === "production",//+
+          maxAge: 60 * 60 * 1000, // 1 hour//+
+        },//+
+      }),//+
+    ],//+
+  },//+
+});//+
+import http from 'http';//+//-
+import { createServer as createViteServer } from 'vite';//+//-
+import type { SessionOptions } from 'express-session';//+//-
+import viteConfig from './vite.config';//+//-
+import schema from "./schema";//+//-
+});//+//-//-//-
+import type { SessionOptions } from "express-session";//+//-
+import viteConfig from './vite.config';//+//-
+import type { SessionOptions } from 'express-session';//+//-
+// Fix: Import viteConfig if it exists//+//-
+import viteConfig from './vite.config';//+//-
+// Fix: Ensure schema.ts exists and is exported//+//-
+import schema from "./schema";//+//-
+// Fix: Import SessionOptions correctly//+//-
+import type { SessionOptions } from 'express-session';//+//-
+});//-//-
 import schema from "./schema";//+
-// Fix: Change the type of db to NodePgClient//+//-
-const db = drizzle(httpServer, {//+//-//-//-
-  schema,//+//-//-//-
-import http from 'http';//+
-import { createServer as createViteServer } from 'vite';//+
-import type { SessionOptions } from 'express-session';//+
-import viteConfig from './vite.config';//+
-import schema from "./schema";//+
-});//+//-//-
-import viteConfig from './vite.config';//+
-import type { SessionOptions } from 'express-session';//+
-// Fix: Import viteConfig if it exists//+
-import viteConfig from './vite.config';//+
-// Fix: Ensure schema.ts exists and is exported//+
-import schema from "./schema";//+
-// Fix: Import SessionOptions correctly//+
-import type { SessionOptions } from 'express-session';//+
-});//-
 //-
 export async function setupVite(app: Express, server: Server) {//-
   const vite = await createViteServer({//-
