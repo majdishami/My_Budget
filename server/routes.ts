@@ -577,8 +577,6 @@ export function registerRoutes(app: Express): Server {
       } catch (error) {
         console.error("[Transactions API] Transaction update failed:", error);
         throw error;
-        console.error("[Transactions API] Transaction update failed:", error);
-        throw error;
       }
 
       console.log(
