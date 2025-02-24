@@ -11,6 +11,8 @@ async function testDatabaseConnection() {
     console.log('Pool connection successful');
     client.release();
 
+    // Test Drizzle
+
     // Test Drizzle ORM connection
     console.log('Testing Drizzle ORM connection...');
     const result = await db.select().from(categories).limit(1);
