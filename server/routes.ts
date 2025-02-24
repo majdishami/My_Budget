@@ -7,6 +7,7 @@ import {
   transactions,
   bills,
   insertTransactionSchema,
+  insertBillSchema,
 } from "../db/schema";
 import { eq, ilike, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";

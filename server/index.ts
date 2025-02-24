@@ -1,6 +1,6 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-import drizzle from 'drizzle-orm';
+import drizzle, { Schema } from 'drizzle-orm';
 import { schema } from './schema';
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
@@ -30,7 +30,7 @@ const poolConfig = {
 const pool = new Pool(poolConfig);
 
 // Initialize db with Drizzle ORM
-const db = drizzle(pool, { schema });
+const db = drizzle(pool, { schema: schema as Schema });
 
 // Add error handling for the pool
 pool.on('error', (err: Error & { code?: string }) => {
