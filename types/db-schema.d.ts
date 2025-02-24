@@ -6,5 +6,9 @@ declare module '@db/schema' {
   export const transactions: any;
   export const bills: any;
   export const insertTransactionSchema: any;
-  export type SelectUser = any;
+  export type SelectUser = {
+    id: number;
+    username: string;
+    password: string;
+  };
 }

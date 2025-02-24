@@ -4,23 +4,29 @@ import fs from 'fs';
 import { sql } from 'drizzle-orm';
 import { categories, bills, transactions } from '@db/schema';
 
+type Transaction = {
+  id: number;
+  description: string;
+  amount: number;
+  date: string;
+  type: string;
+  category_id: number;
+};
+
 export async function generateDatabaseBackup() {
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = path.join(process.cwd(), 'tmp');
     const backupFile = path.join(backupPath, `budget_tracker_${timestamp}.json`);
 
-    // Ensure tmp directory exists
     if (!fs.existsSync(backupPath)) {
       fs.mkdirSync(backupPath, { recursive: true });
     }
 
-    // Get all data
     const allCategories = await db.select().from(categories);
     const allBills = await db.select().from(bills);
     const allTransactions = await db.select().from(transactions);
 
-    // Create backup object with data
     const backup = {
       categories: allCategories,
       bills: allBills,
@@ -31,7 +37,6 @@ export async function generateDatabaseBackup() {
       }
     };
 
-    // Write the backup to a file
     fs.writeFileSync(backupFile, JSON.stringify(backup, null, 2));
     console.log(`Backup created successfully at: ${backupFile}`);
 
@@ -73,7 +78,6 @@ export async function validateBackupData(data: BackupData): Promise<{ valid: boo
       return { valid: false, error: 'Missing or invalid transactions array' };
     }
 
-    // Validate category references
     const categoryIds = new Set(data.categories.map(cat => cat.id));
 
     for (const bill of data.bills) {
@@ -109,16 +113,13 @@ export async function restoreDatabaseBackup(backupFile: string) {
     const backupContent = fs.readFileSync(backupFile, 'utf-8');
     const backupData: BackupData = JSON.parse(backupContent);
 
-    // Validate backup data
     const validation = await validateBackupData(backupData);
     if (!validation.valid) {
       throw new Error(validation.error);
     }
 
-    // Start transaction for atomic restore
-    return await db.transaction(async (tx) => {
+    return await db.transaction(async (tx: any) => {
       try {
-        // Restore categories first (if any new ones)
         if (backupData.categories.length > 0) {
           await tx.insert(categories).values(backupData.categories)
             .onConflictDoUpdate({
@@ -132,7 +133,6 @@ export async function restoreDatabaseBackup(backupFile: string) {
             });
         }
 
-        // Restore bills
         if (backupData.bills.length > 0) {
           await tx.insert(bills).values(backupData.bills)
             .onConflictDoUpdate({
@@ -147,7 +147,6 @@ export async function restoreDatabaseBackup(backupFile: string) {
             });
         }
 
-        // Restore transactions
         if (backupData.transactions.length > 0) {
           await tx.insert(transactions).values(backupData.transactions)
             .onConflictDoUpdate({

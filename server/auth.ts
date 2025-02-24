@@ -3,22 +3,22 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import connectPg from "connect-pg-simple";
 import { promisify } from "util";
-import { insertUserSchema, users } from "../db/schemas/insertUserSchema"; // Ensure this path is correct and the file exists
-import { pool } from "../db"; // Adjust the path as necessary
+import { insertUserSchema, users } from "@db/schema"; // Ensure this path is correct and the file exists
+import { pool } from "@db"; // Adjust the path as necessary
 import { eq } from "drizzle-orm";
 import { fromZodError } from "zod-validation-error";
 import bcrypt from "bcrypt";
 
-import { SelectUser } from "../db/types"; // Adjust the path as necessary
+import { SelectUser } from "@db/schema"; // Adjust the path as necessary
 import session from "express-session";
 import type { SessionOptions } from "express-session";
-import { db } from "../db"; // Adjust the path as necessary
+import { db } from "@db"; // Adjust the path as necessary
 
 declare global {
   namespace Express {
     interface User extends SelectUser {
-      username: any;
-      id(arg0: string, id: any): unknown;
+      username: string;
+      id: number;
     }
     interface Request {
       isAuthenticated(): boolean;
@@ -32,22 +32,22 @@ declare global {
 const SALT_ROUNDS = 12;
 const PostgresSessionStore = connectPg(session);
 
-async function hashPassword(password: string) {
+async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
-async function comparePasswords(supplied: string, stored: string) {
+async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
   return bcrypt.compare(supplied, stored);
 }
 
-async function getUserByUsername(username: string) {
+async function getUserByUsername(username: string): Promise<SelectUser[]> {
   return db.select().from(users).where(eq(users.username, username)).limit(1).execute();
 }
 
-export function setupAuth(app: Express) {
+export function setupAuth(app: Express): void {
   console.log('[Auth] Setting up authentication...');
 
-  const store = new PostgresSessionStore({ 
+  const store = new PostgresSessionStore({
     pool,
     createTableIfMissing: true,
     tableName: 'session'
@@ -58,10 +58,10 @@ export function setupAuth(app: Express) {
     secret: process.env.REPL_ID!,
     resave: false,
     saveUninitialized: false,
-    name: 'session_id', // Set a specific cookie name
+    name: 'session_id',
     cookie: {
-      secure: false, // Set to false for development
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      secure: false,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
       httpOnly: true,
       sameSite: 'lax'
     }
@@ -81,7 +81,7 @@ export function setupAuth(app: Express) {
   console.log('[Auth] Setting up passport strategy...');
 
   passport.use(
-    new LocalStrategy(async (username: string, password: string, done: (arg0: unknown, arg1: boolean | undefined, arg2: { message: string; } | undefined) => any) => {
+    new LocalStrategy(async (username: string, password: string, done: (err: any, user?: SelectUser | false, info?: { message: string }) => void) => {
       try {
         console.log('[Auth] Attempting login for user:', username);
         const [user] = await getUserByUsername(username);
@@ -98,27 +98,23 @@ export function setupAuth(app: Express) {
         }
 
         console.log('[Auth] Login successful for user:', user.id);
-        return done(null, user, undefined);
+        return done(null, user);
       } catch (error) {
         console.error('[Auth] Login error:', error);
-        return done(error, undefined, { message: 'Deserialization error' });
+        return done(error, false, { message: 'Deserialization error' });
       }
     })
   );
 
-  passport.serializeUser((user: Express.User, done: (arg0: null, arg1: (arg0: string, id: any) => unknown) => void) => {
+  passport.serializeUser((user: Express.User, done: (err: any, id?: number) => void) => {
     console.log('[Auth] Serializing user:', user.id);
     done(null, user.id);
   });
 
-  passport.deserializeUser(async (id: number, done: (arg0: unknown, arg1: boolean | undefined, arg2?: { message?: string }) => void) => {
+  passport.deserializeUser(async (id: number, done: (err: any, user?: SelectUser | false) => void) => {
     try {
       console.log('[Auth] Deserializing user:', id);
-      const [user]: [SelectUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, id))
-        .limit(1);
+      const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1).execute();
 
       if (!user) {
         console.log('[Auth] Deserialization failed: User not found:', id);
@@ -129,22 +125,10 @@ export function setupAuth(app: Express) {
       done(null, user);
     } catch (error) {
       console.error('[Auth] Deserialization error:', error);
-      done(error, undefined);
+      done(error);
     }
   });
 
-  // Authentication middleware to log session info
-  app.use((req, res, next) => {
-    console.log('[Auth] Session Info:', {
-      sessionID: req.sessionID,
-      isAuthenticated: req.isAuthenticated(),
-      user: req.user ? { id: (req.user as Express.User).id } : null,
-      cookie: req.session?.cookie
-    });
-    next();
-  });
-
-  // Authentication Routes
   app.post("/api/register", async (req, res, next) => {
     try {
       console.log('[Auth] Processing registration:', req.body.username);
@@ -160,13 +144,10 @@ export function setupAuth(app: Express) {
       }
 
       const hashedPassword = await hashPassword(result.data.password);
-      const [user] = await db
-        .insert(users)
-        .values({
-          ...result.data,
-          password: hashedPassword,
-        })
-        .returning();
+      const [user] = await db.insert(users).values({
+        ...result.data,
+        password: hashedPassword,
+      }).returning();
 
       req.login(user, (err) => {
         if (err) return next(err);
@@ -182,7 +163,7 @@ export function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     console.log('[Auth] Login attempt:', req.body.username);
 
-    passport.authenticate("local", (err: any, user: Express.User, info: { message: any; }) => {
+    passport.authenticate("local", (err: any, user: Express.User, info: { message: any }) => {
       if (err) {
         console.error('[Auth] Login error:', err);
         return next(err);
