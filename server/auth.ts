@@ -11,7 +11,7 @@ import bcrypt from "bcrypt";
 
 import { SelectUser } from "@db/schema"; // Adjust the path as necessary
 import session from "express-session";
-import type { session.SessionOptions } from "express-session";
+import type { SessionOptions } from "express-session";
 import { db } from "@db"; // Adjust the path as necessary
 
 declare global {
