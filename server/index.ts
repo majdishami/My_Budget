@@ -1,7 +1,7 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-import drizzle from 'drizzle-orm';
-import { schema } from './schema';
+import { drizzle } from 'drizzle-orm/node-postgres'; // Fix: Import drizzle from drizzle-orm/node-postgres
+import { schema } from './schema'; // Fix: Ensure schema.ts exists and is exported
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
 import express from 'express';
@@ -30,7 +30,7 @@ const poolConfig = {
 const pool = new Pool(poolConfig);
 
 // Initialize db with Drizzle ORM
-const db = drizzle(pool, { schema });
+const db = drizzle(pool, { schema }); // Fix: Use drizzle from drizzle-orm/node-postgres
 
 // Add error handling for the pool
 pool.on('error', (err: Error & { code?: string }) => {

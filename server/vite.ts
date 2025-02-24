@@ -3,10 +3,10 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer, createLogger } from "vite";
-import { createServer } from "http";
-import { drizzle } from "./db";
-import schema from "./schema";
-import router from "./routes";
+import { createServer, Server } from "http"; // Fix: Import Server from http
+import { drizzle } from "drizzle-orm/node-postgres"; // Fix: Import drizzle from drizzle-orm/node-postgres
+import schema from "./schema"; // Fix: Ensure schema.ts exists and is exported
+import router from "./routes"; // Fix: Ensure routes.ts has a default export
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,7 +18,7 @@ const httpServer = createServer(app);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const db = new drizzle(httpServer, {
+const db = drizzle(httpServer, {
   schema,
 });
 
@@ -28,7 +28,7 @@ export async function setupVite(app: Express, server: Server) {
     configFile: false,
     customLogger: {
       ...viteLogger,
-      error: (msg, options) => {
+      error: (msg: string, options: any) => { // Fix: Add type annotations for msg and options
         viteLogger.error(msg, options);
         process.exit(1);
       },
@@ -68,7 +68,7 @@ export async function setupVite(app: Express, server: Server) {
 
   app.use("/api", router);
 
-  app.use((err, req, res, next) => {
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(err);
     res.status(500).json({
       message: "Internal server error",

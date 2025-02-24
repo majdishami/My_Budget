@@ -94,7 +94,7 @@ router.get('/api/reports/expenses', async (req, res) => {
 
     const result = await db.execute(sql`${query}`, [startDate, endDate]);
 
-    const expenses = result.rows.map(row => ({
+    const expenses = result.rows.map((row: any) => ({
       id: row.id,
       date: row.date,
       description: row.description,

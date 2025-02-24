@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { generateDatabaseBackup } from '../utils/db-sync';
 import path from 'path';
 import fs from 'fs';
-import type { UploadedFile } from 'express-fileupload';
-import { db } from '@db';
+import type { UploadedFile } from 'express-fileupload'; // Fix: Import UploadedFile correctly
+import { db } from '@db'; // Fix: Ensure db is exported from db module
 import { bills, transactions, categories } from '@db/schema';
 import { sql } from 'drizzle-orm';
 
