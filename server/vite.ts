@@ -20,12 +20,20 @@ const httpServer = createServer(app);//-
 app.use(express.json());//-
 app.use(express.urlencoded({ extended: true }));//-
 //-//-//-//-//-
-const db = drizzle(httpServer, {//-//-//-//-//-
-  schema,//-//-//-//-//-
-// Fix: Change the type of db to NodePgClient//+
-const db = drizzle(httpServer, {//+
-  schema,//+
-});//+
+const db = drizzle(httpServer, {//-//-//-//-//-//-
+  schema,//-//-//-//-//-//-
+import schema from "./schema";//+
+// Fix: Change the type of db to NodePgClient//+//-
+const db = drizzle(httpServer, {//+//-//-//-
+  schema,//+//-//-//-
+import http from 'http';//+
+import { createServer as createViteServer } from 'vite';//+
+import type { SessionOptions } from 'express-session';//+
+import viteConfig from './vite.config';//+
+import schema from "./schema";//+
+});//+//-//-
+import viteConfig from './vite.config';//+
+import type { SessionOptions } from 'express-session';//+
 // Fix: Import viteConfig if it exists//+
 import viteConfig from './vite.config';//+
 // Fix: Ensure schema.ts exists and is exported//+
