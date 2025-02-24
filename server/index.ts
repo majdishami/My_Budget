@@ -133,6 +133,9 @@ setupAuth(app);
 registerRoutes(app);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+<<<<<<< Tabnine <<<<<<<
+app.listen(PORT, () => {//-
+  console.log(`Server is running on port ${PORT}`);//-
+});//-
+import { schema } from "./schema"; // Fix: Ensure schema.ts exists and is exported//+
+>>>>>>> Tabnine >>>>>>>// {"source":"chat"}

@@ -377,78 +377,81 @@ export function registerRoutes(app: Express): Server {
           }
         }
 
-        for (const transaction of actualTransactions) {
-          if (!transaction.is_recurring) continue;
-
-          const baseTransaction = {
-            ...transaction,
-            amount: Number(transaction.amount),
-            is_virtual: true,
-          };
-
-          if (transaction.description === "Ruba's Salary") {
-            let currentDate: dayjs.Dayjs = startDate.clone();
-            while (currentDate.day() !== 5) {
-              currentDate = currentDate.add(1, "day");
-            }
-
-            while (currentDate.isSameOrBefore(endDate)) {
-              if (currentDate.isBetween(startDate, endDate, "day", "[]")) {
-                virtualTransactions.push({
-                  ...baseTransaction,
-                  date: currentDate.format("YYYY-MM-DD"),
-                  id: `${transaction.id}_${currentDate.format("YYYY-MM-DD")}`,
-                });
-              }
-              currentDate = currentDate.add(14, "days");
-            }
-            continue;
-          }
-
-          const originalDate = dayjs(transaction.date);
-          const dayOfMonth =
-            transaction.recurring_type === "twice-monthly"
-              ? originalDate.date()
-              : undefined;
-
-          let currentMonth: dayjs.Dayjs = startDate.startOf("month");
-          while (currentMonth.isSameOrBefore(endDate)) {
-            if (
-              transaction.recurring_type === "twice-monthly" &&
-              transaction.first_date &&
-              transaction.second_date
-            ) {
-              const firstDate = currentMonth.date(transaction.first_date);
-              const secondDate = currentMonth.date(transaction.second_date);
-
-              if (firstDate.isBetween(startDate, endDate, "day", "[]")) {
-                transactions.push({
-                  ...baseTransaction,
-                  date: firstDate.format("YYYY-MM-DD"),
-                  id: `${transaction.id}_${firstDate.format("YYYY-MM-DD")}`,
-                });
-              }
-
-              if (secondDate.isBetween(startDate, endDate, "day", "[]")) {
-                virtualTransactions.push({
-                  ...baseTransaction,
-                  date: secondDate.format("YYYY-MM-DD"),
-                  id: `${transaction.id}_${secondDate.format("YYYY-MM-DD")}`,
-                });
-              }
-            } else if (dayOfMonth) {
-              const transactionDate = currentMonth.date(dayOfMonth);
-              if (transactionDate.isBetween(startDate, endDate, "day", "[]")) {
-                virtualTransactions.push({
-                  ...baseTransaction,
-                  date: transactionDate.format("YYYY-MM-DD"),
-                  id: `${transaction.id}_${transactionDate.format("YYYY-MM-DD")}`,
-                });
-              }
-            }
-            currentMonth = currentMonth.add(1, "month");
-          }
-        }
+<<<<<<< Tabnine <<<<<<<
+        for (const transaction of actualTransactions) {//-
+          if (!transaction.is_recurring) continue;//-
+//-
+          const baseTransaction = {//-
+            ...transaction,//-
+            amount: Number(transaction.amount),//-
+            is_virtual: true,//-
+          };//-
+//-
+          if (transaction.description === "Ruba's Salary") {//-
+            let currentDate: dayjs.Dayjs = startDate.clone();//-
+            while (currentDate.day() !== 5) {//-
+              currentDate = currentDate.add(1, "day");//-
+            }//-
+//-
+            while (currentDate.isSameOrBefore(endDate)) {//-
+              if (currentDate.isBetween(startDate, endDate, "day", "[]")) {//-
+                virtualTransactions.push({//-
+                  ...baseTransaction,//-
+                  date: currentDate.format("YYYY-MM-DD"),//-
+                  id: `${transaction.id}_${currentDate.format("YYYY-MM-DD")}`,//-
+                });//-
+              }//-
+              currentDate = currentDate.add(14, "days");//-
+            }//-
+            continue;//-
+          }//-
+//-
+          const originalDate = dayjs(transaction.date);//-
+          const dayOfMonth =//-
+            transaction.recurring_type === "twice-monthly"//-
+              ? originalDate.date()//-
+              : undefined;//-
+//-
+          let currentMonth: dayjs.Dayjs = startDate.startOf("month");//-
+          while (currentMonth.isSameOrBefore(endDate)) {//-
+            if (//-
+              transaction.recurring_type === "twice-monthly" &&//-
+              transaction.first_date &&//-
+              transaction.second_date//-
+            ) {//-
+              const firstDate = currentMonth.date(transaction.first_date);//-
+              const secondDate = currentMonth.date(transaction.second_date);//-
+//-
+              if (firstDate.isBetween(startDate, endDate, "day", "[]")) {//-
+                transactions.push({//-
+                  ...baseTransaction,//-
+                  date: firstDate.format("YYYY-MM-DD"),//-
+                  id: `${transaction.id}_${firstDate.format("YYYY-MM-DD")}`,//-
+                });//-
+              }//-
+//-
+              if (secondDate.isBetween(startDate, endDate, "day", "[]")) {//-
+                virtualTransactions.push({//-
+                  ...baseTransaction,//-
+                  date: secondDate.format("YYYY-MM-DD"),//-
+                  id: `${transaction.id}_${secondDate.format("YYYY-MM-DD")}`,//-
+                });//-
+              }//-
+            } else if (dayOfMonth) {//-
+              const transactionDate = currentMonth.date(dayOfMonth);//-
+              if (transactionDate.isBetween(startDate, endDate, "day", "[]")) {//-
+                virtualTransactions.push({//-
+                  ...baseTransaction,//-
+                  date: transactionDate.format("YYYY-MM-DD"),//-
+                  id: `${transaction.id}_${transactionDate.format("YYYY-MM-DD")}`,//-
+                });//-
+              }//-
+            }//-
+            currentMonth = currentMonth.add(1, "month");//-
+          }//-
+        }//-
+        import type { UploadedFile } from 'express-fileupload'; // Fix: Import UploadedFile correctly//+
+>>>>>>> Tabnine >>>>>>>// {"source":"chat"}
       }
       console.log("[Transactions API] Generated virtual transactions:", {
         count: virtualTransactions.length,

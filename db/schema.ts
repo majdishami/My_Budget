@@ -3,13 +3,16 @@ import { z } from "zod";
 import { InferModel } from "drizzle-orm"; // Fix: Import InferModel from drizzle-orm
 
 // Categories table - Lookup table for transaction and bill categories
-export const categories = pgTable("categories", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  color: text("color").notNull(),
-  icon: text("icon"),
-  created_at: timestamp("created_at").defaultNow(),
-});
+<<<<<<< Tabnine <<<<<<<
+export const categories = pgTable("categories", {//-
+  id: serial("id").primaryKey(),//-
+  name: text("name").notNull(),//-
+  color: text("color").notNull(),//-
+  icon: text("icon"),//-
+  created_at: timestamp("created_at").defaultNow(),//-
+});//-
+import { InferModel } from "drizzle-orm/dist/types"; // Fix: Import InferModel from drizzle-orm//+
+>>>>>>> Tabnine >>>>>>>// {"source":"chat"}
 
 // Create Zod schemas for validation
 export const insertCategorySchema = z.object({
