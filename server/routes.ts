@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { db } from "./db";
+import { db } from "../db";
 import {
   categories,
   insertCategorySchema,
@@ -481,45 +481,6 @@ export function registerRoutes(app: Express): Server {
       });
     }
   });
-
-  app.post("/api/transactions", async (req, res) => {
-    try {
-      console.log("[Transactions API] Creating new transaction:", req.body);
-      const transactionData = await insertTransactionSchema.parseAsync(req.body);
-      const isRecurring =
-        transactionData.recurring_type && transactionData.recurring_type !== "once";
-
-      console.log("[Transactions API] Processing transaction with recurring info:", {
-        recurring_type: transactionData.recurring_type,
-        is_recurring: isRecurring,
-      });
-
-      const [newTransaction] = await db
-        .insert(transactions)
-        .values({
-          description: transactionData.description,
-          amount: transactionData.amount,
-          date: new Date(transactionData.date),
-          type: transactionData.type,
-          category_id: transactionData.category_id,
-          recurring_type: transactionData.recurring_type || null,
-          is_recurring: isRecurring,
-          first_date: transactionData.first_date || null,
-          second_date: transactionData.second_date || null,
-        })
-        .returning();
-
-      console.log("[Transactions API] Created transaction:", newTransaction);
-      res.status(201).json(newTransaction);
-    } catch (error) {
-      console.error("[Transactions API] Error creating transaction:", error);
-      res.status(400).json({
-        message:
-          error instanceof Error ? error.message : "Invalid request data",
-      });
-    }
-  });
-
   app.patch("/api/transactions/:id", async (req, res) => {
     try {
       const transactionId = parseInt(req.params.id);
