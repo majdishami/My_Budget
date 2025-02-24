@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, decimal, boolean, InferModel } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 // Categories table - Lookup table for transaction and bill categories
@@ -87,6 +87,8 @@ export const insertBillSchema = z.object({
 });
 
 // Export types
+import { InferModel } from "drizzle-orm/pg-core";
+
 export type Category = InferModel<typeof categories, 'select'>;
 export type Bill = InferModel<typeof bills, 'select'>;
 export type Transaction = InferModel<typeof transactions, 'select'>;
