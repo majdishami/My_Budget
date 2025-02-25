@@ -18,6 +18,9 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrBefore);
 
+import { Router } from 'express';
+export const router = Router();
+
 export function registerRoutes(app: Express): Server {
   app.get("/api/health", (req, res) => {
     console.log("[Server] Health check endpoint called");
