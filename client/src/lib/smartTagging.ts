@@ -112,3 +112,25 @@ export function buildHistoricalCategories(expenses: { description: string; categ
   
   return historicalMap;
 }
+export function suggestTags(description: string): string[] {
+  const keywords = description.toLowerCase().split(' ');
+  const commonTags = new Map([
+    ['food', ['restaurant', 'grocery', 'lunch', 'dinner', 'breakfast']],
+    ['transport', ['gas', 'fuel', 'bus', 'train', 'uber', 'taxi']],
+    ['utilities', ['electricity', 'water', 'internet', 'phone', 'bill']],
+    ['entertainment', ['movie', 'games', 'netflix', 'spotify', 'concert']],
+    ['shopping', ['clothes', 'shoes', 'amazon', 'mall', 'store']]
+  ]);
+
+  const suggestedTags = new Set<string>();
+  
+  keywords.forEach(word => {
+    commonTags.forEach((values, key) => {
+      if (values.includes(word)) {
+        suggestedTags.add(key);
+      }
+    });
+  });
+
+  return Array.from(suggestedTags);
+}
