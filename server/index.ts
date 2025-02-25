@@ -166,10 +166,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     process.exit(1);
   }
 });
-  } else {
-    process.exit(1);
-  }
-});
+  });
 
 process.on('SIGTERM', () => {
   server.close(() => {
