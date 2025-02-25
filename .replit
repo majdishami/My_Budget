@@ -62,4 +62,4 @@ author = 39325428
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "export NODE_OPTIONS='--openssl-legacy-provider' && concurrently 'cd server && tsx watch index.ts' 'cd client && npm start'"
+args = "NODE_OPTIONS='--openssl-legacy-provider' concurrently 'cd server && tsx watch index.ts' 'cd client && PORT=3001 npm start'"
