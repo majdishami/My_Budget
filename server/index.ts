@@ -139,16 +139,20 @@ setupAuth(app);
 registerRoutes(app);
 
 // Start the server
-const PORT = process.env.PORT || 5000;
+const PORT = 3003;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 }).on('error', (err: Error) => {
   console.error('Server error:', err);
-  if (err.message.includes('EADDRINUSE')) {
-    const newPort = PORT + 1;
-    console.log(`Port ${PORT} is in use, trying ${newPort}`);
-    app.listen(newPort, '0.0.0.0');
+  process.exit(1);
+});
+
+app.use((req, res, next) => {
+  if (req.headers.upgrade && req.headers.upgrade.toLowerCase() === 'websocket') {
+    return next();
   }
+  next();
+});
   console.error('Server error:', {
     message: err.message,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
