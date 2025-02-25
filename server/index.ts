@@ -144,21 +144,17 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// WebSocket upgrade handling
-app.use('/api', (req, res, next) => {
-  if (req.headers.upgrade && req.headers.upgrade.toLowerCase() === 'websocket') {
-    res.status(426).send('Upgrade Required');
-    return;
-  }
-  next();
-});
-
+// WebSocket handling
 server.on('upgrade', (request, socket, head) => {
-  if (request.headers['upgrade'] !== 'websocket') {
+  const upgradeHeader = request.headers['upgrade'];
+  if (!upgradeHeader || upgradeHeader.toLowerCase() !== 'websocket') {
     socket.end('HTTP/1.1 400 Bad Request');
     return;
   }
-  // Handle WebSocket connection here
+  // Accept WebSocket upgrade
+  socket.write('HTTP/1.1 101 Switching Protocols\r\n' +
+               'Upgrade: websocket\r\n' +
+               'Connection: Upgrade\r\n\r\n');
 });
   console.error('Server error:', {
     message: err.message,
