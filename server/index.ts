@@ -155,16 +155,11 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(5000, '0.0.0.0', () => {
+  console.log('Server running on port 5000');
 }).on('error', (err: Error) => {
-  if (err.message.includes('EADDRINUSE')) {
-    console.log(`Port ${PORT} is in use, trying ${PORT + 1}`);
-    app.listen(PORT + 1, '0.0.0.0');
-  } else {
-    console.error('Server startup error:', err);
-    process.exit(1);
-  }
+  console.error('Server startup error:', err);
+  process.exit(1);
 });
   });
 
