@@ -78,4 +78,4 @@ author = 39325428
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd client && PORT=3002 npm run dev"
+args = "cd client && PORT=3002 VITE_HOST=0.0.0.0 npm run dev"
