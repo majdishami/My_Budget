@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { drizzle } from "drizzle-orm/node-postgres";
-import { schema } from './schema';
+import * as schema from './schema';
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
 import express from 'express';
