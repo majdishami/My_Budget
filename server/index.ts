@@ -1,6 +1,5 @@
-import pkg from 'pg';
-const { Pool } = pkg;
-import drizzle from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { drizzle } from "drizzle-orm/node-postgres";
 import { schema } from './schema';
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';

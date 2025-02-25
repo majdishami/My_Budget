@@ -11,7 +11,7 @@ import bcrypt from "bcrypt";
 import { SelectUser } from "@db/schema";
 import { db } from "@db";
 import session from "express-session";
-import type { SessionOptions } from "express-session";
+import { SessionOptions } from "express-session";
 
 declare global {
   namespace Express {
