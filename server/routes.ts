@@ -14,7 +14,6 @@ import { sql } from "drizzle-orm";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
-import type { UploadedFile } from "express-fileupload";
 
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrBefore);
@@ -511,8 +510,7 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("[Transactions API] Error creating transaction:", error);
       res.status(400).json({
-        message:
-          error instanceof Error ? error.message : "Invalid request data",
+        message: error instanceof Error ? error.message : "Invalid request data",
       });
     }
   });
@@ -573,6 +571,17 @@ export function registerRoutes(app: Express): Server {
         });
 
         console.log(
+          "[Transactions API] Successfully updated transaction:",
+          updatedTransaction
+        );
+
+        res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.set("Pragma", "no-cache");
+        res.set("Expires", "0");
+
+        res.json(updatedTransaction);
+      } catch (error) {
+        console.error("[Transactions API] Error updating
           "[Transactions API] Successfully updated transaction:",
           updatedTransaction
         );
