@@ -61,7 +61,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd client && PORT=3002 npm run dev"
+args = "cd client && PORT=3000 npm run dev"
 waitForPort = 5000
 
 [[workflows.workflow]]
