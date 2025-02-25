@@ -1,0 +1,272 @@
+Last login: Mon Feb 24 00:19:27 on ttys000
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+MacBook-Air-3:My_Budget majdishami$ tree -L 2
+.
+├── My_Budget@1.0.0
+├── README.md
+├── attached_assets
+│   ├── App replit with comment1.tsx
+│   ├── App.tsx
+│   ├── Pasted--Analysis-of-server-routes-ts-for-Performance-Optimization-This-file-handles-Express-js-r-1739386075267.txt
+│   ├── Pasted--Debugging-CategoryDialog-tsx-I-will-review-the-potential-issues-in-your-CategoryDialog-tsx--1739076144985.txt
+│   ├── Pasted--MacBook-Air-3-My-Budget-App-majdishaminpm-run-dev-rest-express-1-0-0-dev-tsx-server-index-ts--1739153418446.txt
+│   ├── Pasted--Potential-Issues-Debugging-Suggestions-1-Routing-and-State-Update-Order-T-1738806278559.txt
+│   ├── Pasted--resource-Users-majdishami-Downloads-CodeCraftHub-6-client-src-App-tsx-owner-typescri-1739054380852.txt
+│   ├── Pasted-1-Imports-and-Dependencies-Ensure-that-all-imported-modules-and-components-are-correctly-installed-1739047195704.txt
+│   ├── Pasted-Category-IDs-Are-Non-Sequential-Issue-There-are-missing-IDs-id-15-28-are-absent-This-suggest-1739819189558.txt
+│   ├── Pasted-Checkpoint-made-1-hour-ago-Fix-Correctly-display-income-and-expenses-in-the-calendar-view-by-adju-1739510653107.txt
+│   ├── Pasted-Here-s-an-audit-and-debugging-assessment-of-your-App-tsx-file-Audit-Summary-Th-1738806203714.txt
+│   ├── Pasted-I-have-successfully-loaded-both-your-app-codebase-archive-ReplitExport-majdi01-2-tar-and-the-bac-1739734422274.txt
+│   ├── Pasted-I-ll-first-extract-and-analyze-the-contents-of-the-ReplitExport-majdi01-tar-file-to-inspect-your-1739420302486.txt
+│   ├── Pasted-I-ll-first-extract-and-analyze-the-contents-of-the-ReplitExport-majdi01-tar-file-to-inspect-your-1739420361436.txt
+│   ├── Pasted-I-ll-first-extract-and-analyze-the-contents-of-your-uploaded-file-to-identify-any-issues-in-the-code-1739381888518.txt
+│   ├── Pasted-I-ll-first-extract-and-analyze-the-contents-of-your-uploaded-file-to-identify-any-issues-in-the-code-1739383591153.txt
+│   ├── Pasted-Last-login-Sun-Feb-9-14-35-49-on-ttys000-The-default-interactive-shell-is-now-zsh-To-update-your-1739141045854.txt
+│   ├── Pasted-Last-login-Sun-Feb-9-18-13-48-on-ttys000-The-default-interactive-shell-is-now-zsh-To-update-your-1739153981733.txt
+│   ├── Pasted-MacBook-Air-3-My-Budget-App-majdishami-npm-run-dev-rest-express-1-0-0-dev-tsx-server-index-ts--1739122118158.txt
+│   ├── Pasted-MacBook-Air-3-My-Budget-App-majdishami-npm-run-dev-rest-express-1-0-0-dev-tsx-server-index-ts--1739122746146.txt
+│   ├── Pasted-MacBook-Air-3-My-Budget-App-majdishami-npm-run-dev-rest-express-1-0-0-dev-tsx-server-index-ts--1739127130977.txt
+│   ├── Pasted-MacBook-Air-3-My-Budget-App-majdishami-npm-run-dev-rest-express-1-0-0-dev-tsx-server-index-ts--1739127584153.txt
+│   ├── Pasted-MacBook-Air-3-My-Budget-App-majdishami-npm-run-dev-rest-express-1-0-0-dev-tsx-server-index-ts--1739127778137.txt
+│   ├── Pasted-Since-your-project-uses-Drizzle-ORM-not-Prisma-and-the-error-indicates-a-mismatch-between-expe-1739138860698.txt
+│   ├── Pasted-The-AddExpenseDialog-tsx-file-is-well-structured-and-functional-but-there-are-a-few-areas-where-i-1739074076488.txt
+│   ├── Pasted-The-AddIncomeDialog-tsx-file-is-a-well-structured-React-component-that-allows-users-to-add-new-inc-1739083233949.txt
+│   ├── Pasted-The-AddIncomeDialog-tsx-file-is-a-well-structured-React-component-that-allows-users-to-add-new-inc-1739083371057.txt
+│   ├── Pasted-The-AddIncomeDialog-tsx-file-is-well-structured-and-functional-but-there-are-a-few-areas-where-im-1739074557214.txt
+│   ├── Pasted-The-AnnualReportDialog-tsx-file-is-well-structured-and-provides-a-comprehensive-annual-financial-r-1739075377156.txt
+│   ├── Pasted-The-CategoryManager-tsx-file-is-a-well-structured-React-component-that-manages-categories-includi-1739080245331.txt
+│   ├── Pasted-The-error-message-Failed-to-load-categories-Please-try-again-later-suggests-that-there-is-an-iss-1739116885815.txt
+│   ├── Pasted-The-error-message-you-re-encountering-indicates-that-the-PostgreSQL-database-named-majdishami-does-1739129695007.txt
+│   ├── Pasted-The-error-you-re-encountering-is-due-to-an-invalid-database-connection-URL-Specifically-the-error--1739122159010.txt
+│   ├── Pasted-The-provided-App-tsx-file-is-a-well-structured-React-application-component-that-manages-routing-d-1739073244020.txt
+│   ├── Pasted-The-provided-App-tsx-file-is-a-well-structured-React-application-component-that-manages-routing-d-1739079844954.txt
+│   ├── Pasted-The-provided-code-is-a-React-component-for-generating-and-displaying-an-expense-report-It-uses-vari-1739729879707.txt
+│   ├── Pasted-The-provided-file-is-a-React-component-named-ExpenseReportDialog-that-is-used-to-generate-and-disp-1739729223449.txt
+│   ├── Pasted-Your-categories-table-is-missing-the-user-id-column-which-is-causing-the-seed-process-to--1739153709865.txt
+│   ├── Pasted-Your-error-Categories-table-not-found-in-schema-is-happening-because-your-database-contains--1739140664185.txt
+│   ├── Pasted-Your-error-column-user-id-does-not-exist-in-the-categories-table-suggests-that-the-datab-1739139465118.txt
+│   ├── Pasted-Your-error-column-user-id-does-not-exist-indicates-that-the-user-id-column-is-still-mi-1739139957757.txt
+│   ├── Pasted-ast-login-Sun-Feb-9-13-42-36-on-ttys004-The-default-interactive-shell-is-now-zsh-To-update-your--1739137653514.txt
+│   ├── Pasted-ast-login-Sun-Feb-9-13-46-51-on-ttys000-The-default-interactive-shell-is-now-zsh-To-update-your--1739138678288.txt
+│   ├── Pasted-ast-login-Sun-Feb-9-14-03-24-on-ttys001-The-default-interactive-shell-is-now-zsh-To-update-your--1739139044684.txt
+│   ├── auth.ts
+│   ├── budget-tracker-logs-2025-02-19T23_05_12.770Z.json
+│   ├── budget-tracker-logs-2025-02-19T23_58_44.228Z.json
+│   ├── budget-tracker-logs-2025-02-20T02_34_28.807Z.json
+│   ├── budget-tracker-logs-2025-02-20T02_39_43.186Z.json
+│   ├── budget-tracker-logs-2025-02-20T02_47_49.356Z.json
+│   ├── budget_tracker_2025-02-12T08-56-44-937Z.json
+│   ├── budget_tracker_2025-02-13T07-25-01-373Z.json
+│   ├── budget_tracker_2025-02-14T05-32-00-242Z.json
+│   ├── budget_tracker_2025-02-17T19-46-27-595Z.json
+│   ├── budget_tracker_2025-02-17T19-49-23-230Z.json
+│   ├── budget_tracker_fixed.json
+│   ├── generated-icon_1739122033967.png
+│   ├── image_1739329110572.png
+│   ├── image_1739333802054.png
+│   ├── image_1739336999637.png
+│   ├── image_1739339851257.png
+│   ├── image_1739347393085.png
+│   ├── image_1739506402204.png
+│   ├── image_1739508990493.png
+│   ├── image_1739509122285.png
+│   ├── image_1739509351974.png
+│   ├── image_1739509553431.png
+│   ├── image_1739509844803.png
+│   ├── image_1739509930578.png
+│   ├── image_1739510044048.png
+│   ├── image_1739510249135.png
+│   ├── image_1739510380107.png
+│   ├── image_1739510508198.png
+│   ├── image_1739518933188.png
+│   ├── image_1739519101346.png
+│   ├── image_1739519296662.png
+│   ├── image_1739519726839.png
+│   ├── image_1739520050650.png
+│   ├── image_1739521938501.png
+│   ├── image_1739522824190.png
+│   ├── image_1739523108649.png
+│   ├── image_1739524228769.png
+│   ├── image_1739557557988.png
+│   ├── image_1739558449159.png
+│   ├── image_1739559247342.png
+│   ├── image_1739560291780.png
+│   ├── image_1739560616997.png
+│   ├── image_1739561352439.png
+│   ├── image_1739562136247.png
+│   ├── image_1739587273628.png
+│   ├── image_1739590927610.png
+│   ├── image_1739597337646.png
+│   ├── image_1739597792406.png
+│   ├── image_1739599021982.png
+│   ├── image_1739602282916.png
+│   ├── image_1739602408103.png
+│   ├── image_1739603761377.png
+│   ├── image_1739604292955.png
+│   ├── image_1739605001696.png
+│   ├── image_1739607504500.png
+│   ├── image_1739607912235.png
+│   ├── image_1739608204747.png
+│   ├── image_1739608971855.png
+│   ├── image_1739610263507.png
+│   ├── image_1739610581006.png
+│   ├── image_1739614147949.png
+│   ├── image_1739615446225.png
+│   ├── image_1739616469515.png
+│   ├── image_1739619094524.png
+│   ├── image_1739619558631.png
+│   ├── image_1739668804709.png
+│   ├── image_1739669220731.png
+│   ├── image_1739689330897.png
+│   ├── image_1739690920226.png
+│   ├── image_1739691615490.png
+│   ├── image_1739691863519.png
+│   ├── image_1739692248415.png
+│   ├── image_1739692714088.png
+│   ├── image_1739696495204.png
+│   ├── image_1739697944620.png
+│   ├── image_1739734740115.png
+│   ├── image_1739734939539.png
+│   ├── image_1739735013354.png
+│   ├── image_1739735133059.png
+│   ├── image_1739735234464.png
+│   ├── image_1739735423500.png
+│   ├── image_1739736252776.png
+│   ├── image_1739821406037.png
+│   ├── image_1739822577022.png
+│   ├── image_1739832616575.png
+│   ├── image_1739832784942.png
+│   ├── image_1739833223588.png
+│   ├── image_1739833663500.png
+│   ├── image_1739834310952.png
+│   ├── image_1739834490505.png
+│   ├── image_1739834755697.png
+│   ├── image_1739835907231.png
+│   ├── image_1739836202607.png
+│   ├── image_1739837353778.png
+│   ├── image_1739838460563.png
+│   ├── image_1739839851491.png
+│   ├── image_1739840789661.png
+│   ├── image_1739842495692.png
+│   ├── image_1739869745786.png
+│   ├── image_1739869876582.png
+│   ├── image_1739870063334.png
+│   ├── image_1739872528603.png
+│   ├── image_1739875599178.png
+│   ├── image_1739911366067.png
+│   ├── image_1739911811993.png
+│   ├── image_1739913262974.png
+│   ├── image_1739914165893.png
+│   ├── image_1739921014499.png
+│   ├── image_1739922294197.png
+│   ├── image_1739923107712.png
+│   ├── image_1739923978775.png
+│   ├── image_1739926431306.png
+│   ├── image_1739939534251.png
+│   ├── image_1740005793979.png
+│   ├── image_1740020325362.png
+│   ├── image_1740020906044.png
+│   ├── image_1740028136590.png
+│   ├── image_1740028821658.png
+│   ├── image_1740028952384.png
+│   ├── index.ts
+│   ├── routes.ts
+│   ├── schema.ts
+│   └── tsconfig.json
+├── budget-tracker
+│   ├── client
+│   ├── postcss.config.js
+│   ├── tailwind.config.ts
+│   ├── tsconfig.json
+│   └── vite.config.ts
+├── budget_tracker_2025-02-20T05-48-39-540Z.json
+├── client
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   └── src
+├── cookies.txt
+├── create_tables.sql
+├── db
+│   ├── db.ts
+│   ├── index.ts
+│   ├── schema.ts
+│   └── seed.ts
+├── drizzle.config.ts
+├── flyway.conf
+├── generated-icon.png
+├── knexfile.js
+├── migrations
+│   ├── 0000_vengeful_justice.sql
+│   ├── 0001_add_bill_columns.sql
+│   └── meta
+├── package-lock.json
+├── package.json
+├── passport.d.ts
+├── postcss.config.js
+├── replit.nix
+├── requirements.txt
+├── routes
+│   └── index.ts
+├── server
+│   ├── auth.ts
+│   ├── db-test.ts
+│   ├── db.js
+│   ├── index.ts
+│   ├── populateDatabase.ts
+│   ├── routes
+│   ├── routes.ts
+│   ├── schema.sql
+│   ├── utils
+│   └── vite.ts
+├── tailwind.config.ts
+├── theme.json
+├── tmp
+│   ├── budget_tracker_2025-02-10T03-18-21-547Z.dump
+│   ├── budget_tracker_2025-02-10T03-18-28-897Z.dump
+│   ├── budget_tracker_2025-02-10T03-20-03-915Z.dump
+│   ├── budget_tracker_2025-02-10T03-20-16-628Z.dump
+│   ├── tmp-1-1739161378479
+│   ├── tmp-1-1739163527983
+│   ├── tmp-1-1739509829686
+│   ├── tmp-1-1739509921636
+│   ├── tmp-1-1739510035191
+│   ├── tmp-1-1739510230215
+│   ├── tmp-1-1739510372252
+│   ├── tmp-2-1739161418878
+│   ├── tmp-2-1739163551496
+│   ├── tmp-2-1739509836821
+│   ├── tmp-2-1739510392598
+│   ├── tmp-3-1739161441809
+│   ├── tmp-3-1739163557458
+│   └── tmp-3-1739509849963
+├── tsc
+├── tsconfig.json
+├── types
+│   ├── bcrypt.d.ts
+│   ├── connect-pg-simple.d.ts
+│   ├── db-schema.d.ts
+│   ├── db.d.ts
+│   ├── drizzle-orm.d.ts
+│   ├── express-fileupload.d.ts
+│   ├── express-session.d.ts
+│   ├── index.d.ts
+│   ├── passport-local.d.ts
+│   ├── passport.d.ts
+│   ├── plugin-react.d.ts
+│   ├── replit-vite-plugin-runtime-error-modal.d.ts
+│   ├── replit-vite-plugin-shadcn-theme-json.d.ts
+│   ├── types_vite.d.ts
+│   └── vite.d.ts
+├── venv
+│   ├── bin
+│   ├── lib
+│   └── pyvenv.cfg
+├── vite.config
+└── vite.config.js
+
+18 directories, 245 files
+MacBook-Air-3:My_Budget majdishami$  fix the path references throughout the codebase

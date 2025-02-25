@@ -763,3 +763,30 @@ export {
   ToastClose,
   ToastAction,
 }
+import * as React from 'react'
+import type { Toast } from '@/hooks/use-toast'
+
+interface ToastProps {
+  toast: Toast
+  onDismiss: (id: string) => void
+}
+
+export function Toast({ toast, onDismiss }: ToastProps) {
+  return (
+    <div
+      className={`fixed bottom-4 right-4 p-4 rounded shadow-lg ${
+        toast.type === 'error' ? 'bg-red-500' : 
+        toast.type === 'success' ? 'bg-green-500' : 
+        'bg-gray-800'
+      } text-white`}
+    >
+      <p>{toast.message}</p>
+      <button 
+        onClick={() => onDismiss(toast.id)}
+        className="absolute top-1 right-1 text-white"
+      >
+        ×
+      </button>
+    </div>
+  )
+}
