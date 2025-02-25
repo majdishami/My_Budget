@@ -18,6 +18,10 @@ localPort = 3000
 externalPort = 5000
 
 [[ports]]
+localPort = 3001
+externalPort = 3002
+
+[[ports]]
 localPort = 5000
 externalPort = 80
 
@@ -26,7 +30,7 @@ localPort = 5001
 externalPort = 3001
 
 [workflows]
-runButton = "Start application"
+runButton = "Start Dev"
 
 [[workflows.workflow]]
 name = "Project"
@@ -51,3 +55,11 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "npm run build && npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Start Dev"
+author = 39325428
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "concurrently \"tsx watch server/index.ts\" \"cd client && NODE_OPTIONS='--openssl-legacy-provider' npm start\""
