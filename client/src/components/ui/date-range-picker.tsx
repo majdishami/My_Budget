@@ -1,27 +1,28 @@
-import * as React from "react";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange } from "react-day-picker";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+
+"use client"
+
+import * as React from "react"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { DateRange } from "react-day-picker"
+
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import dayjs from "dayjs";
-
-interface DateRangePickerProps {
-  date: DateRange | undefined;
-  onDateChange: (date: DateRange) => void;
-  className?: string;
-}
+} from "@/components/ui/popover"
 
 export function DateRangePicker({
-  date,
-  onDateChange,
   className,
-}: DateRangePickerProps) {
+  value,
+  onChange,
+}: {
+  className?: string
+  value?: DateRange
+  onChange?: (date: DateRange | undefined) => void
+}) {
   return (
     <div className={cn("grid gap-2", className)}>
       <Popover>
@@ -30,19 +31,19 @@ export function DateRangePicker({
             id="date"
             variant={"outline"}
             className={cn(
-              "w-full justify-start text-left font-normal",
-              !date && "text-muted-foreground"
+              "w-[300px] justify-start text-left font-normal",
+              !value && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
-              date.to ? (
+            {value?.from ? (
+              value.to ? (
                 <>
-                  {dayjs(date.from).format("MMM D, YYYY")} -{" "}
-                  {dayjs(date.to).format("MMM D, YYYY")}
+                  {value.from.toLocaleDateString()} -{" "}
+                  {value.to.toLocaleDateString()}
                 </>
               ) : (
-                dayjs(date.from).format("MMM D, YYYY")
+                value.from.toLocaleDateString()
               )
             ) : (
               <span>Pick a date range</span>
@@ -53,13 +54,13 @@ export function DateRangePicker({
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={date?.from}
-            selected={date}
-            onSelect={onDateChange}
+            defaultMonth={value?.from}
+            selected={value}
+            onSelect={onChange}
             numberOfMonths={2}
           />
         </PopoverContent>
       </Popover>
     </div>
-  );
+  )
 }
