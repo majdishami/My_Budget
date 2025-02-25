@@ -1,19 +1,22 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-import { drizzle } from 'drizzle-orm/node-postgres';
+import drizzle from 'drizzle-orm/node-postgres';
 import { schema } from './schema';
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
 import express from 'express';
 import dotenv from 'dotenv';
 
+// Load environment variables
 dotenv.config();
 
+// Check if DATABASE_URL is defined
 if (!process.env.DATABASE_URL) {
   console.error("ERROR: DATABASE_URL is not defined in .env file.");
   process.exit(1);
 }
 
+// PostgreSQL connection pool configuration
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
@@ -27,8 +30,10 @@ const poolConfig = {
 
 const pool = new Pool(poolConfig);
 
+// Initialize Drizzle ORM with the connection pool
 const db = drizzle(pool, { schema });
 
+// Handle PostgreSQL connection errors
 pool.on('error', (err: Error & { code?: string }) => {
   const errorContext = {
     message: err.message,
@@ -89,6 +94,7 @@ pool.on('error', (err: Error & { code?: string }) => {
   }
 });
 
+// Test database connection
 async function testConnection(retries = 5) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -123,11 +129,22 @@ async function testConnection(retries = 5) {
 
 testConnection();
 
+// Initialize Express app
 const app = express();
+
+// Set up authentication and routes
 setupAuth(app);
 registerRoutes(app);
 
+// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  pool.end();
+  process.exit(0);
 });

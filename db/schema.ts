@@ -1,14 +1,21 @@
 import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { InferModel, drizzle } from "drizzle-orm";
-import http from 'http';
+import { drizzle } from "drizzle-orm/postgres-js";
+import { Pool } from 'pg';
 import { createServer as createViteServer } from 'vite';
-import type { SessionOptions } from 'express-session';
-import viteConfig from './vite.config';
-import schema from "./schema";
+import session from "express-session";
+const MemoryStore = session.MemoryStore;
 
-const httpServer = http.createServer();
+// Database connection
+const pool = new Pool({
+  user: process.env.DB_USER || 'yourUsername',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'yourDatabase',
+  password: process.env.DB_PASSWORD || 'yourPassword',
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+});
 
+// Schema definitions
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -46,6 +53,7 @@ export const bills = pgTable("bills", {
   reminder_days: integer("reminder_days").default(7).notNull(),
 });
 
+// Zod schemas
 export const insertCategorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
   color: z.string().min(1, "Color is required"),
@@ -88,32 +96,74 @@ export const updateCategorySchema = z.object({
   icon: z.string().nullish(),
 });
 
-export type Category = InferModel<typeof categories, 'select'>;
-export type Bill = InferModel<typeof bills, 'select'>;
-export type Transaction = InferModel<typeof transactions, 'select'>;
+// TypeScript types
+export type Category = {
+  id: number;
+  name: string;
+  color: string;
+  icon: string | null;
+  created_at: Date;
+};
 
-const db = drizzle(httpServer, {
-  schema,
-});
+export type Transaction = {
+  id: number;
+  description: string;
+  amount: number;
+  date: Date;
+  type: string;
+  category_id: number | null;
+  created_at: Date;
+  recurring_type: string | null;
+  is_recurring: boolean;
+  first_date: number | null;
+  second_date: number | null;
+};
 
-const viteServer = createViteServer({
-  appType: "./src/main",
-  server: {
-    middleware: [
-      sessionMiddleware({
-        store: new MemoryStore(),
-        secret: "keyboard cat",
-        resave: false,
-        saveUninitialized: true,
-        cookie: {
-          secure: process.env.NODE_ENV === "production",
-          maxAge: 60 * 60 * 1000, // 1 hour
-        },
-      }),
-    ],
+export type Bill = {
+  id: number;
+  name: string;
+  amount: number;
+  day: number;
+  category_id: number | null;
+  created_at: Date;
+  is_one_time: boolean;
+  is_yearly: boolean;
+  date: Date | null;
+  yearly_date: Date | null;
+  reminder_enabled: boolean;
+  reminder_days: number;
+};
+
+// Drizzle ORM instance
+export const db = drizzle(pool, {
+  schema: {
+    categories,
+    transactions,
+    bills,
   },
 });
 
+// Vite server setup
+const viteServer = createViteServer({
+  appType: "custom", // Use "custom" for backend applications
+  server: {
+    middlewareMode: true,
+  },
+});
+
+// Session middleware
+const sessionMiddleware = session({
+  store: new MemoryStore(),
+  secret: process.env.SESSION_SECRET || "keyboard cat",
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 1000, // 1 hour
+  },
+});
+
+// Additional code
 export const additionalCodeFunction = () => {
   console.log("Additional code that might be necessary for the application.");
 };

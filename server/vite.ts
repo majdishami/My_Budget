@@ -4,11 +4,14 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer, createLogger } from "vite";
 import { createServer, Server } from "http";
-import { drizzle } from "drizzle-orm/node-postgres";
-import schema from "./schema";
-import router from "./routes";
+import { drizzle } from "drizzle-orm/postgres-js";
+import * as schema from "@db/schema";
+import { router } from "./routes";
 import { nanoid } from 'nanoid';
 import viteConfig from './vite.config';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,7 +23,17 @@ const httpServer = createServer(app);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const db = drizzle(httpServer, {
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+});
+
+const db = drizzle(pool, {
   schema,
 });
 
@@ -94,3 +107,15 @@ export function serveStatic(app: Express) {
 }
 
 export default httpServer;
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  httpServer.close(() => {
+    console.log('HTTP server closed');
+    pool.end(() => {
+      console.log('Database connection pool closed');
+      process.exit(0);
+    });
+  });
+});

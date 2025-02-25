@@ -9,8 +9,8 @@ import { eq } from "drizzle-orm";
 import { fromZodError } from "zod-validation-error";
 import bcrypt from "bcrypt";
 import { SelectUser } from "@db/schema";
-import session from "express-session";
 import { db } from "@db";
+import session from "express-session";
 import type { SessionOptions } from "express-session";
 
 declare global {
@@ -54,12 +54,12 @@ export function setupAuth(app: Express): void {
 
   const sessionSettings: SessionOptions = {
     store,
-    secret: process.env.REPL_ID!,
+    secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
     name: 'session_id',
     cookie: {
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
       maxAge: 30 * 24 * 60 * 60 * 1000,
       httpOnly: true,
       sameSite: 'lax'
@@ -68,9 +68,6 @@ export function setupAuth(app: Express): void {
 
   if (app.get("env") === "production") {
     app.set("trust proxy", 1);
-    if (sessionSettings.cookie) {
-      sessionSettings.cookie.secure = true;
-    }
   }
 
   app.use(session(sessionSettings));

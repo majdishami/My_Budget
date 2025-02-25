@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { generateDatabaseBackup } from '../utils/db-sync';
 import path from 'path';
 import fs from 'fs';
-import type { UploadedFile } from 'express-fileupload';
+import fileUpload from 'express-fileupload';
+import { UploadedFile } from 'express-fileupload';
 import { db } from '@db';
 import { bills, transactions, categories } from '@db/schema';
 import { sql } from 'drizzle-orm';
@@ -189,7 +190,7 @@ router.post('/api/sync/restore', async (req, res) => {
     const fileContent = fs.readFileSync(tempPath, 'utf8');
     const processedData = validateAndPreprocessData(JSON.parse(fileContent));
 
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       const restored = {
         categories: 0,
         bills: 0,
