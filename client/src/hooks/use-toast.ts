@@ -1,26 +1,18 @@
-import { toast } from 'sonner'
 
-export { toast }
+import { useState } from 'react'
 
-export function useToast() {
-  return {
-    toast: {
-      success: (message: string) => toast.success(message),
-      error: (message: string) => toast.error(message),
-      info: (message: string) => toast.info(message),
-      warning: (message: string) => toast.warning(message),
-    },
-  }
+interface Toast {
+  message: string
+  type: 'success' | 'error' | 'info'
 }
-import { toast } from 'sonner';
 
 export function useToast() {
-  return {
-    toast: {
-      success: (message: string) => toast.success(message),
-      error: (message: string) => toast.error(message),
-      info: (message: string) => toast.info(message),
-      warning: (message: string) => toast.warning(message),
-    },
-  };
+  const [toast, setToast] = useState<Toast | null>(null)
+
+  const showToast = (message: string, type: Toast['type'] = 'info') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  return { toast, showToast }
 }
