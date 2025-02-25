@@ -41,8 +41,8 @@ export default function IncomeReport() {
         <h1 className="text-2xl font-bold mb-4">Income Report</h1>
         <div className="flex items-center gap-4">
           <DateRangePicker
-            date={dateRange}
-            onDateChange={setDateRange}
+            value={dateRange}
+            onChange={setDateRange}
             className="w-full"
           />
           <Button 
