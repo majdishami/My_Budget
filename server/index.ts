@@ -1,7 +1,7 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-import { drizzle } from 'drizzle-orm/node-postgres'; // Fix: Import drizzle from drizzle-orm/node-postgres
-import { schema } from './schema'; // Fix: Ensure schema.ts exists and is exported
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { schema } from './schema';
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
 import express from 'express';
@@ -14,7 +14,6 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-// Pool configuration with improved connection handling
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
@@ -26,13 +25,10 @@ const poolConfig = {
   keepAliveInitialDelayMillis: 10000
 };
 
-// Initialize pool with configuration
 const pool = new Pool(poolConfig);
 
-// Initialize db with Drizzle ORM
-const db = drizzle(pool, { schema }); // Fix: Use drizzle from drizzle-orm/node-postgres
+const db = drizzle(pool, { schema });
 
-// Add error handling for the pool
 pool.on('error', (err: Error & { code?: string }) => {
   const errorContext = {
     message: err.message,
@@ -93,7 +89,6 @@ pool.on('error', (err: Error & { code?: string }) => {
   }
 });
 
-// Enhanced connection testing with concise logging
 async function testConnection(retries = 5) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -114,14 +109,14 @@ async function testConnection(retries = 5) {
       } finally {
         client.release();
       }
-      break; // Exit loop on success
+      break;
     } catch (error) {
       console.error(`Connection attempt ${attempt} failed:`, error);
       if (attempt === retries) {
         console.error('Max retries reached, unable to establish a database connection.');
         process.exit(1);
       }
-      await new Promise(res => setTimeout(res, 2000 * attempt)); // Exponential backoff
+      await new Promise(res => setTimeout(res, 2000 * attempt));
     }
   }
 }
@@ -133,7 +128,6 @@ setupAuth(app);
 registerRoutes(app);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {//-
-  console.log(`Server is running on port ${PORT}`);//-
-});//-
-import { schema } from "./schema"; // Fix: Ensure schema.ts exists and is exported//+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

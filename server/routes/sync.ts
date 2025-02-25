@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { generateDatabaseBackup } from '../utils/db-sync';
 import path from 'path';
 import fs from 'fs';
-import type { UploadedFile } from 'express-fileupload'; // Fix: Import UploadedFile correctly
-import { db } from '@db'; // Fix: Ensure db is exported from db module
+import type { UploadedFile } from 'express-fileupload';
+import { db } from '@db';
 import { bills, transactions, categories } from '@db/schema';
 import { sql } from 'drizzle-orm';
 
@@ -67,7 +67,7 @@ const validateAndPreprocessData = (data: any) => {
       categories: categoriesArray.length,
       bills: billsArray.length,
       transactions: transactionsArray.length,
-      warnings: missingCategories.length > 0 ? 
+      warnings: missingCategories.length > 0 ?
         `Missing categories for bills: ${missingCategories.join(', ')}` : undefined
     };
     console.log('Data validation completed:', summary);
@@ -189,7 +189,7 @@ router.post('/api/sync/restore', async (req, res) => {
     const fileContent = fs.readFileSync(tempPath, 'utf8');
     const processedData = validateAndPreprocessData(JSON.parse(fileContent));
 
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx) => {
       const restored = {
         categories: 0,
         bills: 0,

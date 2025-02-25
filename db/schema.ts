@@ -1,8 +1,15 @@
 import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { InferModel } from "drizzle-orm";
+import http from 'http';
+import { createServer as createViteServer } from 'vite';
+import type { SessionOptions } from 'express-session';
+import viteConfig from './vite.config';
+import schema from "./schema";
+import { drizzle } from "drizzle-orm";
 
-// Categories table - Lookup table for transaction and bill categories
+const httpServer = http.createServer();
+
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -11,13 +18,12 @@ export const categories = pgTable("categories", {
   created_at: timestamp("created_at").defaultNow(),
 });
 
-// Transactions table with proper foreign keys and default date
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   description: text("description").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull(),
-  type: text("type").notNull(), // 'income' or 'expense'
+  type: text("type").notNull(),
   category_id: integer("category_id").references(() => categories.id),
   created_at: timestamp("created_at").defaultNow(),
   recurring_type: text("recurring_type"),
@@ -26,7 +32,6 @@ export const transactions = pgTable("transactions", {
   second_date: integer("second_date"),
 });
 
-// Bills table with all required fields
 export const bills = pgTable("bills", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -42,7 +47,6 @@ export const bills = pgTable("bills", {
   reminder_days: integer("reminder_days").default(7).notNull(),
 });
 
-// Create Zod schemas for validation
 export const insertCategorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
   color: z.string().min(1, "Color is required"),
@@ -79,24 +83,20 @@ export const insertBillSchema = z.object({
   reminder_days: z.number().optional(),
 });
 
-// Schema for category updates
 export const updateCategorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
   color: z.string().min(1, "Color is required"),
   icon: z.string().nullish(),
 });
 
-// Export types
 export type Category = InferModel<typeof categories, 'select'>;
 export type Bill = InferModel<typeof bills, 'select'>;
 export type Transaction = InferModel<typeof transactions, 'select'>;
 
-// Fix: Change the type of db to NodePgClient
 const db = drizzle(httpServer, {
   schema,
 });
 
-// Fix: Create Vite server with proper configuration
 const viteServer = createViteServer({
   appType: "./src/main",
   server: {
@@ -115,15 +115,6 @@ const viteServer = createViteServer({
   },
 });
 
-import http from 'http';
-import { createServer as createViteServer } from 'vite';
-import type { SessionOptions } from 'express-session';
-import viteConfig from './vite.config';
-import schema from "./schema";
-
-import type { Category, Bill, Transaction } from "./schema";
-
-// Additional necessary code
 export const additionalCodeFunction = () => {
   console.log("Additional code that might be necessary for the application.");
 };

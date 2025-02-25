@@ -14,18 +14,17 @@ import { sql } from "drizzle-orm";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import type { UploadedFile } from "express-fileupload";
 
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrBefore);
 
 export function registerRoutes(app: Express): Server {
-  // Health check endpoint
   app.get("/api/health", (req, res) => {
     console.log("[Server] Health check endpoint called");
     res.json({ status: "ok" });
   });
 
-  // Categories endpoints
   app.get("/api/categories", async (req, res) => {
     try {
       console.log("[Categories API] Fetching categories...");
@@ -128,7 +127,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      await db.transaction(async (tx: any) => {
+      await db.transaction(async (tx) => {
         await tx.delete(bills).where(eq(bills.category_id, categoryId));
         const result = await tx
           .delete(categories)
@@ -166,7 +165,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Bills endpoints
   app.get("/api/bills", async (req, res) => {
     try {
       console.log("[Bills API] Fetching bills with categories...");
@@ -189,7 +187,7 @@ export function registerRoutes(app: Express): Server {
         },
       });
 
-      const formattedBills = allBills.map((bill: any) => ({
+      const formattedBills = allBills.map((bill) => ({
         id: bill.id,
         name: bill.name,
         amount: Number(bill.amount),
@@ -219,7 +217,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Transactions endpoints
   app.get("/api/transactions", async (req, res) => {
     try {
       const type = req.query.type as "income" | "expense" | undefined;
@@ -377,87 +374,87 @@ export function registerRoutes(app: Express): Server {
           }
         }
 
-        for (const transaction of actualTransactions) {//-
-          if (!transaction.is_recurring) continue;//-
-//-
-          const baseTransaction = {//-
-            ...transaction,//-
-            amount: Number(transaction.amount),//-
-            is_virtual: true,//-
-          };//-
-//-
-          if (transaction.description === "Ruba's Salary") {//-
-            let currentDate: dayjs.Dayjs = startDate.clone();//-
-            while (currentDate.day() !== 5) {//-
-              currentDate = currentDate.add(1, "day");//-
-            }//-
-//-
-            while (currentDate.isSameOrBefore(endDate)) {//-
-              if (currentDate.isBetween(startDate, endDate, "day", "[]")) {//-
-                virtualTransactions.push({//-
-                  ...baseTransaction,//-
-                  date: currentDate.format("YYYY-MM-DD"),//-
-                  id: `${transaction.id}_${currentDate.format("YYYY-MM-DD")}`,//-
-                });//-
-              }//-
-              currentDate = currentDate.add(14, "days");//-
-            }//-
-            continue;//-
-          }//-
-//-
-          const originalDate = dayjs(transaction.date);//-
-          const dayOfMonth =//-
-            transaction.recurring_type === "twice-monthly"//-
-              ? originalDate.date()//-
-              : undefined;//-
-//-
-          let currentMonth: dayjs.Dayjs = startDate.startOf("month");//-
-          while (currentMonth.isSameOrBefore(endDate)) {//-
-            if (//-
-              transaction.recurring_type === "twice-monthly" &&//-
-              transaction.first_date &&//-
-              transaction.second_date//-
-            ) {//-
-              const firstDate = currentMonth.date(transaction.first_date);//-
-              const secondDate = currentMonth.date(transaction.second_date);//-
-//-
-              if (firstDate.isBetween(startDate, endDate, "day", "[]")) {//-
-                transactions.push({//-
-                  ...baseTransaction,//-
-                  date: firstDate.format("YYYY-MM-DD"),//-
-                  id: `${transaction.id}_${firstDate.format("YYYY-MM-DD")}`,//-
-                });//-
-              }//-
-//-
-              if (secondDate.isBetween(startDate, endDate, "day", "[]")) {//-
-                virtualTransactions.push({//-
-                  ...baseTransaction,//-
-                  date: secondDate.format("YYYY-MM-DD"),//-
-                  id: `${transaction.id}_${secondDate.format("YYYY-MM-DD")}`,//-
-                });//-
-              }//-
-            } else if (dayOfMonth) {//-
-              const transactionDate = currentMonth.date(dayOfMonth);//-
-              if (transactionDate.isBetween(startDate, endDate, "day", "[]")) {//-
-                virtualTransactions.push({//-
-                  ...baseTransaction,//-
-                  date: transactionDate.format("YYYY-MM-DD"),//-
-                  id: `${transaction.id}_${transactionDate.format("YYYY-MM-DD")}`,//-
-                });//-
-              }//-
-            }//-
-            currentMonth = currentMonth.add(1, "month");//-
-          }//-
-        }//-
-        import type { UploadedFile } from 'express-fileupload'; // Fix: Import UploadedFile correctly//+
+        for (const transaction of actualTransactions) {
+          if (!transaction.is_recurring) continue;
+
+          const baseTransaction = {
+            ...transaction,
+            amount: Number(transaction.amount),
+            is_virtual: true,
+          };
+
+          if (transaction.description === "Ruba's Salary") {
+            let currentDate: dayjs.Dayjs = startDate.clone();
+            while (currentDate.day() !== 5) {
+              currentDate = currentDate.add(1, "day");
+            }
+
+            while (currentDate.isSameOrBefore(endDate)) {
+              if (currentDate.isBetween(startDate, endDate, "day", "[]")) {
+                virtualTransactions.push({
+                  ...baseTransaction,
+                  date: currentDate.format("YYYY-MM-DD"),
+                  id: `${transaction.id}_${currentDate.format("YYYY-MM-DD")}`,
+                });
+              }
+              currentDate = currentDate.add(14, "days");
+            }
+            continue;
+          }
+
+          const originalDate = dayjs(transaction.date);
+          const dayOfMonth =
+            transaction.recurring_type === "twice-monthly"
+              ? originalDate.date()
+              : undefined;
+
+          let currentMonth: dayjs.Dayjs = startDate.startOf("month");
+          while (currentMonth.isSameOrBefore(endDate)) {
+            if (
+              transaction.recurring_type === "twice-monthly" &&
+              transaction.first_date &&
+              transaction.second_date
+            ) {
+              const firstDate = currentMonth.date(transaction.first_date);
+              const secondDate = currentMonth.date(transaction.second_date);
+
+              if (firstDate.isBetween(startDate, endDate, "day", "[]")) {
+                virtualTransactions.push({
+                  ...baseTransaction,
+                  date: firstDate.format("YYYY-MM-DD"),
+                  id: `${transaction.id}_${firstDate.format("YYYY-MM-DD")}`,
+                });
+              }
+
+              if (secondDate.isBetween(startDate, endDate, "day", "[]")) {
+                virtualTransactions.push({
+                  ...baseTransaction,
+                  date: secondDate.format("YYYY-MM-DD"),
+                  id: `${transaction.id}_${secondDate.format("YYYY-MM-DD")}`,
+                });
+              }
+            } else if (dayOfMonth) {
+              const transactionDate = currentMonth.date(dayOfMonth);
+              if (transactionDate.isBetween(startDate, endDate, "day", "[]")) {
+                virtualTransactions.push({
+                  ...baseTransaction,
+                  date: transactionDate.format("YYYY-MM-DD"),
+                  id: `${transaction.id}_${transactionDate.format("YYYY-MM-DD")}`,
+                });
+              }
+            }
+            currentMonth = currentMonth.add(1, "month");
+          }
+        }
       }
+
       console.log("[Transactions API] Generated virtual transactions:", {
         count: virtualTransactions.length,
         sampleDates: virtualTransactions.slice(0, 3).map((t) => t.date),
       });
 
       const combinedTransactions = [
-        ...actualTransactions.map((t: any) => ({
+        ...actualTransactions.map((t) => ({
           ...t,
           amount: Number(t.amount),
           date: dayjs(t.date).format("YYYY-MM-DD"),
@@ -542,7 +539,7 @@ export function registerRoutes(app: Express): Server {
       let updatedTransaction;
 
       try {
-        await db.transaction(async (tx: any) => {
+        await db.transaction(async (tx) => {
           updatedTransaction = await tx
             .update(transactions)
             .set({
@@ -586,223 +583,194 @@ export function registerRoutes(app: Express): Server {
 
         res.json(updatedTransaction);
       } catch (error) {
-        console.error("[Transactions API] Transaction update failed:", error);
-        throw error;
+        console.error("[Transactions API] Error updating transaction:", error);
+        res.status(400).json({
+          message: error instanceof Error ? error.message : "Invalid request data",
+        });
       }
-    } catch (error) {
-      console.error("[Transactions API] Error updating transaction:", error);
-      res.status(400).json({
-        message:
-          error instanceof Error ? error.message : "Invalid request data",
-      });
-    }
-  });
+    });
 
-  app.delete("/api/transactions/:id", async (req, res) => {
-    try {
-      const transactionId = parseInt(req.params.id, 10);
+    app.delete("/api/transactions/:id", async (req, res) => {
+      const transactionId = parseInt(req.params.id);
 
       if (isNaN(transactionId)) {
+        console.error("[Transactions API] Invalid transaction ID:", req.params.id);
         return res.status(400).json({
           message: "Invalid transaction ID",
           error: "Transaction ID must be a number",
         });
       }
 
-      console.log("[Transactions API] Attempting to delete transaction:", {
-        id: transactionId,
-      });
-
-      const transaction = await db.query.transactions.findFirst({
-        where: eq(transactions.id, transactionId),
-      });
-
-      if (!transaction) {
-        console.log("[Transactions API] Transaction not found:", {
+      try {
+        console.log("[Transactions API] Attempting to delete transaction:", {
           id: transactionId,
         });
-        return res.status(404).json({
-          message: "Transaction not found",
-          error: `No transaction found with ID ${transactionId}`,
+
+        const transaction = await db.query.transactions.findFirst({
+          where: eq(transactions.id, transactionId),
+        });
+
+        if (!transaction) {
+          console.log("[Transactions API] Transaction not found:", {
+            id: transactionId,
+          });
+          return res.status(404).json({
+            message: "Transaction not found",
+            error: `No transaction found with ID ${transactionId}`,
+          });
+        }
+
+        await db.transaction(async (tx) => {
+          const result = await tx
+            .delete(transactions)
+            .where(eq(transactions.id, transactionId))
+            .returning();
+
+          if (!result.length) {
+            throw new Error("Failed to delete transaction");
+          }
+        });
+
+        console.log("[Transactions API] Successfully deleted transaction:", {
+          id: transactionId,
+        });
+
+        return res.status(200).json({
+          message: "Transaction deleted successfully",
+          deletedId: transactionId,
+        });
+      } catch (error) {
+        console.error("[Transactions API] Error in delete transaction handler:", {
+          id: transactionId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+        return res.status(500).json({
+          message: "Failed to delete transaction",
+          error:
+            process.env.NODE_ENV === "development"
+              ? error instanceof Error
+                ? error.message
+                : "Internal server error"
+              : "Internal server error",
         });
       }
+    });
 
-      const deleted = await db
-        .delete(transactions)
-        .where(eq(transactions.id, transactionId))
-        .returning();
+    app.post("/api/bills", async (req, res) => {
+      try {
+        console.log("[Bills API] Creating new bill:", req.body);
+        const billData = await insertBillSchema.parseAsync(req.body);
 
-      if (!deleted.length) {
-        throw new Error(`Failed to delete transaction ${transactionId}`);
+        const [newBill] = await db
+          .insert(bills)
+          .values(billData)
+          .returning();
+
+        console.log("[Bills API] Created bill:", newBill);
+        res.status(201).json(newBill);
+      } catch (error) {
+        console.error("[Bills API] Error creating bill:", error);
+        res.status(400).json({
+          message: error instanceof Error ? error.message : "Invalid request data",
+        });
       }
+    });
 
-      console.log("[Transactions API] Successfully deleted transaction:", {
-        id: transactionId,
-        deletedCount: deleted.length,
-      });
+    app.patch("/api/bills/:id", async (req, res) => {
+      try {
+        const billId = parseInt(req.params.id);
+        console.log("[Bills API] Updating bill:", {
+          id: billId,
+          data: req.body,
+        });
 
-      return res.status(200).json({
-        message: "Transaction deleted successfully",
-        deletedId: transactionId,
-      });
-    } catch (error) {
-      console.error("[Transactions API] Error in delete transaction handler:", {
-        id: req.params.id,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      return res.status(500).json({
-        message: "Failed to delete transaction",
-        error:
-          process.env.NODE_ENV === "development"
-            ? error instanceof Error
-              ? error.message
-              : "Internal server error"
-            : "Internal server error",
-      });
-    }
-  });
+        const existingBill = await db.query.bills.findFirst({
+          where: eq(bills.id, billId),
+        });
 
-  app.patch("/api/bills/:id", async (req, res) => {
-    try {
+        if (!existingBill) {
+          return res.status(404).json({ message: "Bill not found" });
+        }
+
+        const [updatedBill] = await db
+          .update(bills)
+          .set(req.body)
+          .where(eq(bills.id, billId))
+          .returning();
+
+        console.log("[Bills API] Updated bill:", updatedBill);
+        res.json(updatedBill);
+      } catch (error) {
+        console.error("[Bills API] Error updating bill:", error);
+        res.status(400).json({
+          message: error instanceof Error ? error.message : "Invalid request data",
+        });
+      }
+    });
+
+    app.delete("/api/bills/:id", async (req, res) => {
       const billId = parseInt(req.params.id);
-      console.log("[Bills API] Updating bill:", {
-        id: billId,
-        data: req.body,
-      });
 
-      const existingBill = await db.query.bills.findFirst({
-        where: eq(bills.id, billId),
-      });
-
-      if (!existingBill) {
-        return res.status(404).json({ message: "Bill not found" });
-      }
-
-      const [updatedBill] = await db
-        .update(bills)
-        .set({
-          name: req.body.name,
-          amount: req.body.amount,
-          day: req.body.day,
-          category_id: req.body.category_id,
-        })
-        .where(eq(bills.id, billId))
-        .returning();
-
-      if (existingBill.name !== req.body.name) {
-        await db
-          .update(transactions)
-          .set({
-            description: req.body.name,
-            category_id: req.body.category_id,
-          })
-          .where(
-            and(
-              eq(transactions.category_id, existingBill.category_id),
-              ilike(transactions.description, `%${existingBill.name}%`)
-            )
-          );
-      }
-
-      console.log("[Bills API] Successfully updated bill:", updatedBill);
-
-      res.set("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.set("Pragma", "no-cache");
-      res.set("Expires", "0");
-
-      res.json(updatedBill);
-    } catch (error) {
-      console.error("[Bills API] Error updating bill:", error);
-      res.status(400).json({
-        message:
-          error instanceof Error ? error.message : "Invalid request data",
-      });
-    }
-  });
-
-  // Additional routes for bills
-  app.post("/api/bills", async (req, res) => {
-    try {
-      console.log("[Bills API] Creating new bill:", req.body);
-      const billData = await insertBillSchema.parseAsync(req.body);
-      const [newBill] = await db
-        .insert(bills)
-        .values(billData)
-        .returning();
-      console.log("[Bills API] Created bill:", newBill);
-      res.status(201).json(newBill);
-    } catch (error) {
-      console.error("[Bills API] Error creating bill:", error);
-      res.status(400).json({
-        message:
-          error instanceof Error ? error.message : "Invalid request data",
-      });
-    }
-  });
-
-  app.delete("/api/bills/:id", async (req, res) => {
-    const billId = parseInt(req.params.id);
-
-    if (isNaN(billId)) {
-      console.error("[Bills API] Invalid bill ID:", req.params.id);
-      return res.status(400).json({
-        message: "Invalid bill ID",
-        error: "Bill ID must be a number",
-      });
-    }
-
-    try {
-      console.log("[Bills API] Attempting to delete bill:", {
-        id: billId,
-      });
-
-      const bill = await db.query.bills.findFirst({
-        where: eq(bills.id, billId),
-      });
-
-      if (!bill) {
-        console.log("[Bills API] Bill not found:", { id: billId });
-        return res.status(404).json({
-          message: "Bill not found",
-          error: `No bill found with ID ${billId}`,
+      if (isNaN(billId)) {
+        console.error("[Bills API] Invalid bill ID:", req.params.id);
+        return res.status(400).json({
+          message: "Invalid bill ID",
+          error: "Bill ID must be a number",
         });
       }
 
-      const deleted = await db
-        .delete(bills)
-        .where(eq(bills.id, billId))
-        .returning();
+      try {
+        console.log("[Bills API] Attempting to delete bill:", {
+          id: billId,
+        });
 
-      if (!deleted.length) {
-        throw new Error("Failed to delete bill");
+        const bill = await db.query.bills.findFirst({
+          where: eq(bills.id, billId),
+        });
+
+        if (!bill) {
+          console.log("[Bills API] Bill not found:", { id: billId });
+          return res.status(404).json({
+            message: "Bill not found",
+            error: `No bill found with ID ${billId}`,
+          });
+        }
+
+        await db.transaction(async (tx) => {
+          const result = await tx
+            .delete(bills)
+            .where(eq(bills.id, billId))
+            .returning();
+
+          if (!result.length) {
+            throw new Error("Failed to delete bill");
+          }
+        });
+
+        console.log("[Bills API] Successfully deleted bill:", {
+          id: billId,
+        });
+
+        return res.status(200).json({
+          message: "Bill deleted successfully",
+          deletedId: billId,
+        });
+      } catch (error) {
+        console.error("[Bills API] Error in delete bill handler:", {
+          id: billId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+        return res.status(500).json({
+          message: "Failed to delete bill",
+          error:
+            process.env.NODE_ENV === "development"
+              ? error instanceof Error
+                ? error.message
+                : "Internal server error"
+              : "Internal server error",
+        });
       }
+    });
 
-      console.log("[Bills API] Successfully deleted bill:", {
-        id: billId,
-        deletedCount: deleted.length,
-      });
-
-      return res.status(200).json({
-        message: "Bill deleted successfully",
-        deletedId: billId,
-      });
-    } catch (error) {
-      console.error("[Bills API] Error in delete bill handler:", {
-        id: billId,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      return res.status(500).json({
-        message: "Failed to delete bill",
-        error:
-          process.env.NODE_ENV === "development"
-            ? error instanceof Error
-              ? error.message
-              : "Internal server error"
-            : "Internal server error",
-      });
-    }
-  });
-
-  const httpServer = createServer(app);
-  return httpServer;
+    return createServer(app);
 }
