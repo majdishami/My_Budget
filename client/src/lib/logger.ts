@@ -3,38 +3,28 @@
  * Handles different types of logs with various severity levels
  */
 
-type LogLevel = 'info' | 'warn' | 'error' | 'debug';
-
-interface LogEntry {
+export interface LogEntry {
   timestamp: string;
-  level: LogLevel;
+  level: 'info' | 'warn' | 'error' | 'debug';
   message: string;
-  context?: Record<string, unknown>;
+  context?: any;
   stack?: string;
 }
 
 class Logger {
-  private static instance: Logger;
-  private logs: LogEntry[] = [];
-  private readonly MAX_LOGS = 1000; // Keep last 1000 logs in memory
+  private logEntries: LogEntry[] = [];
+  private maxEntries = 1000;
 
-  private constructor() {
-    // Initialize logger
-    this.info('Logger initialized');
-  }
-
-  public static getInstance(): Logger {
-    if (!Logger.instance) {
-      Logger.instance = new Logger();
+  private getConsoleMethod(level: string): 'log' | 'warn' | 'error' | 'debug'{
+    switch (level) {
+      case 'warn': return 'warn';
+      case 'error': return 'error';
+      case 'debug': return 'debug';
+      default: return 'log';
     }
-    return Logger.instance;
   }
 
-  private createLogEntry(
-    level: LogLevel,
-    message: string,
-    context?: Record<string, unknown>
-  ): LogEntry {
+  private createLogEntry(level: LogEntry['level'], message: string, context?: any): LogEntry {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -42,84 +32,50 @@ class Logger {
       context
     };
 
-    // Add stack trace for errors
     if (level === 'error' && context?.error instanceof Error) {
       entry.stack = context.error.stack;
     }
-
     return entry;
   }
 
-  private addLog(entry: LogEntry) {
-    this.logs.push(entry);
-    if (this.logs.length > this.MAX_LOGS) {
-      this.logs.shift(); // Remove oldest log
+  public log(level: 'info' | 'warn' | 'error' | 'debug', message: string, context?: any) {
+    const entry = this.createLogEntry(level, message, context);
+    this.logEntries.push(entry);
+
+    // Trim old entries if exceeding max size
+    if (this.logEntries.length > this.maxEntries) {
+      this.logEntries = this.logEntries.slice(-this.maxEntries);
     }
 
     // Log to console in development
-    if (import.meta.env.DEV) {
-      const consoleMethod = this.getConsoleMethod(entry.level);
-      console[consoleMethod](
-        `[${entry.timestamp}] ${entry.level.toUpperCase()}: ${entry.message}`,
-        entry.context || ''
-      );
-    }
+    const consoleMethod = this.getConsoleMethod(entry.level);
+    console[consoleMethod](`[${entry.timestamp}] ${entry.level.toUpperCase()}: ${entry.message}`, entry.context || '');
   }
 
-  private getConsoleMethod(level: LogLevel): 'log' | 'error' | 'warn' | 'debug' {
-    switch (level) {
-      case 'error':
-        return 'error';
-      case 'warn':
-        return 'warn';
-      case 'debug':
-        return 'debug';
-      default:
-        return 'log';
-    }
+
+  public info(message: string, context?: any) {
+    this.log('info', message, context);
   }
 
-  public info(message: string, context?: Record<string, unknown>) {
-    const entry = this.createLogEntry('info', message, context);
-    this.addLog(entry);
+  public warn(message: string, context?: any) {
+    this.log('warn', message, context);
   }
 
-  public warn(message: string, context?: Record<string, unknown>) {
-    const entry = this.createLogEntry('warn', message, context);
-    this.addLog(entry);
+  public error(message: string, context?: any) {
+    this.log('error', message, context);
   }
 
-  public error(message: string, context?: Record<string, unknown>) {
-    const entry = this.createLogEntry('error', message, context);
-    this.addLog(entry);
+  public debug(message: string, context?: any) {
+    this.log('debug', message, context);
   }
 
-  public debug(message: string, context?: Record<string, unknown>) {
-    const entry = this.createLogEntry('debug', message, context);
-    this.addLog(entry);
+  public getEntries(): LogEntry[] {
+    return [...this.logEntries];
   }
 
-  public getLogs(): LogEntry[] {
-    return [...this.logs];
-  }
-
-  public clearLogs() {
-    this.logs = [];
-    this.info('Logs cleared');
-  }
-
-  public downloadLogs() {
-    const blob = new Blob([JSON.stringify(this.logs, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `budget-tracker-logs-${new Date().toISOString()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    this.info('Logs downloaded');
+  public clear() {
+    this.logEntries = [];
   }
 }
 
-export const logger = Logger.getInstance();
+export const logger = new Logger();
