@@ -508,3 +508,70 @@ export default function AnnualReportDialog({
     </Dialog>
   );
 }
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { formatCurrency } from '@/lib/utils';
+
+interface AnnualReportProps {
+  isOpen: boolean;
+  onClose: () => void;
+  data: {
+    totalIncome: number;
+    totalExpenses: number;
+    monthlyData: Array<{
+      month: string;
+      income: number;
+      expenses: number;
+    }>;
+  };
+}
+
+export function AnnualReportDialog({ isOpen, onClose, data }: AnnualReportProps) {
+  const netSavings = data.totalIncome - data.totalExpenses;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Annual Financial Report</DialogTitle>
+        </DialogHeader>
+        
+        <div className="mt-4">
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="p-4 bg-green-100 rounded">
+              <h3 className="font-semibold">Total Income</h3>
+              <p className="text-xl text-green-600">{formatCurrency(data.totalIncome)}</p>
+            </div>
+            <div className="p-4 bg-red-100 rounded">
+              <h3 className="font-semibold">Total Expenses</h3>
+              <p className="text-xl text-red-600">{formatCurrency(data.totalExpenses)}</p>
+            </div>
+            <div className="p-4 bg-blue-100 rounded">
+              <h3 className="font-semibold">Net Savings</h3>
+              <p className="text-xl text-blue-600">{formatCurrency(netSavings)}</p>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="font-semibold mb-4">Monthly Breakdown</h3>
+            <div className="space-y-2">
+              {data.monthlyData.map((month) => (
+                <div key={month.month} className="grid grid-cols-4 gap-4 p-2 bg-gray-50 rounded">
+                  <div className="font-medium">{month.month}</div>
+                  <div className="text-green-600">{formatCurrency(month.income)}</div>
+                  <div className="text-red-600">{formatCurrency(month.expenses)}</div>
+                  <div className="text-blue-600">{formatCurrency(month.income - month.expenses)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end">
+          <Button onClick={onClose}>Close</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
