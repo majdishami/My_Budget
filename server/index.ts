@@ -11,8 +11,19 @@ import cors from 'cors';
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
+
+// Handle WebSocket upgrade requests
+app.use((req, res, next) => {
+  if (req.headers.upgrade && req.headers.upgrade.toLowerCase() === 'websocket') {
+    res.upgrade = true;
+  }
+  next();
+});
 
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
