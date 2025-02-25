@@ -128,8 +128,8 @@ setupAuth(app);
 registerRoutes(app);
 
 // Start the server
-const PORT = parseInt(process.env.PORT || '3000', 10);
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const PORT = parseInt(process.env.PORT || '5000', 10);
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server running on port ${port}`);
 });
