@@ -20,7 +20,7 @@ app.use(express.json());
 // Handle WebSocket upgrade requests
 app.use((req, res, next) => {
   if (req.headers.upgrade && req.headers.upgrade.toLowerCase() === 'websocket') {
-    res.upgrade = true;
+    return next();
   }
   next();
 });
