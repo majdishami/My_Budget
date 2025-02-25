@@ -22,6 +22,7 @@
   "dependencies": {
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@replit/vite-plugin-shadcn-theme-json": "^0.0.4",
+    "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-query": "^5.66.9",
     "@types/wouter": "^2.0.1",
     "axios": "^1.7.9",
@@ -48,6 +49,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "sequelize": "^6.6.2",
+    "tailwindcss-animate": "^1.0.7",
     "wouter": "^3.6.0",
     "zod": "^3.21.4",
     "zod-validation-error": "^3.4.0"
