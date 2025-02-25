@@ -536,239 +536,239 @@ export function registerRoutes(app: Express): Server {
 
       let updatedTransaction;
 
-      try {
-        await db.transaction(async (tx) => {
-          updatedTransaction = await tx
+      await db.transaction(async (tx) => {
+        updatedTransaction = await tx
+          .update(transactions)
+          .set({
+            description: req.body.description,
+            amount: req.body.amount,
+            date: new Date(req.body.date),
+            type: req.body.type,
+            category_id: req.body.category_id,
+          })
+          .where(eq(transactions.id, transactionId))
+          .returning();
+
+        if (
+          oldDescription !== newDescription ||
+          existingTransaction.category_id !== req.body.category_id
+        ) {
+          await tx
             .update(transactions)
             .set({
               description: req.body.description,
-              amount: req.body.amount,
-              date: new Date(req.body.date),
-              type: req.body.type,
               category_id: req.body.category_id,
             })
-            .where(eq(transactions.id, transactionId))
-            .returning();
-
-          if (
-            oldDescription !== newDescription ||
-            existingTransaction.category_id !== req.body.category_id
-          ) {
-            await tx
-              .update(transactions)
-              .set({
-                description: req.body.description,
-                category_id: req.body.category_id,
-              })
-              .where(
-                and(
-                  eq(transactions.type, existingTransaction.type),
-                  ilike(transactions.description, `%${oldDescription}%`),
-                  eq(transactions.category_id, existingTransaction.category_id)
-                )
-              );
-          }
-        });
-
-        console.log(
-          "[Transactions API] Successfully updated transaction:",
-          updatedTransaction
-        );
-
-        res.set("Cache-Control", "no-cache, no-store, must-revalidate");
-        res.set("Pragma", "no-cache");
-        res.set("Expires", "0");
-
-        res.json(updatedTransaction);
-      } catch (error) {
-        console.error("[Transactions API] Error updating transaction:", error);
-        res.status(400).json({
-          message: error instanceof Error ? error.message : "Invalid request data",
-        });
-      }
-    });
-
-    app.delete("/api/transactions/:id", async (req, res) => {
-      const transactionId = parseInt(req.params.id);
-
-      if (isNaN(transactionId)) {
-        console.error("[Transactions API] Invalid transaction ID:", req.params.id);
-        return res.status(400).json({
-          message: "Invalid transaction ID",
-          error: "Transaction ID must be a number",
-        });
-      }
-
-      try {
-        console.log("[Transactions API] Attempting to delete transaction:", {
-          id: transactionId,
-        });
-
-        const transaction = await db.query.transactions.findFirst({
-          where: eq(transactions.id, transactionId),
-        });
-
-        if (!transaction) {
-          console.log("[Transactions API] Transaction not found:", {
-            id: transactionId,
-          });
-          return res.status(404).json({
-            message: "Transaction not found",
-            error: `No transaction found with ID ${transactionId}`,
-          });
+            .where(
+              and(
+                eq(transactions.type, existingTransaction.type),
+                ilike(transactions.description, `%${oldDescription}%`),
+                eq(transactions.category_id, existingTransaction.category_id)
+              )
+            );
         }
+      });
 
-        await db.transaction(async (tx) => {
-          const result = await tx
-            .delete(transactions)
-            .where(eq(transactions.id, transactionId))
-            .returning();
+      console.log(
+        "[Transactions API] Successfully updated transaction:",
+        updatedTransaction
+      );
 
-          if (!result.length) {
-            throw new Error("Failed to delete transaction");
-          }
-        });
+      res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.set("Pragma", "no-cache");
+      res.set("Expires", "0");
 
-        console.log("[Transactions API] Successfully deleted transaction:", {
+      res.json(updatedTransaction);
+    }
+    catch (error) {
+      console.error("[Transactions API] Error updating transaction:", error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : "Invalid request data",
+      });
+    }
+  });
+
+  app.delete("/api/transactions/:id", async (req, res) => {
+    const transactionId = parseInt(req.params.id);
+
+    if (isNaN(transactionId)) {
+      console.error("[Transactions API] Invalid transaction ID:", req.params.id);
+      return res.status(400).json({
+        message: "Invalid transaction ID",
+        error: "Transaction ID must be a number",
+      });
+    }
+
+    try {
+      console.log("[Transactions API] Attempting to delete transaction:", {
+        id: transactionId,
+      });
+
+      const transaction = await db.query.transactions.findFirst({
+        where: eq(transactions.id, transactionId),
+      });
+
+      if (!transaction) {
+        console.log("[Transactions API] Transaction not found:", {
           id: transactionId,
         });
-
-        return res.status(200).json({
-          message: "Transaction deleted successfully",
-          deletedId: transactionId,
-        });
-      } catch (error) {
-        console.error("[Transactions API] Error in delete transaction handler:", {
-          id: transactionId,
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-        return res.status(500).json({
-          message: "Failed to delete transaction",
-          error:
-            process.env.NODE_ENV === "development"
-              ? error instanceof Error
-                ? error.message
-                : "Internal server error"
-              : "Internal server error",
+        return res.status(404).json({
+          message: "Transaction not found",
+          error: `No transaction found with ID ${transactionId}`,
         });
       }
-    });
 
-    app.post("/api/bills", async (req, res) => {
-      try {
-        console.log("[Bills API] Creating new bill:", req.body);
-        const billData = await insertBillSchema.parseAsync(req.body);
-
-        const [newBill] = await db
-          .insert(bills)
-          .values(billData)
+      await db.transaction(async (tx) => {
+        const result = await tx
+          .delete(transactions)
+          .where(eq(transactions.id, transactionId))
           .returning();
 
-        console.log("[Bills API] Created bill:", newBill);
-        res.status(201).json(newBill);
-      } catch (error) {
-        console.error("[Bills API] Error creating bill:", error);
-        res.status(400).json({
-          message: error instanceof Error ? error.message : "Invalid request data",
+        if (!result.length) {
+          throw new Error("Failed to delete transaction");
+        }
+      });
+
+      console.log("[Transactions API] Successfully deleted transaction:", {
+        id: transactionId,
+      });
+
+      return res.status(200).json({
+        message: "Transaction deleted successfully",
+        deletedId: transactionId,
+      });
+    } catch (error) {
+      console.error("[Transactions API] Error in delete transaction handler:", {
+        id: transactionId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return res.status(500).json({
+        message: "Failed to delete transaction",
+        error:
+          process.env.NODE_ENV === "development"
+            ? error instanceof Error
+              ? error.message
+              : "Internal server error"
+            : "Internal server error",
+      });
+    }
+  });
+
+  app.post("/api/bills", async (req, res) => {
+    try {
+      console.log("[Bills API] Creating new bill:", req.body);
+      const billData = await insertBillSchema.parseAsync(req.body);
+
+      const [newBill] = await db
+        .insert(bills)
+        .values(billData)
+        .returning();
+
+      console.log("[Bills API] Created bill:", newBill);
+      res.status(201).json(newBill);
+    } catch (error) {
+      console.error("[Bills API] Error creating bill:", error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : "Invalid request data",
+      });
+    }
+  });
+
+  app.patch("/api/bills/:id", async (req, res) => {
+    try {
+      const billId = parseInt(req.params.id);
+      console.log("[Bills API] Updating bill:", {
+        id: billId,
+        data: req.body,
+      });
+
+      const existingBill = await db.query.bills.findFirst({
+        where: eq(bills.id, billId),
+      });
+
+      if (!existingBill) {
+        return res.status(404).json({ message: "Bill not found" });
+      }
+
+      const [updatedBill] = await db
+        .update(bills)
+        .set(req.body)
+        .where(eq(bills.id, billId))
+        .returning();
+
+      console.log("[Bills API] Updated bill:", updatedBill);
+      res.json(updatedBill);
+    } catch (error) {
+      console.error("[Bills API] Error updating bill:", error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : "Invalid request data",
+      });
+    }
+  });
+
+  app.delete("/api/bills/:id", async (req, res) => {
+    const billId = parseInt(req.params.id);
+
+    if (isNaN(billId)) {
+      console.error("[Bills API] Invalid bill ID:", req.params.id);
+      return res.status(400).json({
+        message: "Invalid bill ID",
+        error: "Bill ID must be a number",
+      });
+    }
+
+    try {
+      console.log("[Bills API] Attempting to delete bill:", {
+        id: billId,
+      });
+
+      const bill = await db.query.bills.findFirst({
+        where: eq(bills.id, billId),
+      });
+
+      if (!bill) {
+        console.log("[Bills API] Bill not found:", { id: billId });
+        return res.status(404).json({
+          message: "Bill not found",
+          error: `No bill found with ID ${billId}`,
         });
       }
-    });
 
-    app.patch("/api/bills/:id", async (req, res) => {
-      try {
-        const billId = parseInt(req.params.id);
-        console.log("[Bills API] Updating bill:", {
-          id: billId,
-          data: req.body,
-        });
-
-        const existingBill = await db.query.bills.findFirst({
-          where: eq(bills.id, billId),
-        });
-
-        if (!existingBill) {
-          return res.status(404).json({ message: "Bill not found" });
-        }
-
-        const [updatedBill] = await db
-          .update(bills)
-          .set(req.body)
+      await db.transaction(async (tx) => {
+        const result = await tx
+          .delete(bills)
           .where(eq(bills.id, billId))
           .returning();
 
-        console.log("[Bills API] Updated bill:", updatedBill);
-        res.json(updatedBill);
-      } catch (error) {
-        console.error("[Bills API] Error updating bill:", error);
-        res.status(400).json({
-          message: error instanceof Error ? error.message : "Invalid request data",
-        });
-      }
-    });
-
-    app.delete("/api/bills/:id", async (req, res) => {
-      const billId = parseInt(req.params.id);
-
-      if (isNaN(billId)) {
-        console.error("[Bills API] Invalid bill ID:", req.params.id);
-        return res.status(400).json({
-          message: "Invalid bill ID",
-          error: "Bill ID must be a number",
-        });
-      }
-
-      try {
-        console.log("[Bills API] Attempting to delete bill:", {
-          id: billId,
-        });
-
-        const bill = await db.query.bills.findFirst({
-          where: eq(bills.id, billId),
-        });
-
-        if (!bill) {
-          console.log("[Bills API] Bill not found:", { id: billId });
-          return res.status(404).json({
-            message: "Bill not found",
-            error: `No bill found with ID ${billId}`,
-          });
+        if (!result.length) {
+          throw new Error("Failed to delete bill");
         }
+      });
 
-        await db.transaction(async (tx) => {
-          const result = await tx
-            .delete(bills)
-            .where(eq(bills.id, billId))
-            .returning();
+      console.log("[Bills API] Successfully deleted bill:", {
+        id: billId,
+      });
 
-          if (!result.length) {
-            throw new Error("Failed to delete bill");
-          }
-        });
+      return res.status(200).json({
+        message: "Bill deleted successfully",
+        deletedId: billId,
+      });
+    } catch (error) {
+      console.error("[Bills API] Error in delete bill handler:", {
+        id: billId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return res.status(500).json({
+        message: "Failed to delete bill",
+        error:
+          process.env.NODE_ENV === "development"
+            ? error instanceof Error
+              ? error.message
+              : "Internal server error"
+            : "Internal server error",
+      });
+    }
+  });
 
-        console.log("[Bills API] Successfully deleted bill:", {
-          id: billId,
-        });
-
-        return res.status(200).json({
-          message: "Bill deleted successfully",
-          deletedId: billId,
-        });
-      } catch (error) {
-        console.error("[Bills API] Error in delete bill handler:", {
-          id: billId,
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-        return res.status(500).json({
-          message: "Failed to delete bill",
-          error:
-            process.env.NODE_ENV === "development"
-              ? error instanceof Error
-                ? error.message
-                : "Internal server error"
-              : "Internal server error",
-        });
-      }
-    });
-
-    return createServer(app);
-  }
+  return createServer(app);
+}
