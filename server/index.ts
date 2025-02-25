@@ -139,19 +139,26 @@ setupAuth(app);
 registerRoutes(app);
 
 // Start the server
-const PORT = 3003;
+const PORT = process.env.PORT || 3003;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
-}).on('error', (err: Error) => {
-  console.error('Server error:', err);
-  process.exit(1);
 });
 
-app.use((req, res, next) => {
+// WebSocket upgrade handling
+app.use('/api', (req, res, next) => {
   if (req.headers.upgrade && req.headers.upgrade.toLowerCase() === 'websocket') {
-    return next();
+    res.status(426).send('Upgrade Required');
+    return;
   }
   next();
+});
+
+server.on('upgrade', (request, socket, head) => {
+  if (request.headers['upgrade'] !== 'websocket') {
+    socket.end('HTTP/1.1 400 Bad Request');
+    return;
+  }
+  // Handle WebSocket connection here
 });
   console.error('Server error:', {
     message: err.message,
