@@ -1,40 +1,15 @@
-import { useEffect, useState, useMemo } from "react";
-import dayjs from "dayjs";
-import { Income } from "@/types";
-import { formatCurrency } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-} from "@/components/ui/dialog";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, AlertCircle } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { X, Calendar, AlertCircle } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import dayjs from "dayjs";
+import { useState, useMemo, useEffect } from "react";
+import { formatCurrency } from "@/lib/utils";
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import * as LucideIcons from "lucide-react";
 
 // Initialize dayjs plugins
 dayjs.extend(isSameOrBefore);
@@ -58,6 +33,20 @@ interface AnnualReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   selectedYear?: number;
+}
+
+interface Bill {
+  id: string;
+  name: string;
+  amount: number;
+  day: number;
+  category_id: number;
+  created_at: string;
+  is_one_time: boolean;
+  category_name: string;
+  category_color: string;
+  category?: { icon: string | null };
+  category_icon?: string;
 }
 
 interface AnnualSummary {
@@ -101,27 +90,6 @@ interface AnnualSummary {
   };
 }
 
-interface Category {
-  id: number;
-  name: string;
-  color: string;
-}
-
-interface Bill {
-  id: string;
-  name: string;
-  amount: number;
-  day: number;
-  category_id: number;
-  user_id: number;
-  created_at: string;
-  isOneTime: boolean;
-  category_name: string;
-  category_color: string;
-  category?: { icon: string | null };
-  category_icon?: string; // Added category_icon field to Bill interface
-}
-
 export default function AnnualReportDialog({
   isOpen,
   onOpenChange,
@@ -132,7 +100,6 @@ export default function AnnualReportDialog({
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
   const today = useMemo(() => dayjs(), []);
 
-  // Fetch bills with categories included
   const { data: bills = [], isLoading: billsLoading } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     enabled: isOpen,

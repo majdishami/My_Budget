@@ -1,7 +1,8 @@
 import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { Pool } from 'pg';
+import pg from 'pg';
+const { Pool } = pg;
 import { createServer as createViteServer } from 'vite';
 import session from "express-session";
 const MemoryStore = session.MemoryStore;
