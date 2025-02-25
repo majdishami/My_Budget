@@ -142,25 +142,29 @@ registerRoutes(app);
 const PORT = process.env.PORT || 3003;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
-});
-
-// WebSocket handling
-server.on('upgrade', (request, socket, head) => {
-  const upgradeHeader = request.headers['upgrade'];
-  if (!upgradeHeader || upgradeHeader.toLowerCase() !== 'websocket') {
-    socket.end('HTTP/1.1 400 Bad Request');
-    return;
-  }
-  // Accept WebSocket upgrade
-  socket.write('HTTP/1.1 101 Switching Protocols\r\n' +
-               'Upgrade: websocket\r\n' +
-               'Connection: Upgrade\r\n\r\n');
-});
+}).on('error', (err) => {
   console.error('Server error:', {
     message: err.message,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     timestamp: new Date().toISOString()
   });
+  process.exit(1);
+});
+
+// Handle WebSocket upgrade
+app.on('upgrade', (request, socket, head) => {
+  if (!request.headers.upgrade || request.headers.upgrade.toLowerCase() !== 'websocket') {
+    socket.end('HTTP/1.1 400 Bad Request');
+    return;
+  }
+  socket.write([
+    'HTTP/1.1 101 Switching Protocols',
+    'Upgrade: websocket',
+    'Connection: Upgrade',
+    '',
+    ''
+  ].join('\r\n'));
+});
   if (err.message.includes('EADDRINUSE')) {
     console.log(`Port ${PORT} is in use, trying ${PORT + 1}`);
     app.listen(PORT + 1, '0.0.0.0');
