@@ -1,12 +1,11 @@
 import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { InferModel } from "drizzle-orm";
+import { InferModel, drizzle } from "drizzle-orm";
 import http from 'http';
 import { createServer as createViteServer } from 'vite';
 import type { SessionOptions } from 'express-session';
 import viteConfig from './vite.config';
 import schema from "./schema";
-import { drizzle } from "drizzle-orm";
 
 const httpServer = http.createServer();
 

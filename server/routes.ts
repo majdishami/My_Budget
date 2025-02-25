@@ -215,7 +215,6 @@ export function registerRoutes(app: Express): Server {
       });
     }
   });
-
   app.get("/api/transactions", async (req, res) => {
     try {
       const type = req.query.type as "income" | "expense" | undefined;
@@ -438,7 +437,9 @@ export function registerRoutes(app: Express): Server {
                 virtualTransactions.push({
                   ...baseTransaction,
                   date: transactionDate.format("YYYY-MM-DD"),
-                  id: `${transaction.id}_${transactionDate.format("YYYY-MM-DD")}`,
+                  id: `${transaction.id}_${transactionDate.format(
+                    "YYYY-MM-DD"
+                  )}`,
                 });
               }
             }
@@ -575,12 +576,8 @@ export function registerRoutes(app: Express): Server {
       );
 
       res.set("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.set("Pragma", "no-cache");
-      res.set("Expires", "0");
-
       res.json(updatedTransaction);
-    }
-    catch (error) {
+    } catch (error) {
       console.error("[Transactions API] Error updating transaction:", error);
       res.status(400).json({
         message: error instanceof Error ? error.message : "Invalid request data",
