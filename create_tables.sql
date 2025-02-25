@@ -1,3 +1,8 @@
+-- Drop tables if they already exist
+DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS bills;
+DROP TABLE IF EXISTS categories;
+
 -- Create categories table
 CREATE TABLE categories (
   id SERIAL PRIMARY KEY,
@@ -11,7 +16,7 @@ INSERT INTO categories (id, name, color, icon) VALUES
 (2, 'Groceries', '#10B981', 'shopping-cart'),
 (3, 'Personal Loan', '#6366F1', 'credit-card'),
 (4, 'Car Insurance', '#F59E0B', 'car'),
-(5, 'Maid\'s Service', '#EC4899', 'home'),
+(5, 'Maid''s Service', '#EC4899', 'home'),
 (6, 'Credit Card Payments', '#8B5CF6', 'credit-card'),
 (7, 'Utilities - Electricity', '#F97316', 'zap'),
 (8, 'Utilities - Gas', '#EF4444', 'flame'),
@@ -82,8 +87,8 @@ INSERT INTO transactions (id, description, amount, date, type, category_id, crea
 (5, 'Rent', 3750, '2025-02-01T00:00:00.000Z', 'expense', 1, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
 (15, 'Groceries & Others charged on (CC 2647)', 3000, '2025-02-16T00:00:00.000Z', 'expense', 2, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
 (7, 'AT&T (+$115 Rund Roaming)', 429, '2025-02-01T00:00:00.000Z', 'expense', 15, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(16, 'maid\'s 2nd Monthly Payment', 120, '2025-02-17T00:00:00.000Z', 'expense', 5, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(6, 'maid\'s 1st monthly payment', 120, '2025-02-01T00:00:00.000Z', 'expense', 5, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
+(16, 'maid''s 2nd Monthly Payment', 120, '2025-02-17T00:00:00.000Z', 'expense', 5, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
+(6, 'maid''s 1st monthly payment', 120, '2025-02-01T00:00:00.000Z', 'expense', 5, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
 (49, 'test monthly income 1', 1, '2025-02-28T00:00:00.000Z', 'income', NULL, '2025-02-19T19:52:23.889Z', 'monthly', TRUE, NULL, NULL),
 (8, 'Sling TV (CC 9550)', 75, '2025-02-02T00:00:00.000Z', 'expense', 8, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
 (9, 'Cox Internet', 81, '2025-02-05T00:00:00.000Z', 'expense', 11, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
@@ -94,7 +99,7 @@ INSERT INTO transactions (id, description, amount, date, type, category_id, crea
 (18, 'Southwest Gas ($200 in winter/$45 in summer)', 75, '2025-02-17T00:00:00.000Z', 'expense', 29, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
 (12, 'TransAmerica Life Insurance', 77, '2025-02-08T00:00:00.000Z', 'expense', 30, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
 (53, 'test expense. monthly 1', 1, '2025-02-19T00:00:00.000Z', 'expense', 14, '2025-02-19T22:03:18.612Z', NULL, FALSE, NULL, NULL),
-(1, 'Majdi\'s Salary', 4739, '2025-02-01T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'twice-monthly', TRUE, NULL, NULL),
-(2, 'Majdi\'s Salary', 4739, '2025-02-15T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'twice-monthly', TRUE, NULL, NULL),
-(3, 'Ruba\'s Salary', 2168, '2025-02-07T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'biweekly', TRUE, NULL, NULL),
-(4, 'Ruba\'s Salary', 2168, '2025-02-21T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'biweekly', TRUE, NULL, NULL);
+(1, 'Majdi''s Salary', 4739, '2025-02-01T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'twice-monthly', TRUE, NULL, NULL),
+(2, 'Majdi''s Salary', 4739, '2025-02-15T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'twice-monthly', TRUE, NULL, NULL),
+(3, 'Ruba''s Salary', 2168, '2025-02-07T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'biweekly', TRUE, NULL, NULL),
+(4, 'Ruba''s Salary', 2168, '2025-02-21T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'biweekly', TRUE, NULL, NULL);
