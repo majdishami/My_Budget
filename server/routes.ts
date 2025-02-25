@@ -581,17 +581,6 @@ export function registerRoutes(app: Express): Server {
 
         res.json(updatedTransaction);
       } catch (error) {
-        console.error("[Transactions API] Error updating
-          "[Transactions API] Successfully updated transaction:",
-          updatedTransaction
-        );
-
-        res.set("Cache-Control", "no-cache, no-store, must-revalidate");
-        res.set("Pragma", "no-cache");
-        res.set("Expires", "0");
-
-        res.json(updatedTransaction);
-      } catch (error) {
         console.error("[Transactions API] Error updating transaction:", error);
         res.status(400).json({
           message: error instanceof Error ? error.message : "Invalid request data",
@@ -783,4 +772,3 @@ export function registerRoutes(app: Express): Server {
 
     return createServer(app);
   }
-}
