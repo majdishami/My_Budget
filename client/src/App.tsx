@@ -4,7 +4,7 @@
  * ================================================
  */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { Switch, Route, Link, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -26,7 +26,6 @@ import { Sheet, SheetContent, SheetTrigger } from "./components/ui/sheet";
 import { cn } from "./lib/utils";
 // import { useIsMobile } from "@/hooks/use-mobile";
 import { Income, Bill } from "./types";
-import crypto from 'crypto';
 import { Badge } from "./components/ui/badge";
 import { logger } from './lib/logger';
 import CategoriesPage from "./pages/Categories";
@@ -245,7 +244,7 @@ function Router() {
     }
   };
 
-  const handleErrorReset = useCallback(() => {
+  const handleErrorReset = useMemo(() => () => {
     if (error) {
       refresh().catch(console.error);
     }
