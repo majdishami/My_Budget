@@ -6,6 +6,7 @@
         "@radix-ui/react-alert-dialog": "^1.1.6",
         "@radix-ui/react-dialog": "^1.1.6",
         "@radix-ui/react-slot": "^1.1.2",
+        "@radix-ui/react-toast": "^1.2.6",
         "@testing-library/jest-dom": "^5.11.4",
         "@testing-library/react": "^11.1.0",
         "@testing-library/user-event": "^12.1.10",
