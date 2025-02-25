@@ -139,7 +139,7 @@ setupAuth(app);
 registerRoutes(app);
 
 // Start the server
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 5000;
 
 // Add error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
