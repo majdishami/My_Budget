@@ -129,9 +129,17 @@ registerRoutes(app);
 
 // Start the server
 const PORT = parseInt(process.env.PORT || '5000', 10);
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on port ${port}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+}).on('error', (err: any) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`Port ${PORT} is busy, trying ${PORT + 1}`);
+    app.listen(PORT + 1, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT + 1}`);
+    });
+  } else {
+    console.error('Server error:', err);
+  }
 });
 
 // Graceful shutdown
