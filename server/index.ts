@@ -140,30 +140,32 @@ registerRoutes(app);
 
 // Start the server
 const PORT = process.env.PORT || 3003;
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-});
 
-server.on('error', (err) => {
+// Add error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Server error:', {
     message: err.message,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     timestamp: new Date().toISOString()
   });
+  
+  res.status(500).json({
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
-server.on('upgrade', (request, socket, head) => {
-  socket.write('HTTP/1.1 426 Upgrade Required\r\n' +
-               'Upgrade: WebSocket\r\n' +
-               'Connection: Upgrade\r\n' +
-               'Content-Type: text/plain\r\n' +
-               '\r\n' +
-               'This service requires use of the WebSocket protocol\r\n');
-  socket.destroy();
-});
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+}).on('error', (err: Error) => {
   if (err.message.includes('EADDRINUSE')) {
     console.log(`Port ${PORT} is in use, trying ${PORT + 1}`);
     app.listen(PORT + 1, '0.0.0.0');
+  } else {
+    console.error('Server startup error:', err);
+    process.exit(1);
+  }
+});
   } else {
     process.exit(1);
   }
