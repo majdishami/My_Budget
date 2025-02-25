@@ -5,17 +5,14 @@ import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 
-// Load environment variables
 dotenv.config();
 
-// Check if DATABASE_URL is defined
-if (!process.env.DATABASE_URL) {
-  console.error("ERROR: DATABASE_URL is not defined in .env file.");
-  process.exit(1);
-}
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-// PostgreSQL connection pool configuration
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
@@ -28,9 +25,7 @@ const poolConfig = {
 };
 
 const pool = new Pool(poolConfig);
-
-// Initialize Drizzle ORM with the connection pool
-const db = drizzle(pool, { schema });
+export const db = drizzle(pool, { schema });
 
 // Handle PostgreSQL connection errors
 pool.on('error', (err: Error & { code?: string }) => {
@@ -128,17 +123,13 @@ async function testConnection(retries = 5) {
 
 testConnection();
 
-// Initialize Express app
-const app = express();
-
-// Set up authentication and routes
 setupAuth(app);
 registerRoutes(app);
 
 // Start the server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });
 
 // Graceful shutdown
