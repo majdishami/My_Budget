@@ -142,28 +142,24 @@ registerRoutes(app);
 const PORT = process.env.PORT || 3003;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
-}).on('error', (err) => {
+});
+
+server.on('error', (err) => {
   console.error('Server error:', {
     message: err.message,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     timestamp: new Date().toISOString()
   });
-  process.exit(1);
 });
 
-// Handle WebSocket upgrade
-app.on('upgrade', (request, socket, head) => {
-  if (!request.headers.upgrade || request.headers.upgrade.toLowerCase() !== 'websocket') {
-    socket.end('HTTP/1.1 400 Bad Request');
-    return;
-  }
-  socket.write([
-    'HTTP/1.1 101 Switching Protocols',
-    'Upgrade: websocket',
-    'Connection: Upgrade',
-    '',
-    ''
-  ].join('\r\n'));
+server.on('upgrade', (request, socket, head) => {
+  socket.write('HTTP/1.1 426 Upgrade Required\r\n' +
+               'Upgrade: WebSocket\r\n' +
+               'Connection: Upgrade\r\n' +
+               'Content-Type: text/plain\r\n' +
+               '\r\n' +
+               'This service requires use of the WebSocket protocol\r\n');
+  socket.destroy();
 });
   if (err.message.includes('EADDRINUSE')) {
     console.log(`Port ${PORT} is in use, trying ${PORT + 1}`);
