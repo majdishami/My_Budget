@@ -13,7 +13,7 @@
       "web-vitals": "^0.2.4"
     },
     "scripts": {
-        "start": "BROWSER=none PORT=3001 react-scripts start",
+        "start": "NODE_OPTIONS='--openssl-legacy-provider' BROWSER=none PORT=3001 react-scripts start",
         "dev": "BROWSER=none PORT=3001 react-scripts start",
         "build": "react-scripts build", 
         "test": "react-scripts test",
