@@ -6,9 +6,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number) {
+export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'USD'
   }).format(amount)
+}
+
+export function generateId(): number {
+  return Math.floor(Math.random() * 1000000)
+}
+
+export function getCurrentDate(): string {
+  return new Date().toISOString().split('T')[0]
 }
