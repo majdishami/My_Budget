@@ -66,4 +66,4 @@ author = 39325428
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "concurrently 'cd server && NODE_ENV=development tsx watch index.ts' 'cd client && PORT=3001 npm run dev'"
+args = "cd client && npm run dev"
