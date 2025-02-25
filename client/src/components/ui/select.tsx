@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
-import { Check, ChevronDown } from "lucide-react"
+import { Check, ChevronDown, ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const Select = SelectPrimitive.Root
@@ -105,6 +105,13 @@ const SelectSeparator = React.forwardRef<
 ))
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName
 
+// Placeholder components -  Replace these with actual implementations
+const Skeleton = () => <div>Skeleton Placeholder</div>;
+const Table = () => <div>Table Placeholder</div>;
+const Popover = () => <div>Popover Placeholder</div>;
+const Progress = () => <div>Progress Placeholder</div>;
+
+
 export {
   Select,
   SelectGroup,
@@ -114,5 +121,8 @@ export {
   SelectLabel,
   SelectItem,
   SelectSeparator,
-  
+  Skeleton,
+  Table,
+  Popover,
+  Progress,
 }
