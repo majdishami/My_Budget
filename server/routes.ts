@@ -226,7 +226,10 @@ export function registerRoutes(app: Express): Server {
 
       const [newBill] = await db
         .insert(bills)
-        .values(billData)
+        .values({
+          ...billData,
+          amount: billData.amount.toString()
+        })
         .returning();
 
       console.log("[Bills API] Created bill:", newBill);
