@@ -782,4 +782,5 @@ export function registerRoutes(app: Express): Server {
     });
 
     return createServer(app);
+  }
 }
