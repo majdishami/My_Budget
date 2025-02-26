@@ -43,8 +43,7 @@ async function loadData(file: string) {
 
 async function main() {
   try {
-    await loadData('budget_tracker_part1_2025-02-20T05-48-39-540Z.json');
-    await loadData('budget_tracker_part2_2025-02-20T05-48-39-540Z.json');
+    await loadData('budget_tracker_2025-02-20T05-48-39-540Z.json');
     console.log('Data loaded successfully.');
   } catch (err) {
     console.error('Error loading data:', err);
