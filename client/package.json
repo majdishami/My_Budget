@@ -52,7 +52,8 @@
     "sequelize": "^6.6.2",
     "wouter": "^3.6.0",
     "zod": "^3.21.4",
-    "zod-validation-error": "^3.4.0"
+    "zod-validation-error": "^3.4.0",
+    "react-scripts": "5.0.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
