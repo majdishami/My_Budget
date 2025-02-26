@@ -31,3 +31,24 @@ app.get('/', (req, res) => {
 app.listen(3000, () => {
   console.log('Server is running on port 3000');
 });
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { QueryClient, QueryClientProvider } from 'react-query';
+import { BrowserRouter as Router } from 'react-router-dom';
+import App from './App';
+import './index.css';
+
+// Initialize React Query client
+const queryClient = new QueryClient();
+
+ReactDOM.render(
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <App />
+      </Router>
+    </QueryClientProvider>
+  </React.StrictMode>,
+  document.getElementById('root')
+);

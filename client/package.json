@@ -5,12 +5,12 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "start": "react-scripts start",
+    "start": "react-app-rewired start",
     "client": "cd client && npm start",
     "server": "NODE_ENV=production node dist/index.js",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
     "migrate": "drizzle-kit generate:pg",
     "audit": "npm audit"
   },
@@ -81,7 +81,8 @@
     "tailwindcss": "^3.4.14",
     "tsx": "^4.19.1",
     "typescript": "^4.9.5",
-    "vite": "^6.1.1"
+    "vite": "^6.1.1",
+    "react-app-rewired": "^2.1.9"
   },
   "files": [
     "dist",
@@ -89,17 +90,5 @@
     "client",
     ".env"
   ],
-  "private": true,
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  }
+  "private": true
 }
