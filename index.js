@@ -78,4 +78,17 @@ sequelize.sync({ force: true }).then(async () => {
     { description: 'Car Insurance for 3 cars ($268 + $169 + $303 + $21)', amount: 704, date: '2025-02-27T00:00:00.000Z', type: 'expense', category_id: 4, created_at: '2025-02-14T07:01:56.328Z', is_recurring: false },
     { description: 'Southwest Gas ($200 in winter/$45 in summer)', amount: 75, date: '2025-02-17T00:00:00.000Z', type: 'expense', category_id: 8, created_at: '2025-02-14T07:01:56.328Z', is_recurring: false },
     { description: 'TransAmerica Life Insurance', amount: 77, date: '2025-02-08T00:00:00.000Z', type: 'expense', category_id: 13, created_at: '2025-02-14T07:01:56.328Z', is_recurring: false },
-    { description: 'test expense. monthly 1', amount: 1, date: '2025-02-19T00:00:00.000Z', type: 'expense', category_id: 14, created_at: '2025-02-19T22:03:18.612Z', is_recurring: false, day: 
+    { description: 'test expense. monthly 1', amount: 1, date: '2025-02-19T00:00:00.000Z', type: 'expense', category_id: 14, created_at: '2025-02-19T22:03:18.612Z', is_recurring: false, day: 19 },
+    { description: 'Majdi\'s Salary', amount: 4739, date: '2025-02-01T00:00:00.000Z', type: 'income', category_id: 17, created_at: '2025-02-14T07:01:56.328Z', recurring_type: 'twice-monthly', is_recurring: true },
+    { description: 'Majdi\'s Salary', amount: 4739, date: '2025-02-15T00:00:00.000Z', type: 'income', category_id: 17, created_at: '2025-02-14T07:01:56.328Z', recurring_type: 'twice-monthly', is_recurring: true },
+    { description: 'Ruba\'s Salary', amount: 2168, date: '2025-02-07T00:00:00.000Z', type: 'income', category_id: 17, created_at: '2025-02-14T07:01:56.328Z', recurring_type: 'biweekly', is_recurring: true },
+    { description: 'Ruba\'s Salary', amount: 2168, date: '2025-02-21T00:00:00.000Z', type: 'income', category_id: 17, created_at: '2025-02-14T07:01:56.328Z', recurring_type: 'biweekly', is_recurring: true },
+  ]);
+
+  // Start the server
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+}).catch(err => {
+  console.error('Error synchronizing the database:', err);
+});
