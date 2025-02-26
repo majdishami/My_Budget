@@ -1,6 +1,6 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../sequelize');
-const Category = require('./Category');
+import { DataTypes } from 'sequelize';
+import sequelize from '../sequelize.js';
+import Category from './Category.js';
 
 const Bill = sequelize.define('Bill', {
   id: {
@@ -50,4 +50,4 @@ const Bill = sequelize.define('Bill', {
 
 Bill.belongsTo(Category, { foreignKey: 'category_id' });
 
-module.exports = Bill;
+export default Bill;

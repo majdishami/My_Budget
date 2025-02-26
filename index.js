@@ -1,8 +1,8 @@
-const express = require('express');
-const sequelize = require('./sequelize');
-const Category = require('./models/Category');
-const Bill = require('./models/Bill');
-const Transaction = require('./models/Transaction');
+import express from 'express';
+import sequelize from './sequelize.js';
+import Category from './models/Category.js';
+import Bill from './models/Bill.js';
+import Transaction from './models/Transaction.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
