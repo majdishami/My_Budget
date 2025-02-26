@@ -1,14 +1,26 @@
+const express = require('express');
 const sequelize = require('./sequelize');
 const Category = require('./models/Category');
 const Bill = require('./models/Bill');
 const Transaction = require('./models/Transaction');
 
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Middleware
+app.use(express.json());
+
+// Routes
+app.get('/', (req, res) => {
+  res.send('Hello World!');
+});
+
 // Sync database and create tables
-sequelize.sync({ force: true }).then(() => {
+sequelize.sync({ force: true }).then(async () => {
   console.log('Database & tables created!');
 
   // Insert data into categories table
-  Category.bulkCreate([
+  await Category.bulkCreate([
     { id: 1, name: 'Rent', color: '#3B82F6', icon: 'home' },
     { id: 2, name: 'Groceries', color: '#10B981', icon: 'shopping-cart' },
     { id: 3, name: 'Personal Loan', color: '#6366F1', icon: 'credit-card' },
@@ -30,7 +42,7 @@ sequelize.sync({ force: true }).then(() => {
   ]);
 
   // Insert data into bills table
-  Bill.bulkCreate([
+  await Bill.bulkCreate([
     { id: 2, name: 'ATT Phone Bill ($115 Rund Roaming)', amount: 429, day: 1, category_id: 15, is_one_time: false, is_yearly: false, reminder_enabled: false, reminder_days: 7 },
     { id: 3, name: 'Maid Service - Beginning of Month Payment', amount: 120, day: 1, category_id: 5, is_one_time: false, is_yearly: false, reminder_enabled: false, reminder_days: 7 },
     { id: 4, name: 'Rent', amount: 3750, day: 1, category_id: 1, is_one_time: false, is_yearly: false, reminder_enabled: false, reminder_days: 7 },
@@ -49,7 +61,7 @@ sequelize.sync({ force: true }).then(() => {
   ]);
 
   // Insert data into transactions table
-  Transaction.bulkCreate([
+  await Transaction.bulkCreate([
     { description: 'Water Bill', amount: 80, date: '2025-02-06T00:00:00.000Z', type: 'expense', category_id: 29, created_at: '2025-02-14T07:01:56.328Z', is_recurring: false },
     { description: 'NV Energy Electrical ($100 winter months)', amount: 250, date: '2025-02-06T00:00:00.000Z', type: 'expense', category_id: 29, created_at: '2025-02-14T07:01:56.328Z', is_recurring: false },
     { description: 'Rent', amount: 3750, date: '2025-02-01T00:00:00.000Z', type: 'expense', category_id: 1, created_at: '2025-02-14T07:01:56.328Z', is_recurring: false },
@@ -72,6 +84,11 @@ sequelize.sync({ force: true }).then(() => {
     { description: 'Ruba\'s Salary', amount: 2168, date: '2025-02-07T00:00:00.000Z', type: 'income', category_id: 17, created_at: '2025-02-14T07:01:56.328Z', recurring_type: 'biweekly', is_recurring: true },
     { description: 'Ruba\'s Salary', amount: 2168, date: '2025-02-21T00:00:00.000Z', type: 'income', category_id: 17, created_at: '2025-02-14T07:01:56.328Z', recurring_type: 'biweekly', is_recurring: true },
   ]);
+
+  // Start the server
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
 }).catch(err => {
   console.error('Error synchronizing the database:', err);
 });

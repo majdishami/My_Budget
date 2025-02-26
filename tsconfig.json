@@ -17,6 +17,6 @@
       "@db/*": ["db/*"]
     }
   },
-  "include": ["src/**/*.ts", "drizzle.config.ts"],
+  "include": ["src/**/*.ts", "sequelize.js", "models/**/*.js", "index.js"],
   "exclude": ["node_modules", "dist"]
 }
