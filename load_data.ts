@@ -22,7 +22,7 @@ async function loadData(file: string) {
   for (const entry of data.transactions) {
     const query = `
       INSERT INTO transactions (description, amount, date, type, category_id, created_at, recurring_type, is_recurring, first_date, second_date, day)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     `;
     const values = [
       entry.description,
