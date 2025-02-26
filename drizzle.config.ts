@@ -1,4 +1,4 @@
-import { defineDbConfig } from "drizzle-kit"; // Replace with the correct function if this is incorrect
+import { defineDbConfig } from "drizzle-kit"; // Ensure this matches the actual export
 
 export default defineDbConfig({
   schema: "./src/schema",
