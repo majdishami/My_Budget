@@ -7,15 +7,19 @@ const client = new Client({
   connectionString: process.env.DATABASE_URL,
 });
 
-async function loadData() {
+async function loadData(file: string) {
   await client.connect();
 
-  const data = JSON.parse(fs.readFileSync('budget_tracker_2025-02-20T05-48-39-540Z.json', 'utf8'));
+  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+
+  if (!Array.isArray(data)) {
+    throw new Error("JSON data is not an array");
+  }
 
   for (const entry of data) {
     const query = `
-      INSERT INTO transactions (description, amount, date, type, category_id, created_at, recurring_type, is_recurring, first_date, second_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO transactions (description, amount, date, type, category_id, created_at, recurring_type, is_recurring, first_date, second_date, day)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     `;
     const values = [
       entry.description,
@@ -28,6 +32,7 @@ async function loadData() {
       entry.is_recurring,
       entry.first_date,
       entry.second_date,
+      entry.day
     ];
 
     await client.query(query, values);
@@ -36,4 +41,14 @@ async function loadData() {
   await client.end();
 }
 
-loadData().catch(err => console.error('Error loading data:', err));
+async function main() {
+  try {
+    await loadData('budget_tracker_part1_2025-02-20T05-48-39-540Z.json');
+    await loadData('budget_tracker_part2_2025-02-20T05-48-39-540Z.json');
+    console.log('Data loaded successfully.');
+  } catch (err) {
+    console.error('Error loading data:', err);
+  }
+}
+
+main();
