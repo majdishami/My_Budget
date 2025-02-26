@@ -77,29 +77,30 @@ CREATE TABLE transactions (
   recurring_type TEXT,
   is_recurring BOOLEAN DEFAULT FALSE,
   first_date INT,
-  second_date INT
+  second_date INT,
+  day INT
 );
 
 -- Insert data into transactions table
-INSERT INTO transactions (id, description, amount, date, type, category_id, created_at, recurring_type, is_recurring, first_date, second_date) VALUES
-(10, 'Water Bill', 80, '2025-02-06T00:00:00.000Z', 'expense', 29, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(11, 'NV Energy Electrical ($100 winter months)', 250, '2025-02-06T00:00:00.000Z', 'expense', 29, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(5, 'Rent', 3750, '2025-02-01T00:00:00.000Z', 'expense', 1, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(15, 'Groceries & Others charged on (CC 2647)', 3000, '2025-02-16T00:00:00.000Z', 'expense', 2, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(7, 'AT&T (+$115 Rund Roaming)', 429, '2025-02-01T00:00:00.000Z', 'expense', 15, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(16, 'maid''s 2nd Monthly Payment', 120, '2025-02-17T00:00:00.000Z', 'expense', 5, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(6, 'maid''s 1st monthly payment', 120, '2025-02-01T00:00:00.000Z', 'expense', 5, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(49, 'test monthly income 1', 1, '2025-02-28T00:00:00.000Z', 'income', NULL, '2025-02-19T19:52:23.889Z', 'monthly', TRUE, NULL, NULL),
-(8, 'Sling TV (CC 9550)', 75, '2025-02-02T00:00:00.000Z', 'expense', 8, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(9, 'Cox Internet', 81, '2025-02-05T00:00:00.000Z', 'expense', 11, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(13, 'Credit Card minimum payments', 225, '2025-02-13T00:00:00.000Z', 'expense', 6, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(14, 'Apple/Google/YouTube (CC 9550)', 130, '2025-02-13T00:00:00.000Z', 'expense', 12, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(17, 'SoFi Personal Loan', 1915, '2025-02-17T00:00:00.000Z', 'expense', 3, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(19, 'Car Insurance for 3 cars ($268 + $169 + $303 + $21)', 704, '2025-02-27T00:00:00.000Z', 'expense', 30, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(18, 'Southwest Gas ($200 in winter/$45 in summer)', 75, '2025-02-17T00:00:00.000Z', 'expense', 29, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(12, 'TransAmerica Life Insurance', 77, '2025-02-08T00:00:00.000Z', 'expense', 30, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL),
-(53, 'test expense. monthly 1', 1, '2025-02-19T00:00:00.000Z', 'expense', 14, '2025-02-19T22:03:18.612Z', NULL, FALSE, NULL, NULL),
-(1, 'Majdi''s Salary', 4739, '2025-02-01T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'twice-monthly', TRUE, NULL, NULL),
-(2, 'Majdi''s Salary', 4739, '2025-02-15T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'twice-monthly', TRUE, NULL, NULL),
-(3, 'Ruba''s Salary', 2168, '2025-02-07T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'biweekly', TRUE, NULL, NULL),
-(4, 'Ruba''s Salary', 2168, '2025-02-21T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'biweekly', TRUE, NULL, NULL);
+INSERT INTO transactions (id, description, amount, date, type, category_id, created_at, recurring_type, is_recurring, first_date, second_date, day) VALUES
+(10, 'Water Bill', 80, '2025-02-06T00:00:00.000Z', 'expense', 29, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(11, 'NV Energy Electrical ($100 winter months)', 250, '2025-02-06T00:00:00.000Z', 'expense', 29, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(5, 'Rent', 3750, '2025-02-01T00:00:00.000Z', 'expense', 1, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(15, 'Groceries & Others charged on (CC 2647)', 3000, '2025-02-16T00:00:00.000Z', 'expense', 2, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(7, 'AT&T (+$115 Rund Roaming)', 429, '2025-02-01T00:00:00.000Z', 'expense', 15, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(16, 'maid''s 2nd Monthly Payment', 120, '2025-02-17T00:00:00.000Z', 'expense', 5, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(6, 'maid''s 1st monthly payment', 120, '2025-02-01T00:00:00.000Z', 'expense', 5, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(49, 'test monthly income 1', 1, '2025-02-28T00:00:00.000Z', 'income', NULL, '2025-02-19T19:52:23.889Z', 'monthly', TRUE, NULL, NULL, NULL),
+(8, 'Sling TV (CC 9550)', 75, '2025-02-02T00:00:00.000Z', 'expense', 10, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(9, 'Cox Internet', 81, '2025-02-05T00:00:00.000Z', 'expense', 11, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(13, 'Credit Card minimum payments', 225, '2025-02-13T00:00:00.000Z', 'expense', 6, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(14, 'Apple/Google/YouTube (CC 9550)', 130, '2025-02-13T00:00:00.000Z', 'expense', 12, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(17, 'SoFi Personal Loan', 1915, '2025-02-17T00:00:00.000Z', 'expense', 3, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(19, 'Car Insurance for 3 cars ($268 + $169 + $303 + $21)', 704, '2025-02-27T00:00:00.000Z', 'expense', 4, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(18, 'Southwest Gas ($200 in winter/$45 in summer)', 75, '2025-02-17T00:00:00.000Z', 'expense', 8, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(12, 'TransAmerica Life Insurance', 77, '2025-02-08T00:00:00.000Z', 'expense', 13, '2025-02-14T07:01:56.328Z', NULL, FALSE, NULL, NULL, NULL),
+(53, 'test expense. monthly 1', 1, '2025-02-19T00:00:00.000Z', 'expense', 14, '2025-02-19T22:03:18.612Z', NULL, FALSE, NULL, NULL, 19),
+(1, 'Majdi''s Salary', 4739, '2025-02-01T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'twice-monthly', TRUE, NULL, NULL, NULL),
+(2, 'Majdi''s Salary', 4739, '2025-02-15T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'twice-monthly', TRUE, NULL, NULL, NULL),
+(3, 'Ruba''s Salary', 2168, '2025-02-07T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'biweekly', TRUE, NULL, NULL, NULL),
+(4, 'Ruba''s Salary', 2168, '2025-02-21T00:00:00.000Z', 'income', 17, '2025-02-14T07:01:56.328Z', 'biweekly', TRUE, NULL, NULL, NULL);
