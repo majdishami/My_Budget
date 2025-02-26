@@ -38,6 +38,7 @@
     "express": "^4.17.1",
     "express-fileupload": "^1.5.1",
     "express-session": "^1.18.1",
+    "fs": "^0.0.1-security",
     "jsonwebtoken": "^8.5.0",
     "knex": "^3.1.0",
     "lucide-react": "^0.244.0",
@@ -50,6 +51,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "sequelize": "^6.6.2",
+    "ts-node": "^10.9.2",
     "wouter": "^3.6.0",
     "zod": "^3.21.4",
     "zod-validation-error": "^3.4.0"
