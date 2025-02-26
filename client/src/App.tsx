@@ -64,8 +64,6 @@ import {
 } from "./components/ui/dropdown-menu";
 import React from "react";
 
-
-
 function Router() {
   const { isLoading, error, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
   const [location, setLocation] = useLocation();
@@ -474,6 +472,13 @@ function Router() {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Income
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel>Edit Income</DropdownMenu
+                          <DropdownMenuContent>
                           <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Income
