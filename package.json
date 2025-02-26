@@ -10,7 +10,9 @@
     "server": "NODE_ENV=production node dist/index.js",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "drizzle-kit generate:pg",
+    "audit": "npm audit"
   },
   "keywords": [
     "budget",
