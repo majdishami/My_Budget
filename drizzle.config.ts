@@ -1,6 +1,6 @@
-import { defineSchema } from "drizzle-kit";
+import { defineDbConfig } from "drizzle-kit";
 
-export default defineSchema({
+export default defineDbConfig({
   schema: "./src/schema",
   out: "./drizzle",
   db: {
