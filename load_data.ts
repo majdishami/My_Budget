@@ -12,11 +12,11 @@ async function loadData(file: string) {
 
   const data = JSON.parse(fs.readFileSync(file, 'utf8'));
 
-  if (!Array.isArray(data)) {
+  if (!Array.isArray(data.transactions)) {
     throw new Error("JSON data is not an array");
   }
 
-  for (const entry of data) {
+  for (const entry of data.transactions) {
     const query = `
       INSERT INTO transactions (description, amount, date, type, category_id, created_at, recurring_type, is_recurring, first_date, second_date, day)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
