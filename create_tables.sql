@@ -13,6 +13,7 @@ CREATE TABLE categories (
 
 -- Insert data into categories table
 INSERT INTO categories (id, name, color, icon) VALUES
+(1, 'Rent', '#3B82F6', 'home'),
 (2, 'Groceries', '#10B981', 'shopping-cart'),
 (3, 'Personal Loan', '#6366F1', 'credit-card'),
 (4, 'Car Insurance', '#F59E0B', 'car'),
@@ -29,8 +30,7 @@ INSERT INTO categories (id, name, color, icon) VALUES
 (15, 'Phone', '#32af37', 'phone'),
 (17, 'General Expenses', '#6366F1', 'shopping-cart'),
 (29, 'Utilities', '#e91515', 'House-Plug'),
-(30, 'Insurances', '#ca6464', 'alarm-smoke'),
-(1, 'Rent', '#3B82F6', 'home');
+(30, 'Insurances', '#ca6464', 'alarm-smoke');
 
 -- Create bills table
 CREATE TABLE bills (
