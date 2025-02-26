@@ -148,7 +148,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     timestamp: new Date().toISOString()
   });
-  
+
   res.status(500).json({
     message: 'Internal server error',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
@@ -161,7 +161,6 @@ const server = app.listen(5000, '0.0.0.0', () => {
   console.error('Server startup error:', err);
   process.exit(1);
 });
-  });
 
 process.on('SIGTERM', () => {
   server.close(() => {
