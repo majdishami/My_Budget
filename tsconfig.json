@@ -17,6 +17,6 @@
       "@db/*": ["db/*"]
     }
   },
-  "include": ["server/**/*", "vite.config.ts", "types/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "tmp"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
