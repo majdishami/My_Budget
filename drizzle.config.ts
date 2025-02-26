@@ -1,6 +1,6 @@
-import { makeConfig } from "drizzle-kit";
+import { defineDbConfig } from "drizzle-kit"; // Replace with the correct function if this is incorrect
 
-export default makeConfig({
+export default defineDbConfig({
   schema: "./src/schema",
   out: "./drizzle",
   db: {
