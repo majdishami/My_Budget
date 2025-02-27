@@ -1,7 +1,7 @@
-import { resolve } from 'path';
-import webpack from 'webpack';
+const path = require('path');
+const webpack = require('webpack');
 
-export default function override(config) {
+module.exports = function override(config) {
   config.resolve.fallback = {
     zlib: require.resolve('browserify-zlib'),
     querystring: require.resolve('querystring-es3'),
@@ -28,4 +28,4 @@ export default function override(config) {
   ]);
 
   return config;
-}
+};
