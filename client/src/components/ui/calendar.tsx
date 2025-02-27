@@ -1,9 +1,9 @@
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
-import { cn } from "@/lib/utils"
-import { Bill, Income } from "@/types"
-import { DayContent } from "@/components/DayContent"
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import { cn } from "@/lib/utils";
+import { Bill, Income } from "@/types";
+import { DayContent } from "@/components/DayContent";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   bills?: Bill[];
