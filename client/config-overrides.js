@@ -13,7 +13,7 @@ module.exports = function override(config, env) {
   // Add or modify Webpack resolve
   config.resolve = {
     ...config.resolve,
-    fallback: {
+    alias: {
       zlib: require.resolve('browserify-zlib'),
       querystring: require.resolve('querystring-es3'),
       path: require.resolve('path-browserify'),
