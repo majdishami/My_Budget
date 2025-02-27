@@ -2,7 +2,7 @@
   "name": "my-budget",
   "version": "1.0.0",
   "description": "A budget tracking application",
-  "type": "commonjs", // Changed from "module" to "commonjs"
+  "type": "commonjs",
   "main": "dist/index.js",
   "scripts": {
     "start": "react-app-rewired start",
