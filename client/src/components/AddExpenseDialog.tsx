@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -6,7 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
 import { Bill } from "@/types";
 import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle, Calendar, Tag } from "lucide-react";
@@ -292,7 +292,7 @@ export function AddExpenseDialog({
                     mode="single"
                     selected={frequency === 'one-time' ? oneTimeDate : monthlyDueDate}
                     onSelect={frequency === 'one-time' ? setOneTimeDate : setMonthlyDueDate}
-                    className="rounded-md [&_.rdp-month]:!w-[280px] [&_.rdp-cell]:!p-0 [&_.rdp-cell]:!w-8 [&_.rdp-cell]:!h-8 [&_.rdp-head_th]:!w-8 [&_.rdp-head_th]:!h-8 [&_.rdp-button]:!p-0 [&_.rdp-nav]:!h-8 [&_.rdp-caption]:!h-8 [&_.rdp-day_selected]:!bg-primary [&_.rdp-day_selected]:!text-primary-foreground [&_.rdp-day_selected]:!font-bold"
+                    className="rounded-md"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
