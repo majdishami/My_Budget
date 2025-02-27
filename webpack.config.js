@@ -12,6 +12,7 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
     alias: {
+      '@': path.resolve(__dirname, 'client/src'),
       'react-refresh': path.resolve(__dirname, 'node_modules/react-refresh'),
     },
   },
@@ -43,7 +44,7 @@ module.exports = {
     new webpack.HotModuleReplacementPlugin(),
   ],
   devServer: {
-    contentBase: path.join(__dirname, 'dist'),
+    static: path.join(__dirname, 'dist'),
     hot: true,
   },
   mode: 'development',
