@@ -1,4 +1,3 @@
-const path = require('path');
 const webpack = require('webpack');
 
 module.exports = function override(config, env) {
@@ -23,6 +22,9 @@ module.exports = function override(config, env) {
       url: require.resolve('url/'),
       util: require.resolve('util/'),
       buffer: require.resolve('buffer/'),
+    },
+    fallback: {
+      process: require.resolve('process/browser'),
     },
   };
 
