@@ -1,20 +1,20 @@
-import { resolve } from 'path';
-import webpack from 'webpack';
+const { resolve } = require('path');
+const webpack = require('webpack');
 
-export default function override(config) {
+module.exports = function override(config) {
   config.resolve.fallback = {
-    zlib: resolve('browserify-zlib'),
-    querystring: resolve('querystring-es3'),
-    path: resolve('path-browserify'),
-    crypto: resolve('crypto-browserify'),
+    zlib: require.resolve('browserify-zlib'),
+    querystring: require.resolve('querystring-es3'),
+    path: require.resolve('path-browserify'),
+    crypto: require.resolve('crypto-browserify'),
     fs: false,
-    stream: resolve('stream-browserify'),
-    http: resolve('stream-http'),
+    stream: require.resolve('stream-browserify'),
+    http: require.resolve('stream-http'),
     net: false,
     tls: false,
-    url: resolve('url/'),
-    util: resolve('util/'),
-    buffer: resolve('buffer/'),
+    url: require.resolve('url/'),
+    util: require.resolve('util/'),
+    buffer: require.resolve('buffer/'),
     dns: false,
     async_hooks: false,
     pg_native: false,
@@ -28,4 +28,4 @@ export default function override(config) {
   ]);
 
   return config;
-}
+};
