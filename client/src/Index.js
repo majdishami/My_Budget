@@ -1,4 +1,4 @@
-const pkg = require('pg');
+import pkg from 'pg';
 const { Pool } = pkg;
 
 // Example of how you might use the Pool
@@ -21,7 +21,7 @@ pool.query('SELECT NOW()', (err, res) => {
 
 // Your existing server setup code...
 // Make sure to replace this with your actual code
-const express = require('express');
+import express from 'express';
 const app = express();
 
 app.get('/', (req, res) => {
@@ -32,12 +32,12 @@ app.listen(3000, () => {
   console.log('Server is running on port 3000');
 });
 
-const React = require('react');
-const ReactDOM = require('react-dom');
-const { QueryClient, QueryClientProvider } = require('react-query');
-const { BrowserRouter: Router } = require('react-router-dom');
-const App = require('./App').default;
-require('./index.css');
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { QueryClient, QueryClientProvider } from 'react-query';
+import { BrowserRouter as Router } from 'react-router-dom';
+import App from './App';
+import './index.css';
 
 // Initialize React Query client
 const queryClient = new QueryClient();
