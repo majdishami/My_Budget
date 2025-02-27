@@ -5,12 +5,12 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node --require ./config-overrides.cjs ./node_modules/react-app-rewired/scripts/start.js",
+    "start": "react-app-rewired start",
     "client": "cd client && npm start",
     "server": "NODE_ENV=production node dist/index.js",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "build": "node --require ./config-overrides.cjs ./node_modules/react-app-rewired/scripts/build.js",
-    "test": "node --require ./config-overrides.cjs ./node_modules/react-app-rewired/scripts/test.js",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
     "migrate": "drizzle-kit generate:pg",
     "audit": "npm audit"
   },
