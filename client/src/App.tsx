@@ -477,8 +477,95 @@ function Router() {
                             Add Income
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuLabel>Edit Income</DropdownMenu
-                          <DropdownMenuContent>
+                          <DropdownMenuLabel>Edit Income</DropdownMenuLabel>
+                          {incomes.reduce((uniqueIncomes: Income[], income) => {
+                            if (income.occurrenceType !== 'once') {
+                              const existingIncome = uniqueIncomes.find(i => i.source === income.source);
+                              if (!existingIncome || dayjs(income.date).isBefore(dayjs(existingIncome.date))) {
+                                const filteredIncomes = uniqueIncomes.filter(i => i.source !== income.source);
+                                return [...filteredIncomes, income];
+                              }
+                              return uniqueIncomes;
+                            }
+                            return [...uniqueIncomes, income];
+                          }, []).map((income) => {
+                            let occurrenceTypeLabel = income.occurrenceType;
+                            if (income.source === "Majdi's Salary") {
+                              occurrenceTypeLabel = "twice-monthly";
+                            } else if (income.source === "Ruba's Salary") {
+                              occurrenceTypeLabel = "biweekly";
+                            }
+
+                            return (
+                              <DropdownMenuItem
+                                key={`edit-${income.id}`}
+                                onClick={() => handleEditTransaction('income', income)}
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                <div className="flex items-center gap-2">
+                                  <span>{income.source}</span>
+                                  <Badge className="ml-2">
+                                    {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
+                                      occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
+                                        occurrenceTypeLabel === 'monthly' ? 'Monthly' :
+                                          occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
+                                  </Badge>
+                                  <span className="text-muted-foreground text-sm">
+                                    ({dayjs(income.date).format('MMM D')})
+                                  </span>
+                                </div>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel>Delete Income</DropdownMenuLabel>
+                          {incomes.reduce((uniqueIncomes: Income[], income) => {
+                            if (income.occurrenceType !== 'once') {
+                              const existingIncome = uniqueIncomes.find(i => i.source === income.source);
+                              if (!existingIncome || dayjs(income.date).isBefore(dayjs(existingIncome.date))) {
+                                const filteredIncomes = uniqueIncomes.filter(i => i.source !== income.source);
+                                return [...filteredIncomes, income];
+                              }
+                              return uniqueIncomes;
+                            }
+                            return [...uniqueIncomes, income];
+                          }, []).map((income) => {
+                            let occurrenceTypeLabel = income.occurrenceType;
+                            if (income.source === "Majdi's Salary") {
+                              occurrenceTypeLabel = "twice-monthly";
+                            } else if (income.source === "Ruba's Salary") {
+                              occurrenceTypeLabel = "biweekly";
+                            }
+
+                            return (
+                              <DropdownMenuItem
+                                key={`delete-${income.id}`}
+                                onClick={() => handleDeleteTransaction('income', income)}
+                                className="text-red-600"
+                              >
+                                <Trash className="mr-2 h-4 w-4" />
+                                <div className="flex items-center gap-2">
+                                  <span>{income.source}</span>
+                                  <Badge className="ml-2">
+                                    {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
+                                      occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
+                                        occurrenceTypeLabel === 'monthly' ? 'Monthly' :
+                                          occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
+                                  </Badge>
+                                  <span className="text-muted-foreground text-sm">
+                                    ({dayjs(income.date).format('MMM D')})
+                                  </span>
+                                </div>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Income
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel>Edit Income</DropdownMenuLabel>                          <DropdownMenuContent>
                           <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Income
