@@ -36,7 +36,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter as Router } from 'react-router-dom';
-import App from './App';
+import App from './App.tsx'; // Import the TypeScript App component
 import './index.css';
 
 // Initialize React Query client
