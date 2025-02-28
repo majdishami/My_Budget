@@ -20,7 +20,8 @@
     "jsx": "react",
     "baseUrl": "src",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["*"],
+      "@hooks/*": ["hooks/*"] // Add this line if not already present
     }
   },
   "include": [

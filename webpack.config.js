@@ -14,6 +14,7 @@ module.exports = {
     alias: {
       '@': path.resolve(__dirname, 'client/src'),
       'react-refresh': path.resolve(__dirname, 'node_modules/react-refresh'),
+      '@hooks': path.resolve(__dirname, 'client/src/hooks'), // Add this line
     },
   },
   module: {
