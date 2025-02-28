@@ -1,0 +1,19 @@
+
+{
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "commonjs",
+    "outDir": "dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": ["../client/src/*"],
+      "@server/*": ["./*"],
+      "@db/*": ["../db/*"]
+    }
+  },
+  "include": ["./**/*", "../db/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
