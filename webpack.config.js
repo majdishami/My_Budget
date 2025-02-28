@@ -13,7 +13,7 @@ module.exports = {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
     alias: {
       '@': path.resolve(__dirname, 'client/src'),
-      'react-refresh': path.resolve(__dirname, 'node_modules/react-refresh'),
+      'react-refresh': path.resolve(__dirname, 'client/node_modules/react-refresh'),
     },
   },
   module: {
