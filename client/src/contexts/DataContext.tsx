@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Income, Bill, Category } from "@/types";
 import dayjs from "dayjs";
 import logger from "@/lib/logger";

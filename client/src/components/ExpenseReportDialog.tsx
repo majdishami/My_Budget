@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { Bill, Category } from "@/types";
