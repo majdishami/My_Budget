@@ -1,4 +1,3 @@
-
 import { saveAs } from 'file-saver';
 
 export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR" | "NONE";
@@ -36,24 +35,25 @@ const logger = {
     }
   },
 
-  error: (message: string, error?: Error, context?: Record<string, any>) => {
+  error: (message: string, error?: any, context?: Record<string, any>) => {
     if (isLevelEnabled("ERROR")) {
+      const formattedError = error instanceof Error ? error : new Error(JSON.stringify(error));
       const entry: LogEntry = {
         timestamp: new Date().toISOString(),
         level: "ERROR",
         message,
         context: {
           ...(context || {}),
-          error: error ? formatError(error) : undefined,
+          error: formatError(formattedError),
         },
       };
-      
-      if (error?.stack) {
-        entry.stack = error.stack;
+
+      if (formattedError?.stack) {
+        entry.stack = formattedError.stack;
       }
-      
+
       logEntries.push(entry);
-      console.error(message, error, context);
+      console.error(message, formattedError, context);
     }
   },
 
@@ -75,7 +75,7 @@ const logger = {
         },
         stack: error.stack || ""
       };
-      
+
       logEntries.push(entry);
       console.error("Component Error:", error, componentStack);
     }
@@ -96,7 +96,7 @@ const logger = {
     const blob = new Blob([JSON.stringify(logEntries, null, 2)], { 
       type: 'application/json' 
     });
-    
+
     const filename = `budget-tracker-logs-${new Date().toISOString().replace(/:/g, '_')}.json`;
     saveAs(blob, filename);
   }
@@ -107,7 +107,7 @@ function isLevelEnabled(level: LogLevel): boolean {
   const levels: LogLevel[] = ["DEBUG", "INFO", "WARN", "ERROR", "NONE"];
   const currentLevelIndex = levels.indexOf(currentLevel);
   const targetLevelIndex = levels.indexOf(level);
-  
+
   return targetLevelIndex >= currentLevelIndex;
 }
 
@@ -119,9 +119,9 @@ function log(level: LogLevel, message: string, args: any[]) {
     message,
     context: args.length > 0 ? { args } : undefined
   };
-  
+
   logEntries.push(entry);
-  
+
   switch (level) {
     case "DEBUG":
       console.debug(message, ...args);

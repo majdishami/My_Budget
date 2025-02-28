@@ -826,7 +826,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <DataContext.Provider value={{
+    import * as React from 'react';
+
+<DataContext.Provider value={{
       incomes,
       bills,
       categories,
