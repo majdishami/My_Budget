@@ -24,7 +24,7 @@ export default function ExpenseReport() {
         variant: "destructive",
       });
     }
-  }, [error, toast]);
+  }, [error]);
 
   const handleGenerateReport = () => {
     setIsDialogOpen(true);
