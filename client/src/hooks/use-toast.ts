@@ -582,3 +582,28 @@ export function useToast() {
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
 }
+import { toast as sonnerToast } from "sonner"
+
+type ToastOptions = {
+  duration?: number
+  position?: "top-right" | "top-center" | "top-left" | "bottom-right" | "bottom-center" | "bottom-left"
+}
+
+export const useToast = () => {
+  const toast = {
+    success: (message: string, options?: ToastOptions) => {
+      sonnerToast.success(message, options)
+    },
+    error: (message: string, options?: ToastOptions) => {
+      sonnerToast.error(message, options)
+    },
+    info: (message: string, options?: ToastOptions) => {
+      sonnerToast.info(message, options)
+    },
+    warning: (message: string, options?: ToastOptions) => {
+      sonnerToast.warning(message, options)
+    }
+  }
+
+  return { toast }
+}
