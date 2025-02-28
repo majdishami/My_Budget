@@ -560,8 +560,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       await loadData();
 
       logger.info("[DataContext] Successfully added income, forcing refresh");
-    } catch (error) {
+      console.log('Income added successfully');
+    } catch (error: any) {
       logger.error("[DataContext] Error in addIncome:", error);
+      setError(error.message);
+      console.error('Error adding income:', error.message);
       throw error;
     }
   };
@@ -598,11 +601,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Invalidate cache
       sessionStorage.removeItem(getCacheKey());
       logger.info("[DataContext] Cache invalidated after adding bill");
+      console.log('Bill added successfully');
 
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add bill";
       logger.error("[DataContext] Error in addBill:", { error });
       setError(new Error(errorMessage));
+      console.error('Error adding bill:', error.message);
       throw error;
     }
   };
@@ -741,7 +746,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const isIncome = true; // This should be determined based on the transaction type
       const previousIncomes = [...incomes];
       const previousBills = [...bills];
-      
+
       setIncomes(prev => isIncome ? previousIncomes : prev);
       setBills(prev => !isIncome ? previousBills : prev);
 
@@ -807,8 +812,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.removeItem(getCacheKey());
       await loadData();
 
-    } catch (error) {
+    } catch (error:any) {
       logger.error("[DataContext] Error in addIncomeToData:", error);
+      console.error("Error adding income to data:", error);
       throw error;
     }
   };
@@ -826,9 +832,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    import * as React from 'react';
-
-<DataContext.Provider value={{
+    <DataContext.Provider value={{
       incomes,
       bills,
       categories,

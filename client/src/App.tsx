@@ -60,7 +60,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "./components/ui/dropdown-menu";
-import React from "react";
+import React, { Suspense } from 'react';
+import { ToastProvider } from './hooks/use-toast'; // Added import for ToastProvider
 
 function Router() {
   const { isLoading, error, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
@@ -721,16 +722,18 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ErrorBoundary
-        name="RootErrorBoundary"
-        onReset={() => {
-          queryClient.clear();
-          window.location.reload();
-        }}
-      >
-        <Router />
-        <Toaster />
-      </ErrorBoundary>
+      <ToastProvider> {/* Added ToastProvider */}
+        <ErrorBoundary
+          name="RootErrorBoundary"
+          onReset={() => {
+            queryClient.clear();
+            window.location.reload();
+          }}
+        >
+          <Router />
+          <Toaster /> {/* Added Toaster */}
+        </ErrorBoundary>
+      </ToastProvider> {/* Added closing tag for ToastProvider */}
     </QueryClientProvider>
   );
 }
