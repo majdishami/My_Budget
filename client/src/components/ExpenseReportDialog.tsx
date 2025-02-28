@@ -1,22 +1,23 @@
+
 import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Bill, Category } from "@/types";
 import { formatCurrency } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Bill, Category } from "@/types";
+import { saveAs } from "file-saver";
+import * as XLSX from "xlsx";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
 
-interface ExpenseReportDialogProps {
+export interface ExpenseReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onClose: () => void;
   bills: Bill[];
   categories: Category[];
 }
@@ -24,125 +25,140 @@ interface ExpenseReportDialogProps {
 export function ExpenseReportDialog({
   open,
   onOpenChange,
-  onClose,
   bills,
   categories,
-  isLoading = false,
 }: ExpenseReportDialogProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFormat, setSelectedFormat] = useState<"pdf" | "excel">("pdf");
 
-  const filteredExpenses = bills.filter(
-    (expense) =>
-      expense.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getCategory(expense.category_id)?.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-  );
+  const totalAmount = bills.reduce((total, bill) => total + bill.amount, 0);
 
-  const totalAmount = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const getCategoryName = (categoryId: number): string => {
+    const category = categories.find((cat) => cat.id === categoryId);
+    return category ? category.name : "Uncategorized";
+  };
 
-  function getCategory(categoryId: number | null) {
-    return categories.find((cat) => cat.id === categoryId) || null;
-  }
-
-  function handleDownloadCSV() {
-    const headers = ["Name", "Amount", "Category", "Due Date"];
-    const rows = filteredExpenses.map((expense) => [
-      expense.name,
-      expense.amount.toString(),
-      getCategory(expense.category_id)?.name || "Uncategorized",
-      expense.day ? `Day ${expense.day}` : "N/A",
+  const generatePdf = () => {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text("Expense Report", 14, 22);
+    
+    // Add date
+    doc.setFontSize(11);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+    
+    // Add total
+    doc.setFontSize(12);
+    doc.text(`Total Expenses: ${formatCurrency(totalAmount)}`, 14, 38);
+    
+    // Define the table structure
+    const tableColumn = ["Date", "Description", "Category", "Amount"];
+    const tableRows = bills.map((bill) => [
+      new Date(bill.date).toLocaleDateString(),
+      bill.description,
+      getCategoryName(bill.category_id),
+      formatCurrency(bill.amount),
     ]);
+    
+    // @ts-ignore - jsPDF-autotable types are not properly defined
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 45,
+      theme: "grid",
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: [66, 66, 66] },
+    });
+    
+    // Save the PDF
+    doc.save("expense-report.pdf");
+  };
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "expense_report.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  if (isLoading) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <div className="flex justify-center items-center h-40">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        </DialogContent>
-      </Dialog>
+  const generateExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(
+      bills.map((bill) => ({
+        Date: new Date(bill.date).toLocaleDateString(),
+        Description: bill.description,
+        Category: getCategoryName(bill.category_id),
+        Amount: bill.amount.toFixed(2),
+      }))
     );
-  }
+    
+    // Format the header row
+    XLSX.utils.sheet_add_aoa(worksheet, [["Date", "Description", "Category", "Amount"]], {
+      origin: "A1",
+    });
+    
+    // Create a workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Expenses");
+    
+    // Generate the Excel file
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    
+    // Save the file
+    const data = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+    });
+    saveAs(data, "expense-report.xlsx");
+  };
+
+  const handleGenerateReport = () => {
+    if (selectedFormat === "pdf") {
+      generatePdf();
+    } else {
+      generateExcel();
+    }
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Expense Report</DialogTitle>
-          <DialogDescription>
-            A summary of your recurring expenses
-          </DialogDescription>
+          <DialogTitle>Generate Expense Report</DialogTitle>
         </DialogHeader>
-
-        <div className="mt-4 mb-2">
-          <Input
-            placeholder="Search expenses..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="mb-4"
-          />
-
-          <div className="rounded-md border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50 font-medium">
-                  <th className="py-2 px-4 text-left">Name</th>
-                  <th className="py-2 px-4 text-left">Category</th>
-                  <th className="py-2 px-4 text-left">Due</th>
-                  <th className="py-2 px-4 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredExpenses.map((expense) => (
-                  <tr key={expense.id} className="border-b">
-                    <td className="py-2 px-4">{expense.name}</td>
-                    <td className="py-2 px-4">
-                      {getCategory(expense.category_id)?.name || "Uncategorized"}
-                    </td>
-                    <td className="py-2 px-4">
-                      {expense.day ? `Day ${expense.day}` : "N/A"}
-                    </td>
-                    <td className="py-2 px-4 text-right">
-                      {formatCurrency(expense.amount)}
-                    </td>
-                  </tr>
-                ))}
-                <tr className="font-medium">
-                  <td colSpan={3} className="py-2 px-4 text-right">
-                    Total:
-                  </td>
-                  <td className="py-2 px-4 text-right">
-                    {formatCurrency(totalAmount)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <div className="font-medium">Report Format</div>
+            <div className="flex space-x-4">
+              <Button
+                variant={selectedFormat === "pdf" ? "default" : "outline"}
+                onClick={() => setSelectedFormat("pdf")}
+              >
+                PDF
+              </Button>
+              <Button
+                variant={selectedFormat === "excel" ? "default" : "outline"}
+                onClick={() => setSelectedFormat("excel")}
+              >
+                Excel
+              </Button>
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <div className="font-medium">Report Summary</div>
+            <div className="rounded-md border p-4">
+              <div className="mb-2">
+                <span className="font-medium">Total Expenses:</span>{" "}
+                {formatCurrency(totalAmount)}
+              </div>
+              <div>
+                <span className="font-medium">Number of Transactions:</span>{" "}
+                {bills.length}
+              </div>
+            </div>
           </div>
         </div>
-
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Close
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
           </Button>
-          <Button onClick={handleDownloadCSV}>Download CSV</Button>
+          <Button onClick={handleGenerateReport}>Generate Report</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
