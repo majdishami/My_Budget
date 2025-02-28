@@ -1,3 +1,4 @@
+
 {
   "include": ["client/src/**/*", "db/**/*", "server/**/*"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
@@ -20,7 +21,8 @@
       "@db/*": ["./db/*"],
       "@server/*": ["./server/*"],
       "@client/*": ["./client/src/*"],
-      "@utils/*": ["./utils/*"]
+      "@utils/*": ["./utils/*"],
+      "@/*": ["./client/src/*"]
     }
   }
 }
