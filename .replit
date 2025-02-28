@@ -91,4 +91,4 @@ author = 39325428
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "cd client && NODE_OPTIONS=--openssl-legacy-provider PORT=3002 npm run dev"
