@@ -8,17 +8,21 @@ import { Card } from "@/components/ui/card";
 import dayjs from "dayjs";
 import { useData } from "@/contexts/DataContext";
 
+// Assuming DateRange is defined elsewhere, e.g., type DateRange = { from: Date | undefined; to: Date | undefined; };
+type DateRange = { from: Date | undefined; to: Date | undefined; };
+
 export default function IncomeReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
   const { incomes } = useData();
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined
   });
+
+  const handleDateChange = (range: DateRange) => {
+    setDateRange(range);
+  };
 
   const filteredIncomes = incomes.filter(income => {
     if (!dateRange.from || !dateRange.to) return true;
@@ -42,7 +46,7 @@ export default function IncomeReport() {
         <div className="flex items-center gap-4">
           <DateRangePicker
             date={dateRange}
-            onDateChange={setDateRange}
+            onDateChange={handleDateChange} // Updated to use handleDateChange
             className="w-full"
           />
           <Button 
