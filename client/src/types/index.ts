@@ -33,38 +33,28 @@ export interface Income {
 }
 
 // Bill types
-export type Bill = {
+export interface Bill {
   id: number;
   name: string;
   amount: number;
-  due_date?: string;
+  dueDate: string | Date;
+  isPaid: boolean;
+  category_id: number | null;
+  isRecurring: boolean;
+  frequency: string;
+  user_id?: number;
+}
+
+export interface Expense {
+  id: number;
+  name: string;
+  amount: number;
+  date: string | Date;
   category_id: number | null;
   user_id?: number;
   created_at?: string;
   updated_at?: string;
-  paid?: boolean;
-  recurring?: boolean;
-  frequency?: string;
-  start_date?: string;
-  end_date?: string | null;
-  occurrence_days?: number[] | null;
-  reminderDays?: number;
-  date?: string;
-  isOneTime?: boolean;
-  isYearly?: boolean;
-  day?: number;
-};
-
-export type Expense = {
-  id: number;
-  amount: number;
-  description: string;
-  date: string;
-  category_id: number;
-  user_id?: number;
-  created_at?: string;
-  updated_at?: string;
-};
+}
 
 // Daily transaction type
 export interface DailyTransaction {

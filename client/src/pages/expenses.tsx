@@ -3,17 +3,16 @@ import { useLocation } from "wouter";
 import dayjs from "dayjs";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { getCategoryName } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
 import { Expense, Category } from "@/types";
+import { DateRange as DayPickerDateRange } from 'react-day-picker';
 
-// Define DateRange type
-type DateRange = {
-  from: Date | undefined;
-  to: Date | undefined;
-};
+// Define DateRange type that matches what DateRangePicker expects
+type DateRange = DayPickerDateRange;
 
 export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -42,7 +41,7 @@ export default function ExpenseReport() {
     }
   });
 
-  // Filter expenses based on date range
+  // Filter expenses based on date range.  Updated to handle DayPickerDateRange
   const filteredExpenses = React.useMemo(() => {
     if (!dateRange.from || !dateRange.to) {
       return expenses;
@@ -51,8 +50,8 @@ export default function ExpenseReport() {
     return expenses.filter((expense: Expense) => {
       const expenseDate = dayjs(expense.date);
       return (
-        expenseDate.isAfter(dayjs(dateRange.from)) && 
-        expenseDate.isBefore(dayjs(dateRange.to))
+        expenseDate.isSameOrAfter(dayjs(dateRange.from)) && 
+        expenseDate.isSameOrBefore(dayjs(dateRange.to))
       );
     });
   }, [expenses, dateRange]);

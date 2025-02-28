@@ -37,11 +37,11 @@ export default function AuthPage() {
   }, [user, setLocation]);
 
   const onSubmit = async (data: AuthFormData) => {
-    loginMutation.mutate(data);
+    loginMutation.mutate();
   };
 
   const onRegister = async (data: AuthFormData) => {
-    registerMutation.mutate(data);
+    registerMutation.mutate();
   };
 
   if (isLoading) {

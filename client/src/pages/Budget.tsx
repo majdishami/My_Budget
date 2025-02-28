@@ -174,7 +174,7 @@ export function Budget() {
       value: 2025 + i,
       label: (2025 + i).toString()
     })), 
-  );
+  []);
 
   // Update getIncomeForDay to handle recurring incomes across all months
   const getIncomeForDay = useCallback((day: number) => {
