@@ -29,7 +29,7 @@ export default function MonthlyReport() {
 
   return (
     <div className="container mx-auto p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Monthly Report - {today.format('MMMM YYYY')}</h1>
+      <h1 className="text-2xl font-bold">Monthly Report - {dayjs(today).format('MMMM YYYY')}</h1>
       {monthlyData && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>

@@ -38,8 +38,8 @@ export default function Reports() {
 
   // Set default date range to current month
   const [dateRange, setDateRange] = useState<{from: Date; to: Date}>({
-    from: today.startOf('month').toDate(),
-    to: today.endOf('month').toDate()
+    from: dayjs().startOf('month').toDate(),
+    to: dayjs().endOf('month').toDate()
   });
 
   // Fetch transactions for the selected date range
