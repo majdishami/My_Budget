@@ -43,7 +43,7 @@ localPort = 24678
 externalPort = 3003
 
 [workflows]
-runButton = "Run Application"
+runButton = "Start application"
 
 [[workflows.workflow]]
 name = "Project"
@@ -66,7 +66,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd client && PORT=3002 npm run dev"
+args = "npm run dev"
 waitForPort = 5000
 
 [[workflows.workflow]]
