@@ -42,14 +42,15 @@ function log(level: LogLevel, message: string, context?: Record<string, any>) {
   if (DEBUG) {
     const consoleMethod = level === 'debug' ? 'log' : level;
     if (context) {
-      console[consoleMethod as keyof Console](
-        `[${entry.timestamp}] [${level.toUpperCase()}] ${message}`, 
-        context
-      );
+      const method = console[consoleMethod as keyof Console];
+      if (typeof method === 'function') {
+        method(`[${entry.timestamp}] [${level.toUpperCase()}] ${message}`, context);
+      }
     } else {
-      console[consoleMethod as keyof Console](
-        `[${entry.timestamp}] [${level.toUpperCase()}] ${message}`
-      );
+      const method = console[consoleMethod as keyof Console];
+      if (typeof method === 'function') {
+        method(`[${entry.timestamp}] [${level.toUpperCase()}] ${message}`);
+      }
     }
   }
 

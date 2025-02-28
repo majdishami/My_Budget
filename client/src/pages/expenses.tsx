@@ -8,7 +8,6 @@ import { ExpenseReportDialog } from "@/components/ExpenseReportDialog";
 import { formatCurrency } from "@/lib/utils";
 import { Bill } from "@/types";
 import { useData } from "@/contexts/DataContext";
-import { DataTable } from "@/components/DataTable";
 import {
   Select,
   SelectContent,
@@ -16,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { addDays, startOfMonth, endOfMonth } from "date-fns";
 import { saveAs } from 'file-saver';
 
@@ -211,7 +210,7 @@ export default function ExpenseReport() {
       </Card>
 
       <ExpenseReportDialog
-        isOpen={isReportDialogOpen}
+        open={isReportDialogOpen}
         onOpenChange={setIsReportDialogOpen}
         bills={filteredBills}
         categories={categories}

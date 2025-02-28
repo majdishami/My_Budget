@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CategoryManager } from "@/components/CategoryManager";
 import { Card } from "@/components/ui/card";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { logger } from "@/lib/logger";
+import logger from "@/lib/logger";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";

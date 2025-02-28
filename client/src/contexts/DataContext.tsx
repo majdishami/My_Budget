@@ -329,7 +329,7 @@ const getCache = (): CacheData | null => {
 
     return cacheData;
   } catch (error) {
-    logger.error("[DataContext] Error reading cache:", error);
+    logger.error("[DataContext] Error reading cache:", { error: String(error) });
     sessionStorage.removeItem(getCacheKey());
     return null;
   }
@@ -350,12 +350,12 @@ const setCache = (transactions: any[]) => {
       lastModified: cacheData.lastModified
     });
   } catch (error) {
-    logger.error("[DataContext] Error setting cache:", error);
+    logger.error("[DataContext] Error setting cache:", { error: String(error) });
     // Attempt to clear the cache if we can't set it
     try {
       sessionStorage.removeItem(getCacheKey());
     } catch (clearError) {
-      logger.error("[DataContext] Error clearing cache:", clearError);
+      logger.error("[DataContext] Error clearing cache:", { error: String(clearError) });
     }
   }
 };
@@ -386,7 +386,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             occurrenceType: 'once',
             is_recurring: false
           };
-          loadedIncomes.push(income);
+          loadedIncomes.push(income as unknown as Income);
           processedSources.add(income.source);
         }
       });
@@ -478,7 +478,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         categoriesCount: loadedCategories.size,
       });
     } catch (error) {
-      logger.error("[DataContext] Error processing transactions:", error);
+      logger.error("[DataContext] Error processing transactions:", { error: String(error) });
       throw error;
     }
   };

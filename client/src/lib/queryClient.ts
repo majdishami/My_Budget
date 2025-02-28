@@ -1,5 +1,12 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
+
+// Create a toast instance for non-component usage
+const toast = {
+  error: (message: string) => {
+    console.error(message);
+  }
+};
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -51,7 +58,7 @@ export const queryClient = new QueryClient({
       staleTime: Infinity,
       retry: false,
       // Add loading state timeout
-      suspense: true,
+      // Removed suspense option
       useErrorBoundary: true,
       // Add global error handling
       onError: (error: Error) => {

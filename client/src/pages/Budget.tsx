@@ -451,7 +451,7 @@ export function Budget() {
                       isCurrentDay={isCurrentDay(day || 0)}
                       selectedDay={selectedDay}
                       dayIncomes={dayTransactions.find(t => t.day === day)?.incomes || []}
-                      dayBills={(dayTransactions.find(t => t.day === day)?.bills || []) as Bill[]}
+                      dayBills={(dayTransactions.find(t => t.day === day)?.bills || []).map(bill => ({...bill, id: Number(bill.id)}))}
                       onDayClick={setSelectedDay}
                       selectedMonth={selectedMonth}
                       selectedYear={selectedYear}
