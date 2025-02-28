@@ -1,4 +1,5 @@
 const webpack = require('webpack');
+const path = require('path');
 
 module.exports = function override(config, env) {
   // Add or modify Webpack plugins
@@ -22,6 +23,7 @@ module.exports = function override(config, env) {
       url: require.resolve('url/'),
       util: require.resolve('util/'),
       buffer: require.resolve('buffer/'),
+      '@': path.resolve(__dirname, 'src'), // Added alias
     },
     fallback: {
       process: require.resolve('process/browser'),
