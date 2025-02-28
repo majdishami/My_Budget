@@ -36,6 +36,7 @@ export interface Bill {
 }
 
 export interface Transaction {
+  isPending?: boolean;
   id: number;
   description: string;
   amount: number;

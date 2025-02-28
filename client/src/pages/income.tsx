@@ -57,7 +57,7 @@ export default function IncomeReport() {
         <div className="flex items-center gap-4 mb-6">
           <DateRangePicker
             date={dateRange}
-            onDateChange={handleDateChange}
+            onDateChange={(range) => handleDateChange(range)}
             className="w-full"
           />
           <Button 

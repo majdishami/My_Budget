@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   Dialog,
@@ -15,23 +14,24 @@ import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface ExpenseReportDialogProps {
-  isOpen: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onClose: () => void;
-  expenses: Bill[];
+  bills: Bill[];
   categories: Category[];
-  isLoading?: boolean;
 }
 
 export function ExpenseReportDialog({
-  isOpen,
+  open,
+  onOpenChange,
   onClose,
-  expenses,
+  bills,
   categories,
   isLoading = false,
 }: ExpenseReportDialogProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredExpenses = expenses.filter(
+  const filteredExpenses = bills.filter(
     (expense) =>
       expense.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       getCategory(expense.category_id)?.name
@@ -72,7 +72,7 @@ export function ExpenseReportDialog({
 
   if (isLoading) {
     return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
           <div className="flex justify-center items-center h-40">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -83,7 +83,7 @@ export function ExpenseReportDialog({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Expense Report</DialogTitle>

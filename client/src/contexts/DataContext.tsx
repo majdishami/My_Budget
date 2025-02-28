@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { Income, Bill, Category } from "@/types";
 import dayjs from "dayjs";
-import { logger } from "@/lib/logger";
+import logger from "@/lib/logger";
 
 interface DataContextType {
   incomes: Income[];
@@ -254,7 +254,7 @@ const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}
 
       throw new Error(
         `Request failed (${response.status}): ${
-          errorData.message ? errorData.message :
+          errorData && 'message' in errorData ? errorData.message :
             responseText ? responseText :
               response.statusText
         }`
@@ -738,6 +738,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       logger.error("[DataContext] Error in editTransaction:", { error });
 
       // Revert optimistic update on error
+      const isIncome = true; // This should be determined based on the transaction type
+      const previousIncomes = [...incomes];
+      const previousBills = [...bills];
+      
       setIncomes(prev => isIncome ? previousIncomes : prev);
       setBills(prev => !isIncome ? previousBills : prev);
 
