@@ -183,7 +183,7 @@ export function Budget() {
     // Handle Majdi's salary (1st and 15th)
     if (day === 1 || day === 15) {
       const majdiSalary = {
-        id: `majdi-${day}-${selectedMonth}-${selectedYear}`,
+        id: generateId(),
         source: "Majdi's Salary",
         amount: 4739,
         date: dayjs().year(selectedYear).month(selectedMonth).date(day).format('YYYY-MM-DD'),
@@ -209,7 +209,7 @@ export function Budget() {
       // Only include if the date is on or after start date and matches biweekly pattern
       if (currentDate.isSameOrAfter(startDate) && weeksDiff % 2 === 0) {
         const rubaSalary = {
-          id: `ruba-${currentDate.format('YYYY-MM-DD')}`,
+          id: generateId(),
           source: "Ruba's Salary",
           amount: 2168,
           date: currentDate.format('YYYY-MM-DD'),

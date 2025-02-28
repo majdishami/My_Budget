@@ -1,20 +1,24 @@
-import { useState } from 'react';
-import IncomeReportDialog from "@/components/IncomeReportDialog";
-import { useLocation } from "wouter";
-import { Income } from "@/types";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+
 import React, { useState } from "react";
+import { useLocation } from "wouter";
 import dayjs from "dayjs";
 import { useData } from "@/contexts/DataContext";
-import { DateRange, Income } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import IncomeReportDialog from "@/components/IncomeReportDialog";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Income } from "@/types";
+
+// Define DateRange type
+type DateRange = {
+  from: Date | undefined;
+  to: Date | undefined;
+};
 
 export default function IncomeReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
-  const { incomes = [] } = useData();
+  const { incomes } = useData();
   const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined
@@ -27,40 +31,53 @@ export default function IncomeReport() {
   const filteredIncomes = incomes.filter(income => {
     if (!dateRange.from || !dateRange.to) return true;
     const incomeDate = dayjs(income.date);
-    return incomeDate.isAfter(dayjs(dateRange.from).startOf('day')) && 
-           incomeDate.isBefore(dayjs(dateRange.to).endOf('day'));
+    return (
+      incomeDate.isAfter(dayjs(dateRange.from)) && 
+      incomeDate.isBefore(dayjs(dateRange.to))
+    );
   });
 
   const handleOpenChange = (open: boolean) => {
-    // Only navigate if we're actually closing the dialog from an open state
-    if (!open && isDialogOpen) {
+    setIsDialogOpen(open);
+    if (!open) {
       setLocation("/");
     }
-    setIsDialogOpen(open);
   };
 
   return (
     <div className="container mx-auto p-4">
-      <Card className="p-4 mb-4">
-        <h1 className="text-2xl font-bold mb-4">Income Report</h1>
-        <div className="flex items-center gap-4">
+      <Card className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Income Report</h1>
+          <Button variant="outline" onClick={() => setLocation("/")}>
+            Back to Dashboard
+          </Button>
+        </div>
+        
+        <div className="flex items-center gap-4 mb-6">
           <DateRangePicker
             date={dateRange}
-            onDateChange={handleDateChange} // Updated to use handleDateChange
+            onDateChange={handleDateChange}
             className="w-full"
           />
           <Button 
-            onClick={() => setDateRange({ from: undefined, to: undefined })}
-            variant="outline"
+            onClick={() => setIsDialogOpen(true)}
+            disabled={!dateRange.from || !dateRange.to}
           >
-            Reset Range
+            Generate Report
           </Button>
         </div>
+        
+        {filteredIncomes.length === 0 && dateRange.from && dateRange.to && (
+          <p className="text-center text-muted-foreground">
+            No income records found for the selected date range.
+          </p>
+        )}
       </Card>
-
+      
       {isDialogOpen && (
         <IncomeReportDialog
-          isOpen={isDialogOpen}
+          isOpen={true}
           onOpenChange={handleOpenChange}
           incomes={filteredIncomes}
           dateRange={dateRange}

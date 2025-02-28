@@ -1,7 +1,7 @@
+import dayjs from 'dayjs';
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
-import dayjs from 'dayjs';
 import { useLocation } from 'wouter';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ export default function MonthlyToDateReport() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Use dayjs for date manipulation
+  // Use dayjs for date manipulation 
   const today = dayjs(getCurrentDate());
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');

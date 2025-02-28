@@ -1,98 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation } from "wouter";
 import dayjs from "dayjs";
 import { useQuery } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ReportFilter } from '@/components/ReportFilter';
+import { Card } from "@/components/ui/card";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
-import { DateRange } from "react-day-picker";
-import { formatCurrency } from '@/lib/utils';
-import { cn } from "@/lib/utils";
+import { Expense, Category } from "@/types";
 
-export default function ExpenseReportPage() {
+// Define DateRange type
+type DateRange = {
+  from: Date | undefined;
+  to: Date | undefined;
+};
+
+export default function ExpenseReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const { expenses = [], categories = [], isLoading: dataLoading } = useData();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const { categories = [] } = useData();
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: undefined,
+    to: undefined
+  });
   const [filter, setFilter] = useState<string>("all-expenses");
 
-  // Fetch filtered expenses when date range changes
-  const { data: filteredExpenses = [], isLoading: apiLoading } = useQuery({
-    queryKey: ['/api/reports/expenses', dateRange?.from?.toISOString() || null, dateRange?.to?.toISOString() || null, filter],
+  // Fetch expenses data
+  const { data: expenses = [], isLoading } = useQuery({
+    queryKey: ['/api/expenses'],
     queryFn: async () => {
-      if (!dateRange?.from || !dateRange?.to) return expenses;
-
       try {
-        const params = new URLSearchParams({
-          start_date: dayjs(dateRange.from).format('YYYY-MM-DD'),
-          end_date: dayjs(dateRange.to).format('YYYY-MM-DD'),
-          filter_type: filter
-        });
-
-        const response = await fetch(`/api/reports/expenses?${params}`);
-        if (!response.ok) throw new Error('Failed to fetch expenses');
+        const response = await fetch('/api/expenses');
+        if (!response.ok) {
+          throw new Error('Failed to fetch expenses');
+        }
         return await response.json();
       } catch (error) {
         console.error('Error fetching expenses:', error);
-        return expenses.filter(expense => {
-          const expenseDate = dayjs(expense.date);
-          return expenseDate.isAfter(dateRange.from) && expenseDate.isBefore(dateRange.to);
-        });
+        return [];
       }
-    },
-    enabled: Boolean(dateRange?.from && dateRange?.to)
+    }
   });
 
-  const isLoading = dataLoading || apiLoading;
-
-  // Filter options
-  const filterOptions = [
-    {
-      label: "General",
-      options: [
-        {
-          value: 'all-expenses',
-          label: '📊 All Expenses',
-          className: 'text-blue-600 font-medium'
-        }
-      ]
-    },
-    {
-      label: "Categories",
-      options: categories.map(category => ({
-        value: `category-${category.id}`,
-        label: `📂 ${category.name}`,
-        className: 'text-purple-600 pl-4'
-      }))
-    }
-  ];
-
-  // Add individual expenses if there are any
-  if (expenses && expenses.length > 0) {
-    filterOptions.push({
-      label: "Individual Expenses",
-      options: expenses
-        .sort((a: any, b: any) => b.amount - a.amount)
-        .map((expense: any) => ({
-          value: `expense-${expense.id}`,
-          label: `💰 ${expense.description} (${formatCurrency(expense.amount)})`,
-          className: cn(
-            'pl-6',
-            expense.amount >= 0 ? 'text-green-600' : 'text-red-600'
-          )
-        }))
-    });
-  }
-
+  // Filter expenses based on date range
   const filteredExpenses = React.useMemo(() => {
-    if (!dateRange?.from || !dateRange?.to) {
+    if (!dateRange.from || !dateRange.to) {
       return expenses;
     }
 
-    return expenses.filter(expense => {
+    return expenses.filter((expense: Expense) => {
       const expenseDate = dayjs(expense.date);
       return (
         expenseDate.isAfter(dayjs(dateRange.from)) && 
@@ -101,66 +57,50 @@ export default function ExpenseReportPage() {
     });
   }, [expenses, dateRange]);
 
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setLocation("/");
+    }
+  };
 
   return (
     <div className="container mx-auto p-4">
-      <Card className="p-4 mb-4">
-        <div className="flex items-center justify-between mb-4">
+      <Card className="p-6">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Expense Report</h1>
           <Button variant="outline" onClick={() => setLocation("/")}>
-            Back
+            Back to Dashboard
           </Button>
         </div>
 
-        <div className="space-y-4">
-          <Select
-            value={filter}
-            onValueChange={setFilter}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select filter type" />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              {filterOptions.map((group) => (
-                <div key={group.label} className="py-2">
-                  <div className="px-2 text-sm font-medium text-muted-foreground mb-1">
-                    {group.label}
-                  </div>
-                  {group.options.map(option => (
-                    <SelectItem
-                      key={option.value}
-                      value={option.value}
-                      className={cn("cursor-pointer", option.className)}
-                    >
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                  {group.options.length > 0 && <div className="h-px bg-gray-200 my-2" />}
-                </div>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <ReportFilter
-            onDateRangeChange={setDateRange}
-            maxDateRange={90}
-          />
-
-          <Button
-            onClick={() => setIsDialogOpen(true)}
+        <div className="flex items-center gap-4 mb-6">
+          <DateRangePicker
+            date={dateRange}
+            onDateChange={setDateRange}
             className="w-full"
-            disabled={!dateRange?.from || !dateRange?.to}
+          />
+          <Button 
+            onClick={() => setIsDialogOpen(true)}
+            disabled={!dateRange.from || !dateRange.to}
           >
             Generate Report
           </Button>
         </div>
+
+        {filteredExpenses.length === 0 && dateRange.from && dateRange.to && (
+          <p className="text-center text-muted-foreground">
+            No expense records found for the selected date range.
+          </p>
+        )}
       </Card>
 
-      {isDialogOpen && dateRange?.from && dateRange?.to && (
+      {isDialogOpen && (
         <ExpenseReportDialog
-          isOpen={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
+          isOpen={true}
+          onOpenChange={handleOpenChange}
           expenses={filteredExpenses}
+          categories={categories}
           dateRange={dateRange}
         />
       )}
