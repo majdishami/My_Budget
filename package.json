@@ -7,7 +7,7 @@
   "scripts": {
     "start": "NODE_ENV=production node server/dist/index.js",
     "client": "cd client && NODE_OPTIONS=--openssl-legacy-provider npm start",
-    "server": "npm run build && NODE_ENV=production node server/dist/index.js",
+    "server": "npm run build && NODE_ENV=production node dist/server/index.js",
     "dev": "concurrently \"npm run client\" \"npm run server\"",
     "build": "tsc -p server/tsconfig.json",
     "build-client": "cd client && npm run build",
