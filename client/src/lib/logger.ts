@@ -1,142 +1,162 @@
-interface LogContext {
-  [key: string]: any;
-}
+
+// Types
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogEntry {
   timestamp: string;
-  level: 'info' | 'warn' | 'error' | 'debug';
+  level: LogLevel;
   message: string;
   context?: LogContext;
-  stack?: string;
 }
-
-class Logger {
-  private logEntries: LogEntry[] = [];
-  private maxEntries = 1000;
-
-  private getConsoleMethod(level: string): 'log' | 'warn' | 'error' | 'debug' {
-    switch (level) {
-      case 'warn': return 'warn';
-      case 'error': return 'error';
-      case 'debug': return 'debug';
-      default: return 'log';
-    }
-  }
-
-  private createLogEntry(level: LogEntry['level'], message: string, context?: any): LogEntry {
-    const entry: LogEntry = {
-      timestamp: new Date().toISOString(),
-      level,
-      message,
-      context
-    };
-
-    if (level === 'error' && context?.error instanceof Error) {
-      entry.stack = context.error.stack;
-    }
-    return entry;
-  }
-
-  public log(level: 'info' | 'warn' | 'error' | 'debug', message: string, context?: any) {
-    const entry = this.createLogEntry(level, message, context);
-    this.logEntries.push(entry);
-
-    // Trim old entries if exceeding max size
-    if (this.logEntries.length > this.maxEntries) {
-      this.logEntries = this.logEntries.slice(-this.maxEntries);
-    }
-
-    // Log to console in development
-    const consoleMethod = this.getConsoleMethod(entry.level);
-    console[consoleMethod](`[${entry.timestamp}] ${entry.level.toUpperCase()}: ${entry.message}`, entry.context || '');
-  }
-
-  public info(message: string, context?: any) {
-    this.log('info', message, context);
-  }
-
-  public warn(message: string, context?: any) {
-    this.log('warn', message, context);
-  }
-
-  public error(message: string, context?: any) {
-    this.log('error', message, context);
-  }
-
-  public debug(message: string, context?: any) {
-    this.log('debug', message, context);
-  }
-
-  public getEntries(): LogEntry[] {
-    return [...this.logEntries];
-  }
-
-  public clear() {
-    this.logEntries = [];
-  }
-}
-
-const isProduction = process.env.NODE_ENV === 'production';
-
-// Create a single logger instance
-const loggerInstance = new Logger();
 
 // Define the type of LogContext for more organized logging
-type LogContext = Record<string, any>;
+export interface LogContext {
+  [key: string]: any;
+}
 
+// Global log storage
+let logs: LogEntry[] = [];
+const MAX_LOGS = 1000;
+
+// Configuration
+let enableConsoleOutput = true;
+let minLevel: LogLevel = 'info'; // Default minimum level
+
+// Create a log entry
 function createLog(level: LogEntry['level'], message: string, context?: LogContext) {
   const timestamp = new Date().toISOString();
-  return {
+  
+  // Create log entry
+  const logEntry: LogEntry = {
     timestamp,
     level,
     message,
-    context,
+    context
   };
+  
+  // Add to memory logs
+  logs.push(logEntry);
+  
+  // Trim logs if they exceed maximum
+  if (logs.length > MAX_LOGS) {
+    logs = logs.slice(-MAX_LOGS);
+  }
+  
+  // Log to console if enabled
+  if (enableConsoleOutput) {
+    const contextString = context ? ` ${JSON.stringify(context)}` : '';
+    
+    switch (level) {
+      case 'debug':
+        console.debug(`[${timestamp}] ${message}${contextString}`);
+        break;
+      case 'info':
+        console.info(`[${timestamp}] ${message}${contextString}`);
+        break;
+      case 'warn':
+        console.warn(`[${timestamp}] ${message}${contextString}`);
+        break;
+      case 'error':
+        console.error(`[${timestamp}] ${message}${contextString}`);
+        break;
+    }
+  }
+  
+  return logEntry;
 }
 
-// Export a single logger instance to be used throughout the app
-export const logger = {
-  debug: (message: string, context?: LogContext) => {
-    if (isProduction) return;
-    const logEvent = createLog('debug', message, context);
-    console.debug(`[DEBUG] ${message}`, context);
-    return logEvent;
-  },
-
-  info: (message: string, context?: LogContext) => {
-    const logEvent = createLog('info', message, context);
-    console.info(`[INFO] ${message}`, context);
-    return logEvent;
-  },
-
-  warn: (message: string, context?: LogContext) => {
-    const logEvent = createLog('warn', message, context);
-    console.warn(`[WARN] ${message}`, context);
-    return logEvent;
-  },
-
-  error: (message: string, context?: LogContext) => {
-    const logEvent = createLog('error', message, context);
-    console.error(`[ERROR] ${message}`, context);
-    return logEvent;
+// Level-specific log methods
+function debug(message: string, context?: LogContext) {
+  if (shouldLog('debug')) {
+    return createLog('debug', message, context);
   }
+}
+
+function info(message: string, context?: LogContext) {
+  if (shouldLog('info')) {
+    return createLog('info', message, context);
+  }
+}
+
+function warn(message: string, context?: LogContext) {
+  if (shouldLog('warn')) {
+    return createLog('warn', message, context);
+  }
+}
+
+function error(message: string, context?: LogContext) {
+  if (shouldLog('error')) {
+    return createLog('error', message, context);
+  }
+}
+
+// Helper to determine if we should log based on level
+function shouldLog(level: LogLevel): boolean {
+  const levelOrder: Record<LogLevel, number> = {
+    'debug': 0,
+    'info': 1,
+    'warn': 2,
+    'error': 3
+  };
+  
+  return levelOrder[level] >= levelOrder[minLevel];
+}
+
+// Configuration methods
+function configure(options: {
+  consoleOutput?: boolean;
+  level?: LogLevel;
+}) {
+  if (options.consoleOutput !== undefined) {
+    enableConsoleOutput = options.consoleOutput;
+  }
+  
+  if (options.level) {
+    minLevel = options.level;
+  }
+}
+
+// Retrieve logs
+function getLogs(): LogEntry[] {
+  return [...logs];
+}
+
+// Clear logs
+function clearLogs(): void {
+  logs = [];
+}
+
+// Export logs to JSON
+function exportLogs(): string {
+  return JSON.stringify(logs, null, 2);
+}
+
+// Download logs as a file
+function downloadLogs(filename: string = `budget-tracker-logs-${new Date().toISOString()}.json`): void {
+  const logsJson = exportLogs();
+  const blob = new Blob([logsJson], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Create the logger object
+const logger = {
+  debug,
+  info,
+  warn,
+  error,
+  configure,
+  getLogs,
+  clearLogs,
+  exportLogs,
+  downloadLogs
 };
 
 export default logger;
-
-// Handle uncaught errors in React components
-export const logComponentError = (
-  error: Error,
-  componentStack: string,
-  componentName: string = 'Unknown'
-) => {
-  logger.error('Uncaught error in component:', {
-    error,
-    componentStack,
-    componentName,
-    timestamp: new Date().toISOString(),
-    errorCount: (window as any).__ERROR_COUNT = ((window as any).__ERROR_COUNT || 0) + 1,
-    userAgent: navigator.userAgent,
-    location: window.location.href
-  });
-};

@@ -1,12 +1,19 @@
 
+"use client"
+
 import * as React from "react"
-import { CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { Calendar as CalendarIcon } from "lucide-react"
 import { DateRange } from "react-day-picker"
+
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
-import dayjs from "dayjs"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface DateRangePickerProps {
   date: DateRange
@@ -19,11 +26,9 @@ export function DateRangePicker({
   onDateChange,
   className,
 }: DateRangePickerProps) {
-  const [isOpen, setIsOpen] = React.useState(false)
-
   return (
     <div className={cn("grid gap-2", className)}>
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
@@ -37,14 +42,14 @@ export function DateRangePicker({
             {date?.from ? (
               date.to ? (
                 <>
-                  {dayjs(date.from).format("MMM D, YYYY")} -{" "}
-                  {dayjs(date.to).format("MMM D, YYYY")}
+                  {format(date.from, "LLL dd, y")} -{" "}
+                  {format(date.to, "LLL dd, y")}
                 </>
               ) : (
-                dayjs(date.from).format("MMM D, YYYY")
+                format(date.from, "LLL dd, y")
               )
             ) : (
-              <span>Select date range</span>
+              <span>Pick a date</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -54,12 +59,7 @@ export function DateRangePicker({
             mode="range"
             defaultMonth={date?.from}
             selected={date}
-            onSelect={(selectedDate) => {
-              onDateChange(selectedDate as DateRange)
-              if (selectedDate?.to) {
-                setIsOpen(false)
-              }
-            }}
+            onSelect={onDateChange}
             numberOfMonths={2}
           />
         </PopoverContent>

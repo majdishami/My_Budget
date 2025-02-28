@@ -1,29 +1,22 @@
 
-export type DateRange = {
-  from: Date | undefined;
-  to: Date | undefined;
-};
-
 export interface Category {
   id: number;
   name: string;
-  color?: string;
-  icon?: string;
+  color: string;
+  icon: string;
   user_id?: number;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export interface Income {
   id: number;
-  source: string;
+  description: string;
   amount: number;
   date: string;
-  notes?: string;
-  user_id?: number;
+  source?: string;
+  recurring_type?: "once" | "weekly" | "monthly" | "biweekly" | "twice-monthly";
+  category_id: number | null;
   created_at?: string;
-  updated_at?: string;
-  occurrenceType: 'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly';
+  user_id?: number;
   is_recurring: boolean;
 }
 
@@ -31,56 +24,28 @@ export interface Bill {
   id: number;
   name: string;
   amount: number;
-  date: string;
+  day: number;
+  date?: string;
+  isOneTime: boolean;
+  isYearly: boolean;
+  reminderEnabled: boolean;
+  reminderDays: number;
   category_id: number | null;
-  notes?: string;
   user_id?: number;
   created_at?: string;
-  updated_at?: string;
-  is_paid?: boolean;
-  due_date?: string;
-  occurrenceType?: 'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly';
-  is_recurring?: boolean;
-  day?: number;
-  isOneTime?: boolean;
-  isYearly?: boolean;
-  reminder?: boolean;
-  reminderDays?: number;
 }
 
-export interface DayTransaction {
-  day: number;
-  totalIncomes: number;
-  totalBills: number;
-  incomes: Income[];
-  bills: Bill[];
-}
-
-export interface MonthData {
-  incomes: Income[];
-  bills: Bill[];
-  balance: number;
-  dayTransactions: DayTransaction[];
-}
-
-export interface LogContext {
-  [key: string]: any;
-}
-
-export interface LogEntry {
-  timestamp: string;
-  level: 'info' | 'warn' | 'error' | 'debug';
-  message: string;
-  context?: LogContext;
-  stack?: string;
-}
-
-export interface ReportFilters {
-  startDate: Date;
-  endDate: Date;
-  categories: number[];
-  minAmount: number;
-  maxAmount: number;
+export interface Transaction {
+  id: number;
+  description: string;
+  amount: number;
+  date: string;
+  type: "income" | "expense";
+  category_id: number | null;
+  created_at?: string;
+  user_id?: number;
+  recurring_type?: "once" | "weekly" | "monthly" | "biweekly" | "twice-monthly";
+  is_recurring: boolean;
 }
 
 export interface User {
@@ -88,12 +53,40 @@ export interface User {
   username: string;
   email: string;
   created_at: string;
-  updated_at: string;
 }
 
-export interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  loading: boolean;
-  error: string | null;
+export interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
+
+export interface DialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export interface TransactionDialogProps extends DialogProps {
+  onSubmit: (data: any) => void;
+  isLoading?: boolean;
+  defaultValues?: Partial<Income> | Partial<Bill>;
+  selectedDate?: Date;
+  type: "income" | "expense";
+  categories: Category[];
+}
+
+export interface ReportFilters {
+  startDate: string;
+  endDate: string;
+  categories?: number[];
+  incomeType?: string;
+  search?: string;
+}
+
+export interface DayTransactions {
+  day: number;
+  incomes: Income[];
+  bills: Bill[];
+  totalIncome: number;
+  totalExpense: number;
+  balance: number;
 }
