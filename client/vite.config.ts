@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -11,15 +12,13 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3002,
+    port: 3001,
     host: '0.0.0.0',
-    open: false
-  },
-  build: {
-    outDir: 'dist',
-    sourcemap: true,
-    commonjsOptions: {
-      transformMixedEsModules: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
     },
   },
 });

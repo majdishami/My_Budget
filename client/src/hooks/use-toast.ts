@@ -189,3 +189,61 @@ export function useToast() {
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   };
 }
+import {
+  Toast,
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast"
+import {
+  useContext,
+  useState,
+  createContext,
+} from "react"
+
+type ToasterToast = ToastProps & {
+  id: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  action?: ToastActionElement
+}
+
+type ToasterContextType = {
+  toasts: ToasterToast[]
+  addToast: (toast: Omit<ToasterToast, "id">) => void
+  removeToast: (id: string) => void
+}
+
+export const ToasterContext = createContext<ToasterContextType>({
+  toasts: [],
+  addToast: () => {},
+  removeToast: () => {},
+})
+
+export const useToast = () => {
+  const context = useContext(ToasterContext)
+  if (!context) {
+    throw new Error("useToast must be used within a ToasterProvider")
+  }
+  return context
+}
+
+export const ToasterProvider = ({ children }: { children: React.ReactNode }) => {
+  const [toasts, setToasts] = useState<ToasterToast[]>([])
+
+  const addToast = (toast: Omit<ToasterToast, "id">) => {
+    setToasts((toasts) => [
+      ...toasts,
+      { ...toast, id: Math.random().toString(36).substring(2, 9) },
+    ])
+  }
+
+  const removeToast = (id: string) => {
+    setToasts((toasts) => toasts.filter((toast) => toast.id !== id))
+  }
+
+  return (
+    <ToasterContext.Provider value={{ toasts, addToast, removeToast }}>
+      {children}
+    </ToasterContext.Provider>
+  )
+}
