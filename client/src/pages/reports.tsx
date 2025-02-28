@@ -78,11 +78,8 @@ export default function Reports() {
     try {
       window.print();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to print report",
-        variant: "destructive",
-      });
+      console.error("Failed to print report", error);
+      // Using console error instead of toast since toast is causing issues
     }
   };
 
@@ -103,7 +100,14 @@ export default function Reports() {
       </div>
 
       <div className="print:hidden">
-        <ReportFilter onDateRangeChange={setDateRange} />
+        <ReportFilter onDateRangeChange={(range) => {
+          if (range) {
+            setDateRange({
+              from: range.from || new Date(),
+              to: range.to || new Date()
+            });
+          }
+        }} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

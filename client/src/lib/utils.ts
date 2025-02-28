@@ -60,3 +60,8 @@ export function debounce<T extends (...args: any[]) => any>(
     timeoutId = setTimeout(() => fn(...args), delay);
   };
 }
+
+export function getCurrentDate(): string {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+}
