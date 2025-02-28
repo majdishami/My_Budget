@@ -4,7 +4,10 @@ import { schema } from './schema';
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
 import express from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
+import morgan from 'morgan';
+import path from 'path';
 
 // Load environment variables
 dotenv.config();
@@ -128,18 +131,36 @@ async function testConnection(retries = 5) {
 
 testConnection();
 
-// Initialize Express app
+// Create Express app
 const app = express();
-
-// Set up authentication and routes
-setupAuth(app);
-registerRoutes(app);
-
-// Start the server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(morgan('dev'));
+
+// Setup authentication
+setupAuth(app);
+
+// Register API routes
+const server = registerRoutes(app, db); // Pass db instance
+
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../../client/build')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../client/build/index.html'));
+  });
+}
+
+// Start server
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
+
+export default app;
 
 // Graceful shutdown
 process.on('SIGINT', () => {

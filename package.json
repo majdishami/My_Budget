@@ -7,9 +7,9 @@
   "scripts": {
     "start": "NODE_ENV=production node server/dist/index.js",
     "client": "cd client && NODE_OPTIONS=--openssl-legacy-provider npm start",
-    "server": "npm run build && NODE_ENV=production node dist/server/index.js",
+    "server": "tsc -p server/tsconfig.json && NODE_ENV=development node server/dist/index.js",
     "dev": "concurrently \"npm run client\" \"npm run server\"",
-    "build": "tsc -p server/tsconfig.json",
+    "build": "tsc -p server/tsconfig.json && cd client && npm run build",
     "build-client": "cd client && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate": "sequelize db:migrate",

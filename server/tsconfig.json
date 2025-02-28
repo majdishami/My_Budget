@@ -9,11 +9,11 @@
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
+    "baseUrl": "..",
     "paths": {
-      "@/*": ["../client/src/*"],
-      "@db": ["../db"],
-      "@db/*": ["../db/*"]
+      "@/*": ["client/src/*"],
+      "@db": ["db"],
+      "@db/*": ["db/*"]
     }
   },
   "include": ["**/*.ts"],
