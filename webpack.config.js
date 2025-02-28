@@ -13,7 +13,8 @@ module.exports = {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
     alias: {
       '@': path.resolve(__dirname, 'client/src'),
-      'react-refresh': path.resolve(__dirname, 'node_modules/react-refresh'),
+      '@components': path.resolve(__dirname, 'client/src/components'),
+      '@lib': path.resolve(__dirname, 'client/src/lib'),
     },
   },
   module: {
@@ -24,6 +25,7 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
+            presets: ['@babel/preset-env', '@babel/preset-react', '@babel/preset-typescript'],
             plugins: [
               require.resolve('react-refresh/babel'),
             ].filter(Boolean),
