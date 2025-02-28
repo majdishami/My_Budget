@@ -28,8 +28,8 @@ export default function MonthlyToDateReport() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Use dayjs for date manipulation 
-  const today = dayjs(getCurrentDate());
+  // Use dayjs for date manipulation
+  const today = dayjs();
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');
   const [, setLocation] = useLocation();
