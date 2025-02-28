@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 
@@ -29,6 +29,7 @@ interface Transaction {
   category_name?: string;
   category_color?: string;
   category_icon?: string;
+  isPending: boolean;
 }
 
 export default function Reports() {
