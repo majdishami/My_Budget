@@ -1,4 +1,3 @@
-
 // User types
 export interface User {
   id: number;
@@ -19,17 +18,6 @@ export interface Category {
   updated_at?: string;
 }
 
-// Expense types
-export interface Expense {
-  id: number;
-  description: string;
-  amount: number;
-  date: string;
-  category_id: number | null;
-  user_id?: number;
-  created_at?: string;
-  updated_at?: string;
-}
 
 // Income types
 export interface Income {
@@ -45,23 +33,38 @@ export interface Income {
 }
 
 // Bill types
-export interface Bill {
+export type Bill = {
   id: number;
   name: string;
   amount: number;
-  date: string;
+  due_date?: string;
   category_id: number | null;
   user_id?: number;
   created_at?: string;
   updated_at?: string;
-  day?: number;
-  isOneTime: boolean;
-  isYearly: boolean;
-  description?: string;
-  isAutoPay?: boolean;
-  isReminder?: boolean;
+  paid?: boolean;
+  recurring?: boolean;
+  frequency?: string;
+  start_date?: string;
+  end_date?: string | null;
+  occurrence_days?: number[] | null;
   reminderDays?: number;
-}
+  date?: string;
+  isOneTime?: boolean;
+  isYearly?: boolean;
+  day?: number;
+};
+
+export type Expense = {
+  id: number;
+  amount: number;
+  description: string;
+  date: string;
+  category_id: number;
+  user_id?: number;
+  created_at?: string;
+  updated_at?: string;
+};
 
 // Daily transaction type
 export interface DailyTransaction {

@@ -22,7 +22,10 @@ dayjs.extend(isSameOrAfter);
 // Set default timezone to local
 dayjs.tz.setDefault(dayjs.tz.guess());
 
-const generateId = () => crypto.randomUUID();
+let nextId = 1; // Initialize a counter for IDs
+
+const generateId = () => nextId++; // Generates sequential numeric IDs
+
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {

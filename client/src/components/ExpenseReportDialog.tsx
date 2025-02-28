@@ -34,8 +34,9 @@ type ExpenseTransaction = {
 interface ExpenseReportDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  expenses: ExpenseTransaction[];
-  dateRange: DateRange | undefined;
+  expenses: any[];
+  categories: any[];
+  dateRange: DateRange;
   onBack?: () => void;
 }
 
@@ -43,6 +44,7 @@ export default function ExpenseReportDialog({
   isOpen, 
   onOpenChange, 
   expenses,
+  categories,
   dateRange,
   onBack 
 }: ExpenseReportDialogProps) {
