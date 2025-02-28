@@ -1,24 +1,21 @@
 
-"use client"
+import * as React from "react";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { DateRange } from "react-day-picker";
 
-import * as React from "react"
-import { CalendarIcon } from "lucide-react"
-import { format } from "date-fns"
-import { DateRange } from "react-day-picker"
-
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 
-interface DateRangePickerProps {
-  date: DateRange | undefined
-  onDateChange: (date: DateRange) => void
-  className?: string
+interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
+  date?: DateRange;
+  onDateChange: (date: DateRange) => void;
 }
 
 export function DateRangePicker({
@@ -34,7 +31,7 @@ export function DateRangePicker({
             id="date"
             variant={"outline"}
             className={cn(
-              "justify-start text-left font-normal",
+              "w-full justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
           >
@@ -49,7 +46,7 @@ export function DateRangePicker({
                 format(date.from, "LLL dd, y")
               )
             ) : (
-              <span>Pick a date range</span>
+              <span>Pick a date</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -59,11 +56,15 @@ export function DateRangePicker({
             mode="range"
             defaultMonth={date?.from}
             selected={date}
-            onSelect={onDateChange}
+            onSelect={(range) => {
+              if (range) {
+                onDateChange(range);
+              }
+            }}
             numberOfMonths={2}
           />
         </PopoverContent>
       </Popover>
     </div>
-  )
+  );
 }
