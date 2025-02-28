@@ -5,16 +5,16 @@ import { Income } from "@/types";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import React, { useState } from "react";
 import dayjs from "dayjs";
 import { useData } from "@/contexts/DataContext";
-
-// Assuming DateRange is defined elsewhere, e.g., type DateRange = { from: Date | undefined; to: Date | undefined; };
-type DateRange = { from: Date | undefined; to: Date | undefined; };
+import { DateRange, Income } from "@/types";
+import IncomeReportDialog from "@/components/IncomeReportDialog";
 
 export default function IncomeReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [, setLocation] = useLocation();
-  const { incomes } = useData();
+  const { incomes = [] } = useData();
   const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined

@@ -322,3 +322,103 @@ export default function IncomeReportDialog({ isOpen, onOpenChange, incomes }: In
     </Dialog>
   );
 }
+import React from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Income, DateRange } from "@/types";
+import dayjs from "dayjs";
+import { Card } from "@/components/ui/card";
+
+export interface IncomeReportDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  incomes: Income[];
+  dateRange?: DateRange;
+}
+
+export function IncomeReportDialog({
+  isOpen,
+  onOpenChange,
+  incomes,
+  dateRange
+}: IncomeReportDialogProps) {
+  const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
+  
+  const formatDate = (date: string) => {
+    return dayjs(date).format('YYYY-MM-DD');
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
+  const getDateRangeText = () => {
+    if (!dateRange || !dateRange.from || !dateRange.to) return "All Time";
+    return `${dayjs(dateRange.from).format('MMM D, YYYY')} - ${dayjs(dateRange.to).format('MMM D, YYYY')}`;
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Income Report</DialogTitle>
+          <DialogDescription>
+            Income report for {getDateRangeText()}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="py-4">
+          <Card className="p-4 mb-4">
+            <h2 className="text-xl font-semibold mb-2">Summary</h2>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
+            <p className="text-sm text-gray-500">Total Income</p>
+          </Card>
+          
+          <h2 className="text-xl font-semibold mb-2">Income Details</h2>
+          {incomes.length === 0 ? (
+            <p className="text-gray-500">No income data available for this period.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="text-left p-2">Date</th>
+                    <th className="text-left p-2">Description</th>
+                    <th className="text-right p-2">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {incomes.map((income) => (
+                    <tr key={income.id} className="border-t">
+                      <td className="p-2">{formatDate(income.date)}</td>
+                      <td className="p-2">{income.description}</td>
+                      <td className="p-2 text-right font-semibold text-green-600">
+                        {formatCurrency(income.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        
+        <DialogFooter>
+          <Button onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default IncomeReportDialog;

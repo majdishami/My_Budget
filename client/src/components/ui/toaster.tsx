@@ -32,3 +32,25 @@ export function Toaster() {
     </ToastProvider>
   )
 }
+import React, { useState, useEffect } from "react";
+import { Toast, ToastProvider, ToastViewport } from "@/components/ui/toast";
+
+export function Toaster() {
+  const [toasts, setToasts] = useState<any[]>([]);
+
+  // In a real implementation, this would listen for toast events
+  // For this simplified version, we're just rendering an empty provider
+
+  return (
+    <ToastProvider>
+      {toasts.map(({ id, title, description, variant, action }) => (
+        <Toast key={id} variant={variant}>
+          {title}
+          {description}
+          {action}
+        </Toast>
+      ))}
+      <ToastViewport />
+    </ToastProvider>
+  );
+}

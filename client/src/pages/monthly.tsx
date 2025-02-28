@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Income, Bill } from "@/types";
 import { formatCurrency, getCurrentDate } from "@/lib/utils";
 import { useLocation } from "wouter";
+import dayjs from 'dayjs';
 
 export default function MonthlyReport() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);

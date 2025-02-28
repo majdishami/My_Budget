@@ -29,7 +29,6 @@ export default function MonthlyToDateReport() {
   const [error, setError] = useState<string | null>(null);
 
   // Use dayjs for date manipulation
-  import dayjs from 'dayjs';
   const today = dayjs(getCurrentDate());
   const startOfMonth = today.startOf('month');
   const endOfMonth = today.endOf('month');

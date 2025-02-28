@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import DateRangeReportDialog from "@/components/DateRangeReportDialog";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";

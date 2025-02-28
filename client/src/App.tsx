@@ -8,11 +8,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Switch, Route, Link, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
-// import { Toaster } from "@/components/ui/toaster"; // Removed due to missing module
+import { Toaster } from "@/components/ui/toaster";
 import { Budget } from "./pages/Budget";
 import dayjs from 'dayjs';
 import { ErrorBoundary } from "./components/ErrorBoundary";
-// import { ThemeToggle } from "@/components/ThemeToggle";
 import { useData } from "./contexts/DataContext";
 import { Alert, AlertDescription } from "./components/ui/alert";
 import {
@@ -24,7 +23,6 @@ import {
 import { Card } from "./components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "./components/ui/sheet";
 import { cn } from "./lib/utils";
-// import { useIsMobile } from "@/hooks/use-mobile";
 import { Income, Bill } from "./types";
 import crypto from 'crypto';
 import { Badge } from "./components/ui/badge";
@@ -67,7 +65,7 @@ import React from "react";
 function Router() {
   const { isLoading, error, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
   const [location, setLocation] = useLocation();
-  const isMobile = false; // Set a default value or handle it differently
+  const isMobile = false;
 
   const today = useMemo(() => dayjs('2025-02-11'), []);
 
@@ -560,100 +558,6 @@ function Router() {
                             );
                           })}
                         </DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Income
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel>Edit Income</DropdownMenuLabel>                          <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => setShowAddIncomeDialog(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Income
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel>Edit Income</DropdownMenuLabel>
-                          {incomes.reduce((uniqueIncomes: Income[], income) => {
-                            if (income.occurrenceType !== 'once') {
-                              const existingIncome = uniqueIncomes.find(i => i.source === income.source);
-                              if (!existingIncome || dayjs(income.date).isBefore(dayjs(existingIncome.date))) {
-                                const filteredIncomes = uniqueIncomes.filter(i => i.source !== income.source);
-                                return [...filteredIncomes, income];
-                              }
-                              return uniqueIncomes;
-                            }
-                            return [...uniqueIncomes, income];
-                          }, []).map((income) => {
-                            let occurrenceTypeLabel = income.occurrenceType;
-                            if (income.source === "Majdi's Salary") {
-                              occurrenceTypeLabel = "twice-monthly";
-                            } else if (income.source === "Ruba's Salary") {
-                              occurrenceTypeLabel = "biweekly";
-                            }
-
-                            return (
-                              <DropdownMenuItem
-                                key={`edit-${income.id}`}
-                                onClick={() => handleEditTransaction('income', income)}
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                <div className="flex items-center gap-2">
-                                  <span>{income.source}</span>
-                                  <Badge className="ml-2">
-                                    {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
-                                      occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
-                                        occurrenceTypeLabel === 'monthly' ? 'Monthly' :
-                                          occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
-                                  </Badge>
-                                  <span className="text-muted-foreground text-sm">
-                                    ({dayjs(income.date).format('MMM D')})
-                                  </span>
-                                </div>
-                              </DropdownMenuItem>
-                            );
-                          })}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel>Delete Income</DropdownMenuLabel>
-                          {incomes.reduce((uniqueIncomes: Income[], income) => {
-                            if (income.occurrenceType !== 'once') {
-                              const existingIncome = uniqueIncomes.find(i => i.source === income.source);
-                              if (!existingIncome || dayjs(income.date).isBefore(dayjs(existingIncome.date))) {
-                                const filteredIncomes = uniqueIncomes.filter(i => i.source !== income.source);
-                                return [...filteredIncomes, income];
-                              }
-                              return uniqueIncomes;
-                            }
-                            return [...uniqueIncomes, income];
-                          }, []).map((income) => {
-                            let occurrenceTypeLabel = income.occurrenceType;
-                            if (income.source === "Majdi's Salary") {
-                              occurrenceTypeLabel = "twice-monthly";
-                            } else if (income.source === "Ruba's Salary") {
-                              occurrenceTypeLabel = "biweekly";
-                            }
-
-                            return (
-                              <DropdownMenuItem
-                                key={`delete-${income.id}`}
-                                onClick={() => handleDeleteTransaction('income', income)}
-                                className="text-red-600"
-                              >
-                                <Trash className="mr-2 h-4 w-4" />
-                                <div className="flex items-center gap-2">
-                                  <span>{income.source}</span>
-                                  <Badge className="ml-2">
-                                    {occurrenceTypeLabel === 'twice-monthly' ? 'Twice Monthly' :
-                                      occurrenceTypeLabel === 'biweekly' ? 'Bi-Weekly' :
-                                        occurrenceTypeLabel === 'monthly' ? 'Monthly' :
-                                          occurrenceTypeLabel === 'weekly' ? 'Weekly' : 'One Time'}
-                                  </Badge>
-                                  <span className="text-muted-foreground text-sm">
-                                    ({dayjs(income.date).format('MMM D')})
-                                  </span>
-                                </div>
-                              </DropdownMenuItem>
-                            );
-                          })}
-                        </DropdownMenuContent>
                       </DropdownMenu>
 
                       <Link href="/categories">
@@ -709,8 +613,6 @@ function Router() {
                         <Database className="h-4 w-4" />
                         Sync Database
                       </button>
-
-                      {/* <ThemeToggle /> */}
                     </div>
                   )}
                 </div>
@@ -827,7 +729,7 @@ function App() {
         }}
       >
         <Router />
-        {/* <Toaster /> */}
+        <Toaster />
       </ErrorBoundary>
     </QueryClientProvider>
   );

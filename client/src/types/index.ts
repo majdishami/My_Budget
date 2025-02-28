@@ -11,3 +11,18 @@ export interface Transaction {
   updated_at: string;
   isPending?: boolean;
 }
+
+export interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
+
+export interface Income {
+  id: number;
+  user_id: number;
+  description: string;
+  amount: number;
+  date: string;
+  created_at: string;
+  updated_at: string;
+}

@@ -87,6 +87,21 @@ export default function ExpenseReportPage() {
     });
   }
 
+  const filteredExpenses = React.useMemo(() => {
+    if (!dateRange?.from || !dateRange?.to) {
+      return expenses;
+    }
+
+    return expenses.filter(expense => {
+      const expenseDate = dayjs(expense.date);
+      return (
+        expenseDate.isAfter(dayjs(dateRange.from)) && 
+        expenseDate.isBefore(dayjs(dateRange.to))
+      );
+    });
+  }, [expenses, dateRange]);
+
+
   return (
     <div className="container mx-auto p-4">
       <Card className="p-4 mb-4">
