@@ -607,3 +607,54 @@ export const useToast = () => {
 
   return { toast }
 }
+import { useContext } from 'react';
+import { ToastActionElement, ToastProps } from '../components/ui/toast';
+
+type ToastType = {
+  id: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: ToastActionElement;
+  variant?: 'default' | 'destructive';
+};
+
+const TOAST_LIMIT = 20;
+let count = 0;
+
+function genId() {
+  count = (count + 1) % Number.MAX_SAFE_INTEGER;
+  return count.toString();
+}
+
+type Toast = ToastType & {
+  id: string;
+  dismiss: () => void;
+};
+
+const toasts: Map<string, Toast> = new Map();
+
+interface ToastContextType {
+  toast: (props: ToastProps) => void;
+  dismiss: (id: string) => void;
+}
+
+export function useToast() {
+  return {
+    toast: (props: ToastProps) => {
+      const id = props.id || genId();
+      const toast = {
+        ...props,
+        id,
+        dismiss: () => dismiss(id)
+      } as Toast;
+      
+      toasts.set(id, toast);
+      
+      return toast;
+    },
+    dismiss: (id: string) => {
+      toasts.delete(id);
+    },
+    toasts: Array.from(toasts.values())
+  };
+}

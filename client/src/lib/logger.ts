@@ -93,3 +93,103 @@ export const logger = {
     console.debug(`[DEBUG] ${message}`, ...args)
   }
 }
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+interface LogContext {
+  [key: string]: any;
+}
+
+interface LogEvent {
+  timestamp: string;
+  level: LogLevel;
+  message: string;
+  context?: LogContext;
+  stack?: string;
+}
+
+const logs: LogEvent[] = [];
+const MAX_LOGS = 1000;
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+function createLog(level: LogLevel, message: string, context?: LogContext, error?: Error): LogEvent {
+  const logEvent: LogEvent = {
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    context
+  };
+
+  if (error && error.stack) {
+    logEvent.stack = error.stack;
+  }
+
+  logs.push(logEvent);
+  
+  // Keep logs under the limit
+  if (logs.length > MAX_LOGS) {
+    logs.shift();
+  }
+
+  return logEvent;
+}
+
+export const logger = {
+  debug: (message: string, context?: LogContext) => {
+    if (isProduction) return;
+    const logEvent = createLog('debug', message, context);
+    console.debug(`[DEBUG] ${message}`, context || '');
+    return logEvent;
+  },
+  
+  info: (message: string, context?: LogContext) => {
+    const logEvent = createLog('info', message, context);
+    console.info(`[INFO] ${message}`, context || '');
+    return logEvent;
+  },
+  
+  warn: (message: string, context?: LogContext) => {
+    const logEvent = createLog('warn', message, context);
+    console.warn(`[WARN] ${message}`, context || '');
+    return logEvent;
+  },
+  
+  error: (message: string, context?: LogContext, error?: Error) => {
+    const logEvent = createLog('error', message, context, error);
+    console.error(`[ERROR] ${message}`, context || '', error || '');
+    return logEvent;
+  },
+  
+  getAllLogs: () => [...logs],
+  
+  downloadLogs: () => {
+    const dataStr = JSON.stringify(logs, null, 2);
+    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', `budget-tracker-logs-${new Date().toISOString()}.json`);
+    document.body.appendChild(linkElement);
+    linkElement.click();
+    document.body.removeChild(linkElement);
+  }
+};
+
+// Handle uncaught errors in React components
+export const logComponentError = (
+  error: Error, 
+  componentStack: string,
+  componentName: string = 'Unknown'
+) => {
+  logger.error('Uncaught error in component:', {
+    error,
+    componentStack,
+    componentName,
+    timestamp: new Date().toISOString(),
+    errorCount: (window as any).__ERROR_COUNT = ((window as any).__ERROR_COUNT || 0) + 1,
+    userAgent: navigator.userAgent,
+    location: window.location.href
+  });
+};
+
+export default logger;
