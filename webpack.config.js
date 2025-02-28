@@ -4,7 +4,7 @@ const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin'
 const webpack = require('webpack');
 
 module.exports = {
-  entry: './client/src/index.js', // Adjust the entry point if needed
+  entry: './client/src/index.tsx', // Adjust the entry point if needed
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
@@ -13,7 +13,7 @@ module.exports = {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
     alias: {
       '@': path.resolve(__dirname, 'client/src'),
-      'react-refresh': path.resolve(__dirname, 'client/node_modules/react-refresh'),
+      'react-refresh': path.resolve(__dirname, 'node_modules/react-refresh'),
     },
   },
   module: {
