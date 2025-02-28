@@ -9,7 +9,7 @@ import { ReportFilter } from '@/components/ReportFilter';
 import ExpenseReportDialog from "@/components/ExpenseReportDialog";
 import { useData } from "@/contexts/DataContext";
 import { DateRange } from "react-day-picker";
-import { formatCurrency } from '@/lib/reportUtils';
+import { formatCurrency } from '@/lib/utils';
 import { cn } from "@/lib/utils";
 
 export default function ExpenseReportPage() {

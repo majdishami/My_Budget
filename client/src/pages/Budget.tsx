@@ -67,7 +67,7 @@ const DayCell = memo(({
   selectedYear,
   calendarData,
 }: { 
-  day: number | null;
+  day: number;
   isCurrentDay: boolean;
   selectedDay: number;
   dayIncomes: Income[];
@@ -80,17 +80,17 @@ const DayCell = memo(({
   const sortedIncomes = [...dayIncomes].sort((a, b) => b.amount - a.amount);
   const sortedBills = [...dayBills].sort((a, b) => b.amount - a.amount);
   const hasTransactions = sortedIncomes.length > 0 || sortedBills.length > 0;
-  const dayDate = dayjs().year(selectedYear).month(selectedMonth).date(day || 1); // Handle null day
+  const dayDate = dayjs().year(selectedYear).month(selectedMonth).date(day);
   const dayOfWeek = dayDate.format('ddd');
 
   return (
     <td
-      onClick={() => day && onDayClick(day)} // Prevent click if day is null
+      onClick={() => onDayClick(day)}
       className={cn(
         "border border-yellow-100/50 p-0.5 lg:p-2 align-top cursor-pointer transition-colors h-12 md:h-24 lg:h-48 relative touch-manipulation",
         "hover:bg-accent active:bg-accent/70",
         isCurrentDay && "ring-2 ring-primary ring-offset-2 bg-yellow-100/50",
-        selectedDay === (day || 0) && "bg-accent/50", // Handle null day
+        selectedDay === day && "bg-accent/50",
         hasTransactions && "shadow-sm"
       )}
     >
@@ -99,7 +99,7 @@ const DayCell = memo(({
           {isCurrentDay ? (
             <>
               <span className="font-bold text-sm md:text-base lg:text-primary bg-yellow-200 px-1 rounded">
-                {day || ''} {/* Handle null day */}
+                {day}
               </span>
               <span className="text-[10px] text-primary bg-yellow-200 px-1 rounded">
                 {dayOfWeek}
@@ -108,28 +108,29 @@ const DayCell = memo(({
           ) : (
             <>
               <span className="font-medium text-sm md:text-base lg:text-lg">
-                {day || ''} {/* Handle null day */}
+                {day}
               </span>
               <span className="hidden md:inline text-[10px] text-muted-foreground">
                 {dayOfWeek}
               </span>
             </>
           )}
-        </div>
-        {hasTransactions && (
-          <div className="flex gap-0.5">
-            {sortedIncomes.length > 0 && (
-              <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-green-500" />
-            )}
-            {sortedBills.length > 0 && (
-              <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-red-500" />
-            )}
           </div>
-        )}
-      </div>
-    </td>
-  );
-});
+          {hasTransactions && (
+            <div className="flex gap-0.5">
+              {sortedIncomes.length > 0 && (
+                <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-green-500" />
+              )}
+              {sortedBills.length > 0 && (
+                <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-red-500" />
+              )}
+            </div>
+          )}
+        </div>
+      </td>
+    );
+  }
+);
 
 DayCell.displayName = 'DayCell';
 
@@ -141,7 +142,7 @@ export function Budget() {
   const { incomes, bills: rawBills, isLoading, error } = useData();
   const today = useMemo(() => dayjs(), []);
   const [selectedDay, setSelectedDay] = useState(today.date());
-  const [selectedMonth, setSelectedMonth] = useState(today.month()); // Changed to 0-based
+  const [selectedMonth, setSelectedMonth] = useState(today.month() + 1); // Changed to 0-based
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [showDailySummary, setShowDailySummary] = useState(false);
 
@@ -182,7 +183,7 @@ export function Budget() {
     // Handle Majdi's salary (1st and 15th)
     if (day === 1 || day === 15) {
       const majdiSalary = {
-        id: generateId(), // Fixed: Generate unique ID instead of hardcoding
+        id: `majdi-${day}-${selectedMonth}-${selectedYear}`,
         source: "Majdi's Salary",
         amount: 4739,
         date: dayjs().year(selectedYear).month(selectedMonth).date(day).format('YYYY-MM-DD'),
@@ -208,7 +209,7 @@ export function Budget() {
       // Only include if the date is on or after start date and matches biweekly pattern
       if (currentDate.isSameOrAfter(startDate) && weeksDiff % 2 === 0) {
         const rubaSalary = {
-          id: generateId(), // Fixed: Generate unique ID instead of hardcoding
+          id: `ruba-${currentDate.format('YYYY-MM-DD')}`,
           source: "Ruba's Salary",
           amount: 2168,
           date: currentDate.format('YYYY-MM-DD'),
@@ -252,7 +253,7 @@ export function Budget() {
           yearlyDate.date() === day;
       } else {
         // Monthly recurring bill
-        return dayjs(bill.date).date() === day; //Fixed: Compare dates correctly.
+        return bill.date === day;
       }
     }).map(bill => ({
       ...bill,
@@ -360,7 +361,7 @@ export function Budget() {
   }, [selectedYear, selectedMonth]);
 
   // Update the current day detection
-  const isCurrentDay = useCallback((dayNumber: number | null) => {
+  const isCurrentDay = useCallback((dayNumber: number) => {
     const now = dayjs();
     return (
       dayNumber === now.date() &&
@@ -405,103 +406,103 @@ export function Budget() {
         <div className="flex items-center gap-2 mb-0.5">
           <select 
             value={selectedMonth}
-            onChange={(e) => handleMonthChange(parseInt(e.target.value, 10))} //Fixed: Specify radix for parseInt.
+            onChange={(e) => handleMonthChange(parseInt(e.target.value))}
             className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w-[100px]"
           >
             {months.map(month => (
-              <option key={month.value} value={month.value.toString()}> {/*Fixed: Convert to string */}
+              <option key={month.value} value={month.value}>
                 {month.label}
               </option>
             ))}
           </select>
-          <select 
-            value={selectedYear}
-            onChange={(e) => handleYearChange(parseInt(e.target.value, 10))} //Fixed: Specify radix for parseInt.
-            className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w-[100px]"
-          >
-            {years.map(year => (
-              <option key={year.value} value={year.value.toString()}> {/*Fixed: Convert to string */}
-                {year.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <table className="w-full border-collapse">
-        <thead>
-          <tr>
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <th key={day} className="border border-yellow-100/50 p-1 md:p-2">
-                {day}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {Array.from({ length: Math.ceil(calendarData.length / 7) }).map((_, weekIndex) => (
-            <tr key={weekIndex}>
-              {calendarData.slice(weekIndex * 7, weekIndex * 7 + 7).map((day, dayIndex) => (
-                <DayCell
-                  key={dayIndex}
-                  day={day}
-                  isCurrentDay={isCurrentDay(day)}
-                  selectedDay={selectedDay}
-                  dayIncomes={dayTransactions.find(t => t.day === day)?.incomes || []}
-                  dayBills={dayTransactions.find(t => t.day === day)?.bills || []}
-                  onDayClick={setSelectedDay}
-                  selectedMonth={selectedMonth}
-                  selectedYear={selectedYear}
-                  calendarData={calendarData}
-                />
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="p-2 md:p-4">
-        <div className="flex justify-between items-center">
-          <div className="text-lg font-medium">
-            Monthly Totals
-          </div>
-          <button
-            onClick={() => setShowDailySummary(!showDailySummary)}
-            className="p-1.5 md:p-2 border rounded bg-background"
-          >
-            {showDailySummary ? 'Hide' : 'Show'} Daily Summary
-          </button>
-        </div>
-        <div className="mt-2">
-          <div className="flex justify-between">
-            <div>Total Income:</div>
-            <div>{formatCurrency(monthlyTotals.income)}</div>
-          </div>
-          <div className="flex justify-between">
-            <div>Total Expenses:</div>
-            <div>{formatCurrency(monthlyTotals.expenses)}</div>
-          </div>
-          <div className="flex justify-between">
-            <div>Net:</div>
-            <div>{formatCurrency(monthlyTotals.net)}</div>
-          </div>
-        </div>
-        {showDailySummary && (
-          <div className="mt-4">
-            <div className="text-lg font-medium">
-              Daily Summary
+              <select 
+                value={selectedYear}
+                onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                className="p-1.5 md:p-2 border rounded bg-background min-w-[100px] md:min-w-[100px]"
+              >
+                {years.map(year => (
+                  <option key={year.value} value={year.value}>
+                    {year.label}
+                  </option>
+                ))}
+              </select>
             </div>
-            {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
-              const day = dayIndex + 1;
-              const { income, expenses } = calculateRunningTotals(day);
-              return (
-                <div key={day} className="flex justify-between mt-2">
-                  <div>Day {day}:</div>
-                  <div>{formatCurrency(income - expenses)}</div>
-                </div>
-              );
-            })}
           </div>
-        )}
-      </div>
-    </div>
-  );
-}
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <th key={day} className="border border-yellow-100/50 p-1 md:p-2">
+                    {day}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: Math.ceil(calendarData.length / 7) }).map((_, weekIndex) => (
+                <tr key={weekIndex}>
+                  {calendarData.slice(weekIndex * 7, weekIndex * 7 + 7).map((day, dayIndex) => (
+                    <DayCell
+                      key={dayIndex}
+                      day={day || 0}
+                      isCurrentDay={isCurrentDay(day || 0)}
+                      selectedDay={selectedDay}
+                      dayIncomes={dayTransactions.find(t => t.day === day)?.incomes || []}
+                      dayBills={dayTransactions.find(t => t.day === day)?.bills || []}
+                      onDayClick={setSelectedDay}
+                      selectedMonth={selectedMonth}
+                      selectedYear={selectedYear}
+                      calendarData={calendarData}
+                    />
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="p-2 md:p-4">
+            <div className="flex justify-between items-center">
+              <div className="text-lg font-medium">
+                Monthly Totals
+              </div>
+              <button
+                onClick={() => setShowDailySummary(!showDailySummary)}
+                className="p-1.5 md:p-2 border rounded bg-background"
+              >
+                {showDailySummary ? 'Hide' : 'Show'} Daily Summary
+              </button>
+            </div>
+            <div className="mt-2">
+              <div className="flex justify-between">
+                <div>Total Income:</div>
+                <div>{formatCurrency(monthlyTotals.income)}</div>
+              </div>
+              <div className="flex justify-between">
+                <div>Total Expenses:</div>
+                <div>{formatCurrency(monthlyTotals.expenses)}</div>
+              </div>
+              <div className="flex justify-between">
+                <div>Net:</div>
+                <div>{formatCurrency(monthlyTotals.net)}</div>
+              </div>
+            </div>
+            {showDailySummary && (
+              <div className="mt-4">
+                <div className="text-lg font-medium">
+                  Daily Summary
+                </div>
+                {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
+                  const day = dayIndex + 1;
+                  const { income, expenses } = calculateRunningTotals(day);
+                  return (
+                    <div key={day} className="flex justify-between mt-2">
+                      <div>Day {day}:</div>
+                      <div>{formatCurrency(income - expenses)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }

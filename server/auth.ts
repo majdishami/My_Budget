@@ -3,23 +3,13 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import connectPg from "connect-pg-simple";
 import { promisify } from "util";
-import { users } from "../db/schema";
-import { z } from "zod";
-
-export type SelectUser = {
-  id: number;
-  username: string;
-  password: string;
-};
-
-export const insertUserSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(6, "Password must be at least 6 characters")
-});
-import { pool, db } from "../db";
+import { insertUserSchema, users } from "@db/schema";
+import { pool } from "@db";
 import { eq } from "drizzle-orm";
 import { fromZodError } from "zod-validation-error";
 import bcrypt from "bcrypt";
+import { SelectUser } from "@db/schema";
+import { db } from "@db";
 import session from "express-session";
 import { SessionOptions } from "express-session";
 

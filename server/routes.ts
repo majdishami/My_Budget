@@ -18,9 +18,6 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrBefore);
 
-import { Router } from 'express';
-export const router = Router();
-
 export function registerRoutes(app: Express): Server {
   app.get("/api/health", (req, res) => {
     console.log("[Server] Health check endpoint called");
@@ -226,10 +223,7 @@ export function registerRoutes(app: Express): Server {
 
       const [newBill] = await db
         .insert(bills)
-        .values({
-          ...billData,
-          amount: billData.amount.toString()
-        })
+        .values(billData)
         .returning();
 
       console.log("[Bills API] Created bill:", newBill);

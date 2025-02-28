@@ -7,7 +7,8 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "cloudrun"
-run = ["sh", "-c", "npm run dev"]
+run = ["sh", "-c", "npm start"]
+build = ["sh", "-c", "npm run build"]
 
 [[ports]]
 localPort = 80
@@ -42,7 +43,7 @@ localPort = 24678
 externalPort = 3003
 
 [workflows]
-runButton = "Start application"
+runButton = "Run Application"
 
 [[workflows.workflow]]
 name = "Project"
@@ -83,3 +84,11 @@ author = 39325428
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd client && PORT=3002 VITE_HOST=0.0.0.0 npm run dev"
+
+[[workflows.workflow]]
+name = "Run Application"
+author = 39325428
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"

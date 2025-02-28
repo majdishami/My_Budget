@@ -1,25 +1,26 @@
-
 {
+  "include": ["client/src/**/*", "db/**/*", "server/**/*"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
-    "baseUrl": ".",
-    "target": "ES2020",
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
+    "noEmit": true,
     "module": "ESNext",
-    "lib": ["ES2020", "DOM"],
-    "allowJs": true,
-    "outDir": "./dist",
-    "rootDir": ".",
     "strict": true,
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "jsx": "react-jsx",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "typeRoots": ["./types", "./node_modules/@types"],
+    "allowImportingTsExtensions": true,
+    "moduleResolution": "bundler",
+    "baseUrl": "./",
+    "types": ["@types/node"],
     "paths": {
-      "@/*": ["./*"],
+      "@db": ["./db/index.ts"],
       "@db/*": ["./db/*"],
-      "@server/*": ["./server/*"]
+      "@server/*": ["./server/*"],
+      "@client/*": ["./client/src/*"],
+      "@utils/*": ["./utils/*"]
     }
-  },
-  "include": ["server/**/*", "db/**/*", "types/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "tmp", "client"]
+  }
 }

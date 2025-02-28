@@ -1,30 +1,21 @@
-import pkg from 'pg';
-const { Pool } = pkg;
+import { Pool } from 'pg';
 import { drizzle } from "drizzle-orm/node-postgres";
-import * as schema from './schema';
+import { schema } from './schema';
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
 import express from 'express';
 import dotenv from 'dotenv';
-import cors from 'cors';
 
+// Load environment variables
 dotenv.config();
 
-const app = express();
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
-app.use(express.json());
+// Check if DATABASE_URL is defined
+if (!process.env.DATABASE_URL) {
+  console.error("ERROR: DATABASE_URL is not defined in .env file.");
+  process.exit(1);
+}
 
-// Handle WebSocket upgrade requests
-app.use((req, res, next) => {
-  if (req.headers.upgrade && req.headers.upgrade.toLowerCase() === 'websocket') {
-    return next();
-  }
-  next();
-});
-
+// PostgreSQL connection pool configuration
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
@@ -37,7 +28,9 @@ const poolConfig = {
 };
 
 const pool = new Pool(poolConfig);
-export const db = drizzle(pool, { schema });
+
+// Initialize Drizzle ORM with the connection pool
+const db = drizzle(pool, { schema });
 
 // Handle PostgreSQL connection errors
 pool.on('error', (err: Error & { code?: string }) => {
@@ -135,38 +128,17 @@ async function testConnection(retries = 5) {
 
 testConnection();
 
+// Initialize Express app
+const app = express();
+
+// Set up authentication and routes
 setupAuth(app);
 registerRoutes(app);
 
 // Start the server
-const PORT = process.env.PORT || 5000;
-
-// Add error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Server error:', {
-    message: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-    timestamp: new Date().toISOString()
-  });
-
-  res.status(500).json({
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
-
-const server = app.listen(5000, '0.0.0.0', () => {
-  console.log('Server running on port 5000');
-}).on('error', (err: Error) => {
-  console.error('Server startup error:', err);
-  process.exit(1);
-});
-
-process.on('SIGTERM', () => {
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
 
 // Graceful shutdown

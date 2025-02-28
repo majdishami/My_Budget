@@ -1,12 +1,10 @@
-import 'dotenv/config';
-
-export default {
+module.exports = {
   development: {
     client: 'pg',
-    connection: process.env.DATABASE_URL,
-    migrations: {
-      tableName: 'knex_migrations',
-      directory: './migrations'
-    }
+    connection: process.env.DATABASE_URL
+  },
+  production: {
+    client: 'pg',
+    connection: process.env.DATABASE_URL
   }
 };

@@ -1,8 +1,7 @@
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { drizzle } from "drizzle-orm/postgres-js";
-import pg from 'pg';
-const { Pool } = pg;
+import { Pool } from 'pg';
 import { createServer as createViteServer } from 'vite';
 import session from "express-session";
 const MemoryStore = session.MemoryStore;
@@ -52,13 +51,6 @@ export const bills = pgTable("bills", {
   yearly_date: timestamp("yearly_date"),
   reminder_enabled: boolean("reminder_enabled").default(false).notNull(),
   reminder_days: integer("reminder_days").default(7).notNull(),
-});
-
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  username: text('username').notNull(),
-  password: text('password').notNull(),
-  created_at: timestamp('created_at').defaultNow()
 });
 
 // Zod schemas
@@ -148,7 +140,6 @@ export const db = drizzle(pool, {
     categories,
     transactions,
     bills,
-    users
   },
 });
 
@@ -176,5 +167,3 @@ const sessionMiddleware = session({
 export const additionalCodeFunction = () => {
   console.log("Additional code that might be necessary for the application.");
 };
-
-import { integer, boolean, decimal } from "drizzle-orm/pg-core";

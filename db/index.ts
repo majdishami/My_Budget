@@ -1,13 +1,11 @@
-import pkg from 'pg';
-const { Pool } = pkg;
-import { drizzle } from 'drizzle-orm/node-postgres';
-import * as schema from './schema';
+import { Pool } from 'pg';
 
 if (!process.env.DATABASE_URL) {
   console.error("ERROR: DATABASE_URL is not defined in .env file.");
   process.exit(1);
 }
 
+// Pool configuration with improved connection handling
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
@@ -19,10 +17,10 @@ const poolConfig = {
   keepAliveInitialDelayMillis: 10000
 };
 
+// Initialize pool with configuration
 export const pool = new Pool(poolConfig);
 
-export const db = drizzle(pool, { schema });
-
+// Add error handling for the pool
 pool.on('error', (err: Error & { code?: string }) => {
   const errorContext = {
     message: err.message,
@@ -32,9 +30,9 @@ pool.on('error', (err: Error & { code?: string }) => {
   };
 
   switch (err.code) {
-    case '57P01':
-    case '57P02':
-    case '57P03':
+    case '57P01': // Admin shutdown
+    case '57P02': // Crash shutdown
+    case '57P03': // Cannot connect now
       let attempt = 0;
       const maxAttempts = 5;
       const maxDelay = 30000;
@@ -71,12 +69,19 @@ pool.on('error', (err: Error & { code?: string }) => {
       reconnect();
       break;
 
+    case '08006': // Connection failure
+    case '08001': // Unable to establish connection
+      console.error('Fatal connection error:', errorContext);
+      process.nextTick(() => process.exit(1));
+      break;
+
     default:
       console.error('Database error:', errorContext);
       break;
   }
 });
 
+// Enhanced connection testing with concise logging
 async function testConnection(retries = 5) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
