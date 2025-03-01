@@ -1,6 +1,7 @@
+
 import { createRoot } from "react-dom/client";
 import { lazy, Suspense } from "react";
-import { Toaster } from "./components/ui/toaster";
+import { Toaster } from "@/components/ui/toaster";
 import { DataProvider } from "./contexts/DataContext";
 import "./index.css";
 import React from "react";
