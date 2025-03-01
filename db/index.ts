@@ -1,5 +1,5 @@
 
-import { drizzle } from 'drizzle-orm/postgres-js';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
 
@@ -12,4 +12,5 @@ export const pool = new Pool({
 // Create a drizzle instance
 export const db = drizzle(pool, { schema });
 
+export { schema };
 export default db;
