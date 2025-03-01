@@ -362,6 +362,7 @@ const setCache = (transactions: any[]) => {
 };
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
+  console.log('[DataContext] Provider initializing');
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

@@ -273,6 +273,7 @@ function startServer(port) {
   return app.listen(port, '0.0.0.0', () => {
     console.log(`Server running on port ${port}`);
     console.log(`View your app at: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+    console.log(`Backend API available at: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/health`);
   }).on('error', (err) => {
     if (err.code === 'EADDRINUSE' && portAttempt < maxPortAttempts) {
       portAttempt++;

@@ -7,26 +7,26 @@ import { Toaster } from "./components/ui/toaster";
 import { DataProvider } from "./contexts/DataContext";
 import "./index.css";
 
-// Lazy load components for code splitting
+// Lazy load components for better performance
 const App = lazy(() => import("./App"));
-const CategoriesPage = lazy(() => import("./pages/Categories"));
-const ReportsPage = lazy(() => import("./pages/Reports"));
-const SettingsPage = lazy(() => import("./pages/Settings"));
+const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 
 // Create root element for React
 const rootElement = document.getElementById("root");
-if (!rootElement) throw new Error("Failed to find the root element");
+if (!rootElement) throw new Error("Failed to find root element");
 
 const root = createRoot(rootElement);
 
+// Initial render with proper routing
 root.render(
   <React.StrictMode>
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading application...</div>}>
+    <Suspense fallback={<div>Loading...</div>}>
       <DataProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<App />} />
-            <Route path="/main" element={<App />} />
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
