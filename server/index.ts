@@ -160,10 +160,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// Skip auth since no authentication is needed
-// setupAuth(app);
+// Setup express-session with a secret from env variables
+import session from 'express-session';
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'budget_tracker_default_secret',
+  resave: false,
+  saveUninitialized: false
+}));
 
-// Register API routes without auth dependency
+// Setup minimal auth (without session dependencies)
+setupAuth(app);
+
+// Register API routes
 const server = registerRoutes(app);
 
 

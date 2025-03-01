@@ -52,5 +52,10 @@ export function setupAuth(app: Express): void {
     res.json({ id: 1, username: "default" });
   });
 
-  console.log('[Auth] Minimal configuration completed');
+  // Add a logout endpoint
+  app.get("/api/logout", (req, res) => {
+    res.json({ success: true, message: "Logged out successfully" });
+  });
+
+  console.log('[Auth] Minimal auth configuration completed');
 }
