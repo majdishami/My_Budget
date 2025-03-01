@@ -23,14 +23,14 @@ root.render(
     <Suspense fallback={<div>Loading application...</div>}>
       <DataProvider>
         <Router base="">
-          <Route path="/categories">
-            <CategoriesPage />
+          <Route path="/">
+            <App />
           </Route>
           <Route path="/main">
             <App />
           </Route>
-          <Route path="/">
-            <App />
+          <Route path="/categories">
+            <CategoriesPage />
           </Route>
           <Route path="*">
             <App />

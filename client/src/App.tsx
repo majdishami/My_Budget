@@ -351,11 +351,12 @@ const App = () => {
   };
 
   useEffect(() => {
-    // Redirect to main page if the path is '/'
-    if (location.pathname === '/') {
+    // Force redirection to main calendar view on component mount
+    if (location.pathname !== '/main' && location.pathname === '/') {
+      console.log('Initial navigation to main calendar page');
       navigate('/main', { replace: true });
     }
-  }, [location.pathname, navigate]);
+  }, []);
 
 
   return (

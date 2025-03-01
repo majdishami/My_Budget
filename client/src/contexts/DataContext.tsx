@@ -485,44 +485,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loadData = async () => {
+    setIsLoading(true);
+    setError(null);
+
     try {
-      setIsLoading(true);
-      setError(null);
+      await checkHealth();
 
-      // Check cache first
-      const cachedData = getCache();
-      if (cachedData) {
-        logger.info("[DataContext] Loading transactions from cache...", {
-          age: Date.now() - cachedData.timestamp
-        });
-        processTransactions(cachedData.transactions);
-        setIsLoading(false);
-        return;
-      }
+      await Promise.all([
+        fetchCategories(),
+        fetchTransactions()
+      ]);
 
-      logger.info("[DataContext] Fetching transactions from API...");
-      const transactions = await fetchJsonWithErrorHandling('/transactions', {
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-
-      // Update cache with new data
-      setCache(transactions);
-
-      // Process the transactions
-      processTransactions(transactions);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load data";
-      logger.error("[DataContext] Error loading data:", { error });
-      setError(new Error(errorMessage));
-      setIncomes([]);
-      setBills([]);
-    } finally {
       setIsLoading(false);
+      return true;
+    } catch (err) {
+      console.error("Error loading data:", err);
+      setError("Failed to load data. Please try again later.");
+      setIsLoading(false);
+      return false;
     }
   };
 
@@ -836,6 +816,38 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const saveBills = async (newBills: Bill[]) => {
     await Promise.all(newBills.map(bill => addBill(bill)));
   };
+
+  const checkHealth = async () => {
+    // Placeholder for health check
+    // Replace with your actual health check logic
+    const response = await fetch('/api/health');
+    if (!response.ok) {
+      throw new Error(`Health check failed: ${response.status} ${response.statusText}`);
+    }
+    console.log("Health check successful");
+  };
+
+  const fetchCategories = async () => {
+    // Placeholder for fetching categories
+    // Replace with your actual fetch categories logic
+    const categories = await fetchJsonWithErrorHandling('/categories');
+    setCategories(categories);
+  };
+
+  const fetchTransactions = async () => {
+    // Placeholder for fetching transactions
+    // Replace with your actual fetch transactions logic
+    const transactions = await fetchJsonWithErrorHandling('/transactions', {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    processTransactions(transactions);
+  };
+
 
   return (
     <DataContext.Provider value={{
