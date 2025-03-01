@@ -5,7 +5,17 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      // Add JSX runtime for TypeScript files
+      jsxRuntime: 'automatic',
+      babel: {
+        plugins: [
+          ['@babel/plugin-transform-react-jsx']
+        ]
+      }
+    })
+  ],
   resolve: {
     alias: [
       { find: '@', replacement: path.resolve(__dirname, './src') },
@@ -27,8 +37,8 @@ export default defineConfig({
     outDir: 'build'
   },
   esbuild: {
-    loader: 'jsx',
-    include: /src\/.*\.jsx?$/,
+    loader: 'tsx',
+    include: /src\/.*\.[tj]sx?$/,
     exclude: [],
   }
 });
