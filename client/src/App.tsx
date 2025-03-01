@@ -38,7 +38,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom'; // Added react-router-dom
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'; // Added react-router-dom
 
 dayjs.extend(isBetween);
 
@@ -75,6 +75,7 @@ const App = () => {
   const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
   const [showDailySummary, setShowDailySummary] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate(); // Added useNavigate hook
   const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [error, setError] = useState(null); // Add error state
 
@@ -350,11 +351,15 @@ const App = () => {
   };
 
   useEffect(() => {
-    // No redirects needed here
-  }, []);
+    // Redirect to main page if the path is '/' or '/categories'
+    if (location.pathname === '/' || location.pathname === '/categories') {
+      navigate('/main');
+    }
+  }, [location.pathname, navigate]);
 
 
   return (
+    <Router>
       <div className="min-h-screen flex bg-background">
         <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
           <LeftSidebar
@@ -371,82 +376,65 @@ const App = () => {
         <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
           <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="flex justify-between items-center">
-                    <div className="space-y-2">
-                      <h1 className="text-2xl font-bold">
-                        My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
-                      </h1>
-                      <div className="flex items-center gap-2">
-                        <Select value={selectedMonth.toString()} onValueChange={(value) => handleMonthChange(parseInt(value))}>
-                          <SelectTrigger>
-                            <span className="p-2 border rounded bg-background min-w-[120px]">{months[selectedMonth].label}</span>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {months.map((month) => (
-                              <SelectItem key={month.value} value={month.value.toString()}>
-                                {month.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+              <div className="space-y-2">
+                <h1 className="text-2xl font-bold">
+                  My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                </h1>
+                <div className="flex items-center gap-2">
+                  <Select value={selectedMonth.toString()} onValueChange={(value) => handleMonthChange(parseInt(value))}>
+                    <SelectTrigger>
+                      <span className="p-2 border rounded bg-background min-w-[120px]">{months[selectedMonth].label}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map((month) => (
+                        <SelectItem key={month.value} value={month.value.toString()}>
+                          {month.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                        <Select value={selectedYear.toString()} onValueChange={(value) => handleYearChange(parseInt(value))}>
-                          <SelectTrigger>
-                            <span className="p-2 border rounded bg-background min-w-[100px]">{selectedYear}</span>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {years.map((year) => (
-                              <SelectItem key={year} value={year.toString()}>
-                                {year}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-                      <ThemeToggle />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Total Income</p>
-                        <p className="text-lg font-semibold text-green-600">
-                          {formatCurrency(monthlyTotals.totalIncome)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Total Bills</p>
-                        <p className="text-lg font-semibold text-red-600">
-                          {formatCurrency(monthlyTotals.totalBills)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Net Balance</p>
-                        <p className={`text-lg font-semibold ${
-                          monthlyTotals.balance >= 0 ? "text-green-600" : "text-red-600"
-                        }`}>
-                          {formatCurrency(monthlyTotals.balance)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-
-                <div className="flex-1 overflow-y-auto">
-                  <Card className="m-4">
-                    <div className="overflow-hidden">
-                      <Calendar
-                        mode="single"
-                        selected={new Date(selectedYear, selectedMonth, selectedDay)}
-                        onSelect={handleCalendarSelect}
-                        bills={bills}
-                        incomes={incomes}
-                        className="rounded-md"
-                      />
-                    </div>
-                  </Card>
+                  <Select value={selectedYear.toString()} onValueChange={(value) => handleYearChange(parseInt(value))}>
+                    <SelectTrigger>
+                      <span className="p-2 border rounded bg-background min-w-[100px]">{selectedYear}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
+
+              <div className="flex items-center gap-6">
+                <ThemeToggle />
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Income</p>
+                  <p className="text-lg font-semibold text-green-600">
+                    {formatCurrency(monthlyTotals.totalIncome)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Bills</p>
+                  <p className="text-lg font-semibold text-red-600">
+                    {formatCurrency(monthlyTotals.totalBills)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Net Balance</p>
+                  <p className={`text-lg font-semibold ${
+                    monthlyTotals.balance >= 0 ? "text-green-600" : "text-red-600"
+                  }`}>
+                    {formatCurrency(monthlyTotals.balance)}
+                  </p>
+                </div>
+              </div>
+            </div>
           </Card>
-          
+
           <div className="flex-1 overflow-y-auto">
             <Card className="m-4">
               <div className="overflow-hidden">
