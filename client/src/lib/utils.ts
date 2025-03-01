@@ -1,39 +1,49 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
-import dayjs from "dayjs";
 
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { format } from "date-fns";
+
+/**
+ * Combines className strings with tailwind-merge
+ */
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
+/**
+ * Format currency as USD
+ */
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    minimumFractionDigits: 2,
   }).format(amount);
 }
 
-export function formatDate(date: string | Date): string {
-  return dayjs(date).format("MMMM D, YYYY");
+/**
+ * Format date as localized string
+ */
+export function formatDate(date: Date | string): string {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  return format(dateObj, "MMM d, yyyy");
 }
 
-export function getCurrentDate() {
-  return dayjs();
+// Import types from external modules
+import { type VariantProps } from "class-variance-authority";
+import { type IconProps } from "@radix-ui/react-icons/dist/types";
+
+/**
+ * Common type for components that accept className prop
+ */
+export interface BaseProps {
+  className?: string;
 }
 
-export function toast(props: { 
-  title?: string; 
-  description?: string; 
-  variant?: 'default' | 'destructive';
-  duration?: number;
-}) {
-  // This is a placeholder function that will be replaced by the actual toast hook
-  console.log("Toast:", props);
-}
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+/**
+ * Get month name from number (0-indexed)
+ */
+export function getMonthName(month: number): string {
+  const date = new Date();
+  date.setMonth(month);
+  return date.toLocaleString('default', { month: 'long' });
 }

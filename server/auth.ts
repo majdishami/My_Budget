@@ -13,7 +13,10 @@ export function setupAuth(app: Express): void {
   // Add a logout endpoint
   app.get("/api/logout", (req, res) => {
     if (req.session) {
-      req.session.destroy(() => {
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ success: false, message: "Failed to logout" });
+        }
         res.json({ success: true, message: "Logged out successfully" });
       });
     } else {
