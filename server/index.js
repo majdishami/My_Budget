@@ -263,6 +263,13 @@ const maxPortAttempts = 3;
 let portAttempt = 0;
 
 function startServer(port) {
+  // Kill any existing processes on this port first
+  try {
+    require('child_process').execSync(`lsof -ti:${port} | xargs kill -9`);
+  } catch (e) {
+    // Ignore errors if no process is running
+  }
+  
   return app.listen(port, '0.0.0.0', () => {
     console.log(`Server running on port ${port}`);
     console.log(`View your app at: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);

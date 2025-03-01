@@ -54,6 +54,7 @@ const formatCurrency = (amount: number) => {
 };
 
 const App = () => {
+  console.log('App component rendering');
   // Fixed reference date for the app
   const today = dayjs('2025-02-09');
   const [selectedYear, setSelectedYear] = useState(today.year());

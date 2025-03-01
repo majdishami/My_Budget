@@ -1,7 +1,8 @@
+
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "./components/ui/toaster";
 import { DataProvider } from "./contexts/DataContext";
 import "./index.css";
@@ -24,12 +25,12 @@ root.render(
       <DataProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<App />} /> {/* Main app route */}
+            <Route path="/" element={<App />} />
+            <Route path="/main" element={<App />} />
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            {/* Add a catch-all route for handling 404 errors */}
-            <Route path="*" element={<div>404 Not Found</div>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
         <Toaster />
