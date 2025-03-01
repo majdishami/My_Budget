@@ -195,4 +195,4 @@ author = 39325428
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pkill -f 'node server' || true && concurrently 'NODE_ENV=development node server/index.js' 'cd client && npm run dev'"
+args = "concurrently \"cd server && node index.js\" \"cd client && npm run dev\""
