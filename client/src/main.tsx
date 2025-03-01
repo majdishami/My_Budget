@@ -1,20 +1,25 @@
-import React, { createRoot } from "react-dom/client";
+
+import React from "react";
+import { createRoot } from "react-dom/client";
 import { lazy, Suspense } from "react";
+import { Toaster } from "./components/ui/toaster";
 import { DataProvider } from "./contexts/DataContext";
 import "./index.css";
 
-// Lazy load the main App component
-const App = lazy(() => import("./App.jsx")); // Changed to .jsx
+// Lazy load the main App component - using explicit .js extension
+const App = lazy(() => import("./App.js"));
 
 // Create root element for React
 const rootElement = document.getElementById("root");
 if (!rootElement) {
-  console.error("Failed to find root element.  Ensure 'root' div exists in your HTML.");
-  //Consider a fallback mechanism instead of throwing error here
-  //For example, creating a div with ID root 
+  console.error("Failed to find root element");
+  // Create a root element if it doesn't exist
+  const newRoot = document.createElement("div");
+  newRoot.id = "root";
+  document.body.appendChild(newRoot);
 }
 
-const root = createRoot(rootElement);
+const root = createRoot(rootElement || document.getElementById("root")!);
 
 // Initial render
 root.render(
@@ -22,6 +27,7 @@ root.render(
     <Suspense fallback={<div>Loading...</div>}>
       <DataProvider>
         <App />
+        <Toaster />
       </DataProvider>
     </Suspense>
   </React.StrictMode>

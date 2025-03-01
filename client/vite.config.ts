@@ -4,36 +4,23 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    react({
-      // Add JSX runtime for TypeScript files
-      jsxRuntime: 'automatic',
-      babel: {
-        plugins: [
-          ['@babel/plugin-transform-react-jsx']
-        ]
-      }
-    })
-  ],
+  plugins: [react()],
   resolve: {
-    alias: [
-      { find: '@', replacement: path.resolve(__dirname, './src') },
-      { find: /^@\/(.*)$/, replacement: path.resolve(__dirname, './src/$1') }
-    ],
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
     extensions: ['.mjs', '.js', '.jsx', '.ts', '.tsx', '.json']
   },
   server: {
-    port: 3001, // Corrected port number
+    port: 3001,
     host: '0.0.0.0',
     strictPort: true,
     hmr: {
-      // Use Replit's proxy for WebSocket connections
-      clientPort: 443,
-      host: undefined,
-    },
+      clientPort: 4200
+    }
   },
   build: {
-    outDir: 'build'
+    outDir: 'build',
   },
   esbuild: {
     loader: 'tsx',
