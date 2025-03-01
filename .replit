@@ -123,4 +123,4 @@ author = 39325428
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd server && node index.js"
+args = "npm run dev"
