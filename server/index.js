@@ -228,27 +228,42 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(staticPath, 'index.html'));
 });
 
-// Start server
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`View your app at: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
-}).on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    // Instead of automatically trying the next port, we'll explicitly log the error
-    // so it's clear what's happening
-    console.error(`ERROR: Port ${PORT} is already in use. Please stop other applications using this port.`);
-    
-    // For Replit environment, we can try the next port as a fallback
-    const alternatePort = 3000;
-    console.log(`Trying alternate port ${alternatePort}...`);
-    app.listen(alternatePort, '0.0.0.0', () => {
-      console.log(`Server now running on port ${alternatePort}`);
-      console.log(`View your app at: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
-    });
-  } else {
-    console.error('Server error:', err);
-  }
+// Start server - kill any existing processes before starting
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, shutting down gracefully');
+  process.exit(0);
 });
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, shutting down gracefully');
+  process.exit(0);
+});
+
+// Try different ports if the primary one is in use
+let currentPort = PORT;
+const maxPortAttempts = 3;
+let portAttempt = 0;
+
+function startServer(port) {
+  return app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port}`);
+    console.log(`View your app at: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE' && portAttempt < maxPortAttempts) {
+      portAttempt++;
+      const nextPort = 3000 + portAttempt;
+      console.error(`ERROR: Port ${port} is already in use.`);
+      console.log(`Trying alternate port ${nextPort}...`);
+      currentPort = nextPort;
+      return startServer(nextPort);
+    } else {
+      console.error('Server error:', err);
+      process.exit(1);
+    }
+  }
+}
+
+const server = startServer(currentPort);
 
 // Handle errors
 process.on('uncaughtException', (error) => {
@@ -260,4 +275,4 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Export the app and pool for testing
-module.exports = { app, pool };
+module.exports = { app, pool, server };

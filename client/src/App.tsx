@@ -351,8 +351,9 @@ const App = () => {
   };
 
   useEffect(() => {
-    // Redirect to main page if the path is '/'
-    if (location.pathname === '/') {
+    // Redirect to main page if the path is '/' or any other unrecognized path
+    if (location.pathname === '/' || !location.pathname.match(/^\/(main|categories|reports|settings)/)) {
+      console.log('Redirecting to main page from:', location.pathname);
       navigate('/main', {replace: true});
     }
   }, [location.pathname, navigate]);
