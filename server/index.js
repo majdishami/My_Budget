@@ -152,20 +152,29 @@ app.get("/api/bills", async (req, res) => {
 
 // Check for client build directory and serve static files
 const clientBuildPath = path.join(__dirname, '../client/build');
-if (!fs.existsSync(clientBuildPath)) {
+const clientDistPath = path.join(__dirname, '../client/dist');
+
+// Check if build directory exists, otherwise check for dist directory (vite build)
+let staticPath;
+if (fs.existsSync(clientBuildPath)) {
+  staticPath = clientBuildPath;
+} else if (fs.existsSync(clientDistPath)) {
+  staticPath = clientDistPath;
+} else {
   console.warn("Client build directory not found. Serving a placeholder.");
   fs.mkdirSync(clientBuildPath, { recursive: true });
   fs.writeFileSync(
     path.join(clientBuildPath, 'index.html'),
     '<html><head><title>Budget Tracker</title></head><body><h1>Budget Tracker App</h1><p>Client build not found.</p></body></html>'
   );
+  staticPath = clientBuildPath;
 }
-app.use(express.static(clientBuildPath));
 
+app.use(express.static(staticPath));
 
 // Catch-all route to serve the React app
 app.get('*', (req, res) => {
-  res.sendFile(path.join(clientBuildPath, 'index.html'));
+  res.sendFile(path.join(staticPath, 'index.html'));
 });
 
 // Start server
