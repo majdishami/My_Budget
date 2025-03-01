@@ -1,168 +1,61 @@
 import React from 'react';
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "../hooks/use-toast";
-import { ExpenseReportDialog } from "@/components/ExpenseReportDialog";
-import { formatCurrency } from "@/lib/utils";
-import { Bill, Category } from "@/types";
-import { useData } from "@/contexts/DataContext";
-import { DateRange } from "react-day-picker";
-import { DataTable } from "@/components/DataTable";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { format } from 'date-fns';
+import { Button } from '../components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { useToast } from '../hooks/use-toast';
 
-export function ExpenseReport() {
+const fetchExpenses = async () => {
+  const response = await axios.get('/api/expenses');
+  return response.data;
+};
+
+const ExpenseReportPage: React.FC = () => {
   const { toast } = useToast();
-  const { bills, categories } = useData();
-  const [filteredBills, setFilteredBills] = useState<Bill[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [reportDialogOpen, setReportDialogOpen] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-    to: new Date()
+  const { data: expenses, isLoading, isError } = useQuery({
+    queryKey: ['expenses'],
+    queryFn: fetchExpenses,
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to load expenses. Please try again later.',
+        variant: 'destructive',
+      });
+    },
   });
 
-  useEffect(() => {
-    if (bills) {
-      setLoading(false);
-      filterBills();
-    }
-  }, [bills, dateRange]);
-
-  const filterBills = () => {
-    if (!bills) return;
-
-    let filtered = [...bills];
-
-    // Filter by date range if available
-    if (dateRange.from && dateRange.to) {
-      filtered = filtered.filter(bill => {
-        const billDate = new Date(bill.date);
-        return billDate >= dateRange.from && billDate <= dateRange.to;
-      });
-    }
-
-    setFilteredBills(filtered);
-  };
-
-  const handleDateChange = (range: DateRange) => {
-    setDateRange(range);
-  };
-
-  const handleGenerateReport = () => {
-    setReportDialogOpen(true);
-  };
-
-  if (loading) {
-    return (
-      <div className="container mx-auto py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl font-bold">Expenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-64 w-full" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const totalExpenses = filteredBills.reduce(
-    (sum, bill) => sum + bill.amount,
-    0
-  );
+  if (isLoading) return <div>Loading expenses...</div>;
+  if (isError) return <div>Error loading expenses</div>;
 
   return (
-    <div className="container mx-auto py-10">
-      <Card className="mb-8">
-        <CardHeader className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0">
-          <CardTitle className="text-xl font-bold">Expenses</CardTitle>
-          <div className="flex items-center space-x-2">
-            <Button
-              onClick={handleGenerateReport}
-              className="w-full md:w-auto"
-              variant="outline"
-            >
-              Generate Report
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col space-y-4 md:flex-row md:items-end md:space-x-4 md:space-y-0">
-            <div className="grid gap-2 md:w-1/3">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Date Range
-              </label>
-              <DateRangePicker
-                date={dateRange}
-                onDateChange={handleDateChange}
-                className="w-full"
-              />
-            </div>
-            <div className="flex flex-col space-y-1">
-              <span className="text-sm font-medium">Total Expenses:</span>
-              <span className="text-2xl font-bold">
-                {formatCurrency(totalExpenses)}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Expense Report</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">Expense Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            data={filteredBills}
-            columns={[
-              {
-                accessorKey: "description",
-                header: "Description",
-              },
-              {
-                accessorKey: "amount",
-                header: "Amount",
-                cell: ({ row }: any) => formatCurrency(row.original.amount),
-              },
-              {
-                accessorKey: "category_id",
-                header: "Category",
-                cell: ({ row }: any) => {
-                  const category = categories.find(
-                    (cat) => cat.id === row.original.category_id
-                  );
-                  return category ? category.name : "Uncategorized";
-                },
-              },
-              {
-                accessorKey: "date",
-                header: "Date",
-                cell: ({ row }: any) => {
-                  return row.original.date
-                    ? new Date(row.original.date).toLocaleDateString()
-                    : "No Date";
-                },
-              },
-            ]}
-          />
-        </CardContent>
-      </Card>
-
-      <ExpenseReportDialog
-        open={reportDialogOpen}
-        onOpenChange={setReportDialogOpen}
-        bills={filteredBills}
-        categories={categories}
-      />
+      <div className="bg-white shadow rounded-lg p-4">
+        <table className="min-w-full bg-white">
+          <thead>
+            <tr>
+              <th className="py-2 px-4 border-b">Date</th>
+              <th className="py-2 px-4 border-b">Category</th>
+              <th className="py-2 px-4 border-b">Amount</th>
+              <th className="py-2 px-4 border-b">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {expenses && expenses.map((expense: any) => (
+              <tr key={expense.id}>
+                <td className="py-2 px-4 border-b">{format(new Date(expense.date), 'yyyy-MM-dd')}</td>
+                <td className="py-2 px-4 border-b">{expense.category.name}</td>
+                <td className="py-2 px-4 border-b">${expense.amount.toFixed(2)}</td>
+                <td className="py-2 px-4 border-b">{expense.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
-}
+};
 
-export default ExpenseReport;
+export default ExpenseReportPage;
