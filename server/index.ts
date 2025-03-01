@@ -1,10 +1,10 @@
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import path from 'path';
 import session from 'express-session';
-import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
 import pg from 'pg';
 
@@ -44,9 +44,6 @@ app.use(session({
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
-
-// Setup auth with minimal configuration
-setupAuth(app);
 
 // Register API routes
 const server = registerRoutes(app);
