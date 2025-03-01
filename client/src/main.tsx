@@ -1,10 +1,28 @@
 
 import { createRoot } from "react-dom/client";
 import { lazy, Suspense } from "react";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "./components/ui/toaster";
 import { DataProvider } from "./contexts/DataContext";
 import "./index.css";
 import React from "react";
+
+// Extend ImportMeta interface to include hot property
+interface ImportMetaEnv {
+  readonly VITE_APP_TITLE: string;
+  // more env variables...
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
+interface ImportMetaHot {
+  accept: (path: string, callback: (newApp: any) => void) => void;
+}
+
+declare var importMeta: ImportMeta & {
+  hot?: ImportMetaHot;
+};
 
 // Lazy load the main App component
 const App = lazy(() => import("./App"));
@@ -15,19 +33,9 @@ if (!rootElement) throw new Error("Failed to find root element");
 
 const root = createRoot(rootElement);
 
-// Initial render
-root.render(
-  <Suspense fallback={<div>Loading...</div>}>
-    <DataProvider>
-      <App />
-      <Toaster />
-    </DataProvider>
-  </Suspense>
-);
-
 // Enable HMR for App component
-if (import.meta.hot) {
-  import.meta.hot.accept('./App', (newApp) => {
+if (importMeta.hot) {
+  importMeta.hot.accept('./App', (newApp) => {
     if (newApp) {
       // Re-render the app when HMR update is received
       root.render(
@@ -41,3 +49,13 @@ if (import.meta.hot) {
     }
   });
 }
+
+// Initial render
+root.render(
+  <Suspense fallback={<div>Loading...</div>}>
+    <DataProvider>
+      <App />
+      <Toaster />
+    </DataProvider>
+  </Suspense>
+);
