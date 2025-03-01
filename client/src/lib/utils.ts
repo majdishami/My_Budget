@@ -47,3 +47,9 @@ export function getMonthName(month: number): string {
   date.setMonth(month);
   return date.toLocaleString('default', { month: 'long' });
 }
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
