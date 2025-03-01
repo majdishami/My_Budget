@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { lazy, Suspense } from "react";
-import { BrowserRouter } from "react-router-dom"; // Added import
+import { Router } from "wouter";
 import { Toaster } from "./components/ui/toaster";
 import { DataProvider } from "./contexts/DataContext";
 import "./index.css";
@@ -26,10 +26,10 @@ root.render(
   <React.StrictMode>
     <Suspense fallback={<div>Loading...</div>}>
       <DataProvider>
-        <BrowserRouter> {/* Added BrowserRouter */}
+        <Router base="">
           <App />
-        </BrowserRouter>
-        <Toaster />
+          <Toaster />
+        </Router>
       </DataProvider>
     </Suspense>
   </React.StrictMode>

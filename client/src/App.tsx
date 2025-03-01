@@ -351,9 +351,9 @@ const App = () => {
   };
 
   useEffect(() => {
-    // Redirect to main page if the path is '/' or '/categories'
-    if (location.pathname === '/' || location.pathname === '/categories') {
-      navigate('/main');
+    // Redirect to main page if the path is '/'
+    if (location.pathname === '/') {
+      navigate('/main', {replace: true});
     }
   }, [location.pathname, navigate]);
 
