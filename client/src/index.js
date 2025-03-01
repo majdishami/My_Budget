@@ -1,12 +1,20 @@
 
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App';
-import './index.css';
+// Using CommonJS syntax for compatibility
+const React = require('react');
+const ReactDOM = require('react-dom');
+require('./index.css');
 
-const root = createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+// Simple component to show the app is loading
+const App = () => {
+  return React.createElement('div', { style: { textAlign: 'center', marginTop: '50px' }},
+    React.createElement('h1', null, 'Budget Tracker App'),
+    React.createElement('p', null, 'Server is running. Please check console for any errors.')
+  );
+};
+
+ReactDOM.render(
+  React.createElement(React.StrictMode, null,
+    React.createElement(App, null)
+  ),
+  document.getElementById('root')
 );
