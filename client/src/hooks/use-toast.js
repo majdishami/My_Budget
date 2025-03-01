@@ -23,3 +23,34 @@ export function useToast() {
 
   return { toast, dismiss, toasts };
 }
+import { useToast } from "@/components/ui/toast";
+
+export const useToastHook = () => {
+  const { toast } = useToast();
+  
+  return {
+    toast,
+    success: (message) => {
+      toast({
+        title: "Success",
+        description: message,
+        variant: "success",
+      });
+    },
+    error: (message) => {
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    },
+    info: (message) => {
+      toast({
+        title: "Info",
+        description: message,
+      });
+    },
+  };
+};
+
+export default useToastHook;
