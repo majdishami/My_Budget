@@ -172,7 +172,7 @@ if (fs.existsSync(clientBuildPath)) {
 
 app.use(express.static(staticPath));
 
-// Catch-all route to serve the React app
+// Always serve the client app for any route not caught by API routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(staticPath, 'index.html'));
 });
