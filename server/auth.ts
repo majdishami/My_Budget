@@ -54,7 +54,7 @@ export function setupAuth(app: Express): void {
 
   const sessionSettings: SessionOptions = {
     store,
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET || 'budget_tracker_secret_key_2025',
     resave: false,
     saveUninitialized: false,
     name: 'session_id',

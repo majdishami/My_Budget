@@ -31,3 +31,9 @@ export function toast(props: {
   // This is a placeholder function that will be replaced by the actual toast hook
   console.log("Toast:", props);
 }
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}

@@ -16,6 +16,8 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+import { Pool } from 'pg';
+
 // PostgreSQL connection pool configuration
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
