@@ -3,10 +3,10 @@
  * Represents a transaction category
  */
 export interface Category {
-  id: number;
+  id: string;
   name: string;
+  type: 'income' | 'expense';
   color: string;
-  icon: string | null;
 }
 
 /**
@@ -23,13 +23,10 @@ export interface Category {
  * Represents a single income entry in the system
  */
 export interface Income {
-  id: number;  // Changed from string to number
+  id: string;
   source: string;
   amount: number;
   date: string;
-  occurrenceType: 'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly';
-  firstDate?: number;  // Day of month for first occurrence (1-31)
-  secondDate?: number; // Day of month for second occurrence (1-31)
 }
 
 /**
@@ -37,28 +34,30 @@ export interface Income {
  * Represents a recurring bill or expense
  */
 export interface Bill {
-  id: number;  // Changed from string to number
+  id: string;
   name: string;
   amount: number;
-  day: number | undefined;
-  category_id: number | null;
-  user_id?: number;
-  created_at?: string;
-  isOneTime: boolean;
-  isYearly?: boolean;
-  date?: string | null;
-  yearly_date?: string | null;
-  recurring_type?: 'monthly' | 'yearly' | 'once';
-  category?: {
-    name?: string;
-    color?: string;
-    icon?: string | null;
-  };
-  category_name?: string;
-  category_color?: string;
-  category_icon?: string | null;
-  reminderEnabled?: boolean;
-  reminderDays?: number;
+  day: number;
+}
+
+export interface Transaction {
+  id: string;
+  date: string;
+  amount: number;
+  description: string;
+  type: 'income' | 'expense';
+  categoryId?: string;
+}
+
+export interface DayData {
+  date: string;
+  dayOfMonth: number;
+  isCurrentMonth: boolean;
+  incomes: Income[];
+  bills: Bill[];
+  totalIncome: number;
+  totalBills: number;
+  balance: number;
 }
 
 /**
