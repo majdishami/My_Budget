@@ -823,8 +823,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData().catch(err => {
+      console.error("Failed to fetch initial data:", err);
+      setIsLoading(false); // Ensure loading state is reset even if there's an error
+    });
+  }, [loadData]);
 
   const saveIncomes = async (newIncomes: Income[]) => {
     await Promise.all(newIncomes.map(income => addIncome(income)));

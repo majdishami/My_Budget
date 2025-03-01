@@ -2,13 +2,14 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { lazy, Suspense } from "react";
-import { Router, Route } from "wouter";
+import { Router, Route, Switch } from "wouter";
 import { Toaster } from "./components/ui/toaster";
 import { DataProvider } from "./contexts/DataContext";
 import "./index.css";
 
-// Lazy load the main App component
+// Lazy load components
 const App = lazy(() => import("./App"));
+const CategoriesPage = lazy(() => import("./pages/Categories"));
 
 // Create root element for React
 const rootElement = document.getElementById("root");
@@ -22,7 +23,16 @@ root.render(
     <Suspense fallback={<div>Loading application...</div>}>
       <DataProvider>
         <Router base="">
-          <Route path="/*">
+          <Route path="/categories">
+            <CategoriesPage />
+          </Route>
+          <Route path="/main">
+            <App />
+          </Route>
+          <Route path="/">
+            <App />
+          </Route>
+          <Route path="*">
             <App />
           </Route>
         </Router>
