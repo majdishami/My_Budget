@@ -24,3 +24,13 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+import React from "react";
+
+export default function Dashboard() {
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+      <p>Welcome to your budget dashboard!</p>
+    </div>
+  );
+}
