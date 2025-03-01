@@ -136,10 +136,9 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: true,
-  credentials: true,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -150,7 +149,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Setup authentication
+// Setup minimal auth placeholder
 setupAuth(app);
 
 // Register API routes
