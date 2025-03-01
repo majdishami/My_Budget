@@ -43,7 +43,7 @@ localPort = 24678
 externalPort = 3003
 
 [workflows]
-runButton = "Full Stack Dev"
+runButton = "Start Server on 5001"
 
 [[workflows.workflow]]
 name = "Project"
@@ -180,3 +180,11 @@ author = 39325428
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pkill -f node || true && concurrently \"NODE_ENV=development node server/index.js\" \"cd client && npm run dev\""
+
+[[workflows.workflow]]
+name = "Start Server on 5001"
+author = 39325428
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=development node server/index.js"
