@@ -1,4 +1,3 @@
-
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { lazy, Suspense } from "react";
@@ -6,8 +5,8 @@ import { Toaster } from "./components/ui/toaster";
 import { DataProvider } from "./contexts/DataContext";
 import "./index.css";
 
-// Lazy load the main App component
-const App = lazy(() => import("./App.js"));
+// Lazy load the main App component - importing with explicit extension
+const App = lazy(() => import("./App.tsx"));
 
 // Create root element for React
 const rootElement = document.getElementById("root");
