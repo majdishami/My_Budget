@@ -11,7 +11,7 @@ const fs = require('fs');
 
 // Create Express app
 const app = express();
-const PORT = 5002; // Changed port to avoid conflict
+const PORT = process.env.PORT || 5002; // Use environment variable or fallback to 5002
 
 // Create PostgreSQL pool
 const pool = new Pool({
@@ -178,8 +178,17 @@ app.get('*', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`Port ${PORT} is already in use. Trying port ${parseInt(PORT) + 1}...`);
+    app.listen(parseInt(PORT) + 1, '0.0.0.0', () => {
+      console.log(`Server now running on port ${parseInt(PORT) + 1}`);
+    });
+  } else {
+    console.error('Server error:', err);
+  }
 });
 
 // Handle errors
