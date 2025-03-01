@@ -351,28 +351,25 @@ const App = () => {
   };
 
   useEffect(() => {
-    // Force redirection to main calendar view on component mount
-    if (location.pathname !== '/main' && location.pathname === '/') {
-      console.log('Initial navigation to main calendar page');
-      navigate('/main', { replace: true });
-    }
+    // Initialize the app on mount
+    console.log('App component mounted');
+    // Any initialization logic can go here
   }, []);
 
 
   return (
-    <Router>
-      <div className="min-h-screen flex bg-background">
-        <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
-          <LeftSidebar
-            incomes={incomes}
-            bills={bills}
-            onEditTransaction={handleEditTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
-            onAddIncome={handleAddIncome}
-            onAddBill={handleAddBill}
-            onReset={handleReset}
-          />
-        </aside>
+    <div className="min-h-screen flex bg-background">
+      <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
+        <LeftSidebar
+          incomes={incomes}
+          bills={bills}
+          onEditTransaction={handleEditTransaction}
+          onDeleteTransaction={handleDeleteTransaction}
+          onAddIncome={handleAddIncome}
+          onAddBill={handleAddBill}
+          onReset={handleReset}
+        />
+      </aside>
 
         <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
           <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
