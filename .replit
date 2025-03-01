@@ -43,7 +43,7 @@ localPort = 24678
 externalPort = 3003
 
 [workflows]
-runButton = "Start application"
+runButton = "Start server only"
 
 [[workflows.workflow]]
 name = "Project"
@@ -100,3 +100,11 @@ author = 39325428
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd client && PORT=3002 NODE_OPTIONS=--openssl-legacy-provider npm run dev"
+
+[[workflows.workflow]]
+name = "Start server only"
+author = 39325428
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run server"
