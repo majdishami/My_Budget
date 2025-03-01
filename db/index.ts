@@ -1,7 +1,5 @@
 
-import { drizzle } from 'drizzle-orm/postgres-js';
 import { Pool } from 'pg';
-import * as schema from './schema';
 
 // Database connection configuration
 const poolConfig = {
@@ -12,9 +10,8 @@ const poolConfig = {
 // Create a PostgreSQL connection pool
 export const pool = new Pool(poolConfig);
 
-// Create a drizzle instance
-export const db = drizzle(pool, { schema });
+// Simple query helper
+export const query = (text, params) => pool.query(text, params);
 
-// Export the schema
-export * from './schema';
-export default db;
+// Export the connection pool
+export default pool;

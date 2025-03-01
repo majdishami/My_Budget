@@ -1,10 +1,9 @@
-import { Pool } from 'pg';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import path from 'path';
-import { db, pool } from '../db';
+import pool from '../db';
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
 
@@ -31,8 +30,7 @@ const poolConfig = {
 
 const pool = new Pool(poolConfig);
 
-// Initialize Drizzle ORM with the connection pool
-const db = drizzle(pool, { schema });
+// Use direct pool connection instead of Drizzle ORM
 
 // Handle PostgreSQL connection errors
 pool.on('error', (err: Error & { code?: string }) => {
