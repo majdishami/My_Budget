@@ -5,15 +5,16 @@
   "type": "commonjs",
   "main": "server/dist/index.js",
   "scripts": {
-    "start": "NODE_ENV=production node server/dist/index.js",
-    "client": "cd client && NODE_OPTIONS=--openssl-legacy-provider npm start",
+    "start": "npm run server",
+    "client": "cd client && NODE_OPTIONS=--openssl-legacy-provider npm run start",
     "server": "tsc -p server/tsconfig.json && NODE_ENV=development node --require tsconfig-paths/register server/dist/index.js",
     "dev": "concurrently \"npm run client\" \"npm run server\"",
-    "build": "tsc -p server/tsconfig.json && cd client && npm run build",
+    "build": "cd client && npm run build",
     "build-client": "cd client && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate": "sequelize db:migrate",
-    "audit": "npm audit"
+    "audit": "npm audit",
+    "install-deps": "npm install && cd client && npm install"
   },
   "keywords": [
     "budget",

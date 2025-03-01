@@ -1,13 +1,12 @@
 import { Pool } from 'pg';
-import { drizzle } from "drizzle-orm/node-postgres";
-import { schema } from './schema';
-import { setupAuth } from './auth';
-import { registerRoutes } from './routes';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import path from 'path';
+import { db, pool } from '../db';
+import { setupAuth } from './auth';
+import { registerRoutes } from './routes';
 
 // Load environment variables
 dotenv.config();
@@ -144,7 +143,7 @@ app.use(morgan('dev'));
 setupAuth(app);
 
 // Register API routes
-const server = registerRoutes(app, db); // Pass db instance
+const server = registerRoutes(app);
 
 
 // Serve static files in production
