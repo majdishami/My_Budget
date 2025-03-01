@@ -1,48 +1,78 @@
-// main.tsx
 import { createRoot } from "react-dom/client";
 import { lazy, Suspense } from "react";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "./components/ui/toaster";
+import { DataProvider } from "./contexts/DataContext";
 import "./index.css";
 import React from "react";
 
-// Using a simple data provider for now - you can implement the full DataContext later
-const DataProvider = ({ children }: { children: React.ReactNode }) => {
-  return <>{children}</>;
+// Extend ImportMeta interface to include hot property
+interface ImportMetaEnv {
+  readonly VITE_APP_TITLE: string;
+  // more env variables...
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
+interface ImportMetaHot {
+  accept: (path: string, callback: (newApp: any) => void) => void;
+}
+
+declare var importMeta: ImportMeta & {
+  hot?: ImportMetaHot;
 };
 
-const App = lazy(() => import("./App")); //Lazy loading App component
+// Lazy load the main App component
+const App = lazy(() => import("./App"));
 
-const root = createRoot(document.getElementById("root") as HTMLElement);
+// Create root element for React
+const rootElement = document.getElementById("root");
+if (!rootElement) throw new Error("Failed to find root element");
+
+const root = createRoot(rootElement);
+
+// Enable HMR for App component
+if (importMeta.hot) {
+  importMeta.hot.accept('./App', (newApp) => {
+    if (newApp) {
+      // Re-render the app when HMR update is received
+      root.render(
+        <Suspense fallback={<div>Loading...</div>}>
+          <DataProvider>
+            <App />
+            <Toaster />
+          </DataProvider>
+        </Suspense>
+      );
+    }
+  });
+}
+
+// Initial render
 root.render(
-  <React.StrictMode>
+  <Suspense fallback={<div>Loading...</div>}>
     <DataProvider>
-      <Suspense fallback={<div>Loading...</div>}>
-        <App />
-      </Suspense>
+      <App />
       <Toaster />
     </DataProvider>
-  </React.StrictMode>
+  </Suspense>
 );
 
 
 // index.js (original file - remains mostly unchanged, except for the import of App)
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App'; //Import from the same directory.  main.tsx handles lazy loading
 import './index.css';
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// App import removed - handled by main.tsx now.
 
 
 // index.css (example, needs to be created)
-body {
+/*body {
   margin: 0;
   font-family: sans-serif;
-}
+}*/
 
 //App.js (example, needs to be created)
 import React from 'react';
@@ -56,7 +86,6 @@ function App() {
 }
 
 export default App;
-
 
 //@/components/ui/toaster.tsx (example, needs to be created)
 import React from 'react';
