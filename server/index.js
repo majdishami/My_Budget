@@ -11,7 +11,7 @@ const fs = require('fs');
 
 // Create Express app
 const app = express();
-const PORT = process.env.PORT || 5002; // Use environment variable or fallback to 5002
+const PORT = process.env.PORT || 5000; // Use environment variable or fallback to 5000
 
 // Create PostgreSQL pool
 const pool = new Pool({
@@ -231,11 +231,19 @@ app.get('*', (req, res) => {
 // Start server
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`View your app at: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
 }).on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.log(`Port ${PORT} is already in use. Trying port ${parseInt(PORT) + 1}...`);
-    app.listen(parseInt(PORT) + 1, '0.0.0.0', () => {
-      console.log(`Server now running on port ${parseInt(PORT) + 1}`);
+    // Instead of automatically trying the next port, we'll explicitly log the error
+    // so it's clear what's happening
+    console.error(`ERROR: Port ${PORT} is already in use. Please stop other applications using this port.`);
+    
+    // For Replit environment, we can try the next port as a fallback
+    const alternatePort = 3000;
+    console.log(`Trying alternate port ${alternatePort}...`);
+    app.listen(alternatePort, '0.0.0.0', () => {
+      console.log(`Server now running on port ${alternatePort}`);
+      console.log(`View your app at: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
     });
   } else {
     console.error('Server error:', err);
