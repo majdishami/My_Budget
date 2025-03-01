@@ -260,7 +260,7 @@ function startServer(port) {
       console.error('Server error:', err);
       process.exit(1);
     }
-  }
+  });
 }
 
 const server = startServer(currentPort);
