@@ -149,6 +149,48 @@ app.get("/api/bills", async (req, res) => {
   }
 });
 
+app.get("/api/transactions", async (req, res) => {
+  try {
+    console.log("[Transactions API] Fetching transactions...");
+
+    const query = `
+      SELECT t.id, t.amount, t.date, t.description, t.type, t.category_id,
+             c.name as category_name, c.color as category_color, c.icon as category_icon
+      FROM transactions t
+      LEFT JOIN categories c ON t.category_id = c.id
+      ORDER BY t.date DESC
+    `;
+
+    const result = await pool.query(query);
+
+    const formattedTransactions = result.rows.map(transaction => ({
+      id: transaction.id,
+      amount: Number(transaction.amount),
+      date: transaction.date,
+      description: transaction.description,
+      type: transaction.type,
+      category_id: transaction.category_id,
+      category_name: transaction.category_name || "General Expenses",
+      category_color: transaction.category_color || "#6366F1",
+      category_icon: transaction.category_icon || "shopping-cart",
+    }));
+
+    console.log("[Transactions API] Found transactions:", formattedTransactions.length);
+
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+
+    return res.json(formattedTransactions);
+  } catch (error) {
+    console.error("[Transactions API] Error:", error);
+    return res.status(500).json({
+      message: "Failed to load transactions",
+      error: process.env.NODE_ENV === "development" ? error.message : "Internal server error",
+    });
+  }
+});
+
 
 // Check for client build directory and serve static files
 const clientBuildPath = path.join(__dirname, '../client/build');

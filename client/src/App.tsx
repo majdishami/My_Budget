@@ -38,7 +38,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'; // Added react-router-dom
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom'; // Added react-router-dom
 
 dayjs.extend(isBetween);
 
@@ -74,6 +74,10 @@ const App = () => {
   const [showDeleteIncomeDialog, setShowDeleteIncomeDialog] = useState(false);
   const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
   const [showDailySummary, setShowDailySummary] = useState(false);
+  const location = useLocation();
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
+  const [error, setError] = useState(null); // Add error state
+
 
   const closeSummary = () => {
     setShowDayDialog(false);
@@ -125,6 +129,7 @@ const App = () => {
     } else {
       setBills(JSON.parse(storedBills));
     }
+    setIsLoading(false); // Set loading to false after data is fetched
   }, []);
 
   const getIncomeForDay = (day: number) => {
@@ -344,6 +349,14 @@ const App = () => {
     }
   };
 
+  useEffect(() => {
+    if (location === '/') {
+      // Redirect to dashboard if the route is root
+      window.location.href = '/dashboard';
+    }
+  }, [location]);
+
+
   return (
     <Router>
       <div className="min-h-screen flex bg-background">
@@ -361,7 +374,7 @@ const App = () => {
 
         <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
           <Routes>
-            <Route path="/" element={
+            <Route path="/dashboard" element={
               <div>
                 <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                   <div className="flex justify-between items-center">
@@ -441,7 +454,7 @@ const App = () => {
               </div>
             } />
             <Route path="/categories" element={<div>Categories Page</div>} /> {/* Placeholder for categories page */}
-            <Route path="*" element={<Navigate to="/" replace />} /> {/* Redirect to home if route not found */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} /> {/* Redirect to home if route not found */}
           </Routes>
         </main>
 
