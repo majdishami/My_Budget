@@ -5,24 +5,6 @@ import { DataProvider } from "./contexts/DataContext";
 import "./index.css";
 import React from "react";
 
-// Extend ImportMeta interface to include hot property
-interface ImportMetaEnv {
-  readonly VITE_APP_TITLE: string;
-  // more env variables...
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
-
-interface ImportMetaHot {
-  accept: (path: string, callback: (newApp: any) => void) => void;
-}
-
-declare var importMeta: ImportMeta & {
-  hot?: ImportMetaHot;
-};
-
 // Lazy load the main App component
 const App = lazy(() => import("./App"));
 
@@ -31,6 +13,16 @@ const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Failed to find root element");
 
 const root = createRoot(rootElement);
+
+// Initial render
+root.render(
+  <Suspense fallback={<div>Loading...</div>}>
+    <DataProvider>
+      <App />
+      <Toaster />
+    </DataProvider>
+  </Suspense>
+);
 
 // Enable HMR for App component
 if (import.meta.hot) {
@@ -48,16 +40,6 @@ if (import.meta.hot) {
     }
   });
 }
-
-// Initial render
-root.render(
-  <Suspense fallback={<div>Loading...</div>}>
-    <DataProvider>
-      <App />
-      <Toaster />
-    </DataProvider>
-  </Suspense>
-);
 
 // Minimal implementations for supporting files (these would ideally be in their own files)
 //index.css
