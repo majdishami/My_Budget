@@ -1,4 +1,3 @@
-
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -7,10 +6,16 @@ import path from 'path';
 import session from 'express-session';
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
-import pool from '../db';
+import pg from 'pg';
 
 // Load environment variables
 dotenv.config();
+
+// Create PostgreSQL pool
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres',
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
 // Create Express app
 const app = express();
@@ -27,7 +32,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
-// Basic session setup with a fallback secret
+// Add session middleware with a basic secret
 app.use(session({
   secret: process.env.SESSION_SECRET || 'budget_tracker_secret',
   resave: false,
@@ -58,38 +63,5 @@ if (process.env.NODE_ENV === 'production') {
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-// Test database connection
-async function testConnection(retries = 5) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const client = await pool.connect();
-      try {
-        await client.query('SELECT NOW()');
-        console.log('Database connection established');
-        
-        // Check tables
-        const tables = await client.query(`
-          SELECT COUNT(*) as table_count 
-          FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_type = 'BASE TABLE';
-        `);
-        console.log(`Database has ${tables.rows[0].table_count} tables`);
-      } finally {
-        client.release();
-      }
-      break;
-    } catch (error) {
-      console.error(`Connection attempt ${attempt} failed:`, error.message);
-      if (attempt === retries) {
-        console.error('Max retries reached, unable to establish database connection');
-      }
-      await new Promise(res => setTimeout(res, 2000));
-    }
-  }
-}
-
-testConnection();
 
 export default app;
