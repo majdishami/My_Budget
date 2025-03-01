@@ -350,12 +350,11 @@ const App = () => {
   };
 
   useEffect(() => {
-    //This effect is unnecessary and was causing the redirect problem. Removed
+    // No redirects needed here
   }, []);
 
 
   return (
-    <Router>
       <div className="min-h-screen flex bg-background">
         <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
           <LeftSidebar
@@ -370,11 +369,8 @@ const App = () => {
         </aside>
 
         <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
-          <Routes>
-            <Route path="/" element={
-              <div>
-                <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                  <div className="flex justify-between items-center">
+          <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex justify-between items-center">
                     <div className="space-y-2">
                       <h1 className="text-2xl font-bold">
                         My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
@@ -449,10 +445,22 @@ const App = () => {
                   </Card>
                 </div>
               </div>
-            } />
-            <Route path="/categories" element={<div>Categories Page</div>} /> {/* Placeholder for categories page */}
-            <Route path="*" element={<Navigate to="/" replace />} /> {/* Redirect to home if route not found */}
-          </Routes>
+          </Card>
+          
+          <div className="flex-1 overflow-y-auto">
+            <Card className="m-4">
+              <div className="overflow-hidden">
+                <Calendar
+                  mode="single"
+                  selected={new Date(selectedYear, selectedMonth, selectedDay)}
+                  onSelect={handleCalendarSelect}
+                  bills={bills}
+                  incomes={incomes}
+                  className="rounded-md"
+                />
+              </div>
+            </Card>
+          </div>
         </main>
 
         <DailySummaryDialog
