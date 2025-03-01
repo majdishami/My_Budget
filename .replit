@@ -47,7 +47,7 @@ localPort = 24678
 externalPort = 3003
 
 [workflows]
-runButton = "Full App"
+runButton = "Start application"
 
 [[workflows.workflow]]
 name = "Project"
@@ -70,7 +70,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pkill -f 'node server.js' || true && node server.js"
+args = "node server/index.js"
 waitForPort = 5000
 
 [[workflows.workflow]]
