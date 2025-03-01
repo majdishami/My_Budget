@@ -230,9 +230,9 @@ const expandRecurringBill = (baseBill: Bill) => {
 };
 
 // Utility function for handling API requests
-const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}) => {
+const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}, baseUrl: string = '/api') => {
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(baseUrl + url, options);
     const responseText = await response.text();
 
     if (!response.ok) {
@@ -501,7 +501,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       logger.info("[DataContext] Fetching transactions from API...");
-      const transactions = await fetchJsonWithErrorHandling('/api/transactions', {
+      const transactions = await fetchJsonWithErrorHandling('/transactions', {
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache',
@@ -577,7 +577,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       logger.info("[DataContext] Adding bill:", { bill });
 
-      const newTransaction = await fetchJsonWithErrorHandling('/api/transactions', {
+      const newTransaction = await fetchJsonWithErrorHandling('/transactions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

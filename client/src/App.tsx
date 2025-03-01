@@ -350,11 +350,8 @@ const App = () => {
   };
 
   useEffect(() => {
-    if (location === '/') {
-      // Redirect to dashboard if the route is root
-      window.location.href = '/dashboard';
-    }
-  }, [location]);
+    //This effect is unnecessary and was causing the redirect problem. Removed
+  }, []);
 
 
   return (
@@ -374,7 +371,7 @@ const App = () => {
 
         <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
           <Routes>
-            <Route path="/dashboard" element={
+            <Route path="/" element={
               <div>
                 <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                   <div className="flex justify-between items-center">
@@ -454,7 +451,7 @@ const App = () => {
               </div>
             } />
             <Route path="/categories" element={<div>Categories Page</div>} /> {/* Placeholder for categories page */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} /> {/* Redirect to home if route not found */}
+            <Route path="*" element={<Navigate to="/" replace />} /> {/* Redirect to home if route not found */}
           </Routes>
         </main>
 

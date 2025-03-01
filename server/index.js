@@ -214,8 +214,17 @@ if (fs.existsSync(clientBuildPath)) {
 
 app.use(express.static(staticPath));
 
+// Log all routes for debugging
+app.use((req, res, next) => {
+  if (!req.path.includes('/assets/') && !req.path.includes('.')) {
+    console.log(`Route requested: ${req.method} ${req.path}`);
+  }
+  next();
+});
+
 // Always serve the client app for any route not caught by API routes
 app.get('*', (req, res) => {
+  console.log(`Serving index.html for route: ${req.path}`);
   res.sendFile(path.join(staticPath, 'index.html'));
 });
 
