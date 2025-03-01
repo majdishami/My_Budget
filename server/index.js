@@ -1,4 +1,3 @@
-
 // Server entry point
 require('dotenv').config();
 const express = require('express');
@@ -7,6 +6,8 @@ const path = require('path');
 const morgan = require('morgan');
 const { Pool } = require('pg');
 const session = require('express-session');
+const fs = require('fs');
+
 
 // Create Express app
 const app = express();
@@ -25,14 +26,14 @@ async function testConnection() {
     try {
       const result = await client.query('SELECT NOW()');
       console.log('Database connection established:', result.rows[0]);
-      
+
       // Check if tables exist
       const tables = await client.query(`
         SELECT table_name FROM information_schema.tables 
         WHERE table_schema = 'public' 
         AND table_type = 'BASE TABLE'
       `);
-      
+
       console.log('Available tables:', tables.rows.map(row => row.table_name).join(', '));
     } finally {
       client.release();
@@ -91,12 +92,12 @@ app.post("/api/categories", async (req, res) => {
   try {
     console.log("[Categories API] Creating new category:", req.body);
     const { name, color, icon } = req.body;
-    
+
     const result = await pool.query(
       'INSERT INTO categories (name, color, icon) VALUES ($1, $2, $3) RETURNING *',
       [name, color, icon]
     );
-    
+
     const newCategory = result.rows[0];
     console.log("[Categories API] Created category:", newCategory);
     res.status(201).json(newCategory);
@@ -111,16 +112,16 @@ app.post("/api/categories", async (req, res) => {
 app.get("/api/bills", async (req, res) => {
   try {
     console.log("[Bills API] Fetching bills with categories...");
-    
+
     const query = `
       SELECT b.id, b.name, b.amount, b.day, b.category_id,
              c.name as category_name, c.color as category_color, c.icon as category_icon
       FROM bills b
       LEFT JOIN categories c ON b.category_id = c.id
     `;
-    
+
     const result = await pool.query(query);
-    
+
     const formattedBills = result.rows.map(bill => ({
       id: bill.id,
       name: bill.name,
@@ -148,22 +149,21 @@ app.get("/api/bills", async (req, res) => {
   }
 });
 
-// Create client build directory if it doesn't exist
-const fs = require('fs');
+
+// Check for client build directory and serve static files
 const clientBuildPath = path.join(__dirname, '../client/build');
 if (!fs.existsSync(clientBuildPath)) {
+  console.warn("Client build directory not found. Serving a placeholder.");
   fs.mkdirSync(clientBuildPath, { recursive: true });
-  // Create a simple index.html in the build folder
   fs.writeFileSync(
     path.join(clientBuildPath, 'index.html'),
-    '<html><head><title>Budget Tracker</title></head><body><h1>Budget Tracker App</h1><p>Server is running but client is not built yet</p></body></html>'
+    '<html><head><title>Budget Tracker</title></head><body><h1>Budget Tracker App</h1><p>Client build not found.</p></body></html>'
   );
 }
-
-// Serve static files from the React app
 app.use(express.static(clientBuildPath));
 
-// Catch-all handler to serve React app
+
+// Catch-all route to serve the React app
 app.get('*', (req, res) => {
   res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
