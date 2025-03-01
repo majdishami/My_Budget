@@ -11,7 +11,7 @@ const fs = require('fs');
 
 // Create Express app
 const app = express();
-const PORT = 5001; // Changed to port 5001 as per configuration
+const PORT = 5002; // Changed port to avoid conflict
 
 // Create PostgreSQL pool
 const pool = new Pool({
