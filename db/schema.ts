@@ -1,7 +1,8 @@
-import { pgTable, serial, text, integer, timestamp, decimal, boolean, varchar, numeric } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, varchar, decimal, integer, numeric, boolean } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { Pool } from 'pg';
+import { type InferSelectModel } from 'drizzle-orm';
 
 // Database connection
 const pool = new Pool({
@@ -21,6 +22,13 @@ export const users = pgTable('users', {
   created_at: timestamp('created_at').defaultNow(),
   updated_at: timestamp('updated_at').defaultNow(),
 });
+
+export type SelectUser = InferSelectModel<typeof users>;
+export const insertUserSchema = z.object({
+  username: z.string().min(3).max(20),
+  password: z.string().min(8),
+});
+
 
 // Categories table
 export const categories = pgTable('categories', {
@@ -59,11 +67,6 @@ export const bills = pgTable('bills', {
 });
 
 // Zod schemas for validation
-export const insertUserSchema = z.object({
-  username: z.string().min(3).max(50),
-  password: z.string().min(6),
-  email: z.string().email().optional(),
-});
 
 export const insertCategorySchema = z.object({
   name: z.string().min(1).max(100),
@@ -96,13 +99,11 @@ export const updateCategorySchema = z.object({
 });
 
 
-export type SelectUser = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-export type SelectCategory = typeof categories.$inferSelect;
+export type SelectCategory = InferSelectModel<typeof categories>;
 export type InsertCategory = typeof categories.$inferInsert;
-export type SelectTransaction = typeof transactions.$inferSelect;
+export type SelectTransaction = InferSelectModel<typeof transactions>;
 export type InsertTransaction = typeof transactions.$inferInsert;
-export type SelectBill = typeof bills.$inferSelect;
+export type SelectBill = InferSelectModel<typeof bills>;
 export type InsertBill = typeof bills.$inferInsert;
 
 // Drizzle ORM instance

@@ -12,5 +12,6 @@ export const pool = new Pool({
 // Create a drizzle instance
 export const db = drizzle(pool, { schema });
 
-export { schema };
+// Export the schema
+export * from './schema';
 export default db;
