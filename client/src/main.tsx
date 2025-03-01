@@ -24,10 +24,12 @@ root.render(
       <DataProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<App />} /> {/* Changed default route to '/' */}
+            <Route path="/" element={<App />} /> {/* Main app route */}
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            {/* Add a catch-all route for handling 404 errors */}
+            <Route path="*" element={<div>404 Not Found</div>} />
           </Routes>
         </BrowserRouter>
         <Toaster />

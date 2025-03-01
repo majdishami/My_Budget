@@ -353,7 +353,12 @@ const App = () => {
   useEffect(() => {
     // Initialize the app on mount
     console.log('App component mounted at', window.location.pathname);
-  }, []);
+    // If we are on the root route, redirect to main page
+    if (location.pathname === '/' || location.pathname === '') {
+      console.log('Redirecting to main page from:', location.pathname);
+      navigate('/main', {replace: true});
+    }
+  }, [location.pathname, navigate]);
 
   return (
     <div className="min-h-screen flex bg-background">

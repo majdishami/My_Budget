@@ -269,7 +269,7 @@ function startServer(port) {
   }).on('error', (err) => {
     if (err.code === 'EADDRINUSE' && portAttempt < maxPortAttempts) {
       portAttempt++;
-      const nextPort = 3000 + portAttempt;
+      const nextPort = parseInt(PORT) + portAttempt;
       console.error(`ERROR: Port ${port} is already in use.`);
       console.log(`Trying alternate port ${nextPort}...`);
       currentPort = nextPort;
