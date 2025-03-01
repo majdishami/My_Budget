@@ -43,7 +43,7 @@ localPort = 24678
 externalPort = 3003
 
 [workflows]
-runButton = "Client Dev"
+runButton = "Full Stack"
 
 [[workflows.workflow]]
 name = "Project"
@@ -151,6 +151,22 @@ args = "cd client && npm run dev"
 
 [[workflows.workflow]]
 name = "Client Dev"
+author = 39325428
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm run dev"
+
+[[workflows.workflow]]
+name = "Full Stack"
+author = 39325428
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f node || true && node server/index.js"
+
+[[workflows.workflow]]
+name = "Client Development"
 author = 39325428
 
 [[workflows.workflow.tasks]]
