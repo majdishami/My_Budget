@@ -269,7 +269,7 @@ function startServer(port) {
   } catch (e) {
     // Ignore errors if no process is running
   }
-  
+
   return app.listen(port, '0.0.0.0', () => {
     console.log(`Server running on port ${port}`);
     console.log(`View your app at: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);

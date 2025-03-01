@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { Income, Bill } from "./types";
@@ -38,7 +39,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { BrowserRouter as Router, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'; // Added react-router-dom
 
 dayjs.extend(isBetween);
 
@@ -76,10 +76,7 @@ const App = () => {
   const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
   const [showDailySummary, setShowDailySummary] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate(); // Added useNavigate hook
-  const [isLoading, setIsLoading] = useState(true); // Add loading state
-  const [error, setError] = useState(null); // Add error state
-
+  const navigate = useNavigate();
 
   const closeSummary = () => {
     setShowDayDialog(false);
@@ -131,7 +128,6 @@ const App = () => {
     } else {
       setBills(JSON.parse(storedBills));
     }
-    setIsLoading(false); // Set loading to false after data is fetched
   }, []);
 
   const getIncomeForDay = (day: number) => {
@@ -295,7 +291,7 @@ const App = () => {
 
   const confirmIncomeDelete = () => {
     if (deletingIncome) {
-      const newIncomes = incomes.filter(i => i.source !== deletingIncome.source);
+      const newIncomes = incomes.filter(i => i.id !== deletingIncome.id);
       setIncomes(newIncomes);
       localStorage.setItem("incomes", JSON.stringify(newIncomes));
       setShowDeleteIncomeDialog(false);
@@ -330,12 +326,12 @@ const App = () => {
   ), []);
 
   const handleMonthChange = (newMonth: number) => {
-    setSelectedMonth(newMonth);
+    setSelectedMonth(parseInt(newMonth));
     setSelectedDay(1);
   };
 
   const handleYearChange = (newYear: number) => {
-    setSelectedYear(newYear);
+    setSelectedYear(parseInt(newYear));
     setSelectedDay(1);
   };
 
@@ -375,98 +371,97 @@ const App = () => {
         />
       </aside>
 
-        <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
-          <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex justify-between items-center">
-              <div className="space-y-2">
-                <h1 className="text-2xl font-bold">
-                  My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
-                </h1>
-                <div className="flex items-center gap-2">
-                  <Select value={selectedMonth.toString()} onValueChange={(value) => handleMonthChange(parseInt(value))}>
-                    <SelectTrigger>
-                      <span className="p-2 border rounded bg-background min-w-[120px]">{months[selectedMonth].label}</span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {months.map((month) => (
-                        <SelectItem key={month.value} value={month.value.toString()}>
-                          {month.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+      <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
+        <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex justify-between items-center">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold">
+                My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+              </h1>
+              <div className="flex items-center gap-2">
+                <Select value={selectedMonth.toString()} onValueChange={(value) => handleMonthChange(parseInt(value))}>
+                  <SelectTrigger>
+                    <span className="p-2 border rounded bg-background min-w-[120px]">{months[selectedMonth].label}</span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month) => (
+                      <SelectItem key={month.value} value={month.value.toString()}>
+                        {month.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-                  <Select value={selectedYear.toString()} onValueChange={(value) => handleYearChange(parseInt(value))}>
-                    <SelectTrigger>
-                      <span className="p-2 border rounded bg-background min-w-[100px]">{selectedYear}</span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {years.map((year) => (
-                        <SelectItem key={year} value={year.toString()}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6">
-                <ThemeToggle />
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Income</p>
-                  <p className="text-lg font-semibold text-green-600">
-                    {formatCurrency(monthlyTotals.totalIncome)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Bills</p>
-                  <p className="text-lg font-semibold text-red-600">
-                    {formatCurrency(monthlyTotals.totalBills)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Net Balance</p>
-                  <p className={`text-lg font-semibold ${
-                    monthlyTotals.balance >= 0 ? "text-green-600" : "text-red-600"
-                  }`}>
-                    {formatCurrency(monthlyTotals.balance)}
-                  </p>
-                </div>
+                <Select value={selectedYear.toString()} onValueChange={(value) => handleYearChange(parseInt(value))}>
+                  <SelectTrigger>
+                    <span className="p-2 border rounded bg-background min-w-[100px]">{selectedYear}</span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          </Card>
 
-          <div className="flex-1 overflow-y-auto">
-            <Card className="m-4">
-              <div className="overflow-hidden">
-                <Calendar
-                  mode="single"
-                  selected={new Date(selectedYear, selectedMonth, selectedDay)}
-                  onSelect={handleCalendarSelect}
-                  bills={bills}
-                  incomes={incomes}
-                  className="rounded-md"
-                />
+            <div className="flex items-center gap-6">
+              <ThemeToggle />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Income</p>
+                <p className="text-lg font-semibold text-green-600">
+                  {formatCurrency(monthlyTotals.totalIncome)}
+                </p>
               </div>
-            </Card>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Bills</p>
+                <p className="text-lg font-semibold text-red-600">
+                  {formatCurrency(monthlyTotals.totalBills)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Net Balance</p>
+                <p className={`text-lg font-semibold ${
+                  monthlyTotals.balance >= 0 ? "text-green-600" : "text-red-600"
+                }`}>
+                  {formatCurrency(monthlyTotals.balance)}
+                </p>
+              </div>
+            </div>
           </div>
-        </main>
+        </Card>
 
-        <DailySummaryDialog
-          isOpen={showDailySummary}
-          onOpenChange={setShowDailySummary}
-          selectedDay={selectedDay}
-          selectedMonth={selectedMonth}
-          selectedYear={selectedYear}
-          dayIncomes={getIncomeForDay(selectedDay)}
-          dayBills={getBillsForDay(selectedDay)}
-          totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
-          totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
-          monthlyTotals={monthlyTotals}
-        />
-      </div>
-    </Router>
+        <div className="flex-1 overflow-y-auto">
+          <Card className="m-4">
+            <div className="overflow-hidden">
+              <Calendar
+                mode="single"
+                selected={new Date(selectedYear, selectedMonth, selectedDay)}
+                onSelect={handleCalendarSelect}
+                bills={bills}
+                incomes={incomes}
+                className="rounded-md"
+              />
+            </div>
+          </Card>
+        </div>
+      </main>
+
+      <DailySummaryDialog
+        isOpen={showDailySummary}
+        onOpenChange={setShowDailySummary}
+        selectedDay={selectedDay}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        dayIncomes={getIncomeForDay(selectedDay)}
+        dayBills={getBillsForDay(selectedDay)}
+        totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
+        totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
+        monthlyTotals={monthlyTotals}
+      />
+    </div>
   );
 };
 

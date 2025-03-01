@@ -1,23 +1,31 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useLocation } from "wouter";
-import { Income, Bill, Category } from "@/types";
+import { Income, Bill, Transaction, Category } from "@/types";
 import dayjs from "dayjs";
 import logger from "@/lib/logger";
 
 interface DataContextType {
+  isLoading: boolean;
+  categories: Category[];
   incomes: Income[];
   bills: Bill[];
-  categories: Category[];
+  transactions: Transaction[];
+  fetchCategories: () => Promise<void>;
+  fetchTransactions: () => Promise<void>;
+  addIncome: (income: Omit<Income, 'id'>) => Promise<void>;
+  updateIncome: (income: Income) => Promise<void>;
+  deleteIncome: (id: string) => Promise<void>;
+  addBill: (bill: Omit<Bill, 'id'>) => Promise<void>;
+  updateBill: (bill: Bill) => Promise<void>;
+  deleteBill: (id: string) => Promise<void>;
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  updateTransaction: (transaction: Transaction) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   saveIncomes: (newIncomes: Income[]) => Promise<void>;
   saveBills: (newBills: Bill[]) => Promise<void>;
-  addIncome: (income: Income) => Promise<void>;
-  addBill: (bill: Bill) => Promise<void>;
-  deleteTransaction: (transaction: Income | Bill) => Promise<void>;
-  editTransaction: (transaction: Income | Bill) => Promise<void>;
+  addIncomeToData: (income: Income) => Promise<void>;
   resetData: () => Promise<void>;
   refresh: () => Promise<void>;
-  addIncomeToData: (income: Income) => Promise<void>;
-  isLoading: boolean;
   error: Error | null;
 }
 
@@ -25,25 +33,21 @@ interface CacheData {
   timestamp: number;
   version: number;
   transactions: any[];
-  lastModified?: string; // Add last modified tracking
+  lastModified?: string;
 }
 
 const CACHE_VERSION = 1;
-const CACHE_MAX_AGE = 5 * 60 * 1000; // 5 minutes
+const CACHE_MAX_AGE = 5 * 60 * 1000;
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Utility function for generating instance IDs for recurring transactions
 const generateInstanceId = (baseId: number, index: number): number => {
   if (typeof baseId !== 'number' || isNaN(baseId)) {
     throw new Error('Invalid base ID: must be a number');
   }
-  // Use multiplication to create unique IDs that can be easily reversed
-  // This ensures we can get back to the base ID
   return baseId * 100 + (index + 1);
 };
 
-// Helper function to get base ID from instance ID
 const getBaseId = (instanceId: number): number => {
   if (typeof instanceId !== 'number' || isNaN(instanceId)) {
     throw new Error('Invalid instance ID: must be a number');
@@ -51,26 +55,18 @@ const getBaseId = (instanceId: number): number => {
   return Math.floor(instanceId / 100);
 };
 
-// Helper function to expand recurring income into multiple entries
 const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
   const incomes: Income[] = [];
-
-  // Validate date before processing
   if (!baseIncome.date || !dayjs(baseIncome.date).isValid()) {
     logger.error("[DataContext] Invalid date in income:", { income: baseIncome });
     throw new Error('Invalid date format in income');
   }
-
-  // For one-time income, return as is
   if (baseIncome.occurrenceType === 'once') {
     return [baseIncome];
   }
-
   const baseDate = dayjs(baseIncome.date);
-  // Use the original date's month as the start point
   const startDate = baseDate.startOf('month');
   const endDate = startDate.add(months, 'months');
-
   logger.info("[DataContext] Expanding recurring income:", {
     baseId: baseIncome.id,
     occurrenceType: baseIncome.occurrenceType,
@@ -78,14 +74,11 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
     startDate: startDate.format('YYYY-MM-DD'),
     endDate: endDate.format('YYYY-MM-DD')
   });
-
   let currentDate = startDate;
   while (currentDate.isBefore(endDate)) {
     switch (baseIncome.occurrenceType) {
       case 'monthly':
-        // Keep the same day of month as the original date
         let monthlyDate = currentDate.date(baseDate.date());
-        // Handle months with fewer days
         if (monthlyDate.month() !== currentDate.month()) {
           monthlyDate = currentDate.endOf('month');
         }
@@ -97,38 +90,30 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         });
         currentDate = currentDate.add(1, 'month');
         break;
-
       case 'twice-monthly':
         const firstDate = baseIncome.firstDate || 1;
         const secondDate = baseIncome.secondDate || 15;
-
         incomes.push({
           ...baseIncome,
           id: generateInstanceId(baseIncome.id, incomes.length),
           date: currentDate.date(firstDate).format('YYYY-MM-DD'),
           occurrenceType: 'twice-monthly'
         });
-
         incomes.push({
           ...baseIncome,
           id: generateInstanceId(baseIncome.id, incomes.length),
           date: currentDate.date(secondDate).format('YYYY-MM-DD'),
           occurrenceType: 'twice-monthly'
         });
-
         currentDate = currentDate.add(1, 'month');
         break;
-
       case 'biweekly':
-        // For Ruba's salary or any biweekly income
         let biweekDate = currentDate;
-        // Ensure we start on a Friday for Ruba's salary
         if (baseIncome.source === "Ruba's Salary") {
-          while (biweekDate.day() !== 5) { // 5 is Friday
+          while (biweekDate.day() !== 5) {
             biweekDate = biweekDate.add(1, 'day');
           }
         }
-
         while (biweekDate.isBefore(currentDate.add(1, 'month'))) {
           incomes.push({
             ...baseIncome,
@@ -140,7 +125,6 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         }
         currentDate = currentDate.add(1, 'month');
         break;
-
       case 'weekly':
         let weekDate = currentDate;
         while (weekDate.isBefore(currentDate.add(1, 'month'))) {
@@ -156,85 +140,59 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         break;
     }
   }
-
   logger.info("[DataContext] Generated income instances:", {
     count: incomes.length,
     dates: incomes.map(inc => inc.date)
   });
-
   return incomes;
 };
 
-// Helper function to filter recurring bills to show only one instance per month in calendar view
 const filterBillsForCalendar = (bills: Bill[]) => {
   const uniqueBills = new Map<string, Bill>();
-
   bills.forEach(bill => {
     const billDate = dayjs(bill.date);
-    // Only use the name and day of month for the key to ensure one instance per day
     const billKey = `${bill.name}-${billDate.date()}`;
-
     if (!uniqueBills.has(billKey)) {
       uniqueBills.set(billKey, bill);
     }
   });
-
   return Array.from(uniqueBills.values());
 };
 
-// Helper function to expand recurring bills into multiple entries
 const expandRecurringBill = (baseBill: Bill) => {
   const bills: Bill[] = [];
-
-  // Validate date before processing
   if (!baseBill.date || !dayjs(baseBill.date).isValid()) {
     logger.error("[DataContext] Invalid date in bill:", { bill: baseBill });
     throw new Error('Invalid date format in bill');
   }
-
-  // Set start date to January 2025 and end date to 12 months from current date
   const startDate = dayjs('2025-01-01');
   const endDate = dayjs().add(12, 'months').endOf('month');
   const baseDate = dayjs(baseBill.date);
-
-  // For all bills, generate monthly occurrences
-  let currentDate = startDate.date(baseDate.date()); // Keep the same day of month
-
+  let currentDate = startDate.date(baseDate.date());
   while (currentDate.isBefore(endDate)) {
-    // Generate instance ID using the month difference
     const monthDiff = currentDate.diff(baseDate, 'month');
     const instanceId = generateInstanceId(baseBill.id, monthDiff);
-
     bills.push({
       ...baseBill,
       id: instanceId,
       date: currentDate.format('YYYY-MM-DD'),
       recurring_type: 'monthly'
     });
-
-    // Move to next month
     currentDate = currentDate.add(1, 'month');
-
-    // Handle months with fewer days
     if (baseDate.date() > currentDate.daysInMonth()) {
       currentDate = currentDate.endOf('month');
     }
   }
-
-  // For calendar view, filter to show only one instance per month
   if (window.location.pathname === '/') {
     return filterBillsForCalendar(bills);
   }
-
   return bills;
 };
 
-// Utility function for handling API requests
 const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}, baseUrl: string = '/api') => {
   try {
     const response = await fetch(baseUrl + url, options);
     const responseText = await response.text();
-
     if (!response.ok) {
       logger.error("[DataContext] API request failed:", {
         url,
@@ -242,7 +200,6 @@ const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}
         statusText: response.statusText,
         responseText
       });
-
       let errorData = {};
       try {
         errorData = JSON.parse(responseText);
@@ -252,7 +209,6 @@ const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}
           responseText
         });
       }
-
       throw new Error(
         `Request failed (${response.status}): ${
           errorData && 'message' in errorData ? errorData.message :
@@ -261,7 +217,6 @@ const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}
         }`
       );
     }
-
     try {
       return JSON.parse(responseText);
     } catch (parseError) {
@@ -280,8 +235,6 @@ const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}
   }
 };
 
-
-// Utility function for cache management
 const getCacheKey = () => 'transactions_cache';
 
 const getCache = (): CacheData | null => {
@@ -291,11 +244,9 @@ const getCache = (): CacheData | null => {
       logger.info("[DataContext] No cache found");
       return null;
     }
-
     let cacheData: CacheData;
     try {
       cacheData = JSON.parse(cached);
-      // Validate cache structure
       if (!cacheData.timestamp || !Array.isArray(cacheData.transactions)) {
         throw new Error('Invalid cache structure');
       }
@@ -304,11 +255,8 @@ const getCache = (): CacheData | null => {
       sessionStorage.removeItem(getCacheKey());
       return null;
     }
-
-    // Validate cache version and age
     const now = Date.now();
     const age = now - cacheData.timestamp;
-
     if (cacheData.version !== CACHE_VERSION) {
       logger.info("[DataContext] Cache version mismatch:", {
         cachedVersion: cacheData.version,
@@ -317,7 +265,6 @@ const getCache = (): CacheData | null => {
       sessionStorage.removeItem(getCacheKey());
       return null;
     }
-
     if (age > CACHE_MAX_AGE) {
       logger.info("[DataContext] Cache expired:", {
         age,
@@ -327,7 +274,6 @@ const getCache = (): CacheData | null => {
       sessionStorage.removeItem(getCacheKey());
       return null;
     }
-
     return cacheData;
   } catch (error) {
     logger.error("[DataContext] Error reading cache:", { error: String(error) });
@@ -352,7 +298,6 @@ const setCache = (transactions: any[]) => {
     });
   } catch (error) {
     logger.error("[DataContext] Error setting cache:", { error: String(error) });
-    // Attempt to clear the cache if we can't set it
     try {
       sessionStorage.removeItem(getCacheKey());
     } catch (clearError) {
@@ -361,11 +306,12 @@ const setCache = (transactions: any[]) => {
   }
 };
 
-export function DataProvider({ children }: { children: React.ReactNode }) {
+export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   console.log('[DataContext] Provider initializing');
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]); // Added transactions state
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -375,9 +321,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const loadedIncomes: Income[] = [];
       const loadedBills: Bill[] = [];
       const loadedCategories = new Map<number, Category>();
-      const processedSources = new Set<string>(); // Track processed income sources
-
-      // First pass: Process all one-time incomes
+      const processedSources = new Set<string>();
       transactions.forEach((t: any) => {
         if (t.type === 'income' && (!t.is_recurring || t.recurring_type === 'once')) {
           const income = {
@@ -392,8 +336,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           processedSources.add(income.source);
         }
       });
-
-      // Second pass: Process recurring incomes
       transactions.forEach((t: any) => {
         if (t.type === 'income' && t.is_recurring && t.recurring_type !== 'once' && !processedSources.has(t.description)) {
           const income = {
@@ -406,14 +348,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             secondDate: t.second_date,
             is_recurring: true
           };
-
           const expandedIncomes = expandRecurringIncome(income);
           loadedIncomes.push(...expandedIncomes);
           processedSources.add(income.source);
         }
       });
-
-      // Process bills (unchanged)
       transactions.forEach((t: any) => {
         if (t.type === 'expense') {
           if (t.category_id) {
@@ -424,7 +363,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
               icon: t.category_icon || 'help-circle'
             });
           }
-
           const bill = {
             id: t.id,
             name: t.description || 'Unknown Expense',
@@ -444,36 +382,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
               icon: t.category_icon || 'help-circle'
             } : undefined
           };
-
           const expandedBills = expandRecurringBill(bill);
           const billsToAdd = window.location.pathname === '/' ? filterBillsForCalendar(expandedBills) : expandedBills;
           loadedBills.push(...billsToAdd);
         }
       });
-
-      // Sort incomes by date
       const sortedIncomes = loadedIncomes.sort((a, b) =>
         dayjs(a.date).valueOf() - dayjs(b.date).valueOf()
       );
-
-      // Calculate and log monthly totals for verification
       const monthlyTotals = new Map<string, number>();
       sortedIncomes.forEach(income => {
         const monthKey = dayjs(income.date).format('YYYY-MM');
         const currentTotal = monthlyTotals.get(monthKey) || 0;
         monthlyTotals.set(monthKey, currentTotal + income.amount);
       });
-
       logger.info("[DataContext] Monthly income totals:", {
         totals: Object.fromEntries(monthlyTotals),
         totalIncomes: sortedIncomes.length,
         uniqueSources: Array.from(processedSources)
       });
-
       setIncomes(sortedIncomes);
       setBills(loadedBills);
       setCategories(Array.from(loadedCategories.values()));
-
       logger.info("[DataContext] Successfully processed transactions:", {
         incomesCount: sortedIncomes.length,
         billsCount: loadedBills.length,
@@ -488,15 +418,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const loadData = async () => {
     setIsLoading(true);
     setError(null);
-
     try {
       await checkHealth();
-
       await Promise.all([
         fetchCategories(),
         fetchTransactions()
       ]);
-
       setIsLoading(false);
       return true;
     } catch (err) {
@@ -507,11 +434,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addIncome = async (income: Income) => {
+  const addIncome = async (income: Omit<Income, 'id'>) => {
     try {
       setError(null);
       logger.info("[DataContext] Adding income:", { income });
-
       const payload = {
         description: income.source,
         amount: income.amount,
@@ -522,7 +448,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         second_date: income.secondDate,
         is_recurring: income.occurrenceType !== 'once'
       };
-
       const response = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
@@ -531,18 +456,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify(payload),
       });
-
       if (!response.ok) {
         const errorData = await response.text();
         throw new Error(errorData || 'Failed to create income');
       }
-
-      // Clear cache
       sessionStorage.removeItem(getCacheKey());
-
-      // Force immediate data refresh
       await loadData();
-
       logger.info("[DataContext] Successfully added income, forcing refresh");
       console.log('Income added successfully');
     } catch (error: any) {
@@ -553,11 +472,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addBill = async (bill: Bill) => {
+  const addBill = async (bill: Omit<Bill, 'id'>) => {
     try {
       setError(null);
       logger.info("[DataContext] Adding bill:", { bill });
-
       const newTransaction = await fetchJsonWithErrorHandling('/transactions', {
         method: 'POST',
         headers: {
@@ -573,20 +491,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           yearly_date: bill.yearly_date
         }),
       });
-
       const newBill = {
         ...bill,
         id: newTransaction.id
       };
-
-      // Update local state directly
       setBills(prev => [...prev, newBill]);
-
-      // Invalidate cache
       sessionStorage.removeItem(getCacheKey());
       logger.info("[DataContext] Cache invalidated after adding bill");
       console.log('Bill added successfully');
-
     } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add bill";
       logger.error("[DataContext] Error in addBill:", { error });
@@ -597,68 +509,51 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteTransaction = async (transaction: Income | Bill) => {
-    // Determine transaction type first, before try block
     const isIncome = 'source' in transaction;
-    // Store current state for potential rollback
     const previousIncomes = [...incomes];
     const previousBills = [...bills];
-
     try {
       setError(null);
       logger.info("[DataContext] Starting deletion of transaction:", transaction);
-
-      // Ensure we have a valid transaction object with an ID
       if (!transaction || typeof transaction.id !== 'number') {
         logger.error("[DataContext] Invalid transaction ID:", { id: transaction?.id, type: typeof transaction?.id });
         throw new Error('Invalid transaction: Transaction object is required with a numeric ID');
       }
-
-      // Get the base ID for the transaction (in case it's a recurring instance)
       const baseId = getBaseId(transaction.id);
       logger.info("[DataContext] Calculated base ID for deletion:", {
         originalId: transaction.id,
         baseId: baseId
       });
-
-      // Optimistic update: Remove from state immediately
       if (isIncome) {
         setIncomes(prev => prev.filter(inc => getBaseId(inc.id) !== baseId));
       } else {
         setBills(prev => prev.filter(bill => getBaseId(bill.id) !== baseId));
       }
-
       logger.info("[DataContext] Optimistically removed transaction from state:", {
         id: baseId,
         type: isIncome ? 'income' : 'bill'
       });
-
       const response = await fetch(`/api/transactions/${baseId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
         }
       });
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || errorData.message || response.statusText;
         throw new Error(`Failed to delete transaction: ${response.status} ${errorMessage}`);
       }
-
-      // Just invalidate cache on success
       sessionStorage.removeItem(getCacheKey());
       logger.info("[DataContext] Cache invalidated after deleting transaction");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete transaction";
       logger.error("[DataContext] Error in deleteTransaction:", { error });
-
-      // Revert optimistic update on error
       if (isIncome) {
         setIncomes(previousIncomes);
       } else {
         setBills(previousBills);
       }
-
       logger.info("[DataContext] Successfully rolled back state after delete failure");
       setError(new Error(errorMessage));
       throw error;
@@ -670,18 +565,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const isIncome = 'source' in transaction;
       const baseId = getBaseId(transaction.id);
-
-      // Store current state for potential rollback
       const previousIncomes = [...incomes];
       const previousBills = [...bills];
-
       logger.info("[DataContext] Editing transaction:", {
         transaction,
         baseId,
         type: isIncome ? 'income' : 'expense'
       });
-
-      // Optimistic update
       if (isIncome) {
         const baseTransactionId = getBaseId(transaction.id);
         const expandedIncomes = expandRecurringIncome(transaction as Income);
@@ -694,7 +584,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           bill.id === transaction.id ? transaction as Bill : bill
         ));
       }
-
       const response = await fetch(`/api/transactions/${baseId}`, {
         method: 'PATCH',
         headers: {
@@ -713,27 +602,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           yearly_date: !isIncome ? (transaction as Bill).yearly_date : undefined
         }),
       });
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(`Failed to edit transaction: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
       }
-
-      // Just invalidate cache on success
       sessionStorage.removeItem(getCacheKey());
       logger.info("[DataContext] Cache invalidated after editing transaction");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
       logger.error("[DataContext] Error in editTransaction:", { error });
-
-      // Revert optimistic update on error
-      const isIncome = true; // This should be determined based on the transaction type
-      const previousIncomes = [...incomes];
-      const previousBills = [...bills];
-
+      const isIncome = true;
       setIncomes(prev => isIncome ? previousIncomes : prev);
       setBills(prev => !isIncome ? previousBills : prev);
-
       setError(new Error(errorMessage));
       throw error;
     }
@@ -742,7 +622,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addIncomeToData = async (income: Income) => {
     try {
       logger.info("[DataContext] Adding new income to database:", { income });
-
       const response = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
@@ -758,22 +637,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           second_date: income.secondDate
         }),
       });
-
       if (!response.ok) {
         const errorData = await response.text();
         throw new Error(errorData || 'Failed to create income');
       }
-
       const newTransaction = await response.json();
       logger.info("[DataContext] Server response:", { newTransaction });
-
-      // Create a new income object with the server-generated ID
       const newIncome: Income = {
         ...income,
         id: newTransaction.id
       };
-
-      // For recurring incomes, expand them
       if (income.occurrenceType !== 'once') {
         const expandedIncomes = expandRecurringIncome(newIncome);
         logger.info("[DataContext] Generated expanded incomes:", {
@@ -781,34 +654,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           firstDate: expandedIncomes[0]?.date,
           lastDate: expandedIncomes[expandedIncomes.length - 1]?.date
         });
-
         setIncomes(prev => {
-          // Remove any existing incomes with the same source
           const filtered = prev.filter(i => i.source !== newIncome.source);
           return [...filtered, ...expandedIncomes];
         });
       } else {
-        // For one-time incomes, just add them directly
         setIncomes(prev => [...prev, newIncome]);
       }
-
-      // Invalidate cache and force a refresh
       sessionStorage.removeItem(getCacheKey());
       await loadData();
-
-    } catch (error:any) {
+    } catch (error: any) {
       logger.error("[DataContext] Error in addIncomeToData:", error);
       console.error("Error adding income to data:", error);
       throw error;
     }
   };
-
-  useEffect(() => {
-    loadData().catch(err => {
-      console.error("Failed to fetch initial data:", err);
-      setIsLoading(false); // Ensure loading state is reset even if there's an error
-    });
-  }, [loadData]);
 
   const saveIncomes = async (newIncomes: Income[]) => {
     await Promise.all(newIncomes.map(income => addIncome(income)));
@@ -819,8 +679,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const checkHealth = async () => {
-    // Placeholder for health check
-    // Replace with your actual health check logic
     const response = await fetch('/api/health');
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.status} ${response.statusText}`);
@@ -829,15 +687,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const fetchCategories = async () => {
-    // Placeholder for fetching categories
-    // Replace with your actual fetch categories logic
     const categories = await fetchJsonWithErrorHandling('/categories');
     setCategories(categories);
   };
 
   const fetchTransactions = async () => {
-    // Placeholder for fetching transactions
-    // Replace with your actual fetch transactions logic
     const transactions = await fetchJsonWithErrorHandling('/transactions', {
       headers: {
         'Cache-Control': 'no-cache',
@@ -847,24 +701,75 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     });
     processTransactions(transactions);
+    setTransactions(transactions); //Update transactions state
   };
+
+  useEffect(() => {
+    loadData().catch(err => {
+      console.error("Failed to fetch initial data:", err);
+      setIsLoading(false);
+    });
+  }, [loadData]);
+
+  const updateIncome = async (income: Income) => {
+    //Implementation for updateIncome
+    console.log("updateIncome function needs implementation");
+  }
+
+  const deleteIncome = async (id: string) => {
+    //Implementation for deleteIncome
+    console.log("deleteIncome function needs implementation");
+  }
+
+  const updateBill = async (bill: Bill) => {
+    //Implementation for updateBill
+    console.log("updateBill function needs implementation");
+  }
+
+  const deleteBill = async (id: string) => {
+    //Implementation for deleteBill
+    console.log("deleteBill function needs implementation");
+  }
+
+  const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
+    //Implementation for addTransaction
+    console.log("addTransaction function needs implementation");
+  }
+
+  const updateTransaction = async (transaction: Transaction) => {
+    //Implementation for updateTransaction
+    console.log("updateTransaction function needs implementation");
+  }
+
+  const deleteTransactionById = async (id: string) => {
+      //Implementation for deleteTransactionById
+      console.log("deleteTransactionById function needs implementation");
+  }
 
 
   return (
     <DataContext.Provider value={{
+      isLoading,
+      categories,
       incomes,
       bills,
-      categories,
+      transactions,
+      fetchCategories,
+      fetchTransactions,
+      addIncome,
+      updateIncome,
+      deleteIncome,
+      addBill,
+      updateBill,
+      deleteBill,
+      addTransaction,
+      updateTransaction,
+      deleteTransaction: deleteTransactionById,
       saveIncomes,
       saveBills,
-      addIncome,
-      addBill,
-      deleteTransaction,
-      editTransaction,
+      addIncomeToData,
       resetData: loadData,
       refresh: loadData,
-      addIncomeToData,
-      isLoading,
       error
     }}>
       {children}
@@ -872,10 +777,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useData() {
+export const useData = () => {
   const context = useContext(DataContext);
-  if (context === undefined) {
-    throw new Error("useData must be used within a DataProvider");
+  if (!context) {
+    throw new Error('useData must be used within a DataProvider');
   }
   return context;
-}
+};
