@@ -1,12 +1,13 @@
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import path from 'path';
 import session from 'express-session';
-import pool from '../db';
 import { setupAuth } from './auth';
 import { registerRoutes } from './routes';
+import pool from '../db';
 
 // Load environment variables
 dotenv.config();
@@ -17,8 +18,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: true,
-  credentials: true,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
@@ -26,11 +26,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
-// Configure session middleware
+// Basic session setup with a fallback secret
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'budget_tracker_default_secret',
+  secret: process.env.SESSION_SECRET || 'budget_tracker_secret',
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: true,
+  cookie: { secure: false }
 }));
 
 // Add a basic route for health check
@@ -38,7 +39,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Setup minimal auth (without dependencies on Drizzle)
+// Setup auth with minimal configuration
 setupAuth(app);
 
 // Register API routes
@@ -57,16 +58,7 @@ server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-export default app;
-
-// Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
-  pool.end();
-  process.exit(0);
-});
-
-// Test database connection (unchanged from original)
+// Test database connection
 async function testConnection(retries = 5) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -74,29 +66,29 @@ async function testConnection(retries = 5) {
       try {
         await client.query('SELECT NOW()');
         console.log('Database connection established');
-
+        
+        // Check tables
         const tables = await client.query(`
           SELECT COUNT(*) as table_count 
           FROM information_schema.tables 
           WHERE table_schema = 'public' 
           AND table_type = 'BASE TABLE';
         `);
-
-        const categoryCount = await client.query('SELECT COUNT(*) FROM categories');
-        console.log(`Database status: ${tables.rows[0].table_count} tables, ${categoryCount.rows[0].count} categories`);
+        console.log(`Database has ${tables.rows[0].table_count} tables`);
       } finally {
         client.release();
       }
       break;
     } catch (error) {
-      console.error(`Connection attempt ${attempt} failed:`, error);
+      console.error(`Connection attempt ${attempt} failed:`, error.message);
       if (attempt === retries) {
-        console.error('Max retries reached, unable to establish a database connection.');
-        process.exit(1);
+        console.error('Max retries reached, unable to establish database connection');
       }
-      await new Promise(res => setTimeout(res, 2000 * attempt));
+      await new Promise(res => setTimeout(res, 2000));
     }
   }
 }
 
 testConnection();
+
+export default app;

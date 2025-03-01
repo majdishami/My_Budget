@@ -1,4 +1,5 @@
-import { Express } from "express";
+
+import { Express } from 'express';
 
 export function setupAuth(app: Express): void {
   console.log('[Auth] Setting up minimal auth configuration...');
@@ -11,7 +12,13 @@ export function setupAuth(app: Express): void {
 
   // Add a logout endpoint
   app.get("/api/logout", (req, res) => {
-    res.json({ success: true, message: "Logged out successfully" });
+    if (req.session) {
+      req.session.destroy(() => {
+        res.json({ success: true, message: "Logged out successfully" });
+      });
+    } else {
+      res.json({ success: true, message: "Logged out successfully" });
+    }
   });
 
   console.log('[Auth] Minimal auth configuration completed');
