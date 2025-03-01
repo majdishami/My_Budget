@@ -352,10 +352,8 @@ const App = () => {
 
   useEffect(() => {
     // Initialize the app on mount
-    console.log('App component mounted');
-    // Any initialization logic can go here
+    console.log('App component mounted at', window.location.pathname);
   }, []);
-
 
   return (
     <div className="min-h-screen flex bg-background">

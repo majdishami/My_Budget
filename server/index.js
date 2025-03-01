@@ -200,8 +200,10 @@ const clientDistPath = path.join(__dirname, '../client/dist');
 let staticPath;
 if (fs.existsSync(clientBuildPath)) {
   staticPath = clientBuildPath;
+  console.log("Serving from client/build directory");
 } else if (fs.existsSync(clientDistPath)) {
   staticPath = clientDistPath;
+  console.log("Serving from client/dist directory");
 } else {
   console.warn("Client build directory not found. Serving a placeholder.");
   fs.mkdirSync(clientBuildPath, { recursive: true });
@@ -212,7 +214,20 @@ if (fs.existsSync(clientBuildPath)) {
   staticPath = clientBuildPath;
 }
 
-app.use(express.static(staticPath));
+// Serve static files with proper caching headers
+app.use(express.static(staticPath, {
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      // Don't cache HTML files
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg)$/)) {
+      // Cache static assets for 1 day
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+  }
+}));
 
 // Log all routes for debugging
 app.use((req, res, next) => {
@@ -224,7 +239,10 @@ app.use((req, res, next) => {
 
 // Always serve the client app for any route not caught by API routes
 app.get('*', (req, res) => {
-  console.log(`Serving index.html for route: ${req.path}`);
+  // Don't log asset requests to reduce console noise
+  if (!req.path.includes('/assets/') && !req.path.includes('.')) {
+    console.log(`Serving index.html for client-side route: ${req.path}`);
+  }
   res.sendFile(path.join(staticPath, 'index.html'));
 });
 
