@@ -40,10 +40,10 @@
     "zustand": "^4.3.8"
   },
   "scripts": {
-    "dev": "vite --port 3001",
+    "dev": "vite --port 3002",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "vite --port 3001"
+    "start": "vite --port 3002"
   },
   "eslintConfig": {
     "extends": [
