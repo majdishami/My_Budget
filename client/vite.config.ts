@@ -10,7 +10,8 @@ export default defineConfig({
     alias: [
       { find: '@', replacement: path.resolve(__dirname, './src') },
       { find: /^@\/(.*)$/, replacement: path.resolve(__dirname, './src/$1') }
-    ]
+    ],
+    extensions: ['.mjs', '.js', '.jsx', '.ts', '.tsx', '.json']
   },
   server: {
     port: 3002,
@@ -24,5 +25,10 @@ export default defineConfig({
   },
   build: {
     outDir: 'build'
+  },
+  esbuild: {
+    loader: 'jsx',
+    include: /src\/.*\.jsx?$/,
+    exclude: [],
   }
 });
