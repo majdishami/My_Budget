@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -39,6 +38,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'; // Added react-router-dom
 
 dayjs.extend(isBetween);
 
@@ -345,110 +345,120 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
-      <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
-        <LeftSidebar
-          incomes={incomes}
-          bills={bills}
-          onEditTransaction={handleEditTransaction}
-          onDeleteTransaction={handleDeleteTransaction}
-          onAddIncome={handleAddIncome}
-          onAddBill={handleAddBill}
-          onReset={handleReset}
+    <Router>
+      <div className="min-h-screen flex bg-background">
+        <aside className="w-56 border-r p-2 bg-muted/30 fixed top-0 bottom-0 overflow-y-auto">
+          <LeftSidebar
+            incomes={incomes}
+            bills={bills}
+            onEditTransaction={handleEditTransaction}
+            onDeleteTransaction={handleDeleteTransaction}
+            onAddIncome={handleAddIncome}
+            onAddBill={handleAddBill}
+            onReset={handleReset}
+          />
+        </aside>
+
+        <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
+          <Routes>
+            <Route path="/" element={
+              <div>
+                <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                  <div className="flex justify-between items-center">
+                    <div className="space-y-2">
+                      <h1 className="text-2xl font-bold">
+                        My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                      </h1>
+                      <div className="flex items-center gap-2">
+                        <Select value={selectedMonth.toString()} onValueChange={(value) => handleMonthChange(parseInt(value))}>
+                          <SelectTrigger>
+                            <span className="p-2 border rounded bg-background min-w-[120px]">{months[selectedMonth].label}</span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {months.map((month) => (
+                              <SelectItem key={month.value} value={month.value.toString()}>
+                                {month.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <Select value={selectedYear.toString()} onValueChange={(value) => handleYearChange(parseInt(value))}>
+                          <SelectTrigger>
+                            <span className="p-2 border rounded bg-background min-w-[100px]">{selectedYear}</span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {years.map((year) => (
+                              <SelectItem key={year} value={year.toString()}>
+                                {year}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <ThemeToggle />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total Income</p>
+                        <p className="text-lg font-semibold text-green-600">
+                          {formatCurrency(monthlyTotals.totalIncome)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total Bills</p>
+                        <p className="text-lg font-semibold text-red-600">
+                          {formatCurrency(monthlyTotals.totalBills)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Net Balance</p>
+                        <p className={`text-lg font-semibold ${
+                          monthlyTotals.balance >= 0 ? "text-green-600" : "text-red-600"
+                        }`}>
+                          {formatCurrency(monthlyTotals.balance)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <div className="flex-1 overflow-y-auto">
+                  <Card className="m-4">
+                    <div className="overflow-hidden">
+                      <Calendar
+                        mode="single"
+                        selected={new Date(selectedYear, selectedMonth, selectedDay)}
+                        onSelect={handleCalendarSelect}
+                        bills={bills}
+                        incomes={incomes}
+                        className="rounded-md"
+                      />
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            } />
+            <Route path="/categories" element={<div>Categories Page</div>} /> {/* Placeholder for categories page */}
+            <Route path="*" element={<Navigate to="/" replace />} /> {/* Redirect to home if route not found */}
+          </Routes>
+        </main>
+
+        <DailySummaryDialog
+          isOpen={showDailySummary}
+          onOpenChange={setShowDailySummary}
+          selectedDay={selectedDay}
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          dayIncomes={getIncomeForDay(selectedDay)}
+          dayBills={getBillsForDay(selectedDay)}
+          totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
+          totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
+          monthlyTotals={monthlyTotals}
         />
-      </aside>
-
-      <main className="ml-56 flex-1 flex flex-col h-screen overflow-hidden min-w-[900px]">
-        <Card className="p-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex justify-between items-center">
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold">
-                My Budget - {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
-              </h1>
-              <div className="flex items-center gap-2">
-                <Select value={selectedMonth.toString()} onValueChange={(value) => handleMonthChange(parseInt(value))}>
-                  <SelectTrigger>
-                    <span className="p-2 border rounded bg-background min-w-[120px]">{months[selectedMonth].label}</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map((month) => (
-                      <SelectItem key={month.value} value={month.value.toString()}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={selectedYear.toString()} onValueChange={(value) => handleYearChange(parseInt(value))}>
-                  <SelectTrigger>
-                    <span className="p-2 border rounded bg-background min-w-[100px]">{selectedYear}</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((year) => (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-6">
-              <ThemeToggle />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Income</p>
-                <p className="text-lg font-semibold text-green-600">
-                  {formatCurrency(monthlyTotals.totalIncome)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Bills</p>
-                <p className="text-lg font-semibold text-red-600">
-                  {formatCurrency(monthlyTotals.totalBills)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Net Balance</p>
-                <p className={`text-lg font-semibold ${
-                  monthlyTotals.balance >= 0 ? "text-green-600" : "text-red-600"
-                }`}>
-                  {formatCurrency(monthlyTotals.balance)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <div className="flex-1 overflow-y-auto">
-          <Card className="m-4">
-            <div className="overflow-hidden">
-              <Calendar
-                mode="single"
-                selected={new Date(selectedYear, selectedMonth, selectedDay)}
-                onSelect={handleCalendarSelect}
-                bills={bills}
-                incomes={incomes}
-                className="rounded-md"
-              />
-            </div>
-          </Card>
-        </div>
-      </main>
-
-      <DailySummaryDialog
-        isOpen={showDailySummary}
-        onOpenChange={setShowDailySummary}
-        selectedDay={selectedDay}
-        selectedMonth={selectedMonth}
-        selectedYear={selectedYear}
-        dayIncomes={getIncomeForDay(selectedDay)}
-        dayBills={getBillsForDay(selectedDay)}
-        totalIncomeUpToToday={calculateTotalsUpToDay(selectedDay).totalIncome}
-        totalBillsUpToToday={calculateTotalsUpToDay(selectedDay).totalBills}
-        monthlyTotals={monthlyTotals}
-      />
-    </div>
+      </div>
+    </Router>
   );
 };
 

@@ -503,7 +503,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const transactions = await fetchJsonWithErrorHandling('/api/transactions', {
         headers: {
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Pragma': 'no-cache',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
       });
 
