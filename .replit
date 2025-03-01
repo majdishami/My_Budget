@@ -66,7 +66,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node server.js"
+args = "pkill -f 'node server.js' || true && node server.js"
 waitForPort = 5000
 
 [[workflows.workflow]]
