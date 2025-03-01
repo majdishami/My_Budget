@@ -6,7 +6,7 @@ import { Toaster } from "./components/ui/toaster";
 import { DataProvider } from "./contexts/DataContext";
 import "./index.css";
 
-// Lazy load the main App component - using explicit .js extension
+// Lazy load the main App component
 const App = lazy(() => import("./App.js"));
 
 // Create root element for React

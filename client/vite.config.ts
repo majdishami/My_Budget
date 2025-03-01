@@ -1,5 +1,6 @@
+
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react-swc';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 
 // https://vitejs.dev/config/
@@ -16,7 +17,14 @@ export default defineConfig({
     host: '0.0.0.0',
     strictPort: true,
     hmr: {
-      clientPort: 4200
+      clientPort: 443
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false
+      }
     }
   },
   build: {
@@ -24,7 +32,7 @@ export default defineConfig({
   },
   esbuild: {
     loader: 'tsx',
-    include: /src\/.*\.[tj]sx?$/,
-    exclude: [],
+    include: ['src/**/*.tsx', 'src/**/*.ts', 'src/**/*.jsx', 'src/**/*.js'],
+    exclude: ['node_modules/**', 'build/**']
   }
 });
