@@ -4,8 +4,9 @@
   "description": "Budget Tracker App",
   "main": "server/dist/index.js",
   "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"npm run client\" \"npm run server\"",
-    "client": "cd client && npm run start",
+    "client": "cd client && npm run dev",
     "server": "nodemon --exec \"node server/index.js\"",
     "build": "cd client && npm run build",
     "start": "node server/index.js"
@@ -42,7 +43,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.13.7",
     "ajv": "^8.17.1",
-    "concurrently": "^8.0.1",
+    "concurrently": "^8.2.2",
     "nodemon": "^2.0.22",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
