@@ -228,3 +228,157 @@ export default function DailySummaryDialog({
     </Dialog>
   );
 }
+import React from 'react';
+import dayjs from 'dayjs';
+import { Bill, Income } from '@/types';
+import { formatCurrency } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+interface DailySummaryDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedDay: number;
+  selectedMonth: number;
+  selectedYear: number;
+  dayIncomes: Income[];
+  dayBills: Bill[];
+  totalIncomeUpToToday: number;
+  totalBillsUpToToday: number;
+  monthlyTotals: {
+    totalIncome: number;
+    totalBills: number;
+    balance: number;
+  };
+}
+
+export function DailySummaryDialog({
+  isOpen,
+  onOpenChange,
+  selectedDay,
+  selectedMonth,
+  selectedYear,
+  dayIncomes,
+  dayBills,
+  totalIncomeUpToToday,
+  totalBillsUpToToday,
+  monthlyTotals,
+}: DailySummaryDialogProps) {
+  const selectedDate = dayjs()
+    .year(selectedYear)
+    .month(selectedMonth)
+    .date(selectedDay);
+  
+  const formattedDate = selectedDate.format('MMMM D, YYYY');
+  const dayBalance = dayIncomes.reduce((sum, income) => sum + income.amount, 0) - 
+                    dayBills.reduce((sum, bill) => sum + bill.amount, 0);
+  
+  const cumulativeBalance = totalIncomeUpToToday - totalBillsUpToToday;
+  const remainingIncome = monthlyTotals.totalIncome - totalIncomeUpToToday;
+  const remainingBills = monthlyTotals.totalBills - totalBillsUpToToday;
+  const projectedEndBalance = cumulativeBalance + remainingIncome - remainingBills;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{formattedDate}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6 pt-2">
+          {/* Today's Transactions */}
+          <div>
+            <h3 className="font-semibold text-md mb-2">Today's Transactions</h3>
+            
+            {dayIncomes.length === 0 && dayBills.length === 0 && (
+              <p className="text-sm text-muted-foreground">No transactions for today.</p>
+            )}
+
+            {dayIncomes.length > 0 && (
+              <div className="mb-3">
+                <h4 className="text-sm font-medium mb-1 text-green-600">Income</h4>
+                <ul className="space-y-1">
+                  {dayIncomes.map((income, idx) => (
+                    <li key={idx} className="text-sm flex justify-between">
+                      <span>{income.source}</span>
+                      <span className="font-medium text-green-600">{formatCurrency(income.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {dayBills.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-1 text-red-600">Bills</h4>
+                <ul className="space-y-1">
+                  {dayBills.map((bill) => (
+                    <li key={bill.id} className="text-sm flex justify-between">
+                      <span>{bill.name}</span>
+                      <span className="font-medium text-red-600">{formatCurrency(bill.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {(dayIncomes.length > 0 || dayBills.length > 0) && (
+              <div className="mt-2 pt-2 border-t flex justify-between text-sm font-medium">
+                <span>Today's Balance</span>
+                <span className={dayBalance >= 0 ? "text-green-600" : "text-red-600"}>
+                  {formatCurrency(dayBalance)}
+                </span>
+              </div>
+            )}
+          </div>
+          
+          {/* Month-to-Date Summary */}
+          <div>
+            <h3 className="font-semibold text-md mb-2">Month-to-Date Summary</h3>
+            <div className="space-y-1">
+              <div className="text-sm flex justify-between">
+                <span>Total Income</span>
+                <span className="font-medium text-green-600">{formatCurrency(totalIncomeUpToToday)}</span>
+              </div>
+              <div className="text-sm flex justify-between">
+                <span>Total Bills</span>
+                <span className="font-medium text-red-600">{formatCurrency(totalBillsUpToToday)}</span>
+              </div>
+              <div className="text-sm flex justify-between border-t pt-1 mt-1">
+                <span>Current Balance</span>
+                <span className={`font-medium ${cumulativeBalance >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {formatCurrency(cumulativeBalance)}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Projections */}
+          <div>
+            <h3 className="font-semibold text-md mb-2">Month-End Projection</h3>
+            <div className="space-y-1">
+              <div className="text-sm flex justify-between">
+                <span>Remaining Income</span>
+                <span className="font-medium">{formatCurrency(remainingIncome)}</span>
+              </div>
+              <div className="text-sm flex justify-between">
+                <span>Remaining Bills</span>
+                <span className="font-medium">{formatCurrency(remainingBills)}</span>
+              </div>
+              <div className="text-sm flex justify-between border-t pt-1 mt-1">
+                <span>Projected End Balance</span>
+                <span className={`font-medium ${projectedEndBalance >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {formatCurrency(projectedEndBalance)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
