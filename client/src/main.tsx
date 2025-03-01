@@ -33,8 +33,8 @@ if (!rootElement) throw new Error("Failed to find root element");
 const root = createRoot(rootElement);
 
 // Enable HMR for App component
-if (importMeta.hot) {
-  importMeta.hot.accept('./App', (newApp) => {
+if (import.meta.hot) {
+  import.meta.hot.accept('./App', (newApp) => {
     if (newApp) {
       // Re-render the app when HMR update is received
       root.render(
@@ -58,7 +58,6 @@ root.render(
     </DataProvider>
   </Suspense>
 );
-
 
 // Minimal implementations for supporting files (these would ideally be in their own files)
 //index.css
