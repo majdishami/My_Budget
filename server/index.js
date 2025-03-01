@@ -10,7 +10,7 @@ const session = require('express-session');
 
 // Create Express app
 const app = express();
-const PORT = 5000; // Force port 5000 to avoid conflicts
+const PORT = 5001; // Changed to port 5001 as per configuration
 
 // Create PostgreSQL pool
 const pool = new Pool({
