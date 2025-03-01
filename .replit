@@ -195,4 +195,4 @@ author = 39325428
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "concurrently 'cd client && npm run build && npm run dev' 'node server/index.js'"
+args = "concurrently \"node server/index.js\" \"cd client && npm run dev\""
