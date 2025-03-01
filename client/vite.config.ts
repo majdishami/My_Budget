@@ -1,33 +1,31 @@
 
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
 import path from 'path';
 
+// https://vitejs.dev/config/
 export default defineConfig({
-  server: {
-    port: 3001,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      }
-    },
-  },
-  plugins: [react()],
+  plugins: [
+    react(),
+    tsconfigPaths()
+  ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   server: {
-    port: 3001,
+    port: 3000,
+    host: '0.0.0.0',
     strictPort: true,
-    host: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
+    hmr: {
+      // Use Replit's proxy for WebSocket connections
+      clientPort: 443,
+      host: undefined,
     },
   },
+  build: {
+    outDir: 'build'
+  }
 });

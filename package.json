@@ -1,7 +1,7 @@
 {
   "name": "My_Budget",
   "version": "1.0.0",
-  "type": "module",
+  "type": "commonjs",
   "description": "Budget Tracker App",
   "main": "server/dist/index.js",
   "scripts": {
