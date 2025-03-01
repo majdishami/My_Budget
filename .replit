@@ -43,7 +43,7 @@ localPort = 24678
 externalPort = 3003
 
 [workflows]
-runButton = "Full Stack App"
+runButton = "Full App"
 
 [[workflows.workflow]]
 name = "Project"
@@ -196,3 +196,11 @@ author = 39325428
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "concurrently \"cd server && node index.js\" \"cd client && npm run dev\""
+
+[[workflows.workflow]]
+name = "Full App"
+author = 39325428
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm run build && cd .. && node server/index.js"
