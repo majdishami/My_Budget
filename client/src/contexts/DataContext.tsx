@@ -228,6 +228,9 @@ const expandRecurringBill = (baseBill: Bill) => {
   return bills;
 };
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+const apiBaseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+
 // Utility function for handling API requests
 const fetchJsonWithErrorHandling = async (url: string, options: RequestInit = {}) => {
   try {
@@ -500,7 +503,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       logger.info("[DataContext] Fetching transactions from API...");
-      const transactions = await fetchJsonWithErrorHandling('/api/transactions', {
+      const transactions = await fetchJsonWithErrorHandling(`${apiBaseUrl}/api/transactions`, {
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache',
@@ -541,7 +544,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         is_recurring: income.occurrenceType !== 'once'
       };
 
-      const response = await fetch('/api/transactions', {
+      const response = await fetch(`${apiBaseUrl}/api/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -576,7 +579,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       logger.info("[DataContext] Adding bill:", { bill });
 
-      const newTransaction = await fetchJsonWithErrorHandling('/api/transactions', {
+      const newTransaction = await fetchJsonWithErrorHandling(`${apiBaseUrl}/api/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -650,7 +653,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         type: isIncome ? 'income' : 'bill'
       });
 
-      const response = await fetch(`/api/transactions/${baseId}`, {
+      const response = await fetch(`${apiBaseUrl}/api/transactions/${baseId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -713,7 +716,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         ));
       }
 
-      const response = await fetch(`/api/transactions/${baseId}`, {
+      const response = await fetch(`${apiBaseUrl}/api/transactions/${baseId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -761,7 +764,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       logger.info("[DataContext] Adding new income to database:", { income });
 
-      const response = await fetch('/api/transactions', {
+      const response = await fetch(`${apiBaseUrl}/api/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
