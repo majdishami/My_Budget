@@ -1,22 +1,7 @@
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { db } from "../db";
-import {
-  categories,
-  insertCategorySchema,
-  transactions,
-  bills,
-  insertTransactionSchema,
-  insertBillSchema,
-} from "../db/schema";
-import { eq, ilike, and } from "drizzle-orm";
-import { sql } from "drizzle-orm";
-import dayjs from "dayjs";
-import isBetween from "dayjs/plugin/isBetween";
-import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
-
-dayjs.extend(isBetween);
-dayjs.extend(isSameOrBefore);
+import pool from "../db";
 
 export function registerRoutes(app: Express): Server {
   app.get("/api/health", (req, res) => {
@@ -27,9 +12,8 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/categories", async (req, res) => {
     try {
       console.log("[Categories API] Fetching categories...");
-      const allCategories = await db.query.categories.findMany({
-        orderBy: [categories.name],
-      });
+      const result = await pool.query('SELECT * FROM categories ORDER BY name');
+      const allCategories = result.rows;
       console.log("[Categories API] Found categories:", allCategories.length);
       return res.json(allCategories);
     } catch (error) {
@@ -49,11 +33,14 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/categories", async (req, res) => {
     try {
       console.log("[Categories API] Creating new category:", req.body);
-      const categoryData = await insertCategorySchema.parseAsync(req.body);
-      const [newCategory] = await db
-        .insert(categories)
-        .values(categoryData)
-        .returning();
+      const { name, color, icon } = req.body;
+      
+      const result = await pool.query(
+        'INSERT INTO categories (name, color, icon) VALUES ($1, $2, $3) RETURNING *',
+        [name, color, icon]
+      );
+      
+      const newCategory = result.rows[0];
       console.log("[Categories API] Created category:", newCategory);
       res.status(201).json(newCategory);
     } catch (error) {
@@ -73,20 +60,22 @@ export function registerRoutes(app: Express): Server {
         data: req.body,
       });
 
-      const existingCategory = await db.query.categories.findFirst({
-        where: eq(categories.id, categoryId),
-      });
+      const checkResult = await pool.query(
+        'SELECT * FROM categories WHERE id = $1',
+        [categoryId]
+      );
 
-      if (!existingCategory) {
+      if (checkResult.rows.length === 0) {
         return res.status(404).json({ message: "Category not found" });
       }
 
-      const [updatedCategory] = await db
-        .update(categories)
-        .set(req.body)
-        .where(eq(categories.id, categoryId))
-        .returning();
+      const { name, color, icon } = req.body;
+      const result = await pool.query(
+        'UPDATE categories SET name = $1, color = $2, icon = $3 WHERE id = $4 RETURNING *',
+        [name, color, icon, categoryId]
+      );
 
+      const updatedCategory = result.rows[0];
       console.log("[Categories API] Updated category:", updatedCategory);
       res.json(updatedCategory);
     } catch (error) {
@@ -114,11 +103,12 @@ export function registerRoutes(app: Express): Server {
         id: categoryId,
       });
 
-      const category = await db.query.categories.findFirst({
-        where: eq(categories.id, categoryId),
-      });
+      const checkResult = await pool.query(
+        'SELECT * FROM categories WHERE id = $1',
+        [categoryId]
+      );
 
-      if (!category) {
+      if (checkResult.rows.length === 0) {
         console.log("[Categories API] Category not found:", { id: categoryId });
         return res.status(404).json({
           message: "Category not found",
@@ -126,17 +116,31 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      await db.transaction(async (tx: any) => {
-        await tx.delete(bills).where(eq(bills.category_id, categoryId));
-        const result = await tx
-          .delete(categories)
-          .where(eq(categories.id, categoryId))
-          .returning();
-
-        if (!result.length) {
+      // Begin transaction
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        // Delete related bills
+        await client.query('DELETE FROM bills WHERE category_id = $1', [categoryId]);
+        
+        // Delete the category
+        const result = await client.query(
+          'DELETE FROM categories WHERE id = $1 RETURNING id',
+          [categoryId]
+        );
+        
+        if (result.rows.length === 0) {
           throw new Error("Failed to delete category");
         }
-      });
+        
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
 
       console.log("[Categories API] Successfully deleted category:", {
         id: categoryId,
@@ -167,34 +171,25 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/bills", async (req, res) => {
     try {
       console.log("[Bills API] Fetching bills with categories...");
-      const allBills = await db.query.bills.findMany({
-        columns: {
-          id: true,
-          name: true,
-          amount: true,
-          day: true,
-          category_id: true,
-        },
-        with: {
-          category: {
-            columns: {
-              name: true,
-              color: true,
-              icon: true,
-            },
-          },
-        },
-      });
-
-      const formattedBills = allBills.map((bill: any) => ({
+      
+      const query = `
+        SELECT b.id, b.name, b.amount, b.day, b.category_id,
+               c.name as category_name, c.color as category_color, c.icon as category_icon
+        FROM bills b
+        LEFT JOIN categories c ON b.category_id = c.id
+      `;
+      
+      const result = await pool.query(query);
+      
+      const formattedBills = result.rows.map(bill => ({
         id: bill.id,
         name: bill.name,
         amount: Number(bill.amount),
         day: bill.day,
         category_id: bill.category_id,
-        category_name: bill.category?.name || "General Expenses",
-        category_color: bill.category?.color || "#6366F1",
-        category_icon: bill.category?.icon || "shopping-cart",
+        category_name: bill.category_name || "General Expenses",
+        category_color: bill.category_color || "#6366F1",
+        category_icon: bill.category_icon || "shopping-cart",
       }));
 
       console.log("[Bills API] Found bills:", formattedBills.length);
@@ -210,7 +205,9 @@ export function registerRoutes(app: Express): Server {
         message: "Failed to load bills",
         error:
           process.env.NODE_ENV === "development"
-            ? error
+            ? error instanceof Error
+              ? error.message
+              : "Internal server error"
             : "Internal server error",
       });
     }
@@ -219,13 +216,14 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/bills", async (req, res) => {
     try {
       console.log("[Bills API] Creating new bill:", req.body);
-      const billData = await insertBillSchema.parseAsync(req.body);
-
-      const [newBill] = await db
-        .insert(bills)
-        .values(billData)
-        .returning();
-
+      const { name, amount, day, category_id } = req.body;
+      
+      const result = await pool.query(
+        'INSERT INTO bills (name, amount, day, category_id) VALUES ($1, $2, $3, $4) RETURNING *',
+        [name, amount, day, category_id]
+      );
+      
+      const newBill = result.rows[0];
       console.log("[Bills API] Created bill:", newBill);
       res.status(201).json(newBill);
     } catch (error) {
@@ -244,20 +242,22 @@ export function registerRoutes(app: Express): Server {
         data: req.body,
       });
 
-      const existingBill = await db.query.bills.findFirst({
-        where: eq(bills.id, billId),
-      });
+      const checkResult = await pool.query(
+        'SELECT * FROM bills WHERE id = $1',
+        [billId]
+      );
 
-      if (!existingBill) {
+      if (checkResult.rows.length === 0) {
         return res.status(404).json({ message: "Bill not found" });
       }
 
-      const [updatedBill] = await db
-        .update(bills)
-        .set(req.body)
-        .where(eq(bills.id, billId))
-        .returning();
+      const { name, amount, day, category_id } = req.body;
+      const result = await pool.query(
+        'UPDATE bills SET name = $1, amount = $2, day = $3, category_id = $4 WHERE id = $5 RETURNING *',
+        [name, amount, day, category_id, billId]
+      );
 
+      const updatedBill = result.rows[0];
       console.log("[Bills API] Updated bill:", updatedBill);
       res.json(updatedBill);
     } catch (error) {
@@ -284,11 +284,12 @@ export function registerRoutes(app: Express): Server {
         id: billId,
       });
 
-      const bill = await db.query.bills.findFirst({
-        where: eq(bills.id, billId),
-      });
+      const checkResult = await pool.query(
+        'SELECT * FROM bills WHERE id = $1',
+        [billId]
+      );
 
-      if (!bill) {
+      if (checkResult.rows.length === 0) {
         console.log("[Bills API] Bill not found:", { id: billId });
         return res.status(404).json({
           message: "Bill not found",
@@ -296,16 +297,14 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      await db.transaction(async (tx: typeof db) => {
-        const result = await tx
-          .delete(bills)
-          .where(eq(bills.id, billId))
-          .returning();
+      const result = await pool.query(
+        'DELETE FROM bills WHERE id = $1 RETURNING id',
+        [billId]
+      );
 
-        if (!result.length) {
-          throw new Error("Failed to delete bill");
-        }
-      });
+      if (result.rows.length === 0) {
+        throw new Error("Failed to delete bill");
+      }
 
       console.log("[Bills API] Successfully deleted bill:", {
         id: billId,

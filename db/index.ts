@@ -1,4 +1,3 @@
-
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 
@@ -15,10 +14,16 @@ const poolConfig = {
 };
 
 // Create a PostgreSQL connection pool
-export const pool = new Pool(poolConfig);
+const pool = new Pool(poolConfig);
 
-// Simple query helper function
-export const query = (text, params) => pool.query(text, params);
+// Export query helper function with proper TypeScript types
+export const query = (text: string, params: any[] = []) => pool.query(text, params);
+
+// Export the pool for direct access
+export const db = pool;
+
+// For backwards compatibility with both import syntaxes
+export default pool;
 
 // Handle errors
 pool.on('error', (err) => {
@@ -38,5 +43,3 @@ const testConnection = async () => {
     return false;
   }
 };
-
-export default pool;
