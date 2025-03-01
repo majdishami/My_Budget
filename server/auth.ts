@@ -46,7 +46,7 @@ async function getUserByUsername(username: string): Promise<SelectUser[]> {
 export function setupAuth(app: Express): void {
   console.log('[Auth] Setting up minimal auth configuration...');
 
-  // Add a basic endpoint for checking auth status
+  // Add a basic endpoint for checking auth status that doesn't require session
   app.get("/api/user", (req, res) => {
     // Since no auth is needed, always return a default user
     res.json({ id: 1, username: "default" });

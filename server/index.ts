@@ -136,9 +136,10 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: '*',
+  origin: true,
+  credentials: false,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -149,10 +150,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Setup minimal auth placeholder
-setupAuth(app);
+// Add preflight handling for CORS
+app.options('*', cors());
 
-// Register API routes
+// Handle WebSocket upgrade
+app.use((req, res, next) => {
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Upgrade-Insecure-Requests', '1');
+  next();
+});
+
+// Skip auth since no authentication is needed
+// setupAuth(app);
+
+// Register API routes without auth dependency
 const server = registerRoutes(app);
 
 
