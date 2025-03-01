@@ -59,13 +59,10 @@ root.render(
   </Suspense>
 );
 
-
 // index.js (original file - remains mostly unchanged, except for the import of App)
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-
-// App import removed - handled by main.tsx now.
 
 
 // index.css (example, needs to be created)
