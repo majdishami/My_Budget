@@ -8,9 +8,9 @@ import "./index.css";
 
 // Lazy load components for better performance
 const App = lazy(() => import("./App"));
-const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
-const ReportsPage = lazy(() => import("./pages/ReportsPage"));
-const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const CategoriesPage = lazy(() => import("./pages/Categories"));
+const ReportsPage = lazy(() => import("./pages/Reports"));
+const SettingsPage = lazy(() => import("./pages/Settings"));
 
 // Create root element for React
 const rootElement = document.getElementById("root");

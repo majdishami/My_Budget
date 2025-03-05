@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import dayjs from "dayjs";
@@ -21,18 +20,18 @@ export default function IncomeReport() {
   const { incomes } = useData();
   const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
-    to: undefined
+    to: undefined,
   });
 
   const handleDateChange = (range: DateRange) => {
     setDateRange(range);
   };
 
-  const filteredIncomes = incomes.filter(income => {
+  const filteredIncomes = incomes.filter((income) => {
     if (!dateRange.from || !dateRange.to) return true;
     const incomeDate = dayjs(income.date);
     return (
-      incomeDate.isAfter(dayjs(dateRange.from)) && 
+      incomeDate.isAfter(dayjs(dateRange.from)) &&
       incomeDate.isBefore(dayjs(dateRange.to))
     );
   });
@@ -53,28 +52,28 @@ export default function IncomeReport() {
             Back to Dashboard
           </Button>
         </div>
-        
+
         <div className="flex items-center gap-4 mb-6">
           <DateRangePicker
             date={dateRange}
             onDateChange={(range) => handleDateChange(range)}
             className="w-full"
           />
-          <Button 
+          <Button
             onClick={() => setIsDialogOpen(true)}
             disabled={!dateRange.from || !dateRange.to}
           >
             Generate Report
           </Button>
         </div>
-        
+
         {filteredIncomes.length === 0 && dateRange.from && dateRange.to && (
           <p className="text-center text-muted-foreground">
             No income records found for the selected date range.
           </p>
         )}
       </Card>
-      
+
       {isDialogOpen && (
         <IncomeReportDialog
           isOpen={true}

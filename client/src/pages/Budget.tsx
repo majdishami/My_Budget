@@ -24,7 +24,7 @@ dayjs.tz.setDefault(dayjs.tz.guess());
 
 let nextId = 1; // Initialize a counter for IDs
 
-const generateId = () => nextId++; // Generates sequential numeric IDs
+const generateId = () => `id_${Math.random().toString(36).substr(2, 9)}`;
 
 
 const formatCurrency = (amount: number) => {

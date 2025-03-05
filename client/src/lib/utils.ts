@@ -27,13 +27,7 @@ export const formatDate = (date: Date | string) => {
   });
 };
 
-// Import types from external modules
-import { type VariantProps } from "class-variance-authority";
-import { type IconProps } from "@radix-ui/react-icons/dist/types";
-
-/**
- * Common type for components that accept className prop
- */
+// Common type for components that accept className prop
 export interface BaseProps {
   className?: string;
 }
