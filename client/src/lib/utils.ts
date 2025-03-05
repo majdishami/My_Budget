@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { format } from "date-fns";
-=======
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import dayjs from 'dayjs';
->>>>>>> a01ac073900f62162a97a032d9aa4f896c838032
 
 /**
  * Combines className strings with tailwind-merge
