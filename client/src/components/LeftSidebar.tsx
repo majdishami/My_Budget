@@ -1,3 +1,4 @@
+import React, { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Income, Bill } from "@/types";
@@ -21,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import dayjs from "dayjs";
-import { useState, useMemo } from "react";
+import { formatCurrency } from "@/lib/utils";
 
 interface LeftSidebarProps {
   incomes: Income[];
@@ -263,120 +264,6 @@ export function LeftSidebar({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
-}
-
-// Helper function to format currency
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount);
-};
-import React from 'react';
-import { Bill, Income } from '@/types';
-import { Button } from '@/components/ui/button';
-import { ArrowUpDown, Trash, Edit, Plus } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
-
-interface LeftSidebarProps {
-  incomes: Income[];
-  bills: Bill[];
-  onEditTransaction: (type: 'income' | 'bill', data: Income | Bill) => void;
-  onDeleteTransaction: (type: 'income' | 'bill', data: Income | Bill) => void;
-  onAddIncome: () => void;
-  onAddBill: () => void;
-  onReset: () => void;
-}
-
-export function LeftSidebar({
-  incomes,
-  bills,
-  onEditTransaction,
-  onDeleteTransaction,
-  onAddIncome,
-  onAddBill,
-  onReset
-}: LeftSidebarProps) {
-  return (
-    <div className="flex flex-col h-full">
-      <div className="px-3 py-2">
-        <h2 className="font-semibold text-lg mb-2 flex justify-between items-center">
-          Incomes
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onAddIncome}>
-            <Plus className="h-4 w-4" />
-            <span className="sr-only">Add Income</span>
-          </Button>
-        </h2>
-        <div className="space-y-1">
-          {incomes.map((income) => (
-            <div 
-              key={income.id} 
-              className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{income.source}</div>
-                <div className="text-muted-foreground">{formatCurrency(income.amount)}</div>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onEditTransaction('income', income)}>
-                  <Edit className="h-3.5 w-3.5" />
-                  <span className="sr-only">Edit</span>
-                </Button>
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onDeleteTransaction('income', income)}>
-                  <Trash className="h-3.5 w-3.5" />
-                  <span className="sr-only">Delete</span>
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      <div className="px-3 py-2 mt-4">
-        <h2 className="font-semibold text-lg mb-2 flex justify-between items-center">
-          Bills
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onAddBill}>
-            <Plus className="h-4 w-4" />
-            <span className="sr-only">Add Bill</span>
-          </Button>
-        </h2>
-        <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-240px)]">
-          {bills.sort((a, b) => a.day - b.day).map((bill) => (
-            <div 
-              key={bill.id} 
-              className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{bill.name}</div>
-                <div className="text-muted-foreground">
-                  Day {bill.day} - {formatCurrency(bill.amount)}
-                </div>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onEditTransaction('bill', bill)}>
-                  <Edit className="h-3.5 w-3.5" />
-                  <span className="sr-only">Edit</span>
-                </Button>
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onDeleteTransaction('bill', bill)}>
-                  <Trash className="h-3.5 w-3.5" />
-                  <span className="sr-only">Delete</span>
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      <div className="mt-auto px-3 py-4">
-        <Button variant="outline" className="w-full" onClick={onReset}>
-          <ArrowUpDown className="mr-2 h-4 w-4" />
-          Reset Data
-        </Button>
-      </div>
     </div>
   );
 }

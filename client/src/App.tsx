@@ -326,12 +326,12 @@ const App = () => {
   ), []);
 
   const handleMonthChange = (newMonth: number) => {
-    setSelectedMonth(parseInt(newMonth));
+    setSelectedMonth(newMonth);
     setSelectedDay(1);
   };
 
   const handleYearChange = (newYear: number) => {
-    setSelectedYear(parseInt(newYear));
+    setSelectedYear(newYear);
     setSelectedDay(1);
   };
 
@@ -353,7 +353,7 @@ const App = () => {
     // If we are on the root route, redirect to main page
     if (location.pathname === '/' || location.pathname === '') {
       console.log('Redirecting to main page from:', location.pathname);
-      navigate('/main', {replace: true});
+      navigate('/main', { replace: true });
     }
   }, [location.pathname, navigate]);
 

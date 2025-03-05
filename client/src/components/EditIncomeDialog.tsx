@@ -106,19 +106,10 @@ export function EditIncomeDialog({
         source,
         amount: parseFloat(amount),
         date: dayjs(date).toISOString(),
-        occurrenceType
+        occurrenceType,
+        firstDate: occurrenceType === 'twice-monthly' ? firstDate : undefined,
+        secondDate: occurrenceType === 'twice-monthly' ? secondDate : undefined,
       };
-
-      if (source === "Majdi's Salary") {
-        updatedIncome.firstDate = 1;
-        updatedIncome.secondDate = 15;
-        updatedIncome.occurrenceType = 'twice-monthly';
-      } else if (source === "Ruba's Salary") {
-        updatedIncome.occurrenceType = 'biweekly';
-      } else if (occurrenceType === 'twice-monthly') {
-        updatedIncome.firstDate = firstDate;
-        updatedIncome.secondDate = secondDate;
-      }
 
       await onUpdate(updatedIncome);
       onOpenChange(false);

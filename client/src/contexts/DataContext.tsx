@@ -311,7 +311,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]); // Added transactions state
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -596,7 +596,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           type: isIncome ? 'income' : 'expense',
           recurring_type: isIncome ? (transaction as Income).occurrenceType : undefined,
           first_date: isIncome ? (transaction as Income).firstDate : undefined,
-          secondDate: isIncome ? (transaction as Income).secondDate : undefined,
+          second_date: isIncome ? (transaction as Income).secondDate : undefined,
           category_id: !isIncome ? (transaction as Bill).category_id : undefined,
           is_yearly: !isIncome ? (transaction as Bill).isYearly : undefined,
           yearly_date: !isIncome ? (transaction as Bill).yearly_date : undefined
@@ -701,7 +701,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
     processTransactions(transactions);
-    setTransactions(transactions); //Update transactions state
+    setTransactions(transactions); // Update transactions state
   };
 
   useEffect(() => {
@@ -712,40 +712,39 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [loadData]);
 
   const updateIncome = async (income: Income) => {
-    //Implementation for updateIncome
+    // Implementation for updateIncome
     console.log("updateIncome function needs implementation");
-  }
+  };
 
   const deleteIncome = async (id: string) => {
-    //Implementation for deleteIncome
+    // Implementation for deleteIncome
     console.log("deleteIncome function needs implementation");
-  }
+  };
 
   const updateBill = async (bill: Bill) => {
-    //Implementation for updateBill
+    // Implementation for updateBill
     console.log("updateBill function needs implementation");
-  }
+  };
 
   const deleteBill = async (id: string) => {
-    //Implementation for deleteBill
+    // Implementation for deleteBill
     console.log("deleteBill function needs implementation");
-  }
+  };
 
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
-    //Implementation for addTransaction
+    // Implementation for addTransaction
     console.log("addTransaction function needs implementation");
-  }
+  };
 
   const updateTransaction = async (transaction: Transaction) => {
-    //Implementation for updateTransaction
+    // Implementation for updateTransaction
     console.log("updateTransaction function needs implementation");
-  }
+  };
 
   const deleteTransactionById = async (id: string) => {
-      //Implementation for deleteTransactionById
-      console.log("deleteTransactionById function needs implementation");
-  }
-
+    // Implementation for deleteTransactionById
+    console.log("deleteTransactionById function needs implementation");
+  };
 
   return (
     <DataContext.Provider value={{
