@@ -101,7 +101,8 @@ export function CategoryManager() {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({ 
         title: "Success", 
-        description: `Category "${newCategory.name}" created successfully` 
+        description: `Category "${newCategory.name}" created successfully`,
+        open: true 
       });
       setIsAddOpen(false);
     },
@@ -111,6 +112,7 @@ export function CategoryManager() {
         title: "Error",
         description: error.message || "Failed to create category",
         variant: "destructive",
+        open: true,
       });
     },
   });
@@ -138,7 +140,7 @@ export function CategoryManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      toast({ title: "Success", description: "Category updated successfully" });
+      toast({ title: "Success", description: "Category updated successfully", open: true });
       setEditCategory(null);
     },
     onError: (error: Error) => {
@@ -147,6 +149,7 @@ export function CategoryManager() {
         title: "Error",
         description: error.message || "Failed to update category",
         variant: "destructive",
+        open: true,
       });
     },
   });
@@ -169,7 +172,7 @@ export function CategoryManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      toast({ title: "Success", description: "Category deleted successfully" });
+      toast({ title: "Success", description: "Category deleted successfully", open: true });
       setDeleteCategory(null);
     },
     onError: (error: Error) => {
@@ -177,11 +180,12 @@ export function CategoryManager() {
         title: "Error",
         description: error.message || "Failed to delete category",
         variant: "destructive",
+        open: true,
       });
     },
   });
 
-  const handleSubmit = (data: CategoryFormData) => {
+  const handleSubmit = async (data: CategoryFormData): Promise<void> => {
     if (editCategory) {
       updateMutation.mutate({
         id: editCategory.id,
