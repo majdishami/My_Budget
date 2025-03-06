@@ -1,4 +1,5 @@
-import { db, pool } from "@db";
+import db from "@db";
+import pool from "@db/pool";
 import { transactions, categories } from "@db/schema";
 
 async function testDatabaseConnection() {
