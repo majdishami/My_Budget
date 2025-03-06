@@ -44,7 +44,7 @@ interface LocalBill {
   id: string;
   amount: number;
   date: string | number | Date;
-  category_id: string; // Changed to string
+  category_id: string; // Ensured to be a string
   description: string;
   name: string;
   day: number;
@@ -141,7 +141,7 @@ export function AddExpenseDialog({
       amount: parseFloat(amount),
       day: frequency === 'monthly' ? (monthlyDueDate?.getDate() ?? 1) : 1,
       date: frequency === 'one-time' ? oneTimeDate?.toISOString() ?? new Date().toISOString() : new Date().toISOString(),
-      category_id: categoryId as unknown as string, // Ensure category_id is a string
+      category_id: categoryId, // Ensure category_id is a string
       description: name.trim(), // Add description property
       isYearly: frequency === 'yearly',
       reminderEnabled,
@@ -381,39 +381,39 @@ export function AddExpenseDialog({
       </Dialog>
 
       {/* Reminder Dialog */}
-<ReminderDialog
-  bill={{
-    id: `exp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    name,
-    amount: parseFloat(amount || '0'),
-    day: frequency === 'monthly' ? (monthlyDueDate?.getDate() ?? 1) : 1,
-    date: frequency === 'one-time' ? oneTimeDate?.toISOString() ?? new Date().toISOString() : new Date().toISOString(),
-    yearly_date: frequency === 'yearly' ? monthlyDueDate?.toISOString() : undefined,
-    category_id: categoryId, // Ensure category_id is a string
-    category_name: categories.find(cat => cat.id === categoryId)?.name || 'Uncategorized',
-    category_color: categories.find(cat => cat.id === categoryId)?.color || '#D3D3D3',
-    user_id: 1,
-    created_at: new Date().toISOString(),
-    isOneTime: frequency === 'one-time',
-    isYearly: frequency === 'yearly',
-    reminderEnabled,
-    reminderDays
-  }}
-  isOpen={showReminderDialog}
-  onOpenChange={setShowReminderDialog}
-  onSave={(enabled, days) => {
-    if (days < 1 || days > 30) {
-      setErrors(prev => ({
-        ...prev,
-        reminderDays: 'Reminder days must be between 1 and 30'
-      }));
-      return;
-    }
-    setReminderEnabled(enabled);
-    setReminderDays(days);
-    setErrors(prev => ({ ...prev, reminderDays: undefined }));
-  }}
-/>
+      <ReminderDialog
+        bill={{
+          id: `exp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name,
+          amount: parseFloat(amount || '0'),
+          day: frequency === 'monthly' ? (monthlyDueDate?.getDate() ?? 1) : 1,
+          date: frequency === 'one-time' ? oneTimeDate?.toISOString() ?? new Date().toISOString() : new Date().toISOString(),
+          yearly_date: frequency === 'yearly' ? monthlyDueDate?.toISOString() : undefined,
+          category_id: categoryId, // Ensure category_id is a string
+          category_name: categories.find(cat => cat.id === categoryId)?.name || 'Uncategorized',
+          category_color: categories.find(cat => cat.id === categoryId)?.color || '#D3D3D3',
+          user_id: 1,
+          created_at: new Date().toISOString(),
+          isOneTime: frequency === 'one-time',
+          isYearly: frequency === 'yearly',
+          reminderEnabled,
+          reminderDays
+        }}
+        isOpen={showReminderDialog}
+        onOpenChange={setShowReminderDialog}
+        onSave={(enabled, days) => {
+          if (days < 1 || days > 30) {
+            setErrors(prev => ({
+              ...prev,
+              reminderDays: 'Reminder days must be between 1 and 30'
+            }));
+            return;
+          }
+          setReminderEnabled(enabled);
+          setReminderDays(days);
+          setErrors(prev => ({ ...prev, reminderDays: undefined }));
+        }}
+      />
     </>
   );
 }
