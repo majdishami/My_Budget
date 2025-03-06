@@ -6,7 +6,6 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { createServer, Server } from "http";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "@db/schema";
-import { router } from "./routes";
 import { nanoid } from 'nanoid';
 import viteConfig from './vite.config';
 import dotenv from 'dotenv';

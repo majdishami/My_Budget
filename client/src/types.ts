@@ -37,6 +37,8 @@ export interface Income {
  * Represents a recurring bill or expense
  */
 export interface Bill {
+  reminderEnabled: any;
+  reminderDays: number;
   isYearly: any;
   date: string | number | Date;
   category_id(category_id: any): string;

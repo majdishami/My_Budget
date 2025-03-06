@@ -113,29 +113,37 @@ const App = () => {
           id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429.00, day: 1,
           isYearly: undefined,
           date: "",
-          category_id: (category_id: any) => "",
-          description: undefined
+          category_id: () => "",
+          description: undefined,
+          reminderEnabled: false,
+          reminderDays: 0
         },
         {
           id: "2", name: "Maid's 1st payment", amount: 120.00, day: 1,
           isYearly: undefined,
           date: "",
           category_id: (category_id: any) => "",
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "3", name: "Monthly Rent", amount: 3750.00, day: 1,
           isYearly: undefined,
           date: "",
           category_id: (category_id: any) => "",
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "4", name: "Sling TV (CC 9550)", amount: 75.00, day: 3,
           isYearly: undefined,
           date: "",
           category_id: (category_id: any) => "",
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "5", name: "Cox Internet", amount: 81.00, day: 6,
@@ -144,7 +152,9 @@ const App = () => {
           category_id: function (category_id: any): string {
             throw new Error("Function not implemented.");
           },
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "6", name: "Water Bill", amount: 80.00, day: 7,
@@ -153,7 +163,9 @@ const App = () => {
           category_id: function (category_id: any): string {
             throw new Error("Function not implemented.");
           },
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "7", name: "NV Energy Electrical ($100 winter months)", amount: 250.00, day: 7,
@@ -162,7 +174,9 @@ const App = () => {
           category_id: function (category_id: any): string {
             throw new Error("Function not implemented.");
           },
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "8", name: "TransAmerica Life Insurance", amount: 77.00, day: 9,
@@ -171,7 +185,9 @@ const App = () => {
           category_id: function (category_id: any): string {
             throw new Error("Function not implemented.");
           },
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "9", name: "Credit Card minimum payments", amount: 225.00, day: 14,
@@ -180,7 +196,9 @@ const App = () => {
           category_id: function (category_id: any): string {
             throw new Error("Function not implemented.");
           },
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "10", name: "Apple/Google/YouTube (CC 9550)", amount: 130.00, day: 14,
@@ -189,7 +207,9 @@ const App = () => {
           category_id: function (category_id: any): string {
             throw new Error("Function not implemented.");
           },
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "11", name: "Expenses & Groceries charged on (CC 2647)", amount: 3000.00, day: 16,
@@ -198,7 +218,9 @@ const App = () => {
           category_id: function (category_id: any): string {
             throw new Error("Function not implemented.");
           },
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "12", name: "Maid's 2nd Payment of the month", amount: 120.00, day: 17,
@@ -207,7 +229,9 @@ const App = () => {
           category_id: function (category_id: any): string {
             throw new Error("Function not implemented.");
           },
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "13", name: "SoFi Personal Loan", amount: 1915.00, day: 17,
@@ -216,7 +240,9 @@ const App = () => {
           category_id: function (category_id: any): string {
             throw new Error("Function not implemented.");
           },
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "14", name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75.00, day: 17,
@@ -225,16 +251,20 @@ const App = () => {
           category_id: function (category_id: any): string {
             throw new Error("Function not implemented.");
           },
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         },
         {
           id: "15", name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704.00, day: 28,
           isYearly: undefined,
           date: "",
-          category_id: function (category_id: any): string {
+          category_id: function (): string {
             throw new Error("Function not implemented.");
           },
-          description: undefined
+          description: undefined,
+          reminderDays: 0,
+          reminderEnabled: undefined
         }
       ];
       setBills(sampleBills);

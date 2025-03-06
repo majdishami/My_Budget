@@ -167,6 +167,7 @@ export default function EditExpenseDialog({
       toast({
         title: "Success",
         description: "Expense updated successfully",
+        open: true,
       });
       onOpenChange(false);
     } catch (error) {
@@ -179,6 +180,7 @@ export default function EditExpenseDialog({
         variant: "destructive",
         title: "Error",
         description: "Failed to update expense. Please try again.",
+        open: true,
       });
     } finally {
       setIsSubmitting(false);
@@ -194,6 +196,7 @@ export default function EditExpenseDialog({
       description: enabled 
         ? `Reminder set for ${days} days before due date` 
         : "Reminder disabled",
+      open: true,
     });
   };
 
@@ -203,6 +206,7 @@ export default function EditExpenseDialog({
         variant: "destructive",
         title: "Error",
         description: "Failed to load categories. Please try again.",
+        open: true,
       });
     }
   }, [isCategoriesError, categoriesError, toast]);
