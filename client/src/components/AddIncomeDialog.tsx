@@ -21,8 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Income } from "@/types";
 import dayjs from "dayjs";
-import { logger } from "@/lib/logger";
-import { generateId } from "@/lib/utils";
+import logger from "@/lib/logger";
+import { v4 as uuidv4 } from 'uuid';
 
 const formSchema = z.object({
   source: z.string().min(1, "Income source is required"),
@@ -73,7 +73,7 @@ export function AddIncomeDialog({
     try {
       setIsSubmitting(true);
       const newIncome: Income = {
-        id: generateId(),
+        id: uuidv4(),
         source: values.source,
         amount: values.amount,
         date: dayjs(values.date).toISOString(),
