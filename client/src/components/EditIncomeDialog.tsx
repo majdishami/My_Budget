@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Income } from "@/types";
 import dayjs from "dayjs";
 import {
   Select,
@@ -18,9 +17,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { logger } from "@/lib/logger";
+import logger from "@/lib/logger";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+
+interface Income {
+  secondDate?: number;
+  firstDate?: number;
+  occurrenceType: string;
+  id: string;
+  source: string;
+  amount: number;
+  date: string;
+}
 
 interface EditIncomeDialogProps {
   income: Income | null;
@@ -28,6 +37,8 @@ interface EditIncomeDialogProps {
   onOpenChange: (open: boolean) => void;
   onUpdate: (updatedIncome: Income) => void;
 }
+
+// Removed local declaration of Income as it conflicts with the imported Income
 
 export function EditIncomeDialog({
   income,
@@ -72,8 +83,8 @@ export function EditIncomeDialog({
       } else if (income.source === "Ruba's Salary") {
         setOccurrenceType('biweekly');
       } else {
-        setOccurrenceType(income.occurrenceType || 'once');
-        if (income.firstDate) setFirstDate(income.firstDate);
+        setOccurrenceType(income.occurrenceType as 'once' | 'weekly' | 'monthly' | 'biweekly' | 'twice-monthly' || 'once');
+        if (income.firstDate !== undefined) setFirstDate(Number(income.firstDate));
         if (income.secondDate) setSecondDate(income.secondDate);
       }
     }

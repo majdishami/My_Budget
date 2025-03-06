@@ -32,7 +32,7 @@ export function ExpenseReportDialog({
   const totalAmount = bills.reduce((total, bill) => total + bill.amount, 0);
 
   const getCategoryName = (categoryId: number): string => {
-    const category = categories.find((cat) => cat.id === categoryId);
+    const category = categories.find((cat) => Number(cat.id) === categoryId);
     return category ? category.name : "Uncategorized";
   };
 
@@ -56,7 +56,7 @@ export function ExpenseReportDialog({
     const tableRows = bills.map((bill) => [
       new Date(bill.date).toLocaleDateString(),
       bill.description,
-      getCategoryName(bill.category_id),
+      getCategoryName(Number(bill.category_id)),
       formatCurrency(bill.amount),
     ]);
     
@@ -79,7 +79,7 @@ export function ExpenseReportDialog({
       bills.map((bill) => ({
         Date: new Date(bill.date).toLocaleDateString(),
         Description: bill.description,
-        Category: getCategoryName(bill.category_id),
+        Category: getCategoryName(Number(bill.category_id)),
         Amount: bill.amount.toFixed(2),
       }))
     );

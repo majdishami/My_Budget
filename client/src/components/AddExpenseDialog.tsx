@@ -8,12 +8,11 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bill } from "@/types";
+import { Bill as BillType } from "@/types";
 import { ReminderDialog } from "@/components/ReminderDialog";
 import { Bell, AlertCircle, Calendar, Tag } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
-import { generateId } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -27,15 +26,28 @@ import dayjs from "dayjs";
 import { findBestCategoryMatch } from "@/lib/smartTagging";
 
 interface Category {
-  id: number;
+  id: string;
   name: string;
   color: string;
+  type: 'income' | 'expense';
+  reminderEnabled: boolean;
 }
 
 interface AddExpenseDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (newBill: Bill) => void;
+  onConfirm: (newBill: LocalBill) => void;
+}
+
+interface LocalBill {
+  isYearly: any;
+  date: string | number | Date;
+  category_id: number;
+  description: any;
+  id: string;
+  name: string;
+  amount: number;
+  day: number;
 }
 
 export function AddExpenseDialog({
@@ -120,19 +132,13 @@ export function AddExpenseDialog({
     const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
     const timestamp = Date.now();
 
-    const newBill: Bill = {
+    const newBill: LocalBill = {
       id: `exp_${timestamp}_${Math.random().toString(36).substr(2, 9)}`, // Generate a unique ID
       name: name.trim(),
       amount: parseFloat(amount),
-      day: frequency === 'monthly' ? monthlyDueDate?.getDate() : undefined,
-      date: frequency === 'one-time' ? oneTimeDate?.toISOString() : undefined,
-      yearly_date: frequency === 'yearly' ? monthlyDueDate?.toISOString() : undefined,
+      day: frequency === 'monthly' ? (monthlyDueDate?.getDate() ?? 1) : 1,
+      date: frequency === 'one-time' ? oneTimeDate?.toISOString() ?? new Date().toISOString() : new Date().toISOString(),
       category_id: parseInt(categoryId),
-      category_name: selectedCategory?.name || 'Uncategorized',
-      category_color: selectedCategory?.color || '#D3D3D3',
-      user_id: 1,
-      created_at: new Date().toISOString(),
-      isOneTime: frequency === 'one-time',
       isYearly: frequency === 'yearly',
       reminderEnabled,
       reminderDays,
@@ -149,7 +155,7 @@ export function AddExpenseDialog({
       const match = findBestCategoryMatch(name, categories);
       if (match && match.confidence > 0.5) {
         setSuggestedCategory({
-          id: match.category.id,
+          id: parseInt(match.category.id, 10),
           name: match.category.name,
           color: match.category.color,
           confidence: match.confidence
@@ -373,13 +379,13 @@ export function AddExpenseDialog({
       {/* Reminder Dialog */}
       <ReminderDialog
         bill={{
-          id: generateId(),
+          id: `exp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name,
           amount: parseFloat(amount || '0'),
-          day: frequency === 'monthly' ? monthlyDueDate?.getDate() : undefined,
-          date: frequency === 'one-time' ? oneTimeDate?.toISOString() : undefined,
+          day: frequency === 'monthly' ? (monthlyDueDate?.getDate() ?? 1) : 1,
+          date: frequency === 'one-time' ? oneTimeDate?.toISOString() ?? new Date().toISOString() : new Date().toISOString(),
           yearly_date: frequency === 'yearly' ? monthlyDueDate?.toISOString() : undefined,
-          category_id: parseInt(categoryId || '1'),
+          category_id: parseInt(categoryId) || 1,
           category_name: categories.find(cat => cat.id.toString() === categoryId)?.name || 'Uncategorized',
           category_color: categories.find(cat => cat.id.toString() === categoryId)?.color || '#D3D3D3',
           user_id: 1,

@@ -23,10 +23,13 @@ export interface Category {
  * Represents a single income entry in the system
  */
 export interface Income {
-  id: string;
-  source: string;
-  amount: number;
-  date: string;
+  id: string; // Unique identifier for the income
+  source: string; // Source of the income (e.g., "Salary", "Freelance")
+  amount: number; // Amount of the income
+  date: string; // Date of the income in ISO format (YYYY-MM-DD)
+  occurrenceType: string; // Type of occurrence (e.g., "once", "monthly", "biweekly", "twice-monthly")
+  firstDate?: number; // First payment day of the month (optional)
+  secondDate?: number; // Second payment day of the month (optional)
 }
 
 /**
@@ -34,6 +37,10 @@ export interface Income {
  * Represents a recurring bill or expense
  */
 export interface Bill {
+  isYearly: any;
+  date: string | number | Date;
+  category_id(category_id: any): string;
+  description: any;
   id: string;
   name: string;
   amount: number;

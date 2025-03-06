@@ -15,7 +15,7 @@ interface DataContextType {
   addIncome: (income: Omit<Income, 'id'>) => Promise<void>;
   updateIncome: (income: Income) => Promise<void>;
   deleteIncome: (id: string) => Promise<void>;
-  addBill: (bill: Omit<Bill, 'id'>) => Promise<void>;
+  addBill: (bill: Omit<Bill, 'id' | 'isYearly'> & { isYearly?: boolean }) => Promise<void>;
   updateBill: (bill: Bill) => Promise<void>;
   deleteBill: (id: string) => Promise<void>;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
@@ -84,7 +84,7 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         }
         incomes.push({
           ...baseIncome,
-          id: generateInstanceId(baseIncome.id, incomes.length),
+          id: generateInstanceId(Number(baseIncome.id), incomes.length).toString(),
           date: monthlyDate.format('YYYY-MM-DD'),
           occurrenceType: 'monthly'
         });
@@ -95,13 +95,13 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         const secondDate = baseIncome.secondDate || 15;
         incomes.push({
           ...baseIncome,
-          id: generateInstanceId(baseIncome.id, incomes.length),
-          date: currentDate.date(firstDate).format('YYYY-MM-DD'),
+          id: generateInstanceId(Number(baseIncome.id), incomes.length).toString(),
+          date: currentDate.date(Number(firstDate)).format('YYYY-MM-DD'),
           occurrenceType: 'twice-monthly'
         });
         incomes.push({
           ...baseIncome,
-          id: generateInstanceId(baseIncome.id, incomes.length),
+          id: generateInstanceId(Number(baseIncome.id), incomes.length).toString(),
           date: currentDate.date(secondDate).format('YYYY-MM-DD'),
           occurrenceType: 'twice-monthly'
         });
@@ -117,7 +117,7 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         while (biweekDate.isBefore(currentDate.add(1, 'month'))) {
           incomes.push({
             ...baseIncome,
-            id: generateInstanceId(baseIncome.id, incomes.length),
+            id: generateInstanceId(Number(baseIncome.id), incomes.length).toString(),
             date: biweekDate.format('YYYY-MM-DD'),
             occurrenceType: 'biweekly'
           });
@@ -130,7 +130,7 @@ const expandRecurringIncome = (baseIncome: Income, months: number = 12) => {
         while (weekDate.isBefore(currentDate.add(1, 'month'))) {
           incomes.push({
             ...baseIncome,
-            id: generateInstanceId(baseIncome.id, incomes.length),
+            id: generateInstanceId(Number(baseIncome.id), incomes.length).toString(),
             date: weekDate.format('YYYY-MM-DD'),
             occurrenceType: 'weekly'
           });
@@ -171,12 +171,12 @@ const expandRecurringBill = (baseBill: Bill) => {
   let currentDate = startDate.date(baseDate.date());
   while (currentDate.isBefore(endDate)) {
     const monthDiff = currentDate.diff(baseDate, 'month');
-    const instanceId = generateInstanceId(baseBill.id, monthDiff);
+    const instanceId = generateInstanceId(Number(baseBill.id), monthDiff);
     bills.push({
       ...baseBill,
-      id: instanceId,
+      id: instanceId.toString(),
       date: currentDate.format('YYYY-MM-DD'),
-      recurring_type: 'monthly'
+      // recurring_type: 'monthly'
     });
     currentDate = currentDate.add(1, 'month');
     if (baseDate.date() > currentDate.daysInMonth()) {
@@ -360,12 +360,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               id: t.category_id,
               name: t.category_name || 'Uncategorized',
               color: t.category_color || '#808080',
-              icon: t.category_icon || 'help-circle'
+              type: 'expense'
             });
           }
           const bill = {
             id: t.id,
             name: t.description || 'Unknown Expense',
+            description: t.description || 'Unknown Expense',
             amount: parseFloat(t.amount) || 0,
             date: dayjs(t.date).isValid() ? dayjs(t.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
             isOneTime: !t.recurring_id,
@@ -415,7 +416,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const loadData = async () => {
+  const loadData = async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -425,12 +426,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         fetchTransactions()
       ]);
       setIsLoading(false);
-      return true;
+      return;
     } catch (err) {
       console.error("Error loading data:", err);
-      setError("Failed to load data. Please try again later.");
+      setError(new Error("Failed to load data. Please try again later."));
       setIsLoading(false);
-      return false;
+      return;
     }
   };
 
@@ -472,7 +473,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const addBill = async (bill: Omit<Bill, 'id'>) => {
+  const addBill = async (bill: Omit<Bill, 'id' | 'isYearly'> & { isYearly?: boolean }) => {
     try {
       setError(null);
       logger.info("[DataContext] Adding bill:", { bill });
@@ -487,13 +488,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           date: dayjs(bill.date).format('YYYY-MM-DD'),
           type: 'expense',
           category_id: bill.category_id,
-          is_yearly: bill.isYearly,
-          yearly_date: bill.yearly_date
+          is_yearly: bill.isYearly
         }),
       });
-      const newBill = {
+      const newBill: Bill = {
         ...bill,
-        id: newTransaction.id
+        id: newTransaction.id,
+        isYearly: bill.isYearly || false
       };
       setBills(prev => [...prev, newBill]);
       sessionStorage.removeItem(getCacheKey());
@@ -519,15 +520,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         logger.error("[DataContext] Invalid transaction ID:", { id: transaction?.id, type: typeof transaction?.id });
         throw new Error('Invalid transaction: Transaction object is required with a numeric ID');
       }
-      const baseId = getBaseId(transaction.id);
+      const baseId = getBaseId(Number(transaction.id));
       logger.info("[DataContext] Calculated base ID for deletion:", {
         originalId: transaction.id,
         baseId: baseId
       });
       if (isIncome) {
-        setIncomes(prev => prev.filter(inc => getBaseId(inc.id) !== baseId));
+        setIncomes(prev => prev.filter(inc => getBaseId(Number(inc.id)) !== baseId));
       } else {
-        setBills(prev => prev.filter(bill => getBaseId(bill.id) !== baseId));
+        setBills(prev => prev.filter(bill => getBaseId(Number(bill.id)) !== baseId));
       }
       logger.info("[DataContext] Optimistically removed transaction from state:", {
         id: baseId,
@@ -564,7 +565,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setError(null);
       const isIncome = 'source' in transaction;
-      const baseId = getBaseId(transaction.id);
+      const baseId = getBaseId(Number(transaction.id));
       const previousIncomes = [...incomes];
       const previousBills = [...bills];
       logger.info("[DataContext] Editing transaction:", {
@@ -573,10 +574,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         type: isIncome ? 'income' : 'expense'
       });
       if (isIncome) {
-        const baseTransactionId = getBaseId(transaction.id);
+        const baseTransactionId = getBaseId(Number(transaction.id));
         const expandedIncomes = expandRecurringIncome(transaction as Income);
         setIncomes(prev => {
-          const filtered = prev.filter(inc => getBaseId(inc.id) !== baseTransactionId);
+          const filtered = prev.filter(inc => getBaseId(Number(inc.id)) !== baseTransactionId);
           return [...filtered, ...expandedIncomes];
         });
       } else {
@@ -599,7 +600,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           second_date: isIncome ? (transaction as Income).secondDate : undefined,
           category_id: !isIncome ? (transaction as Bill).category_id : undefined,
           is_yearly: !isIncome ? (transaction as Bill).isYearly : undefined,
-          yearly_date: !isIncome ? (transaction as Bill).yearly_date : undefined
+          yearly_date: undefined
         }),
       });
       if (!response.ok) {
@@ -611,7 +612,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to edit transaction";
       logger.error("[DataContext] Error in editTransaction:", { error });
-      const isIncome = true;
+      const isIncome = 'source' in transaction;
+      const previousIncomes = [...incomes];
+      const previousBills = [...bills];
       setIncomes(prev => isIncome ? previousIncomes : prev);
       setBills(prev => !isIncome ? previousBills : prev);
       setError(new Error(errorMessage));

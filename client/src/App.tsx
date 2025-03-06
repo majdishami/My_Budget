@@ -2,12 +2,14 @@ import { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
-import { Income, Bill } from "./types";
+import { Income as IncomeType, Bill as BillType } from "./types";
+
+// Removed duplicate IncomeType interface
 import { cn } from "@/lib/utils";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { DailySummaryDialog } from "@/components/DailySummaryDialog";
+import DailySummaryDialog from "@/components/DailySummaryDialog";
 import {
   Dialog,
   DialogContent,
@@ -61,17 +63,17 @@ const App = () => {
   const [selectedMonth, setSelectedMonth] = useState(today.month());
   const [selectedDay, setSelectedDay] = useState<number>(today.date());
   const [showDayDialog, setShowDayDialog] = useState(false);
-  const [incomes, setIncomes] = useState<Income[]>([]);
-  const [bills, setBills] = useState<Bill[]>([]);
+  const [incomes, setIncomes] = useState<IncomeType[]>([]);
+  const [bills, setBills] = useState<BillType[]>([]);
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAddBillDialog, setShowAddBillDialog] = useState(false);
   const [deletingBill, setDeletingBill] = useState<Bill | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
+  const [editingIncome, setEditingIncome] = useState<IncomeType | null>(null);
   const [showEditIncomeDialog, setShowEditIncomeDialog] = useState(false);
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
-  const [deletingIncome, setDeletingIncome] = useState<Income | null>(null);
+  const [deletingIncome, setDeletingIncome] = useState<IncomeType | null>(null);
   const [showDeleteIncomeDialog, setShowDeleteIncomeDialog] = useState(false);
   const [addIncomeDate, setAddIncomeDate] = useState<Date>(new Date());
   const [showDailySummary, setShowDailySummary] = useState(false);
@@ -94,10 +96,10 @@ const App = () => {
 
     if (!storedIncomes) {
       const today = dayjs();
-      const sampleIncomes: Income[] = [
-        { id: "1", source: "Majdi's Salary", amount: 4739.00, date: today.date(1).toISOString() },
-        { id: "2", source: "Majdi's Salary", amount: 4739.00, date: today.date(15).toISOString() },
-        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10" }
+      const sampleIncomes: IncomeType[] = [
+        { id: "1", source: "Majdi's Salary", amount: 4739.00, date: today.date(1).toISOString(), firstDate: today.date(1).toDate().getTime(), secondDate: today.date(15).toDate().getTime(), occurrenceType: 'biweekly' },
+        { id: "2", source: "Majdi's Salary", amount: 4739.00, date: today.date(15).toISOString(), firstDate: today.date(1).toDate().getTime(), secondDate: today.date(15).toDate().getTime(), occurrenceType: 'biweekly' },
+        { id: "3", source: "Ruba's Salary", amount: 2168.00, date: "2025-01-10", firstDate: new Date("2025-01-10").getTime(), secondDate: new Date("2025-01-24").getTime(), occurrenceType: 'biweekly' }
       ];
       setIncomes(sampleIncomes);
       localStorage.setItem("incomes", JSON.stringify(sampleIncomes));
@@ -106,22 +108,134 @@ const App = () => {
     }
 
     if (!storedBills) {
-      const sampleBills: Bill[] = [
-        { id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429.00, day: 1 },
-        { id: "2", name: "Maid's 1st payment", amount: 120.00, day: 1 },
-        { id: "3", name: "Monthly Rent", amount: 3750.00, day: 1 },
-        { id: "4", name: "Sling TV (CC 9550)", amount: 75.00, day: 3 },
-        { id: "5", name: "Cox Internet", amount: 81.00, day: 6 },
-        { id: "6", name: "Water Bill", amount: 80.00, day: 7 },
-        { id: "7", name: "NV Energy Electrical ($100 winter months)", amount: 250.00, day: 7 },
-        { id: "8", name: "TransAmerica Life Insurance", amount: 77.00, day: 9 },
-        { id: "9", name: "Credit Card minimum payments", amount: 225.00, day: 14 },
-        { id: "10", name: "Apple/Google/YouTube (CC 9550)", amount: 130.00, day: 14 },
-        { id: "11", name: "Expenses & Groceries charged on (CC 2647)", amount: 3000.00, day: 16 },
-        { id: "12", name: "Maid's 2nd Payment of the month", amount: 120.00, day: 17 },
-        { id: "13", name: "SoFi Personal Loan", amount: 1915.00, day: 17 },
-        { id: "14", name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75.00, day: 17 },
-        { id: "15", name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704.00, day: 28 }
+      const sampleBills: BillType[] = [
+        {
+          id: "1", name: "ATT Phone Bill ($115 Rund Roaming)", amount: 429.00, day: 1,
+          isYearly: undefined,
+          date: "",
+          category_id: (category_id: any) => "",
+          description: undefined
+        },
+        {
+          id: "2", name: "Maid's 1st payment", amount: 120.00, day: 1,
+          isYearly: undefined,
+          date: "",
+          category_id: (category_id: any) => "",
+          description: undefined
+        },
+        {
+          id: "3", name: "Monthly Rent", amount: 3750.00, day: 1,
+          isYearly: undefined,
+          date: "",
+          category_id: (category_id: any) => "",
+          description: undefined
+        },
+        {
+          id: "4", name: "Sling TV (CC 9550)", amount: 75.00, day: 3,
+          isYearly: undefined,
+          date: "",
+          category_id: (category_id: any) => "",
+          description: undefined
+        },
+        {
+          id: "5", name: "Cox Internet", amount: 81.00, day: 6,
+          isYearly: undefined,
+          date: "",
+          category_id: function (category_id: any): string {
+            throw new Error("Function not implemented.");
+          },
+          description: undefined
+        },
+        {
+          id: "6", name: "Water Bill", amount: 80.00, day: 7,
+          isYearly: undefined,
+          date: "",
+          category_id: function (category_id: any): string {
+            throw new Error("Function not implemented.");
+          },
+          description: undefined
+        },
+        {
+          id: "7", name: "NV Energy Electrical ($100 winter months)", amount: 250.00, day: 7,
+          isYearly: undefined,
+          date: "",
+          category_id: function (category_id: any): string {
+            throw new Error("Function not implemented.");
+          },
+          description: undefined
+        },
+        {
+          id: "8", name: "TransAmerica Life Insurance", amount: 77.00, day: 9,
+          isYearly: undefined,
+          date: "",
+          category_id: function (category_id: any): string {
+            throw new Error("Function not implemented.");
+          },
+          description: undefined
+        },
+        {
+          id: "9", name: "Credit Card minimum payments", amount: 225.00, day: 14,
+          isYearly: undefined,
+          date: "",
+          category_id: function (category_id: any): string {
+            throw new Error("Function not implemented.");
+          },
+          description: undefined
+        },
+        {
+          id: "10", name: "Apple/Google/YouTube (CC 9550)", amount: 130.00, day: 14,
+          isYearly: undefined,
+          date: "",
+          category_id: function (category_id: any): string {
+            throw new Error("Function not implemented.");
+          },
+          description: undefined
+        },
+        {
+          id: "11", name: "Expenses & Groceries charged on (CC 2647)", amount: 3000.00, day: 16,
+          isYearly: undefined,
+          date: "",
+          category_id: function (category_id: any): string {
+            throw new Error("Function not implemented.");
+          },
+          description: undefined
+        },
+        {
+          id: "12", name: "Maid's 2nd Payment of the month", amount: 120.00, day: 17,
+          isYearly: undefined,
+          date: "",
+          category_id: function (category_id: any): string {
+            throw new Error("Function not implemented.");
+          },
+          description: undefined
+        },
+        {
+          id: "13", name: "SoFi Personal Loan", amount: 1915.00, day: 17,
+          isYearly: undefined,
+          date: "",
+          category_id: function (category_id: any): string {
+            throw new Error("Function not implemented.");
+          },
+          description: undefined
+        },
+        {
+          id: "14", name: "Southwest Gas ($200 in winter/$45 in summer)", amount: 75.00, day: 17,
+          isYearly: undefined,
+          date: "",
+          category_id: function (category_id: any): string {
+            throw new Error("Function not implemented.");
+          },
+          description: undefined
+        },
+        {
+          id: "15", name: "Car Insurance for 3 cars ($268 + $169 + $303 + $21)", amount: 704.00, day: 28,
+          isYearly: undefined,
+          date: "",
+          category_id: function (category_id: any): string {
+            throw new Error("Function not implemented.");
+          },
+          description: undefined
+        }
       ];
       setBills(sampleBills);
       localStorage.setItem("bills", JSON.stringify(sampleBills));
@@ -259,9 +373,9 @@ const App = () => {
     };
   }, [incomes, bills, selectedMonth, selectedYear]);
 
-  const handleEditTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+  const handleEditTransaction = (type: 'income' | 'bill', data: IncomeType | BillType) => {
     if (type === 'income') {
-      setEditingIncome(data as Income);
+      setEditingIncome(data as IncomeType);
       setShowEditIncomeDialog(true);
     } else if (type === 'bill') {
       setEditingBill(data as Bill);
@@ -269,9 +383,9 @@ const App = () => {
     }
   };
 
-  const handleDeleteTransaction = (type: 'income' | 'bill', data: Income | Bill) => {
+  const handleDeleteTransaction = (type: 'income' | 'bill', data: IncomeType | BillType) => {
     if (type === 'income') {
-      setDeletingIncome(data as Income);
+      setDeletingIncome(data as IncomeType);
       setShowDeleteIncomeDialog(true);
     } else {
       setDeletingBill(data as Bill);
@@ -356,6 +470,20 @@ const App = () => {
       navigate('/main', { replace: true });
     }
   }, [location.pathname, navigate]);
+
+  let firstDate: number;
+        
+  // Ensure firstDate is assigned a number
+  firstDate = new Date().getTime(); // Example: Assigning the current timestamp as a number
+  
+  // Example usage
+  console.log(firstDate); // Output the number
+
+  // Assuming secondDate is a string that needs to be converted to a number
+  const secondDate: number = new Date("2023-10-01").getTime(); // Convert to timestamp number
+
+  // Example usage
+  console.log(secondDate); // Output the number
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -466,3 +594,25 @@ const App = () => {
 };
 
 export default App;
+
+export interface Income {
+  id: string;
+  source: string;
+  amount: number;
+  date: string;
+  firstDate: string;
+  secondDate: string;
+  occurrenceType: 'once' | 'monthly' | 'biweekly' | 'weekly';
+}
+
+export interface Bill {
+  id: string;
+  name: string;
+  amount: number;
+  day: number;
+  isYearly?: boolean;
+  date: string;
+  category_id: (category_id: any) => string;
+  description?: string;
+  firstDate?: string;
+}

@@ -250,8 +250,8 @@ export function Budget() {
         return billDate.year() === selectedYear && 
           billDate.month() === selectedMonth && 
           billDate.date() === day;
-      } else if (bill.isYearly && bill.yearly_date) {
-        const yearlyDate = dayjs(bill.yearly_date);
+      } else if (bill.isYearly && bill.date) {
+        const yearlyDate = dayjs(bill.date);
         return yearlyDate.month() === selectedMonth && 
           yearlyDate.date() === day;
       } else {
@@ -451,7 +451,7 @@ export function Budget() {
                       isCurrentDay={isCurrentDay(day || 0)}
                       selectedDay={selectedDay}
                       dayIncomes={dayTransactions.find(t => t.day === day)?.incomes || []}
-                      dayBills={(dayTransactions.find(t => t.day === day)?.bills || []).map(bill => ({...bill, id: Number(bill.id)}))}
+                      dayBills={(dayTransactions.find(t => t.day === day)?.bills || []).map(bill => ({...bill, id: String(bill.id)}))}
                       onDayClick={setSelectedDay}
                       selectedMonth={selectedMonth}
                       selectedYear={selectedYear}
