@@ -60,8 +60,10 @@ export const queryClient = new QueryClient({
       // Add loading state timeout
       // Removed suspense option
       // Add global error handling
-      onError: (error: Error) => {
-        toast.error(error.message);
+      config: {
+        onError: (error: Error) => {
+          toast.error(error.message);
+        },
       },
     },
     mutations: {
