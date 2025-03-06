@@ -40,14 +40,16 @@ interface AddExpenseDialogProps {
 }
 
 interface LocalBill {
-  isYearly: any;
-  date: string | number | Date;
-  category_id: number;
-  description: any;
   id: string;
-  name: string;
   amount: number;
+  date: string | number | Date;
+  category_id: number; // Ensure this is a number
+  description: string;
+  name: string;
   day: number;
+  isYearly: boolean;
+  reminderEnabled: boolean;
+  reminderDays: number;
 }
 
 export function AddExpenseDialog({
@@ -58,7 +60,7 @@ export function AddExpenseDialog({
   // Form state
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
-  const [categoryId, setCategoryId] = useState<string>('');
+  const [categoryId, setCategoryId] = useState<string>(''); // Ensure categoryId is a string
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDays, setReminderDays] = useState(7);
   const [showReminderDialog, setShowReminderDialog] = useState(false);
@@ -129,7 +131,7 @@ export function AddExpenseDialog({
   const handleConfirm = () => {
     if (!validateForm()) return;
 
-    const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
+    const selectedCategory = categories.find(cat => cat.id === categoryId);
     const timestamp = Date.now();
 
     const newBill: LocalBill = {
@@ -138,7 +140,8 @@ export function AddExpenseDialog({
       amount: parseFloat(amount),
       day: frequency === 'monthly' ? (monthlyDueDate?.getDate() ?? 1) : 1,
       date: frequency === 'one-time' ? oneTimeDate?.toISOString() ?? new Date().toISOString() : new Date().toISOString(),
-      category_id: parseInt(categoryId),
+      category_id: parseInt(categoryId, 10), // Ensure category_id is a number
+      description: name.trim(), // Add description property
       isYearly: frequency === 'yearly',
       reminderEnabled,
       reminderDays,
@@ -320,7 +323,7 @@ export function AddExpenseDialog({
               <div className="grid gap-1">
                 <Label htmlFor="expense-category">Category</Label>
                 <Select
-                  value={categoryId}
+                  value={categoryId} // Ensure value is a string
                   onValueChange={(value) => {
                     setCategoryId(value);
                     setErrors(prev => ({ ...prev, category: undefined }));
@@ -333,7 +336,7 @@ export function AddExpenseDialog({
                     {categories.map((category) => (
                       <SelectItem
                         key={category.id}
-                        value={category.id.toString()}
+                        value={category.id}
                       >
                         <div className="flex items-center gap-2">
                           <div
@@ -385,9 +388,9 @@ export function AddExpenseDialog({
           day: frequency === 'monthly' ? (monthlyDueDate?.getDate() ?? 1) : 1,
           date: frequency === 'one-time' ? oneTimeDate?.toISOString() ?? new Date().toISOString() : new Date().toISOString(),
           yearly_date: frequency === 'yearly' ? monthlyDueDate?.toISOString() : undefined,
-          category_id: (parseInt(categoryId) || 1).toString(),
-          category_name: categories.find(cat => cat.id.toString() === categoryId)?.name || 'Uncategorized',
-          category_color: categories.find(cat => cat.id.toString() === categoryId)?.color || '#D3D3D3',
+          category_id: parseInt(categoryId, 10) || 1,
+          category_name: categories.find(cat => cat.id === categoryId)?.name || 'Uncategorized',
+          category_color: categories.find(cat => cat.id === categoryId)?.color || '#D3D3D3',
           user_id: 1,
           created_at: new Date().toISOString(),
           isOneTime: frequency === 'one-time',
