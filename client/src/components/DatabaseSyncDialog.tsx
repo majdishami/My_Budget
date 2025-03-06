@@ -44,6 +44,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
       toast({
         title: "Backup Generated",
         description: "Your database backup has been generated and download should start automatically.",
+        open: true,
       });
     } catch (error) {
       console.error('Backup error:', error);
@@ -51,6 +52,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
         title: "Backup Failed",
         description: error instanceof Error ? error.message : "Failed to backup database",
         variant: "destructive",
+        open: true,
       });
     } finally {
       setIsBackupLoading(false);
@@ -64,6 +66,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
         title: "No File Selected",
         description: "Please select a backup file to restore",
         variant: "destructive",
+        open: true,
       });
       return;
     }
@@ -89,6 +92,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
       toast({
         title: "Restore Successful",
         description: "Your database has been restored from the backup file.",
+        open: true,
       });
 
       // Reset file selection
@@ -105,6 +109,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
         title: "Restore Failed",
         description: error instanceof Error ? error.message : "Failed to restore database",
         variant: "destructive",
+        open: true,
       });
     } finally {
       setIsRestoreLoading(false);
@@ -121,6 +126,7 @@ export function DatabaseSyncDialog({ isOpen, onOpenChange }: DatabaseSyncDialogP
           title: "Invalid File Type",
           description: "Please select a valid JSON backup file",
           variant: "destructive",
+          open: true,
         });
         event.target.value = ''; // Reset the input
         setSelectedFile(null);
