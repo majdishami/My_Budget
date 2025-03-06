@@ -3,8 +3,8 @@ import { generateDatabaseBackup } from '../utils/db-sync';
 import path from 'path';
 import fs from 'fs';
 import fileUpload from 'express-fileupload';
-import { File } from 'express-fileupload';
-import { db } from '@db';
+// Removed incorrect import for File
+import db from '@db';
 import { bills, transactions, categories } from '@db/schema';
 import { sql } from 'drizzle-orm';
 
@@ -178,7 +178,7 @@ router.post('/api/sync/restore', async (req, res) => {
       return res.status(400).json({ error: 'No backup file provided' });
     }
 
-    const uploadedFile = req.files.backup as File;
+    const uploadedFile = req.files.backup as fileUpload.UploadedFile;
     tempPath = path.join(process.cwd(), 'tmp', `restore_${Date.now()}.json`);
 
     const tmpDir = path.join(process.cwd(), 'tmp');
