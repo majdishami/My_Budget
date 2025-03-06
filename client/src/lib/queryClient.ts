@@ -59,25 +59,16 @@ export const queryClient = new QueryClient({
       retry: false,
       // Add loading state timeout
       // Removed suspense option
-      useErrorBoundary: true,
       // Add global error handling
       onError: (error: Error) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
+        toast.error(error.message);
       },
     },
     mutations: {
       retry: false,
       // Add global error handling for mutations
       onError: (error: Error) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
+        toast.error(error.message);
       },
     },
   },
