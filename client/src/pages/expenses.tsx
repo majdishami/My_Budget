@@ -23,16 +23,19 @@ const ExpenseReportPage: React.FC = () => {
     description: string;
   }
   
-  const { data: expenses = [] as Expense[], isLoading, isError } = useQuery(['expenses'], fetchExpenses, {
-    onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to load expenses. Please try again later.',
-        variant: 'destructive',
-        open: true,
-      });
-    },
-  });
+  const { data: expenses = [], isLoading, isError } = useQuery<Expense[]>({
+      queryKey: ['expenses'],
+      queryFn: fetchExpenses,
+    }, {
+      onError: () => {
+        toast({
+          title: 'Error',
+          description: 'Failed to load expenses. Please try again later.',
+          variant: 'destructive',
+          open: true,
+        });
+      },
+    });
 
   if (isLoading) return <div>Loading expenses...</div>;
   if (isError) return <div>Error loading expenses</div>;
