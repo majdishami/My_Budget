@@ -14,13 +14,3 @@ const Settings: React.FC = () => {
 };
 
 export default Settings;
-import React from "react";
-
-export default function Settings() {
-  return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
-      <p>Configure your budget application settings here.</p>
-    </div>
-  );
-}
