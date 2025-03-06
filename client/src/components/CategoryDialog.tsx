@@ -11,6 +11,7 @@ import { ChromePicker } from 'react-color';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { findBestCategoryMatch } from "@/lib/smartTagging";
+
 import { Category } from "@/types";
 
 const categorySchema = z.object({
@@ -70,7 +71,7 @@ export function CategoryDialog({
     if (expenseDescription && categories.length > 0) {
       const match = findBestCategoryMatch(expenseDescription, categories);
       if (match && match.confidence > 0.5) {
-        form.setValue('suggested_category_id', match.category.id);
+        form.setValue('suggested_category_id', Number(match.category.id));
         // Optionally, you can auto-fill the form with the suggested category
         if (!initialData) {
           form.setValue('name', match.category.name);
@@ -107,6 +108,7 @@ export function CategoryDialog({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save category",
         variant: "destructive",
+        open: true,
       });
     } finally {
       setSubmitting(false);
