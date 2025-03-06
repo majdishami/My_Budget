@@ -296,7 +296,7 @@ export function CategoryManager() {
           }
         }}
         onSubmit={handleSubmit}
-        initialData={editCategory || undefined}
+        initialData={editCategory ? { name: editCategory.name, color: editCategory.color, icon: editCategory.icon, open: isAddOpen } : undefined}
         showSuccessMessage={false}
       />
 

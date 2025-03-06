@@ -3,6 +3,7 @@
  * Represents a transaction category
  */
 export interface Category {
+  icon: null;
   id: string;
   name: string;
   type: 'income' | 'expense';

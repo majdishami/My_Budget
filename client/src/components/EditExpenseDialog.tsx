@@ -90,6 +90,7 @@ export default function EditExpenseDialog({
           variant: "destructive",
           title: "Error",
           description: "Failed to load expense details. Please try again.",
+          open: true,
         });
       }
     }

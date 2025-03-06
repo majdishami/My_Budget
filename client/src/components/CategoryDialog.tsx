@@ -19,6 +19,7 @@ const categorySchema = z.object({
   color: z.string().min(1, "Color is required").max(50),
   icon: z.string().nullish(),
   suggested_category_id: z.number().nullish(),
+  open: z.boolean(),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -92,13 +93,15 @@ export function CategoryDialog({
         color: data.color,
         icon: data.icon?.trim() ?? null,
         suggested_category_id: data.suggested_category_id,
+        open: isOpen,
       });
 
       if (showSuccessMessage) {
         toast({
-          title: initialData ? "Category updated" : "Category created",
-          description: `Successfully ${initialData ? 'updated' : 'created'} category "${data.name}"`,
-        });
+                  title: initialData ? "Category updated" : "Category created",
+                  description: `Successfully ${initialData ? 'updated' : 'created'} category "${data.name}"`,
+                  open: true,
+                });
       }
 
       form.reset();
