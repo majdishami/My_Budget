@@ -1,57 +1,61 @@
-import { cn } from "@/lib/utils";
-import { Bill, Income } from "@/types";
-import { Dot } from "lucide-react";
-import dayjs from 'dayjs';
+import dayjs from "dayjs";
+import { useEffect } from "react";
 
-interface DayContentProps {
+export default function DayContent({
+  day,
+  bills = [],
+  incomes = [],
+  expenses = [],
+  onClick,
+}: {
   day: Date;
-  bills?: Bill[];
-  incomes?: Income[];
+  bills?: { date: string; amount: number }[];
+  incomes?: { date: string; amount: number }[];
+  expenses?: { date: string; amount: number }[];
   onClick?: (dayNumber: number) => void;
-}
-
-export function DayContent({ day, bills = [], incomes = [], onClick }: DayContentProps) {
+}) {
   const currentMonth = dayjs(day).month();
   const currentYear = dayjs(day).year();
 
-  // Filter bills to only show those in the current month
-  const hasExpenseOnDay = bills.some(bill => {
-    const billDate = dayjs(bill.date);
-    return billDate.date() === day.getDate() && 
-           billDate.month() === currentMonth && 
-           billDate.year() === currentYear;
-  });
+  useEffect(() => {
+    if (localStorage.getItem("theme") === "dark" || !("theme" in localStorage)) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    }
+  }, []);
 
-  // Filter incomes to only show those in the current month
-  const hasIncomeOnDay = (incomes ?? []).some(income => {
-    const incomeDate = dayjs(income.date);
-    return incomeDate.date() === day.getDate() && 
-           incomeDate.month() === currentMonth && 
-           incomeDate.year() === currentYear;
-  });
+  // Debugging logs
+  console.log("Day:", dayjs(day).format("DD MMM"));
+  console.log("Bills Received:", bills);
+  console.log("Incomes Received:", incomes);
+  console.log("Expenses Received:", expenses);
 
-  const handleClick = () => {
-    onClick?.(day.getDate());
-  };
+  // Filter transactions for the specific day
+  const dayBills = bills.filter(bill => bill.date && dayjs(bill.date).isSame(day, "day"));
+  const dayIncomes = incomes.filter(income => income.date && dayjs(income.date).isSame(day, "day"));
+  const dayExpenses = expenses.filter(expense => expense.date && dayjs(expense.date).isSame(day, "day"));
+
+  console.log("Filtered Day Expenses:", dayExpenses);
+  console.log("Filtered Day Bills:", dayBills);
 
   return (
-    <div 
-      className="relative w-full h-full cursor-pointer" 
-      onClick={handleClick}
-    >
-      <div className="absolute inset-0 flex items-center justify-center">
-        {day.getDate()}
-      </div>
-      {(hasIncomeOnDay || hasExpenseOnDay) && (
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
-          {hasIncomeOnDay && (
-            <Dot className="h-3 w-3 text-green-500" />
-          )}
-          {hasExpenseOnDay && (
-            <Dot className="h-3 w-3 text-red-500" />
-          )}
-        </div>
-      )}
+    <div onClick={() => onClick?.(dayjs(day).date())} className="dark:bg-gray-900 dark:text-white p-2 border border-gray-700 rounded-md">
+      <div className="font-bold">{dayjs(day).format("DD MMM")}</div>
+
+      <div className="text-green-400">Incomes: {dayIncomes.length}</div>
+      {dayIncomes.map((income, index) => (
+        <div key={`income-${index}`} className="text-green-400 text-xs">+${income.amount}</div>
+      ))}
+
+      <div className="text-red-500">Expenses: {dayExpenses.length}</div>
+      {dayExpenses.map((expense, index) => (
+        <div key={`expense-${index}`} className="text-red-500 text-xs">-${expense.amount}</div>
+      ))}
+
+      <div className="text-yellow-400">Bills: {dayBills.length}</div>
+      {dayBills.map((bill, index) => (
+        <div key={`bill-${index}`} className="text-yellow-400 text-xs">-${bill.amount}</div>
+      ))}
     </div>
   );
 }

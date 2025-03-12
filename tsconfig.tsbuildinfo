@@ -1,0 +1,1 @@
+{"root":["./server/auth.ts","./server/db-test.ts","./server/index.ts","./server/logger.ts","./server/routes.ts","./server/schema.ts","./server/vite.ts","./server/routes/api.ts","./server/routes/sync.ts","./server/utils/category-reindex.ts","./server/utils/db-sync.ts"],"errors":true,"version":"5.8.2"}

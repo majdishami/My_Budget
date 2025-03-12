@@ -7,9 +7,19 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Budget Tracker</title>
+
+    <!-- ✅ Corrected styles.css path -->
+    <link href="/styles.css" rel="stylesheet"> 
+
+    <!-- ✅ CSP Meta Tag (Backup) -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self'; 
+      style-src 'self' 'unsafe-inline' http://localhost:4173; 
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:4173;">
   </head>
+  
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.tsx"></script> <!-- ✅ Ensure main.tsx is loaded -->
   </body>
 </html>

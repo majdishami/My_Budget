@@ -2,9 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #121212; /* Dark Background */
+    color: #ffffff; /* Light Text */
+  }
+}
+
 @layer base {
   * {
-    @apply border-border;
+    @apply border; /* Updated to a valid Tailwind class */
   }
 
   body {

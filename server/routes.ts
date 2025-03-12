@@ -1,15 +1,24 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { users, insertUserSchema, categories, insertCategorySchema, transactions, bills, insertTransactionSchema } from "@db/schema";
-import { eq, desc, ilike, or, and } from "drizzle-orm";
+import { categories, insertCategorySchema, transactions, bills, insertTransactionSchema, type TransactionSchema } from "@db/schema";
+
+interface Transaction {
+  id: number;
+  description: string;
+  amount: string;
+  date: Date;
+  type: string;
+  category_id: number;
+  recurring_type?: string;
+  is_recurring?: boolean;
+  first_date?: string;
+  second_date?: string;
+}
+import { eq, desc, ilike, and } from "drizzle-orm";
 import { sql } from 'drizzle-orm';
 import dayjs from 'dayjs';
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
 import session from "express-session";
-import ConnectPgSimple from "connect-pg-simple";
-import crypto from "crypto";
 
 export function registerRoutes(app: Express): Server {
   // Test route
@@ -257,7 +266,7 @@ export function registerRoutes(app: Express): Server {
           category_icon: sql<string>`COALESCE(${categories.icon}, 'receipt')`
         })
         .from(transactions)
-        .leftJoin(categories, eq(transactions.category_id, categories.id));
+        .leftJoin(categories, eq(transactions.category_id, categories.id)) as any;
 
       // Build where conditions array for dynamic filtering
       const whereConditions = [];
@@ -317,7 +326,7 @@ export function registerRoutes(app: Express): Server {
           if (billData.is_yearly && billData.yearly_date) {
             const yearlyDate = dayjs(billData.yearly_date);
             // Check for each year in the range
-            let yearCheck = startDate.startOf('year');
+            let yearCheck: dayjs.Dayjs = startDate.startOf('year');
             while (yearCheck.isBefore(endDate)) {
               const billDate = yearlyDate.year(yearCheck.year());
               if (billDate.isBetween(startDate, endDate, 'day', '[]')) {
@@ -340,7 +349,7 @@ export function registerRoutes(app: Express): Server {
           }
 
           // For monthly bills
-          let currentMonth = startDate.startOf('month');
+          let currentMonth: dayjs.Dayjs = startDate.startOf('month');
           while (currentMonth.isSameOrBefore(endDate)) {
             const billDate = billData.day === 1
               ? currentMonth.date(1)
@@ -376,7 +385,7 @@ export function registerRoutes(app: Express): Server {
 
           // Special handling for Ruba's salary (biweekly on Fridays)
           if (transaction.description === "Ruba's Salary") {
-            let currentDate = startDate.clone();
+            let currentDate: dayjs.Dayjs = startDate.clone();
             // Ensure we start on a Friday
             while (currentDate.day() !== 5) { // 5 is Friday
               currentDate = currentDate.add(1, 'day');
@@ -402,7 +411,7 @@ export function registerRoutes(app: Express): Server {
             ? null // Handle twice-monthly separately
             : originalDate.date();
 
-          let currentMonth = startDate.startOf('month');
+          let currentMonth: dayjs.Dayjs = startDate.startOf('month');
 
           while (currentMonth.isSameOrBefore(endDate)) {
             if (transaction.recurring_type === 'twice-monthly' && transaction.first_date && transaction.second_date) {
@@ -450,7 +459,7 @@ export function registerRoutes(app: Express): Server {
 
       // Combine and format all transactions
       const combinedTransactions = [
-        ...actualTransactions.map(t => ({
+        ...actualTransactions.map((t: any) => ({
           ...t,
           amount: Number(t.amount),
           date: dayjs(t.date).format('YYYY-MM-DD')
@@ -487,19 +496,20 @@ export function registerRoutes(app: Express): Server {
       });
 
       // Create the transaction with recurring fields
-      const [newTransaction] = await db.insert(transactions)
+      const newTransaction: Transaction = await db.insert(transactions)
         .values({
           description: transactionData.description,
-          amount: transactionData.amount,
+          amount: transactionData.amount.toString(),
           date: new Date(transactionData.date),
           type: transactionData.type,
-          category_id: transactionData.category_id,
+          category_id: transactionData.category_id ?? 0, // Provide a default value if null
           recurring_type: transactionData.recurring_type || null,
           is_recurring: isRecurring,
-          first_date: transactionData.first_date || null,
-          second_date: transactionData.second_date || null
-        })
-        .returning();
+          first_date: transactionData.first_date?.toString() || null,
+          second_date: transactionData.second_date?.toString() || null
+        } as TransactionSchema)
+        .returning()
+        .then(result => result[0] as Transaction);
 
       console.log('[Transactions API] Created transaction:', newTransaction);
       res.status(201).json(newTransaction);
@@ -702,3 +712,27 @@ export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
   return httpServer;
 }
+// Fix: Ensure both income and expense recurring transactions are handled similarly
+const incomeTransactions = await db.transactions.findAll({
+  where: { type: 'income' },
+});
+incomeTransactions.forEach(transaction => {
+  if (transaction.occurrence === 'monthly') {
+    virtualTransactions.push(transaction);  // Add recurring income transactions
+  }
+});
+
+const expenseTransactions = await db.transactions.findAll({
+  where: { type: 'expense' },
+});
+expenseTransactions.forEach(transaction => {
+  if (transaction.occurrence === 'monthly') {
+    virtualTransactions.push(transaction);  // Add recurring expense (bill) transactions
+  }
+});
+
+// Send the response to the frontend with both income and expense transactions
+app.get('/api/transactions', async (req, res) => {
+  const transactions = await db.transactions.findAll();
+  res.json(transactions);
+});

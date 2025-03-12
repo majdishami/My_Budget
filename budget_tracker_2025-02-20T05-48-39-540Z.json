@@ -1,0 +1,551 @@
+{
+  "categories": {
+    "Groceries": {
+      "id": 2,
+      "color": "#10B981",
+      "icon": "shopping-cart"
+    },
+    "Personal Loan": {
+      "id": 3,
+      "color": "#6366F1",
+      "icon": "credit-card"
+    },
+    "Car Insurance": {
+      "id": 4,
+      "color": "#F59E0B",
+      "icon": "car"
+    },
+    "Maid's Service": {
+      "id": 5,
+      "color": "#EC4899",
+      "icon": "home"
+    },
+    "Credit Card Payments": {
+      "id": 6,
+      "color": "#8B5CF6",
+      "icon": "credit-card"
+    },
+    "Utilities - Electricity": {
+      "id": 7,
+      "color": "#F97316",
+      "icon": "zap"
+    },
+    "Utilities - Gas": {
+      "id": 8,
+      "color": "#EF4444",
+      "icon": "flame"
+    },
+    "Utilities - Water": {
+      "id": 9,
+      "color": "#3B82F6",
+      "icon": "droplet"
+    },
+    "TV Service": {
+      "id": 10,
+      "color": "#8B5CF6",
+      "icon": "tv"
+    },
+    "Internet": {
+      "id": 11,
+      "color": "#2563EB",
+      "icon": "wifi"
+    },
+    "Online Services": {
+      "id": 12,
+      "color": "#6366F1",
+      "icon": "globe"
+    },
+    "Life Insurance": {
+      "id": 13,
+      "color": "#059669",
+      "icon": "heart"
+    },
+    "Others": {
+      "id": 14,
+      "color": "#71717A",
+      "icon": "more-horizontal"
+    },
+    "Phone": {
+      "id": 15,
+      "color": "#32af37",
+      "icon": "phone"
+    },
+    "General Expenses": {
+      "id": 17,
+      "color": "#6366F1",
+      "icon": "shopping-cart"
+    },
+    "Utilities": {
+      "id": 29,
+      "color": "#e91515",
+      "icon": "House-Plug"
+    },
+    "Insurances": {
+      "id": 30,
+      "color": "#ca6464",
+      "icon": "alarm-smoke"
+    },
+    "Rent": {
+      "id": 1,
+      "color": "#3B82F6",
+      "icon": "home"
+    }
+  },
+  "bills": {
+    "2": {
+      "name": "ATT Phone Bill ($115 Rund Roaming)",
+      "amount": 429,
+      "day": 1,
+      "category": "Phone",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "3": {
+      "name": "Maid Service - Beginning of Month Payment",
+      "amount": 120,
+      "day": 1,
+      "category": "Maid's Service",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "4": {
+      "name": "Rent",
+      "amount": 3750,
+      "day": 1,
+      "category": "Rent",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "5": {
+      "name": "Sling TV (CC 9550)",
+      "amount": 75,
+      "day": 3,
+      "category": "TV Service",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "6": {
+      "name": "Cox Internet",
+      "amount": 81,
+      "day": 6,
+      "category": "Internet",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "7": {
+      "name": "Water Bill",
+      "amount": 80,
+      "day": 7,
+      "category": "Utilities - Water",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "8": {
+      "name": "NV Energy Electrical ($100 winter months)",
+      "amount": 250,
+      "day": 7,
+      "category": "Utilities - Electricity",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "9": {
+      "name": "TransAmerica Life Insurance",
+      "amount": 77,
+      "day": 9,
+      "category": "Life Insurance",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "10": {
+      "name": "Credit Card minimum payments",
+      "amount": 225,
+      "day": 14,
+      "category": "Credit Card Payments",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "11": {
+      "name": "Apple/Google/YouTube (CC 9550)",
+      "amount": 130,
+      "day": 14,
+      "category": "Online Services",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "12": {
+      "name": "Expenses & Groceries charged on (CC 2647)",
+      "amount": 3000,
+      "day": 16,
+      "category": "Groceries",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "13": {
+      "name": "Maid Service - Mid-Month Payment",
+      "amount": 120,
+      "day": 17,
+      "category": "Maid's Service",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "14": {
+      "name": "SoFi Personal Loan",
+      "amount": 1915,
+      "day": 17,
+      "category": "Personal Loan",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "15": {
+      "name": "Southwest Gas ($200 in winter/$45 in summer)",
+      "amount": 75,
+      "day": 17,
+      "category": "Utilities - Gas",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    },
+    "16": {
+      "name": "Car Insurance for 3 cars ($268 + $169 + $303 + $21)",
+      "amount": 704,
+      "day": 28,
+      "category": "Car Insurance",
+      "is_one_time": false,
+      "is_yearly": false,
+      "date": null,
+      "yearly_date": null,
+      "reminder_enabled": false,
+      "reminder_days": 7
+    }
+  },
+  "transactions": [
+    {
+      "id": 10,
+      "description": "Water Bill",
+      "amount": 80,
+      "date": "2025-02-06T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 29,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 11,
+      "description": "NV Energy Electrical ($100 winter months)",
+      "amount": 250,
+      "date": "2025-02-06T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 29,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 5,
+      "description": "Rent",
+      "amount": 3750,
+      "date": "2025-02-01T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 1,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 15,
+      "description": "Groceries & Others charged on (CC 2647)",
+      "amount": 3000,
+      "date": "2025-02-16T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 2,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 7,
+      "description": "AT&T (+$115 Rund Roaming)",
+      "amount": 429,
+      "date": "2025-02-01T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 15,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 16,
+      "description": "maid's 2nd Monthly Payment",
+      "amount": 120,
+      "date": "2025-02-17T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 5,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 6,
+      "description": "maid's 1st monthly payment",
+      "amount": 120,
+      "date": "2025-02-01T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 5,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 49,
+      "description": "test monthly income 1",
+      "amount": 1,
+      "date": "2025-02-28T00:00:00.000Z",
+      "type": "income",
+      "category_id": null,
+      "created_at": "2025-02-19T19:52:23.889Z",
+      "recurring_type": "monthly",
+      "is_recurring": true,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 8,
+      "description": "Sling TV (CC 9550)",
+      "amount": 75,
+      "date": "2025-02-02T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 8,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 9,
+      "description": "Cox Internet",
+      "amount": 81,
+      "date": "2025-02-05T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 11,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 13,
+      "description": "Credit Card minimum payments",
+      "amount": 225,
+      "date": "2025-02-13T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 6,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 14,
+      "description": "Apple/Google/YouTube (CC 9550)",
+      "amount": 130,
+      "date": "2025-02-13T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 12,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 17,
+      "description": "SoFi Personal Loan",
+      "amount": 1915,
+      "date": "2025-02-17T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 3,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 19,
+      "description": "Car Insurance for 3 cars ($268 + $169 + $303 + $21)",
+      "amount": 704,
+      "date": "2025-02-27T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 30,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 18,
+      "description": "Southwest Gas ($200 in winter/$45 in summer)",
+      "amount": 75,
+      "date": "2025-02-17T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 29,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 12,
+      "description": "TransAmerica Life Insurance",
+      "amount": 77,
+      "date": "2025-02-08T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 30,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 53,
+      "description": "test expense. monthly 1",
+      "amount": 1,
+      "date": "2025-02-19T00:00:00.000Z",
+      "type": "expense",
+      "category_id": 14,
+      "created_at": "2025-02-19T22:03:18.612Z",
+      "recurring_type": null,
+      "is_recurring": false,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 1,
+      "description": "Majdi's Salary",
+      "amount": 4739,
+      "date": "2025-02-01T00:00:00.000Z",
+      "type": "income",
+      "category_id": 17,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": "twice-monthly",
+      "is_recurring": true,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 2,
+      "description": "Majdi's Salary",
+      "amount": 4739,
+      "date": "2025-02-15T00:00:00.000Z",
+      "type": "income",
+      "category_id": 17,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": "twice-monthly",
+      "is_recurring": true,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 3,
+      "description": "Ruba's Salary",
+      "amount": 2168,
+      "date": "2025-02-07T00:00:00.000Z",
+      "type": "income",
+      "category_id": 17,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": "biweekly",
+      "is_recurring": true,
+      "first_date": null,
+      "second_date": null
+    },
+    {
+      "id": 4,
+      "description": "Ruba's Salary",
+      "amount": 2168,
+      "date": "2025-02-21T00:00:00.000Z",
+      "type": "income",
+      "category_id": 17,
+      "created_at": "2025-02-14T07:01:56.328Z",
+      "recurring_type": "biweekly",
+      "is_recurring": true,
+      "first_date": null,
+      "second_date": null
+    }
+  ]
+}

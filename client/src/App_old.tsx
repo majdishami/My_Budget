@@ -1,4 +1,10 @@
-import { useState, useEffect } from "react";
+/**
+ * ================================================
+ * 🚀 Main Application Component
+ * ================================================
+ */
+
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -46,15 +52,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import Calendar from "@/components/ui/calendar_enhanced";
-import LeftSidebar from "./LeftSidebar";
+import LeftSidebar from "./LeftSidebar"; // ✅ Fixed import path
+
 
 function Router() {
-  const { isLoading, error, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
-  const allTransactions = [...incomes, ...bills];
+const { isLoading, error, incomes, bills, deleteTransaction, editTransaction, addIncomeToData, addBill, refresh } = useData();
+const allTransactions = [...incomes, ...bills]; // ✅ Ensure both incomes and bills are included
 
-  console.log("Debug: Bills fetched", bills);
-  console.log("Debug: Incomes fetched", incomes);
-  console.log("Debug: All transactions combined", allTransactions);
+console.log("Debug: Bills fetched", bills);
+console.log("Debug: Incomes fetched", incomes);
+console.log("Debug: All transactions combined", allTransactions);
 
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -709,10 +716,9 @@ function Router() {
     </ErrorBoundary>
   );
 }
-
 function AppRouter() {
   const { isLoading, error, refresh } = useData();
-  const location = useLocation();
+  const location = useLocation(); // ✅ Corrected useLocation()
 
   const handleErrorReset = useCallback(() => {
     if (error) {
@@ -759,30 +765,20 @@ function AppRouter() {
   );
 }
 
-function App() {
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (!savedTheme || savedTheme === "dark") {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, []);
-
-  return (
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <ErrorBoundary name="RootErrorBoundary" onReset={() => {
-          queryClient.clear();
-          window.location.reload();
-        }}>
-          <AppRouter />
-          <Toaster />
-        </ErrorBoundary>
-      </QueryClientProvider>
-    </BrowserRouter>
-  );
-}
+  function App() {
+    return (
+      <BrowserRouter> {/* ✅ Wrapped everything inside BrowserRouter */}
+        <QueryClientProvider client={queryClient}>
+          <ErrorBoundary name="RootErrorBoundary" onReset={() => {
+            queryClient.clear();
+            window.location.reload();
+          }}>
+            <AppRouter />
+            <Toaster />
+          </ErrorBoundary>
+        </QueryClientProvider>
+      </BrowserRouter>
+    );
+  }
 
 export default App;

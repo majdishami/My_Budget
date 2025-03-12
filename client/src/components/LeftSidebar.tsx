@@ -95,32 +95,44 @@ export function LeftSidebar({
 
   return (
     <div className="relative">
-      {/* Mobile Controls */}
-      <div className="lg:hidden fixed top-4 left-4 z-50 flex gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="bg-background"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="bg-background"
-          onClick={onReset}
-        >
-          <RefreshCw className="h-5 w-5" />
-        </Button>
+      {/* Top Menu Navigation */}
+      <div className="fixed left-0 top-0 h-full w-64 bg-background shadow-md overflow-y-auto" z-50 w-full bg-background p-4 flex justify-between items-center shadow-md">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <Link href="/">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+            >
+              <LayoutDashboard className="h-5 w-5" />
+            </Button>
+          </Link>
+          <h2 className="text-lg font-semibold">Budget Tracker</h2>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onReset}
+          >
+            <RefreshCw className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Sidebar Content */}
-      <div className="p-4 space-y-6">
+      <div className="mt-20 p-4 space-y-6">
         {/* Income Section */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Incomes</h2>
+            <h3 className="text-lg font-semibold">Incomes</h3>
             <Button
               variant="ghost"
               size="icon"
@@ -170,7 +182,7 @@ export function LeftSidebar({
         {/* Bills Section */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Bills</h2>
+            <h3 className="text-lg font-semibold">Bills</h3>
             <Button
               variant="ghost"
               size="icon"
@@ -266,13 +278,3 @@ export function LeftSidebar({
     </div>
   );
 }
-
-// Helper function to format currency
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount);
-};
